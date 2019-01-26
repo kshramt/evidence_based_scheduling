@@ -5,116 +5,265 @@ import uuidv4 from "uuid/v4";
 import "./index.css";
 
 const data = {
-  todo: [
-    {
-      uuid: "94f059ac-d2ce-4db3-8dd3-e184d4516e41",
+  kvs: {
+    "94f059ac-d2ce-4db3-8dd3-e184d4516e41": {
       text: "evidence_based_schedulingを完成させること．",
       estimate: 30,
-      todo_time: "2019-01-26T19:55:00+0900",
+      todo_time: "2019-01-26T01:55:00.000Z",
       done_time: null,
       dont_time: null,
       ranges: [
         {
-          start: "2019-01-26T10:00:00+0900",
-          end: "2019-01-26T13:05:02+0900",
+          start: "2019-01-26T01:00:00.000Z",
+          end: "2019-01-26T04:05:02.000Z",
+        },
+        {
+          start: "2019-01-26T05:15:00.000Z",
+          end: "2019-01-26T06:47:10.000Z",
         },
       ],
       children: [],
     },
-    {
-      uuid: "45ee82b9-cc4b-424c-b2ab-b4e3e2fcef2f",
+    "45ee82b9-cc4b-424c-b2ab-b4e3e2fcef2f": {
       text: "荷物組み立て．",
       estimate: 1.5,
-      todo_time: "2019-01-26T12:58:27+0900",
-      done_time: null,
+      todo_time: "2019-01-26T03:06:27.000Z",
+      done_time: "2019-01-26T06:13:04.000Z",
       dont_time: null,
-      ranges: [],
+      ranges: [
+        {
+          start: "2019-01-26T04:15:00.000Z",
+          end: "2019-01-26T05:00:00.000Z",
+        },
+      ],
       children: [],
     },
-    null,
-  ],
-  done: [null],
-  dont: [null],
+  },
+  todo: ["94f059ac-d2ce-4db3-8dd3-e184d4516e41"],
+  done: ["45ee82b9-cc4b-424c-b2ab-b4e3e2fcef2f"],
+  dont: [],
 };
 
 class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      data: data,
+      data,
     };
   }
+  setText = (k, text) => {
+    const v = {
+      ...this.state.data.kvs[k],
+      text,
+    };
+    const data = this.setState({
+      data: {
+        ...this.state.data,
+        kvs: {
+          ...this.state.data.kvs,
+          [k]: v,
+        },
+      },
+    });
+  };
+  rmFromTodo = k => {
+    return {
+      todo: this.state.data.todo.filter(x => x !== k),
+    };
+  };
+  rmFromDone = k => {
+    return {
+      done: this.state.data.done.filter(x => x !== k),
+    };
+  };
+  rmFromDont = k => {
+    return {
+      dont: this.state.data.dont.filter(x => x !== k),
+    };
+  };
+  addToTodo = k => {
+    return {
+      todo: prepend(k, this.state.data.todo),
+    };
+  };
+  addToDone = k => {
+    return {
+      done: prepend(k, this.state.data.done),
+    };
+  };
+  addToDont = k => {
+    return {
+      dont: prepend(k, this.state.data.dont),
+    };
+  };
+  todoToDone = k => {
+    this.setState({
+      data: {
+        ...this.state.data,
+        ...this.rmFromTodo(k),
+        ...this.addToDone(k),
+      },
+    });
+  };
+  todoToDont = k => {
+    this.setState({
+      data: {
+        ...this.state.data,
+        ...this.rmFromTodo(k),
+        ...this.addToDont(k),
+      },
+    });
+  };
+  doneToTodo = k => {
+    this.setState({
+      data: {
+        ...this.state.data,
+        ...this.rmFromDone(k),
+        ...this.addToTodo(k),
+      },
+    });
+  };
+  dontToTodo = k => {
+    this.setState({
+      data: {
+        ...this.state.data,
+        ...this.rmFromDont(k),
+        ...this.addToTodo(k),
+      },
+    });
+  };
   render = () => {
     const fn = {
-      setTodoText: (i, text) => {
-        const v = {
-          ...this.state.data.todo[i],
-          text,
-        };
-        const todo = setIndex(this.state.data.todo, i, v);
-
-        this.setState({
-          data: {
-            ...data,
-            todo,
-          },
-        });
-      },
+      setText: this.setText,
+      todoToDone: this.todoToDone,
+      todoToDont: this.todoToDont,
+      doneToTodo: this.doneToTodo,
+      dontToTodo: this.dontToTodo,
     };
+
     return (
-      <div className="app">
-        {" "}
+      <div>
         <div className="header">
           <h1>Evidence Based Scheduling</h1>
         </div>
-        <Todo data={this.state.data.todo} fn={fn} />
-        <Done data={this.state.data.done} fn={fn} />
-        <Dont data={this.state.data.dont} fn={fn} />
+        <Todo
+          ks={this.state.data.todo}
+          kvs={this.state.data.kvs}
+          fn={fn}
+          buttons={[TodoToDoneButton, TodoToDontButton]}
+        />
+        <Done
+          ks={this.state.data.done}
+          kvs={this.state.data.kvs}
+          fn={fn}
+          buttons={[DoneToTodoButton]}
+        />
+        <Dont
+          ks={this.state.data.dont}
+          kvs={this.state.data.kvs}
+          fn={fn}
+          buttons={[DontToTodoButton]}
+        />
       </div>
     );
   };
 }
 
 const Todo = props => {
-  const todo_list = props.data
-    .filter(v => v !== null)
-    .map((v, i) => {
-      const handleChange = e => {
-        props.fn.setTodoText(i, e.target.value);
-      };
-      return (
-        <li key={v.uuid}>
-          <textarea key={v.uuid} value={v.text} onChange={handleChange} />
-        </li>
-      );
-    });
-  return (
-    <div className="todo">
-      <h1>TODO</h1>
-      <ol className="todo-list">{todo_list}</ol>
-    </div>
-  );
+  return Panel("To do", props);
 };
 
 const Done = props => {
-  return (
-    <div className="done">
-      <h1>Done</h1>
-    </div>
-  );
+  return Panel("Done", props);
 };
 
 const Dont = props => {
+  return Panel("Don't", props);
+};
+
+const Tree = (ks, props) => {
+  if (ks) {
+    const todo_list = ks.map(k => {
+      const handleTextChange = e => {
+        props.fn.setText(k, e.target.value);
+      };
+      const v = props.kvs[k];
+      return (
+        <li key={v.uuid}>
+          <textarea key={v.uuid} value={v.text} onChange={handleTextChange} />
+          {props.buttons.map(b => b(k, props))}
+          {Tree(props.kvs[k].children, props)}
+        </li>
+      );
+    });
+    return <ol>{todo_list}</ol>;
+  }
+};
+
+const Panel = (title, props) => {
   return (
-    <div className="dont">
-      <h1>Don't</h1>
+    <div>
+      <h1>{title}</h1>
+      {Tree(props.ks, props)}
     </div>
   );
 };
 
-const setIndex = (a, i, v) => {
-  const ret = [...a];
-  ret[i] = v;
+const TodoToDoneButton = (k, props) => {
+  return (
+    <button
+      className="done"
+      onClick={e => {
+        props.fn.todoToDone(k);
+      }}
+    >
+      Done
+    </button>
+  );
+};
+
+const TodoToDontButton = (k, props) => {
+  return (
+    <button
+      className="dont"
+      onClick={e => {
+        props.fn.todoToDont(k);
+      }}
+    >
+      Don't
+    </button>
+  );
+};
+
+const DoneToTodoButton = (k, props) => {
+  return (
+    <button
+      className="todo"
+      onClick={e => {
+        props.fn.doneToTodo(k);
+      }}
+    >
+      To do
+    </button>
+  );
+};
+
+const DontToTodoButton = (k, props) => {
+  return (
+    <button
+      className="todo"
+      onClick={e => {
+        props.fn.dontToTodo(k);
+      }}
+    >
+      To do
+    </button>
+  );
+};
+
+const prepend = (x, a) => {
+  const ret = a.slice();
+  ret.unshift(x);
   return ret;
 };
 
