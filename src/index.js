@@ -51,18 +51,21 @@ class App extends React.Component {
       data,
     };
   }
-  setText = (k, text) => {
+  newKvs = (k, vk, vv) => {
     const v = {
       ...this.state.data.kvs[k],
-      text,
+      [vk]: vv,
     };
-    const data = this.setState({
+    return {
+      ...this.state.data.kvs,
+      [k]: v,
+    };
+  };
+  setText = (k, text) => {
+    this.setState({
       data: {
         ...this.state.data,
-        kvs: {
-          ...this.state.data.kvs,
-          [k]: v,
-        },
+        kvs: this.newKvs(k, "text", text),
       },
     });
   };
@@ -74,11 +77,13 @@ class App extends React.Component {
   rmFromDone = k => {
     return {
       done: this.state.data.done.filter(x => x !== k),
+        kvs:this.newKvs(k,"done_time",null)
     };
   };
   rmFromDont = k => {
     return {
       dont: this.state.data.dont.filter(x => x !== k),
+        kvs:this.newKvs(k,"dont_time",null)
     };
   };
   addToTodo = k => {
@@ -89,11 +94,13 @@ class App extends React.Component {
   addToDone = k => {
     return {
       done: prepend(k, this.state.data.done),
+        kvs:this.newKvs(k,"done_time",(new Date()).toISOString())
     };
   };
   addToDont = k => {
     return {
       dont: prepend(k, this.state.data.dont),
+        kvs:this.newKvs(k,"dont_time",(new Date()).toISOString())
     };
   };
   todoToDone = k => {
