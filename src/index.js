@@ -19,7 +19,7 @@ const data = {
         },
         {
           start: "2019-01-26T05:15:00.000Z",
-          end: "2019-01-26T06:47:10.000Z",
+          end: "2019-01-26T10:00:00.000Z",
         },
       ],
       children: [],
@@ -69,73 +69,74 @@ class App extends React.Component {
       },
     });
   };
-  rmFromTodo = k => {
-    return {
-      todo: this.state.data.todo.filter(x => x !== k),
-    };
+  rmFromTodo = (k, depth) => {
+    const ret = {};
+    if (depth === 0) {
+      ret["todo"] = this.state.data.todo.filter(x => x !== k);
+    }
+    return ret;
   };
-  rmFromDone = k => {
-    return {
-      done: this.state.data.done.filter(x => x !== k),
-        kvs:this.newKvs(k,"done_time",null)
+  rmFromDone = (k, depth) => {
+    const ret = {
+      kvs: this.newKvs(k, "done_time", null),
     };
+    if (depth === 0) {
+      ret["done"] = this.state.data.done.filter(x => x !== k);
+    }
+    return ret;
   };
-  rmFromDont = k => {
-    return {
-      dont: this.state.data.dont.filter(x => x !== k),
-        kvs:this.newKvs(k,"dont_time",null)
+  rmFromDont = (k, depth) => {
+    const ret = {
+      kvs: this.newKvs(k, "dont_time", null),
     };
+    if (depth === 0) {
+      ret["dont"] = this.state.data.dont.filter(x => x !== k);
+    }
+    return ret;
   };
-  addToTodo = k => {
-    return {
-      todo: prepend(k, this.state.data.todo),
+  addToTodo = (k, depth) => {
+    const ret = {};
+    if (depth === 0) {
+      ret["todo"] = prepend(k, this.state.data.todo);
+    }
+    return ret;
+  };
+  addToDone = (k, depth) => {
+    const ret = {
+      kvs: this.newKvs(k, "done_time", new Date().toISOString()),
     };
+    if (depth === 0) {
+      ret["done"] = prepend(k, this.state.data.done);
+    }
+    return ret;
   };
-  addToDone = k => {
-    return {
-      done: prepend(k, this.state.data.done),
-        kvs:this.newKvs(k,"done_time",(new Date()).toISOString())
+  addToDont = (k, depth) => {
+    const ret = {
+      kvs: this.newKvs(k, "dont_time", new Date().toISOString()),
     };
+    if (depth === 0) {
+      ret["dont"] = prepend(k, this.state.data.dont);
+    }
+    return ret;
   };
-  addToDont = k => {
-    return {
-      dont: prepend(k, this.state.data.dont),
-        kvs:this.newKvs(k,"dont_time",(new Date()).toISOString())
-    };
+  todoToDone = (k, depth) => {
+    this.xToY("rmFromTodo", "addToDone", k, depth);
   };
-  todoToDone = k => {
+  todoToDont = (k, depth) => {
+    this.xToY("rmFromTodo", "addToDont", k, depth);
+  };
+  doneToTodo = (k, depth) => {
+    this.xToY("rmFromDone", "addToTodo", k, depth);
+  };
+  dontToTodo = (k, depth) => {
+    this.xToY("rmFromDont", "addToTodo", k, depth);
+  };
+  xToY = (x, y, k, depth) => {
     this.setState({
       data: {
         ...this.state.data,
-        ...this.rmFromTodo(k),
-        ...this.addToDone(k),
-      },
-    });
-  };
-  todoToDont = k => {
-    this.setState({
-      data: {
-        ...this.state.data,
-        ...this.rmFromTodo(k),
-        ...this.addToDont(k),
-      },
-    });
-  };
-  doneToTodo = k => {
-    this.setState({
-      data: {
-        ...this.state.data,
-        ...this.rmFromDone(k),
-        ...this.addToTodo(k),
-      },
-    });
-  };
-  dontToTodo = k => {
-    this.setState({
-      data: {
-        ...this.state.data,
-        ...this.rmFromDont(k),
-        ...this.addToTodo(k),
+        ...this[x](k, depth),
+        ...this[y](k, depth),
       },
     });
   };
@@ -153,24 +154,9 @@ class App extends React.Component {
         <div className="header">
           <h1>Evidence Based Scheduling</h1>
         </div>
-        <Todo
-          ks={this.state.data.todo}
-          kvs={this.state.data.kvs}
-          fn={fn}
-          buttons={[TodoToDoneButton, TodoToDontButton]}
-        />
-        <Done
-          ks={this.state.data.done}
-          kvs={this.state.data.kvs}
-          fn={fn}
-          buttons={[DoneToTodoButton]}
-        />
-        <Dont
-          ks={this.state.data.dont}
-          kvs={this.state.data.kvs}
-          fn={fn}
-          buttons={[DontToTodoButton]}
-        />
+        <Todo ks={this.state.data.todo} kvs={this.state.data.kvs} fn={fn} />
+        <Done ks={this.state.data.done} kvs={this.state.data.kvs} fn={fn} />
+        <Dont ks={this.state.data.dont} kvs={this.state.data.kvs} fn={fn} />
       </div>
     );
   };
@@ -188,7 +174,16 @@ const Dont = props => {
   return Panel("Don't", props);
 };
 
-const Tree = (ks, props) => {
+const Panel = (title, props) => {
+  return (
+    <div>
+      <h1>{title}</h1>
+      {Tree(props.ks, props, 0)}
+    </div>
+  );
+};
+
+const Tree = (ks, props, depth) => {
   if (ks) {
     const todo_list = ks.map(k => {
       const handleTextChange = e => {
@@ -198,8 +193,14 @@ const Tree = (ks, props) => {
       return (
         <li key={v.uuid}>
           <textarea key={v.uuid} value={v.text} onChange={handleTextChange} />
-          {props.buttons.map(b => b(k, props))}
-          {Tree(props.kvs[k].children, props)}
+          {(v.done_time
+            ? DoneToXButtonList
+            : v.dont_time
+            ? DontToXButtonList
+            : TodoToXButtonList
+          ).map(b => b(k, depth, props))}
+          {JSON.stringify(v)}
+          {Tree(props.kvs[k].children, props, depth + 1)}
         </li>
       );
     });
@@ -207,66 +208,37 @@ const Tree = (ks, props) => {
   }
 };
 
-const Panel = (title, props) => {
-  return (
-    <div>
-      <h1>{title}</h1>
-      {Tree(props.ks, props)}
-    </div>
-  );
+const TodoToDoneButton = (k, depth, props) => {
+  return XToYButton("Done", "todoToDone", k, depth, props);
 };
 
-const TodoToDoneButton = (k, props) => {
+const TodoToDontButton = (k, depth, props) => {
+  return XToYButton("Don't", "todoToDont", k, depth, props);
+};
+
+const DoneToTodoButton = (k, depth, props) => {
+  return XToYButton("To do", "doneToTodo", k, depth, props);
+};
+
+const DontToTodoButton = (k, depth, props) => {
+  return XToYButton("To do", "dontToTodo", k, depth, props);
+};
+
+const XToYButton = (title, XToY, k, depth, props) => {
   return (
     <button
-      className="done"
       onClick={e => {
-        props.fn.todoToDone(k);
+        props.fn[XToY](k, depth);
       }}
     >
-      Done
+      {title}
     </button>
   );
 };
 
-const TodoToDontButton = (k, props) => {
-  return (
-    <button
-      className="dont"
-      onClick={e => {
-        props.fn.todoToDont(k);
-      }}
-    >
-      Don't
-    </button>
-  );
-};
-
-const DoneToTodoButton = (k, props) => {
-  return (
-    <button
-      className="todo"
-      onClick={e => {
-        props.fn.doneToTodo(k);
-      }}
-    >
-      To do
-    </button>
-  );
-};
-
-const DontToTodoButton = (k, props) => {
-  return (
-    <button
-      className="todo"
-      onClick={e => {
-        props.fn.dontToTodo(k);
-      }}
-    >
-      To do
-    </button>
-  );
-};
+const TodoToXButtonList = [TodoToDoneButton, TodoToDontButton];
+const DoneToXButtonList = [DoneToTodoButton];
+const DontToXButtonList = [DontToTodoButton];
 
 const prepend = (x, a) => {
   const ret = a.slice();
