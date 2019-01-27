@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import uuidv4 from "uuid/v4";
+import { v4 as uuid } from "uuid";
 
 import "./index.css";
 
