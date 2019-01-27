@@ -191,8 +191,12 @@ const Tree = (ks, props, depth) => {
       };
       const v = props.kvs[k];
       return (
-        <li key={v.uuid}>
-          <textarea key={v.uuid} value={v.text} onChange={handleTextChange} />
+        <li key={v.uuid} className={
+classOf(v)
+}>
+          <textarea key={v.uuid} value={v.text} onChange={handleTextChange} className={
+classOf(v)
+}/>
           {(v.done_time
             ? DoneToXButtonList
             : v.dont_time
@@ -235,6 +239,10 @@ const XToYButton = (title, XToY, k, depth, props) => {
     </button>
   );
 };
+
+const classOf=(entry)=>{
+return entry.done_time?"done":entry.dont_time?"dont":"todo"
+}
 
 const TodoToXButtonList = [TodoToDoneButton, TodoToDontButton];
 const DoneToXButtonList = [DoneToTodoButton];

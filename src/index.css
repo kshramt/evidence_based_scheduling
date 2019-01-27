@@ -1,0 +1,8 @@
+textarea.todo{
+    height: 6ex;
+    width: 80ex;
+}
+textarea.done, textarea.dont{
+    height: 3ex;
+    width: 80ex;
+}
