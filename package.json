@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "homepage": ".",
+  "proxy": "http://127.0.0.1:5000",
   "dependencies": {
     "react": "^16.7.0",
     "react-dom": "^16.7.0",

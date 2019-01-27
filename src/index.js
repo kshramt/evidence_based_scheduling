@@ -4,7 +4,9 @@ import { v4 as uuid } from "uuid";
 
 import "./index.css";
 
-// todo: 1) load/save data (assuming single user), 2) Record start and stop time (with interventions), 3) create new root/child, 4) change-order button
+// todo: 2) Record start and stop time (with interventions), 3) create new root/child, 4) change-order button
+
+const API_VERSION = "v1";
 
 class App extends React.Component {
   constructor(props) {
@@ -13,6 +15,23 @@ class App extends React.Component {
       data: props.data,
     };
   }
+  withPostState = fn => {
+    return (...args) => {
+      fn(...args);
+      this.postState();
+    };
+  };
+  postState = () => {
+    window.setTimeout(() => {
+      fetch("api/" + API_VERSION + "/post", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+        },
+        body: JSON.stringify(this.state.data),
+      });
+    }, 1000);
+  };
   newKvs = (k, vk, vv) => {
     const v = {
       ...this.state.data.kvs[k],
@@ -103,26 +122,20 @@ class App extends React.Component {
     });
   };
   render = () => {
-    const fn = {
+    const fn = oMap(this.withPostState, {
       setText: this.setText,
       todoToDone: this.todoToDone,
       todoToDont: this.todoToDont,
       doneToTodo: this.doneToTodo,
       dontToTodo: this.dontToTodo,
-    };
+    });
 
     return (
       <div>
         <div className="header">
           <h1>Evidence Based Scheduling</h1>
         </div>
-        <button
-          onClick={e => {
-            saveJson("ebs.json", this.state);
-          }}
-        >
-          Save
-        </button>
+        <button onClick={this.postState}>Save</button>
         <Todo ks={this.state.data.todo} kvs={this.state.data.kvs} fn={fn} />
         <Done ks={this.state.data.done} kvs={this.state.data.kvs} fn={fn} />
         <Dont ks={this.state.data.dont} kvs={this.state.data.kvs} fn={fn} />
@@ -219,37 +232,25 @@ const TodoToXButtonList = [TodoToDoneButton, TodoToDontButton];
 const DoneToXButtonList = [DoneToTodoButton];
 const DontToXButtonList = [DontToTodoButton];
 
+const oMap = (f, o) => {
+  return Object.assign(
+    {},
+    ...Object.entries(o).map(([k, v]) => {
+      return {
+        [k]: f(v),
+      };
+    }),
+  );
+};
+
 const prepend = (x, a) => {
   const ret = a.slice();
   ret.unshift(x);
   return ret;
 };
 
-const loadJson = (path, cb) => {
-  const xobj = new XMLHttpRequest();
-  xobj.overrideMimeType("application/json");
-  xobj.open("GET", path, true);
-  xobj.onreadystatechange = () => {
-    if (xobj.readyState === 4 && xobj.status === 200) {
-      cb(JSON.parse(xobj.responseText));
-    }
-  };
-  xobj.send(null);
-};
-
-const saveJson = (path, obj) => {
-  const s = JSON.stringify(obj, null, 2);
-  const a = document.createElement("a");
-  a.setAttribute(
-    "href",
-    "data:text/plain;charset=utf-8," + encodeURIComponent(s),
-  );
-  a.setAttribute("download", "upd.json");
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-};
-
-loadJson("evidence_based_scheduling.json", data => {
-  ReactDOM.render(<App data={data} />, document.getElementById("root"));
-});
+fetch("api/" + API_VERSION + "/get")
+  .then(r => r.json())
+  .then(data => {
+    ReactDOM.render(<App data={data} />, document.getElementById("root"));
+  });
