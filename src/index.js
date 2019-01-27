@@ -147,15 +147,15 @@ const Panel = (title, props) => {
 
 const Tree = (ks, props, depth) => {
   if (ks) {
-    const todo_list = ks.map(k => {
+    const list = ks.map(k => {
       const handleTextChange = e => {
         props.fn.setText(k, e.target.value);
       };
       const v = props.kvs[k];
       return (
-        <li key={v.uuid} className={classOf(v)}>
+        <li key={"li-" + v.uuid} className={classOf(v)}>
           <textarea
-            key={v.uuid}
+            key={"textarea-" + v.uuid}
             value={v.text}
             onChange={handleTextChange}
             className={classOf(v)}
@@ -171,7 +171,7 @@ const Tree = (ks, props, depth) => {
         </li>
       );
     });
-    return <ol>{todo_list}</ol>;
+    return <ol>{list}</ol>;
   }
 };
 
@@ -194,6 +194,7 @@ const DontToTodoButton = (k, depth, props) => {
 const XToYButton = (title, XToY, k, depth, props) => {
   return (
     <button
+      key={XToY + "-" + k}
       onClick={e => {
         props.fn[XToY](k, depth);
       }}
