@@ -4,51 +4,13 @@ import { v4 as uuid } from "uuid";
 
 import "./index.css";
 
-const data = {
-  kvs: {
-    "94f059ac-d2ce-4db3-8dd3-e184d4516e41": {
-      text: "evidence_based_schedulingを完成させること．",
-      estimate: 30,
-      todo_time: "2019-01-26T01:55:00.000Z",
-      done_time: null,
-      dont_time: null,
-      ranges: [
-        {
-          start: "2019-01-26T01:00:00.000Z",
-          end: "2019-01-26T04:05:02.000Z",
-        },
-        {
-          start: "2019-01-26T05:15:00.000Z",
-          end: "2019-01-26T10:00:00.000Z",
-        },
-      ],
-      children: [],
-    },
-    "45ee82b9-cc4b-424c-b2ab-b4e3e2fcef2f": {
-      text: "荷物組み立て．",
-      estimate: 1.5,
-      todo_time: "2019-01-26T03:06:27.000Z",
-      done_time: "2019-01-26T06:13:04.000Z",
-      dont_time: null,
-      ranges: [
-        {
-          start: "2019-01-26T04:15:00.000Z",
-          end: "2019-01-26T05:00:00.000Z",
-        },
-      ],
-      children: [],
-    },
-  },
-  todo: ["94f059ac-d2ce-4db3-8dd3-e184d4516e41"],
-  done: ["45ee82b9-cc4b-424c-b2ab-b4e3e2fcef2f"],
-  dont: [],
-};
+// todo: 1) load/save data (assuming single user), 2) Record start and stop time (with interventions), 3) create new root/child, 4) change-order button
 
 class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      data,
+      data: props.data,
     };
   }
   newKvs = (k, vk, vv) => {
@@ -191,12 +153,13 @@ const Tree = (ks, props, depth) => {
       };
       const v = props.kvs[k];
       return (
-        <li key={v.uuid} className={
-classOf(v)
-}>
-          <textarea key={v.uuid} value={v.text} onChange={handleTextChange} className={
-classOf(v)
-}/>
+        <li key={v.uuid} className={classOf(v)}>
+          <textarea
+            key={v.uuid}
+            value={v.text}
+            onChange={handleTextChange}
+            className={classOf(v)}
+          />
           {(v.done_time
             ? DoneToXButtonList
             : v.dont_time
@@ -240,9 +203,9 @@ const XToYButton = (title, XToY, k, depth, props) => {
   );
 };
 
-const classOf=(entry)=>{
-return entry.done_time?"done":entry.dont_time?"dont":"todo"
-}
+const classOf = entry => {
+  return entry.done_time ? "done" : entry.dont_time ? "dont" : "todo";
+};
 
 const TodoToXButtonList = [TodoToDoneButton, TodoToDontButton];
 const DoneToXButtonList = [DoneToTodoButton];
@@ -254,4 +217,18 @@ const prepend = (x, a) => {
   return ret;
 };
 
-ReactDOM.render(<App data={data} />, document.getElementById("root"));
+const loadJson = (path, cb) => {
+  const xobj = new XMLHttpRequest();
+  xobj.overrideMimeType("application/json");
+  xobj.open("GET", path, true);
+  xobj.onreadystatechange = () => {
+    if (xobj.readyState === 4 && xobj.status === 200) {
+      cb(JSON.parse(xobj.responseText));
+    }
+  };
+  xobj.send(null);
+};
+
+loadJson("evidence_based_scheduling.json", data => {
+  ReactDOM.render(<App data={data} />, document.getElementById("root"));
+});
