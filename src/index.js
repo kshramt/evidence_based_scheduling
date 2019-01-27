@@ -116,6 +116,13 @@ class App extends React.Component {
         <div className="header">
           <h1>Evidence Based Scheduling</h1>
         </div>
+        <button
+          onClick={e => {
+            saveJson("ebs.json", this.state);
+          }}
+        >
+          Save
+        </button>
         <Todo ks={this.state.data.todo} kvs={this.state.data.kvs} fn={fn} />
         <Done ks={this.state.data.done} kvs={this.state.data.kvs} fn={fn} />
         <Dont ks={this.state.data.dont} kvs={this.state.data.kvs} fn={fn} />
@@ -228,6 +235,19 @@ const loadJson = (path, cb) => {
     }
   };
   xobj.send(null);
+};
+
+const saveJson = (path, obj) => {
+  const s = JSON.stringify(obj, null, 2);
+  const a = document.createElement("a");
+  a.setAttribute(
+    "href",
+    "data:text/plain;charset=utf-8," + encodeURIComponent(s),
+  );
+  a.setAttribute("download", "upd.json");
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 };
 
 loadJson("evidence_based_scheduling.json", data => {
