@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { v4 as uuid } from "uuid";
+import produce from "immer";
 
 import "./index.css";
 
@@ -30,75 +31,60 @@ class App extends React.Component {
         },
         body: JSON.stringify(this.state.data),
       });
-    }, 1000);
-  };
-  newKvs = (k, vk, vv) => {
-    const v = {
-      ...this.state.data.kvs[k],
-      [vk]: vv,
-    };
-    return {
-      ...this.state.data.kvs,
-      [k]: v,
-    };
+    }, 500);
   };
   setText = (k, text) => {
-    this.setState({
-      data: {
-        ...this.state.data,
-        kvs: this.newKvs(k, "text", text),
-      },
+    this.setState(
+      produce(this.state, draft => {
+        draft.data.kvs[k].text = text;
+      }),
+    );
+  };
+  rmFromTodo = (state, k, depth) => {
+    return produce(state, draft => {
+      if (depth === 0) {
+        draft.data.todo = state.data.todo.filter(x => x !== k);
+      }
     });
   };
-  rmFromTodo = (k, depth) => {
-    const ret = {};
-    if (depth === 0) {
-      ret["todo"] = this.state.data.todo.filter(x => x !== k);
-    }
-    return ret;
+  rmFromDone = (state, k, depth) => {
+    return produce(state, draft => {
+      draft.data.kvs[k].done_time = null;
+      if (depth === 0) {
+        draft.data.done = state.data.done.filter(x => x !== k);
+      }
+    });
   };
-  rmFromDone = (k, depth) => {
-    const ret = {
-      kvs: this.newKvs(k, "done_time", null),
-    };
-    if (depth === 0) {
-      ret["done"] = this.state.data.done.filter(x => x !== k);
-    }
-    return ret;
+  rmFromDont = (state, k, depth) => {
+    return produce(state, draft => {
+      draft.data.kvs[k].dont_time = null;
+      if (depth === 0) {
+        draft.data.dont = state.data.dont.filter(x => x !== k);
+      }
+    });
   };
-  rmFromDont = (k, depth) => {
-    const ret = {
-      kvs: this.newKvs(k, "dont_time", null),
-    };
-    if (depth === 0) {
-      ret["dont"] = this.state.data.dont.filter(x => x !== k);
-    }
-    return ret;
+  addToTodo = (state, k, depth) => {
+    return produce(state, draft => {
+      if (depth === 0) {
+        draft.data.todo = prepend(k, state.data.todo);
+      }
+    });
   };
-  addToTodo = (k, depth) => {
-    const ret = {};
-    if (depth === 0) {
-      ret["todo"] = prepend(k, this.state.data.todo);
-    }
-    return ret;
+  addToDone = (state, k, depth) => {
+    return produce(state, draft => {
+      draft.data.kvs[k].done_time = new Date().toISOString();
+      if (depth === 0) {
+        draft.data.done = prepend(k, state.data.done);
+      }
+    });
   };
-  addToDone = (k, depth) => {
-    const ret = {
-      kvs: this.newKvs(k, "done_time", new Date().toISOString()),
-    };
-    if (depth === 0) {
-      ret["done"] = prepend(k, this.state.data.done);
-    }
-    return ret;
-  };
-  addToDont = (k, depth) => {
-    const ret = {
-      kvs: this.newKvs(k, "dont_time", new Date().toISOString()),
-    };
-    if (depth === 0) {
-      ret["dont"] = prepend(k, this.state.data.dont);
-    }
-    return ret;
+  addToDont = (state, k, depth) => {
+    return produce(state, draft => {
+      draft.data.kvs[k].dont_time = new Date().toISOString();
+      if (depth === 0) {
+        draft.data.dont = prepend(k, state.data.dont);
+      }
+    });
   };
   todoToDone = (k, depth) => {
     this.xToY("rmFromTodo", "addToDone", k, depth);
@@ -113,13 +99,7 @@ class App extends React.Component {
     this.xToY("rmFromDont", "addToTodo", k, depth);
   };
   xToY = (x, y, k, depth) => {
-    this.setState({
-      data: {
-        ...this.state.data,
-        ...this[x](k, depth),
-        ...this[y](k, depth),
-      },
-    });
+    this.setState(this[y](this[x](this.state, k, depth), k, depth));
   };
   render = () => {
     const fn = oMap(this.withPostState, {
