@@ -1,14 +1,37 @@
 import datetime
 import json
+import os
 
 import flask
 
 
-DATA_BASENAME = "evidence_based_scheduling"
+def mkdir(path):
+    return os.makedirs(path, exist_ok=True)
+
+
+def jp(path, *more):
+    """
+    >>> _jp(".", "a")
+    'a'
+    >>> _jp("a", "b")
+    'a/b'
+    >>> _jp("a", "b", "..")
+    'a'
+    >>> _jp("a", "/b", "c")
+    'a/b/c'
+    """
+    return os.path.normpath(os.path.sep.join((path, os.path.sep.join(more))))
+
+
+DATA_DIR = os.environ.get("DATA_DIR", ".")
+DATA_CHECKPOINT_DIR = os.environ.get("DATA_CHECKPOINT_DIR", DATA_DIR)
+mkdir(DATA_DIR)
+mkdir(DATA_CHECKPOINT_DIR)
+DATA_BASENAME = os.environ.get("DATA_BASENAME", "evidence_based_scheduling")
 
 
 try:
-    with open(DATA_BASENAME + ".json") as fp:
+    with open(jp(DATA_DIR, DATA_BASENAME) + ".json") as fp:
         DATA = json.load(fp)
 except IOError:
     DATA = dict(current_entry=None, done=[], dont=[], kvs=dict(), todo=[])
@@ -32,8 +55,8 @@ def post():
 def save(data):
     s = json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     time = datetime.datetime.now().isoformat()
-    with open(DATA_BASENAME + "_" + time + ".json", "w") as fp:
+    with open(jp(DATA_CHECKPOINT_DIR, DATA_BASENAME) + "_" + time + ".json", "w") as fp:
         fp.write(s)
-    with open(DATA_BASENAME + ".json", "w") as fp:
+    with open(jp(DATA_DIR, DATA_BASENAME) + ".json", "w") as fp:
         fp.write(s)
     return time
