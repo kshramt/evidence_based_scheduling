@@ -62,7 +62,13 @@ class App extends React.Component {
       headers: {
         "Content-Type": "application/json; charset=utf-8",
       },
-      body: JSON.stringify(this.state.data),
+      body: JSON.stringify(
+        produce(this.state.data, draft => {
+          for (let v in Object.values(draft.kvs)) {
+            delete v.cache;
+          }
+        }),
+      ),
     });
   };
   start = k => {
@@ -387,5 +393,14 @@ const last = a => {
 fetch("api/" + API_VERSION + "/get")
   .then(r => r.json())
   .then(data => {
-    ReactDOM.render(<App data={data} />, document.getElementById("root"));
+    ReactDOM.render(
+      <App
+        data={produce(data, draft => {
+          for (let v of Object.values(draft.kvs)) {
+            v.cache = {};
+          }
+        })}
+      />,
+      document.getElementById("root"),
+    );
   });
