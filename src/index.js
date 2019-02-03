@@ -1,11 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import { v4 as uuid } from "uuid";
 import produce from "immer";
 
 import "./index.css";
 
-// todo: 2) Record start and stop time (with interventions), 3) create new root/child, 4) change-order button
+// todo: 3) create new child, 4) change-order button
 
 const API_VERSION = "v1";
 
@@ -16,34 +15,98 @@ class App extends React.Component {
       data: props.data,
     };
   }
-  withPostState = fn => {
-    return (...args) => {
-      fn(...args);
-      this.postState();
-    };
+  delete_ = k => {
+    this.setState(
+      produce(this.state, draft => {
+        draft.data.todo = draft.data.todo.filter(x => x !== k);
+        for (const v of Object.values(draft.data.kvs)) {
+          const i = v.children.indexOf(k);
+          if (i !== -1) {
+            v.children.splice(i, 1);
+            break;
+          }
+        }
+        delete draft.data.kvs[k];
+      }),
+      this.save,
+    );
   };
-  postState = () => {
-    window.setTimeout(() => {
-      fetch("api/" + API_VERSION + "/post", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-        },
-        body: JSON.stringify(this.state.data),
-      });
-    }, 500);
+  new_ = () => {
+    this.setState(
+      produce(this.state, draft => {
+        const k = new Date().toISOString();
+        const v = {
+          children: [],
+          done_time: null,
+          dont_time: null,
+          estimate: 1,
+          ranges: [],
+          text: "",
+        };
+        draft.data.kvs[k] = v;
+        draft.data.todo = prepend(k, draft.data.todo);
+      }),
+      this.save,
+    );
+  };
+  save = () => {
+    fetch("api/" + API_VERSION + "/post", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+      },
+      body: JSON.stringify(this.state.data),
+    });
+  };
+  start = k => {
+    this.setState(
+      produce(this.state, draft => {
+        if (k !== draft.data.current_entry) {
+          this._stop(draft);
+          draft.data.kvs[k].ranges = append(draft.data.kvs[k].ranges, {
+            start: new Date().toISOString(),
+            end: null,
+          });
+          draft.data.current_entry = k;
+        }
+      }),
+      this.save,
+    );
+  };
+  stop = () => {
+    this.setState(produce(this.state, this._stop));
+  };
+  _stop = draft => {
+    if (draft.data.current_entry !== null) {
+      last(
+        draft.data.kvs[draft.data.current_entry].ranges,
+      ).end = new Date().toISOString();
+      draft.data.current_entry = null;
+    }
+  };
+  setEstimate = (k, estimate) => {
+    this.setState(
+      produce(this.state, draft => {
+        draft.data.kvs[k].estimate = estimate;
+      }),
+      this.save,
+    );
   };
   setText = (k, text) => {
     this.setState(
       produce(this.state, draft => {
         draft.data.kvs[k].text = text;
       }),
+      this.save,
     );
   };
   rmFromTodo = (state, k, depth) => {
     return produce(state, draft => {
+      if (draft.data.current_entry === k) {
+        this._stop(draft);
+      }
       if (depth === 0) {
-        draft.data.todo = state.data.todo.filter(x => x !== k);
+        draft.data.todo = draft.data.todo.filter(x => x !== k);
       }
     });
   };
@@ -51,7 +114,7 @@ class App extends React.Component {
     return produce(state, draft => {
       draft.data.kvs[k].done_time = null;
       if (depth === 0) {
-        draft.data.done = state.data.done.filter(x => x !== k);
+        draft.data.done = draft.data.done.filter(x => x !== k);
       }
     });
   };
@@ -59,14 +122,14 @@ class App extends React.Component {
     return produce(state, draft => {
       draft.data.kvs[k].dont_time = null;
       if (depth === 0) {
-        draft.data.dont = state.data.dont.filter(x => x !== k);
+        draft.data.dont = draft.data.dont.filter(x => x !== k);
       }
     });
   };
   addToTodo = (state, k, depth) => {
     return produce(state, draft => {
       if (depth === 0) {
-        draft.data.todo = prepend(k, state.data.todo);
+        draft.data.todo = prepend(k, draft.data.todo);
       }
     });
   };
@@ -74,7 +137,7 @@ class App extends React.Component {
     return produce(state, draft => {
       draft.data.kvs[k].done_time = new Date().toISOString();
       if (depth === 0) {
-        draft.data.done = prepend(k, state.data.done);
+        draft.data.done = prepend(k, draft.data.done);
       }
     });
   };
@@ -82,7 +145,7 @@ class App extends React.Component {
     return produce(state, draft => {
       draft.data.kvs[k].dont_time = new Date().toISOString();
       if (depth === 0) {
-        draft.data.dont = prepend(k, state.data.dont);
+        draft.data.dont = prepend(k, draft.data.dont);
       }
     });
   };
@@ -99,33 +162,59 @@ class App extends React.Component {
     this.xToY("rmFromDont", "addToTodo", k, depth);
   };
   xToY = (x, y, k, depth) => {
-    this.setState(this[y](this[x](this.state, k, depth), k, depth));
+    this.setState(this[y](this[x](this.state, k, depth), k, depth), this.save);
   };
   render = () => {
-    const fn = oMap(this.withPostState, {
+    const fn = {
+      delete_: this.delete_,
+      start: this.start,
+      stop: this.stop,
+      new_: this.new_,
+      setEstimate: this.setEstimate,
       setText: this.setText,
       todoToDone: this.todoToDone,
       todoToDont: this.todoToDont,
       doneToTodo: this.doneToTodo,
       dontToTodo: this.dontToTodo,
-    });
+    };
 
     return (
       <div>
         <div className="header">
           <h1>Evidence Based Scheduling</h1>
         </div>
-        <button onClick={this.postState}>Save</button>
-        <Todo ks={this.state.data.todo} kvs={this.state.data.kvs} fn={fn} />
-        <Done ks={this.state.data.done} kvs={this.state.data.kvs} fn={fn} />
-        <Dont ks={this.state.data.dont} kvs={this.state.data.kvs} fn={fn} />
+        <button onClick={this.save}>Save</button>
+        <button onClick={this.stop}>Stop</button>
+        <Todo
+          ks={this.state.data.todo}
+          kvs={this.state.data.kvs}
+          fn={fn}
+          current_entry={this.state.data.current_entry}
+        />
+        <Done
+          ks={this.state.data.done}
+          kvs={this.state.data.kvs}
+          fn={fn}
+          current_entry={this.state.data.current_entry}
+        />
+        <Dont
+          ks={this.state.data.dont}
+          kvs={this.state.data.kvs}
+          fn={fn}
+          current_entry={this.state.data.current_entry}
+        />
       </div>
     );
   };
 }
 
 const Todo = props => {
-  return Panel("To do", props);
+  return (
+    <div>
+      <h1>To do</h1> <button onClick={props.fn.new_}>New</button>
+      {Tree(props.ks, props, 0)}
+    </div>
+  );
 };
 
 const Done = props => {
@@ -151,21 +240,68 @@ const Tree = (ks, props, depth) => {
       const handleTextChange = e => {
         props.fn.setText(k, e.target.value);
       };
+      const handleEstimateChange = e => {
+        props.fn.setEstimate(k, e.target.value);
+      };
       const v = props.kvs[k];
       return (
-        <li key={"li-" + v.uuid} className={classOf(v)}>
+        <li
+          key={"li-" + k}
+          className={classOf(v)}
+          style={
+            k === props.current_entry
+              ? {
+                  "background-color": "Moccasin",
+                }
+              : null
+          }
+        >
+          <input
+            type="number"
+            value={v.estimate}
+            onChange={handleEstimateChange}
+            className={classOf(v)}
+          />
           <textarea
-            key={"textarea-" + v.uuid}
+            key={"text-" + k}
             value={v.text}
             onChange={handleTextChange}
             className={classOf(v)}
           />
+          {v.done_time || v.dont_time ? null : k === props.current_entry ? (
+            <button
+              onClick={() => {
+                props.fn.stop();
+              }}
+            >
+              Stop
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                props.fn.start(k);
+              }}
+            >
+              Start
+            </button>
+          )}
           {(v.done_time
             ? DoneToXButtonList
             : v.dont_time
             ? DontToXButtonList
             : TodoToXButtonList
           ).map(b => b(k, depth, props))}
+          {v.children.length &&
+          v.done_time === null &&
+          v.dont_time === null ? null : (
+            <button
+              onClick={() => {
+                props.fn.delete_(k);
+              }}
+            >
+              Delete
+            </button>
+          )}
           {JSON.stringify(v)}
           {Tree(props.kvs[k].children, props, depth + 1)}
         </li>
@@ -212,21 +348,19 @@ const TodoToXButtonList = [TodoToDoneButton, TodoToDontButton];
 const DoneToXButtonList = [DoneToTodoButton];
 const DontToXButtonList = [DontToTodoButton];
 
-const oMap = (f, o) => {
-  return Object.assign(
-    {},
-    ...Object.entries(o).map(([k, v]) => {
-      return {
-        [k]: f(v),
-      };
-    }),
-  );
-};
-
 const prepend = (x, a) => {
   const ret = a.slice();
   ret.unshift(x);
   return ret;
+};
+const append = (a, x) => {
+  const ret = a.slice();
+  ret.push(x);
+  return ret;
+};
+
+const last = a => {
+  return a[a.length - 1];
 };
 
 fetch("api/" + API_VERSION + "/get")
