@@ -19,12 +19,11 @@ class App extends React.Component {
     this.setState(
       produce(this.state, draft => {
         draft.data.todo = draft.data.todo.filter(x => x !== k);
-        for (const v of Object.values(draft.data.kvs)) {
-          const i = v.children.indexOf(k);
-          if (i !== -1) {
-            v.children.splice(i, 1);
-            break;
-          }
+        const parent = draft.data.kvs[k].parent;
+        if (parent !== null) {
+          const children = draft.data.kvs[parent].children;
+          const i = children.indexOf(k);
+          children.splice(i, 1);
         }
         delete draft.data.kvs[k];
       }),
@@ -40,6 +39,7 @@ class App extends React.Component {
           done_time: null,
           dont_time: null,
           estimate: -1,
+          parent,
           ranges: [],
           text: "",
         };
@@ -106,69 +106,69 @@ class App extends React.Component {
       this.save,
     );
   };
-  rmFromTodo = (state, k, depth) => {
+  rmFromTodo = (state, k) => {
     return produce(state, draft => {
       if (draft.data.current_entry === k) {
         this._stop(draft);
       }
-      if (depth === 0) {
+      if (draft.data.kvs[k].parent === null) {
         draft.data.todo = draft.data.todo.filter(x => x !== k);
       }
     });
   };
-  rmFromDone = (state, k, depth) => {
+  rmFromDone = (state, k) => {
     return produce(state, draft => {
       draft.data.kvs[k].done_time = null;
-      if (depth === 0) {
+      if (draft.data.kvs[k].parent === null) {
         draft.data.done = draft.data.done.filter(x => x !== k);
       }
     });
   };
-  rmFromDont = (state, k, depth) => {
+  rmFromDont = (state, k) => {
     return produce(state, draft => {
       draft.data.kvs[k].dont_time = null;
-      if (depth === 0) {
+      if (draft.data.kvs[k].parent === null) {
         draft.data.dont = draft.data.dont.filter(x => x !== k);
       }
     });
   };
-  addToTodo = (state, k, depth) => {
+  addToTodo = (state, k) => {
     return produce(state, draft => {
-      if (depth === 0) {
+      if (draft.data.kvs[k].parent === null) {
         draft.data.todo = prepend(k, draft.data.todo);
       }
     });
   };
-  addToDone = (state, k, depth) => {
+  addToDone = (state, k) => {
     return produce(state, draft => {
       draft.data.kvs[k].done_time = new Date().toISOString();
-      if (depth === 0) {
+      if (draft.data.kvs[k].parent === null) {
         draft.data.done = prepend(k, draft.data.done);
       }
     });
   };
-  addToDont = (state, k, depth) => {
+  addToDont = (state, k) => {
     return produce(state, draft => {
       draft.data.kvs[k].dont_time = new Date().toISOString();
-      if (depth === 0) {
+      if (draft.data.kvs[k].parent === null) {
         draft.data.dont = prepend(k, draft.data.dont);
       }
     });
   };
-  todoToDone = (k, depth) => {
-    this.xToY("rmFromTodo", "addToDone", k, depth);
+  todoToDone = k => {
+    this.xToY("rmFromTodo", "addToDone", k);
   };
-  todoToDont = (k, depth) => {
-    this.xToY("rmFromTodo", "addToDont", k, depth);
+  todoToDont = k => {
+    this.xToY("rmFromTodo", "addToDont", k);
   };
-  doneToTodo = (k, depth) => {
-    this.xToY("rmFromDone", "addToTodo", k, depth);
+  doneToTodo = k => {
+    this.xToY("rmFromDone", "addToTodo", k);
   };
-  dontToTodo = (k, depth) => {
-    this.xToY("rmFromDont", "addToTodo", k, depth);
+  dontToTodo = k => {
+    this.xToY("rmFromDont", "addToTodo", k);
   };
-  xToY = (x, y, k, depth) => {
-    this.setState(this[y](this[x](this.state, k, depth), k, depth), this.save);
+  xToY = (x, y, k) => {
+    this.setState(this[y](this[x](this.state, k), k), this.save);
   };
   render = () => {
     const fn = {
@@ -246,7 +246,7 @@ const Panel = (title, props) => {
   );
 };
 
-const Tree = (ks, props, depth) => {
+const Tree = (ks, props) => {
   if (ks) {
     const list = ks.map(k => {
       const handleTextChange = e => {
@@ -301,7 +301,7 @@ const Tree = (ks, props, depth) => {
               : v.dont_time
               ? DontToXButtonList
               : TodoToXButtonList
-            ).map(b => b(k, depth, props))}
+            ).map(b => b(k, props))}
             {
               <button
                 onClick={() => {
@@ -324,7 +324,7 @@ const Tree = (ks, props, depth) => {
             )}
             {JSON.stringify(v)}
           </div>
-          {Tree(props.kvs[k].children, props, depth + 1)}
+          {Tree(props.kvs[k].children, props)}
         </li>
       );
     });
@@ -332,28 +332,28 @@ const Tree = (ks, props, depth) => {
   }
 };
 
-const TodoToDoneButton = (k, depth, props) => {
-  return XToYButton("Done", "todoToDone", k, depth, props);
+const TodoToDoneButton = (k, props) => {
+  return XToYButton("Done", "todoToDone", k, props);
 };
 
-const TodoToDontButton = (k, depth, props) => {
-  return XToYButton("Don't", "todoToDont", k, depth, props);
+const TodoToDontButton = (k, props) => {
+  return XToYButton("Don't", "todoToDont", k, props);
 };
 
-const DoneToTodoButton = (k, depth, props) => {
-  return XToYButton("To do", "doneToTodo", k, depth, props);
+const DoneToTodoButton = (k, props) => {
+  return XToYButton("To do", "doneToTodo", k, props);
 };
 
-const DontToTodoButton = (k, depth, props) => {
-  return XToYButton("To do", "dontToTodo", k, depth, props);
+const DontToTodoButton = (k, props) => {
+  return XToYButton("To do", "dontToTodo", k, props);
 };
 
-const XToYButton = (title, XToY, k, depth, props) => {
+const XToYButton = (title, XToY, k, props) => {
   return (
     <button
       key={XToY + "-" + k}
       onClick={e => {
-        props.fn[XToY](k, depth);
+        props.fn[XToY](k);
       }}
     >
       {title}
