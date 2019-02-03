@@ -39,7 +39,7 @@ class App extends React.Component {
           children: [],
           done_time: null,
           dont_time: null,
-          estimate: 1,
+          estimate: -1,
           ranges: [],
           text: "",
         };
