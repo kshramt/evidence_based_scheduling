@@ -264,7 +264,7 @@ const Tree = (ks, props, depth) => {
             style={
               k === props.current_entry
                 ? {
-                    "background-color": "Moccasin",
+                    backgroundColor: "Moccasin",
                   }
                 : null
             }
