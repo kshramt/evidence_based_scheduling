@@ -337,7 +337,7 @@ const Tree = (ks, props) => {
               </button>
             )}
             {digits2(props.kvs[k].cache.total_time_spent / 3600)}
-            {JSON.stringify(v)}
+            {/* {JSON.stringify(v)} */}
           </div>
           {Tree(props.kvs[k].children, props)}
         </li>
