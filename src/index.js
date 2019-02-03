@@ -64,7 +64,7 @@ class App extends React.Component {
       },
       body: JSON.stringify(
         produce(this.state.data, draft => {
-          for (let v in Object.values(draft.kvs)) {
+          for (let v of Object.values(draft.kvs)) {
             delete v.cache;
           }
         }),
@@ -91,8 +91,15 @@ class App extends React.Component {
   };
   _stop = draft => {
     if (draft.data.current_entry !== null) {
-      last(draft.data.kvs[draft.data.current_entry].ranges).end =
-        Number(new Date()) / 1000;
+      const e = draft.data.kvs[draft.data.current_entry];
+      last(e.ranges).end = Number(new Date()) / 1000;
+      const r = last(e.ranges);
+      const dt = r.end - r.start;
+      let node = e;
+      while (node) {
+        node.cache.total_time_spent += dt;
+        node = draft.data.kvs[node.parent];
+      }
       draft.data.current_entry = null;
     }
   };
@@ -328,6 +335,7 @@ const Tree = (ks, props) => {
                 Delete
               </button>
             )}
+            {digits2(props.kvs[k].cache.total_time_spent / 3600)}
             {JSON.stringify(v)}
           </div>
           {Tree(props.kvs[k].children, props)}
@@ -390,17 +398,37 @@ const last = a => {
   return a[a.length - 1];
 };
 
+const digits2 = x => {
+  return Math.round(x * 100) / 100;
+};
+
+const setCache = (k, kvs) => {
+  console.log(k);
+  const v = kvs[k];
+  if (v.cache === undefined) {
+    v.cache = {};
+  }
+  console.log(v.cache.total_time_spent);
+  if (v.cache.total_time_spent === undefined) {
+    v.cache.total_time_spent = v.ranges.reduce(
+      (total, current) => {
+        return current.end === null
+          ? total
+          : total + (current.end - current.start);
+      },
+      kvs[k].children.reduce((total, current) => {
+        setCache(current, kvs);
+        return total + kvs[current].cache.total_time_spent;
+      }, 0),
+    );
+  }
+};
+
 fetch("api/" + API_VERSION + "/get")
   .then(r => r.json())
   .then(data => {
-    ReactDOM.render(
-      <App
-        data={produce(data, draft => {
-          for (let v of Object.values(draft.kvs)) {
-            v.cache = {};
-          }
-        })}
-      />,
-      document.getElementById("root"),
-    );
+    for (let k of Object.keys(data.kvs)) {
+      setCache(k, data.kvs);
+    }
+    ReactDOM.render(<App data={data} />, document.getElementById("root"));
   });
