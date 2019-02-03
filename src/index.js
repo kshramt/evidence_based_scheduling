@@ -190,7 +190,6 @@ class App extends React.Component {
         <div className="header">
           <h1>Evidence Based Scheduling</h1>
         </div>
-        <button onClick={this.save}>Save</button>
         <button onClick={this.stop}>Stop</button>
         <Todo
           ks={this.state.data.todo}
