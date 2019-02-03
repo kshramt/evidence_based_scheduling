@@ -52,6 +52,7 @@ class App extends React.Component {
             draft.data.kvs[parent].children,
           );
         }
+        setCache(k, draft.data.kvs);
       }),
       this.save,
     );
