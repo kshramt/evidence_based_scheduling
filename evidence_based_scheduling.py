@@ -25,8 +25,6 @@ def jp(path, *more):
 
 DATA_DIR = os.environ.get("DATA_DIR", ".")
 DATA_CHECKPOINT_DIR = os.environ.get("DATA_CHECKPOINT_DIR", DATA_DIR)
-mkdir(DATA_DIR)
-mkdir(DATA_CHECKPOINT_DIR)
 DATA_BASENAME = os.environ.get("DATA_BASENAME", "evidence_based_scheduling")
 
 
@@ -55,8 +53,10 @@ def post():
 def save(data):
     s = json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     time = datetime.datetime.now().isoformat()
+    mkdir(DATA_CHECKPOINT_DIR)
     with open(jp(DATA_CHECKPOINT_DIR, DATA_BASENAME) + "_" + time + ".json", "w") as fp:
         fp.write(s)
+    mkdir(DATA_DIR)
     with open(jp(DATA_DIR, DATA_BASENAME) + ".json", "w") as fp:
         fp.write(s)
     return time
