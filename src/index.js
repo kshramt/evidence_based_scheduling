@@ -71,7 +71,7 @@ class App extends React.Component {
         if (k !== draft.data.current_entry) {
           this._stop(draft);
           draft.data.kvs[k].ranges = append(draft.data.kvs[k].ranges, {
-            start: new Date().toISOString(),
+            start: Number(new Date())/1000,
             end: null,
           });
           draft.data.current_entry = k;
@@ -87,7 +87,7 @@ class App extends React.Component {
     if (draft.data.current_entry !== null) {
       last(
         draft.data.kvs[draft.data.current_entry].ranges,
-      ).end = new Date().toISOString();
+      ).end = Number(new Date())/1000;
       draft.data.current_entry = null;
     }
   };
