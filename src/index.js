@@ -81,7 +81,7 @@ class App extends React.Component {
     );
   };
   stop = () => {
-    this.setState(produce(this.state, this._stop));
+    this.setState(produce(this.state, this._stop), this.save);
   };
   _stop = draft => {
     if (draft.data.current_entry !== null) {
