@@ -49,7 +49,7 @@ class App extends React.Component {
         } else {
           draft.data.kvs[parent].children = prepend(
             k,
-            draft.data.kvs[k].children,
+            draft.data.kvs[parent].children,
           );
         }
       }),
