@@ -268,16 +268,16 @@ const Tree = (ks, props, depth) => {
                 : null
             }
           >
-            <input
-              type="number"
-              value={v.estimate}
-              onChange={handleEstimateChange}
-              className={classOf(v)}
-            />
             <textarea
               key={"text-" + k}
               value={v.text}
               onChange={handleTextChange}
+              className={classOf(v)}
+            />
+            <input
+              type="number"
+              value={v.estimate}
+              onChange={handleEstimateChange}
               className={classOf(v)}
             />
             {v.done_time || v.dont_time ? null : k === props.current_entry ? (
