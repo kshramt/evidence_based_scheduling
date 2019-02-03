@@ -31,7 +31,7 @@ class App extends React.Component {
       this.save,
     );
   };
-  new_ = () => {
+  new_ = parent => {
     this.setState(
       produce(this.state, draft => {
         const k = new Date().toISOString();
@@ -44,7 +44,14 @@ class App extends React.Component {
           text: "",
         };
         draft.data.kvs[k] = v;
-        draft.data.todo = prepend(k, draft.data.todo);
+        if (parent === null) {
+          draft.data.todo = prepend(k, draft.data.todo);
+        } else {
+          draft.data.kvs[parent].children = prepend(
+            k,
+            draft.data.kvs[k].children,
+          );
+        }
       }),
       this.save,
     );
@@ -87,7 +94,7 @@ class App extends React.Component {
   setEstimate = (k, estimate) => {
     this.setState(
       produce(this.state, draft => {
-        draft.data.kvs[k].estimate = estimate;
+        draft.data.kvs[k].estimate = Number(estimate);
       }),
       this.save,
     );
@@ -211,7 +218,14 @@ class App extends React.Component {
 const Todo = props => {
   return (
     <div>
-      <h1>To do</h1> <button onClick={props.fn.new_}>New</button>
+      <h1>To do</h1>
+      <button
+        onClick={() => {
+          props.fn.new_(null);
+        }}
+      >
+        New
+      </button>
       {Tree(props.ks, props, 0)}
     </div>
   );
@@ -245,64 +259,73 @@ const Tree = (ks, props, depth) => {
       };
       const v = props.kvs[k];
       return (
-        <li
-          key={"li-" + k}
-          className={classOf(v)}
-          style={
-            k === props.current_entry
-              ? {
-                  "background-color": "Moccasin",
-                }
-              : null
-          }
-        >
-          <input
-            type="number"
-            value={v.estimate}
-            onChange={handleEstimateChange}
-            className={classOf(v)}
-          />
-          <textarea
-            key={"text-" + k}
-            value={v.text}
-            onChange={handleTextChange}
-            className={classOf(v)}
-          />
-          {v.done_time || v.dont_time ? null : k === props.current_entry ? (
-            <button
-              onClick={() => {
-                props.fn.stop();
-              }}
-            >
-              Stop
-            </button>
-          ) : (
-            <button
-              onClick={() => {
-                props.fn.start(k);
-              }}
-            >
-              Start
-            </button>
-          )}
-          {(v.done_time
-            ? DoneToXButtonList
-            : v.dont_time
-            ? DontToXButtonList
-            : TodoToXButtonList
-          ).map(b => b(k, depth, props))}
-          {v.children.length &&
-          v.done_time === null &&
-          v.dont_time === null ? null : (
-            <button
-              onClick={() => {
-                props.fn.delete_(k);
-              }}
-            >
-              Delete
-            </button>
-          )}
-          {JSON.stringify(v)}
+        <li key={"li-" + k} className={classOf(v)}>
+          <div
+            style={
+              k === props.current_entry
+                ? {
+                    "background-color": "Moccasin",
+                  }
+                : null
+            }
+          >
+            <input
+              type="number"
+              value={v.estimate}
+              onChange={handleEstimateChange}
+              className={classOf(v)}
+            />
+            <textarea
+              key={"text-" + k}
+              value={v.text}
+              onChange={handleTextChange}
+              className={classOf(v)}
+            />
+            {v.done_time || v.dont_time ? null : k === props.current_entry ? (
+              <button
+                onClick={() => {
+                  props.fn.stop();
+                }}
+              >
+                Stop
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  props.fn.start(k);
+                }}
+              >
+                Start
+              </button>
+            )}
+            {(v.done_time
+              ? DoneToXButtonList
+              : v.dont_time
+              ? DontToXButtonList
+              : TodoToXButtonList
+            ).map(b => b(k, depth, props))}
+            {
+              <button
+                onClick={() => {
+                  props.fn.new_(k);
+                }}
+              >
+                New
+              </button>
+            }
+            {v.children.length &&
+            v.done_time === null &&
+            v.dont_time === null ? null : (
+              <button
+                onClick={() => {
+                  props.fn.delete_(k);
+                }}
+              >
+                Delete
+              </button>
+            )}
+            {JSON.stringify(v)}
+          </div>
           {Tree(props.kvs[k].children, props, depth + 1)}
         </li>
       );
