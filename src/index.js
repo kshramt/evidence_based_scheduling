@@ -224,7 +224,7 @@ const Todo = props => {
       >
         New
       </button>
-      {Tree(props.ks, props, 0)}
+      {Tree(props.ks, props)}
     </div>
   );
 };
@@ -241,7 +241,7 @@ const Panel = (title, props) => {
   return (
     <div>
       <h1>{title}</h1>
-      {Tree(props.ks, props, 0)}
+      {Tree(props.ks, props)}
     </div>
   );
 };
