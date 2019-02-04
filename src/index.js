@@ -394,12 +394,10 @@ const digits2 = x => {
 };
 
 const setCache = (k, kvs) => {
-  console.log(k);
   const v = kvs[k];
   if (v.cache === undefined) {
     v.cache = {};
   }
-  console.log(v.cache.total_time_spent);
   if (v.cache.total_time_spent === undefined) {
     v.cache.total_time_spent = v.ranges.reduce(
       (total, current) => {
@@ -418,7 +416,7 @@ const setCache = (k, kvs) => {
 fetch("api/" + API_VERSION + "/get")
   .then(r => r.json())
   .then(data => {
-    for (let k of Object.keys(data.kvs)) {
+    for (const k of Object.keys(data.kvs)) {
       setCache(k, data.kvs);
     }
     ReactDOM.render(<App data={data} />, document.getElementById("root"));
