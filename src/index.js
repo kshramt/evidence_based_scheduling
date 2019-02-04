@@ -46,12 +46,9 @@ class App extends React.Component {
         };
         draft.data.kvs[k] = v;
         if (parent === null) {
-          draft.data.todo = prepend(k, draft.data.todo);
+          draft.data.todo.unshift(k);
         } else {
-          draft.data.kvs[parent].children = prepend(
-            k,
-            draft.data.kvs[parent].children,
-          );
+          draft.data.kvs[parent].children.unshift(k);
         }
         setCache(k, draft.data.kvs);
       }),
@@ -78,7 +75,7 @@ class App extends React.Component {
       produce(this.state, draft => {
         if (k !== draft.data.current_entry) {
           this._stop(draft);
-          draft.data.kvs[k].ranges = append(draft.data.kvs[k].ranges, {
+          draft.data.kvs[k].ranges.push({
             start: Number(new Date()) / 1000,
             end: null,
           });
@@ -150,7 +147,7 @@ class App extends React.Component {
   addToTodo = (state, k) => {
     return produce(state, draft => {
       if (draft.data.kvs[k].parent === null) {
-        draft.data.todo = prepend(k, draft.data.todo);
+        draft.data.dont.unshift(k);
       }
     });
   };
@@ -158,7 +155,7 @@ class App extends React.Component {
     return produce(state, draft => {
       draft.data.kvs[k].done_time = new Date().toISOString();
       if (draft.data.kvs[k].parent === null) {
-        draft.data.done = prepend(k, draft.data.done);
+        draft.data.dont.unshift(k);
       }
     });
   };
@@ -166,7 +163,7 @@ class App extends React.Component {
     return produce(state, draft => {
       draft.data.kvs[k].dont_time = new Date().toISOString();
       if (draft.data.kvs[k].parent === null) {
-        draft.data.dont = prepend(k, draft.data.dont);
+        draft.data.dont.unshift(k);
       }
     });
   };
@@ -387,17 +384,6 @@ const classOf = entry => {
 const TodoToXButtonList = [TodoToDoneButton, TodoToDontButton];
 const DoneToXButtonList = [DoneToTodoButton];
 const DontToXButtonList = [DontToTodoButton];
-
-const prepend = (x, a) => {
-  const ret = a.slice();
-  ret.unshift(x);
-  return ret;
-};
-const append = (a, x) => {
-  const ret = a.slice();
-  ret.push(x);
-  return ret;
-};
 
 const last = a => {
   return a[a.length - 1];
