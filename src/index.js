@@ -79,6 +79,17 @@ class App extends React.Component {
             start: Number(new Date()) / 1000,
             end: null,
           });
+          // Move the started entry to the top.
+          {
+            let ck = k;
+            let pk = draft.data.kvs[ck].parent;
+            while (pk !== null) {
+              toFront(draft.data.kvs[pk].children, ck);
+              ck = pk;
+              pk = draft.data.kvs[ck].parent;
+            }
+            toFront(draft.data.todo, ck);
+          }
           draft.data.current_entry = k;
         }
       }),
@@ -391,6 +402,15 @@ const last = a => {
 
 const digits2 = x => {
   return Math.round(x * 100) / 100;
+};
+
+const toFront = (a, x) => {
+  const i = a.indexOf(x);
+  if (i !== -1) {
+    a.splice(i, 1);
+    a.unshift(x);
+  }
+  return a;
 };
 
 const setCache = (k, kvs) => {
