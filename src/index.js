@@ -134,8 +134,11 @@ class App extends React.Component {
       if (draft.data.current_entry === k) {
         this._stop(draft);
       }
-      if (draft.data.kvs[k].parent === null) {
+      const pk = draft.data.kvs[k].parent;
+      if (pk === null) {
         draft.data.todo = draft.data.todo.filter(x => x !== k);
+      } else {
+        toRear(draft.data.kvs[pk].children, k);
       }
     });
   };
@@ -409,6 +412,15 @@ const toFront = (a, x) => {
   if (i !== -1) {
     a.splice(i, 1);
     a.unshift(x);
+  }
+  return a;
+};
+
+const toRear = (a, x) => {
+  const i = a.indexOf(x);
+  if (i !== -1) {
+    a.splice(i, 1);
+    a.push(x);
   }
   return a;
 };
