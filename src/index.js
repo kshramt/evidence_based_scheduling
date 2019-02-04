@@ -7,6 +7,7 @@ import "./index.css";
 // todo: 3) create new child, 4) change-order button
 
 const API_VERSION = "v1";
+const CHILDREN_ONLY_FLAG = 0;
 
 class App extends React.Component {
   constructor(props) {
@@ -38,7 +39,7 @@ class App extends React.Component {
           children: [],
           done_time: null,
           dont_time: null,
-          estimate: -1,
+          estimate: CHILDREN_ONLY_FLAG,
           parent,
           ranges: [],
           text: "",
@@ -293,7 +294,10 @@ const Tree = (ks, props) => {
               onChange={handleEstimateChange}
               className={classOf(v)}
             />
-            {v.done_time || v.dont_time ? null : k === props.current_entry ? (
+            {v.done_time ||
+            v.dont_time ||
+            v.estimate === CHILDREN_ONLY_FLAG ? null : k ===
+              props.current_entry ? (
               <button
                 onClick={() => {
                   props.fn.stop();
