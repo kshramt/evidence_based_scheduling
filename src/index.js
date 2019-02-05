@@ -30,9 +30,13 @@ class App extends React.Component {
         const rng = multinomial(ratios, weights);
         const leaf_estimates = Array.from(
           leafs(draft.data.kvs[k], draft.data.kvs),
-        ).map(v => {
-          return v.estimate;
-        });
+        )
+          .filter(v => {
+            return v.estimate !== NO_ESTIMATION;
+          })
+          .map(v => {
+            return v.estimate;
+          });
         const ts = [];
         for (let i = 0; i < 101; i++) {
           ts.push(
@@ -477,9 +481,11 @@ const toRear = (a, x) => {
 };
 
 const cumsum = xs => {
-  const ret = [];
+  const ret = [0];
   xs.reduce((total, current, i) => {
-    return (ret[i] = total + current);
+    const t = total + current;
+    ret.push(t);
+    return t;
   }, 0);
   return ret;
 };
@@ -491,11 +497,7 @@ const sum = xs => {
 };
 
 function* leafs(v, kvs) {
-  if (
-    v.done_time === null &&
-    v.dont_time === null &&
-    v.estimate !== NO_ESTIMATION
-  ) {
+  if (v.done_time === null && v.dont_time === null) {
     if (v.children.length) {
       for (const c of v.children) {
         yield* leafs(kvs[c], kvs);
@@ -508,16 +510,20 @@ function* leafs(v, kvs) {
 
 function* multinomial(xs, ws) {
   const total = sum(ws);
-  const partitions = cumsum(ws.map(w => w / total));
+  const partitions = cumsum(ws.map(w => w / total)).map(v => {
+    return Math.min(v, 1);
+  });
   partitions[partitions.length - 1] = 1;
   while (true) {
     const r = Math.random();
     if (r === 0) {
       yield xs[0];
     } else {
+      // todo: Use binary search.
       for (const i of ws.keys()) {
         if (partitions[i] < r && r <= partitions[i + 1]) {
           yield xs[i];
+          break;
         }
       }
     }
