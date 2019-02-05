@@ -42,8 +42,7 @@ class App extends React.Component {
           ts.push(
             sum(
               leaf_estimates.map(x => {
-                const r = rng.next().value * x;
-                return r;
+                return rng.next().value * x;
               }),
             ),
           );
