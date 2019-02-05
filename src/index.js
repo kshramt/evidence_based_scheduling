@@ -5,7 +5,6 @@ import produce from "immer";
 import "./index.css";
 
 // todo: 3) create new child, 4) change-order button
-
 const API_VERSION = "v1";
 const CHILDREN_ONLY_FLAG = 0;
 
@@ -16,6 +15,48 @@ class App extends React.Component {
       data: props.data,
     };
   }
+  eval_ = k => {
+    this.setState(
+      produce(this.state, draft => {
+        const candidates = Object.values(draft.data.kvs).filter(v => {
+          return v.done_time && v.estimate !== CHILDREN_ONLY_FLAG;
+        });
+        const ratios = candidates.map(v => {
+          return v.cache.total_time_spent / 3600 / v.estimate;
+        });
+        const weights = candidates.map(v => {
+          return 1;
+        });
+        const rng = multinomial(ratios, weights);
+        const leaf_estimates = Array.from(
+          leafs(draft.data.kvs[k], draft.data.kvs),
+        ).map(v => {
+          return v.estimate;
+        });
+        const ts = [];
+        for (let i = 0; i < 101; i++) {
+          ts.push(
+            sum(
+              leaf_estimates.map(x => {
+                const r = rng.next().value * x;
+                return r;
+              }),
+            ),
+          );
+        }
+        ts.sort((a, b) => a - b);
+        draft.data.kvs[k].cache.percentiles = [
+          ts[0],
+          ts[10],
+          ts[33],
+          ts[50],
+          ts[67],
+          ts[90],
+          ts[100],
+        ];
+      }),
+    );
+  };
   delete_ = k => {
     this.setState(
       produce(this.state, draft => {
@@ -198,6 +239,7 @@ class App extends React.Component {
   };
   render = () => {
     const fn = {
+      eval_: this.eval_,
       delete_: this.delete_,
       start: this.start,
       stop: this.stop,
@@ -305,10 +347,10 @@ const Tree = (ks, props) => {
               onChange={handleEstimateChange}
               className={classOf(v)}
             />
-            {v.done_time ||
-            v.dont_time ||
-            v.estimate === CHILDREN_ONLY_FLAG ? null : k ===
-              props.current_entry ? (
+            {v.cache.percentiles
+              ? v.cache.percentiles.map(digits2).join(", ")
+              : null}
+            {v.done_time || v.dont_time ? null : k === props.current_entry ? (
               <button
                 onClick={() => {
                   props.fn.stop();
@@ -323,6 +365,15 @@ const Tree = (ks, props) => {
                 }}
               >
                 Start
+              </button>
+            )}
+            {v.done_time || v.dont_time ? null : (
+              <button
+                onClick={() => {
+                  props.fn.eval_(k);
+                }}
+              >
+                Eval
               </button>
             )}
             {(v.done_time
@@ -425,6 +476,54 @@ const toRear = (a, x) => {
   return a;
 };
 
+const cumsum = xs => {
+  const ret = [];
+  xs.reduce((total, current, i) => {
+    return (ret[i] = total + current);
+  }, 0);
+  return ret;
+};
+
+const sum = xs => {
+  return xs.reduce((total, current) => {
+    return total + current;
+  }, 0);
+};
+
+function* leafs(v, kvs) {
+  if (
+    v.done_time === null &&
+    v.dont_time === null &&
+    v.estimate !== CHILDREN_ONLY_FLAG
+  ) {
+    if (v.children.length) {
+      for (const c of v.children) {
+        yield* leafs(kvs[c], kvs);
+      }
+    } else {
+      yield v;
+    }
+  }
+}
+
+function* multinomial(xs, ws) {
+  const total = sum(ws);
+  const partitions = cumsum(ws.map(w => w / total));
+  partitions[partitions.length - 1] = 1;
+  while (true) {
+    const r = Math.random();
+    if (r === 0) {
+      yield xs[0];
+    } else {
+      for (const i of ws.keys()) {
+        if (partitions[i] < r && r <= partitions[i + 1]) {
+          yield xs[i];
+        }
+      }
+    }
+  }
+}
+
 const setCache = (k, kvs) => {
   const v = kvs[k];
   if (v.cache === undefined) {
@@ -442,6 +541,10 @@ const setCache = (k, kvs) => {
         return total + kvs[current].cache.total_time_spent;
       }, 0),
     );
+  }
+  if (v.cache.percentiles === undefined) {
+    // 0, 10, 33, 50, 67, 90, 100
+    v.cache.percentiles = null;
   }
 };
 
