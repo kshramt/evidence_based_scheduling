@@ -6,7 +6,7 @@ import "./index.css";
 
 // todo: 3) create new child, 4) change-order button
 const API_VERSION = "v1";
-const CHILDREN_ONLY_FLAG = 0;
+const NO_ESTIMATION = 0;
 
 class App extends React.Component {
   constructor(props) {
@@ -19,7 +19,7 @@ class App extends React.Component {
     this.setState(
       produce(this.state, draft => {
         const candidates = Object.values(draft.data.kvs).filter(v => {
-          return v.done_time && v.estimate !== CHILDREN_ONLY_FLAG;
+          return v.done_time && v.estimate !== NO_ESTIMATION;
         });
         const ratios = candidates.map(v => {
           return v.cache.total_time_spent / 3600 / v.estimate;
@@ -80,7 +80,7 @@ class App extends React.Component {
           children: [],
           done_time: null,
           dont_time: null,
-          estimate: CHILDREN_ONLY_FLAG,
+          estimate: NO_ESTIMATION,
           parent,
           ranges: [],
           text: "",
@@ -494,7 +494,7 @@ function* leafs(v, kvs) {
   if (
     v.done_time === null &&
     v.dont_time === null &&
-    v.estimate !== CHILDREN_ONLY_FLAG
+    v.estimate !== NO_ESTIMATION
   ) {
     if (v.children.length) {
       for (const c of v.children) {
