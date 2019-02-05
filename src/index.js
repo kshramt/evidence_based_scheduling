@@ -350,7 +350,7 @@ const Tree = (ks, props) => {
               className={classOf(v)}
             />
             {v.cache.percentiles && v.done_time === null && v.dont_time === null
-              ? v.cache.percentiles.map(digits2).join(", ")
+              ? v.cache.percentiles.map(digits1).join(", ")
               : null}
             {v.done_time || v.dont_time ? null : k === props.current_entry ? (
               <button
@@ -458,6 +458,10 @@ const last = a => {
 
 const digits2 = x => {
   return Math.round(x * 100) / 100;
+};
+
+const digits1 = x => {
+  return Math.round(x * 10) / 10;
 };
 
 const toFront = (a, x) => {
