@@ -556,11 +556,15 @@ const setCache = (k, kvs) => {
   }
 };
 
-fetch("api/" + API_VERSION + "/get")
-  .then(r => r.json())
-  .then(data => {
-    for (const k of Object.keys(data.kvs)) {
-      setCache(k, data.kvs);
-    }
-    ReactDOM.render(<App data={data} />, document.getElementById("root"));
-  });
+export const main = () => {
+  fetch("api/" + API_VERSION + "/get")
+    .then(r => r.json())
+    .then(data => {
+      for (const k of Object.keys(data.kvs)) {
+        setCache(k, data.kvs);
+      }
+      ReactDOM.render(<App data={data} />, document.getElementById("root"));
+    });
+};
+
+main();
