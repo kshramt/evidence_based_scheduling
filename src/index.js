@@ -16,49 +16,46 @@ class App extends React.Component {
     };
   }
   eval_ = k => {
-    this.setState(
-      produce(this.state, draft => {
-        const candidates = Object.values(draft.data.kvs).filter(v => {
-          return v.done_time && v.estimate !== NO_ESTIMATION;
-        });
-        const ratios = candidates.map(v => {
-          return v.cache.total_time_spent / 3600 / v.estimate;
-        });
-        const weights = candidates.map(v => {
-          return 1;
-        });
-        const rng = multinomial(ratios, weights);
-        const leaf_estimates = Array.from(
-          leafs(draft.data.kvs[k], draft.data.kvs),
-        )
-          .filter(v => {
-            return v.estimate !== NO_ESTIMATION;
-          })
-          .map(v => {
-            return v.estimate;
-          });
-        const ts = [];
-        for (let i = 0; i < 101; i++) {
-          ts.push(
-            sum(
-              leaf_estimates.map(x => {
-                return rng.next().value * x;
-              }),
-            ),
-          );
-        }
-        ts.sort((a, b) => a - b);
-        draft.data.kvs[k].cache.percentiles = [
-          ts[0],
-          ts[10],
-          ts[33],
-          ts[50],
-          ts[67],
-          ts[90],
-          ts[100],
-        ];
-      }),
-    );
+    this.setState(produce(this.state, draft => this._eval(draft, k)));
+  };
+  _eval_ = (draft, k) => {
+    const candidates = Object.values(draft.data.kvs).filter(v => {
+      return v.done_time && v.estimate !== NO_ESTIMATION;
+    });
+    const ratios = candidates.map(v => {
+      return v.cache.total_time_spent / 3600 / v.estimate;
+    });
+    const weights = candidates.map(v => {
+      return 1;
+    });
+    const rng = multinomial(ratios, weights);
+    const leaf_estimates = Array.from(leafs(draft.data.kvs[k], draft.data.kvs))
+      .filter(v => {
+        return v.estimate !== NO_ESTIMATION;
+      })
+      .map(v => {
+        return v.estimate;
+      });
+    const ts = [];
+    for (let i = 0; i < 101; i++) {
+      ts.push(
+        sum(
+          leaf_estimates.map(x => {
+            return rng.next().value * x;
+          }),
+        ),
+      );
+    }
+    ts.sort((a, b) => a - b);
+    draft.data.kvs[k].cache.percentiles = [
+      ts[0],
+      ts[10],
+      ts[33],
+      ts[50],
+      ts[67],
+      ts[90],
+      ts[100],
+    ];
   };
   delete_ = k => {
     this.setState(
@@ -134,6 +131,7 @@ class App extends React.Component {
             }
             toFront(draft.data.todo, ck);
           }
+          this._eval_(draft, k);
           draft.data.current_entry = k;
         }
       }),
@@ -154,6 +152,7 @@ class App extends React.Component {
         node.cache.total_time_spent += dt;
         node = draft.data.kvs[node.parent];
       }
+      this._eval_(draft, draft.data.current_entry);
       draft.data.current_entry = null;
     }
   };
