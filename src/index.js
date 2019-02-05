@@ -351,7 +351,7 @@ const Tree = (ks, props) => {
               onChange={handleEstimateChange}
               className={classOf(v)}
             />
-            {v.cache.percentiles
+            {v.cache.percentiles && v.done_time === null && v.dont_time === null
               ? v.cache.percentiles.map(digits2).join(", ")
               : null}
             {v.done_time || v.dont_time ? null : k === props.current_entry ? (
