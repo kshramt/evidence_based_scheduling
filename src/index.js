@@ -174,57 +174,51 @@ class App extends React.Component {
       this.save,
     );
   };
-  rmFromTodo = (state, k) => {
-    return produce(state, draft => {
-      if (draft.data.current_entry === k) {
-        this._stop(draft);
-      }
-      const pk = draft.data.kvs[k].parent;
-      if (pk === null) {
-        draft.data.todo = draft.data.todo.filter(x => x !== k);
-      } else {
-        toRear(draft.data.kvs[pk].children, k);
-      }
-    });
+  rmFromTodo = (draft, k) => {
+    if (draft.data.current_entry === k) {
+      this._stop(draft);
+    }
+    if (draft.data.kvs[k].parent === null) {
+      draft.data.todo = draft.data.todo.filter(x => x !== k);
+    }
   };
-  rmFromDone = (state, k) => {
-    return produce(state, draft => {
-      draft.data.kvs[k].done_time = null;
-      if (draft.data.kvs[k].parent === null) {
-        draft.data.done = draft.data.done.filter(x => x !== k);
-      }
-    });
+  rmFromDone = (draft, k) => {
+    draft.data.kvs[k].done_time = null;
+    if (draft.data.kvs[k].parent === null) {
+      draft.data.done = draft.data.done.filter(x => x !== k);
+    }
   };
-  rmFromDont = (state, k) => {
-    return produce(state, draft => {
-      draft.data.kvs[k].dont_time = null;
-      if (draft.data.kvs[k].parent === null) {
-        draft.data.dont = draft.data.dont.filter(x => x !== k);
-      }
-    });
+  rmFromDont = (draft, k) => {
+    draft.data.kvs[k].dont_time = null;
+    if (draft.data.kvs[k].parent === null) {
+      draft.data.dont = draft.data.dont.filter(x => x !== k);
+    }
   };
-  addToTodo = (state, k) => {
-    return produce(state, draft => {
-      if (draft.data.kvs[k].parent === null) {
-        draft.data.dont.unshift(k);
-      }
-    });
+  addToTodo = (draft, k) => {
+    const pk = draft.data.kvs[k].parent;
+    if (pk === null) {
+      draft.data.todo.unshift(k);
+    } else {
+      toFront(draft.data.kvs[pk].children, k);
+    }
   };
-  addToDone = (state, k) => {
-    return produce(state, draft => {
-      draft.data.kvs[k].done_time = new Date().toISOString();
-      if (draft.data.kvs[k].parent === null) {
-        draft.data.dont.unshift(k);
-      }
-    });
+  addToDone = (draft, k) => {
+    draft.data.kvs[k].done_time = new Date().toISOString();
+    const pk = draft.data.kvs[k].parent;
+    if (pk === null) {
+      draft.data.done.push(k);
+    } else {
+      toRear(draft.data.kvs[pk].children, k);
+    }
   };
-  addToDont = (state, k) => {
-    return produce(state, draft => {
-      draft.data.kvs[k].dont_time = new Date().toISOString();
-      if (draft.data.kvs[k].parent === null) {
-        draft.data.dont.unshift(k);
-      }
-    });
+  addToDont = (draft, k) => {
+    draft.data.kvs[k].dont_time = new Date().toISOString();
+    const pk = draft.data.kvs[k].parent;
+    if (pk === null) {
+      draft.data.dont.push(k);
+    } else {
+      toRear(draft.data.kvs[pk].children, k);
+    }
   };
   todoToDone = k => {
     this.xToY("rmFromTodo", "addToDone", k);
@@ -239,7 +233,13 @@ class App extends React.Component {
     this.xToY("rmFromDont", "addToTodo", k);
   };
   xToY = (x, y, k) => {
-    this.setState(this[y](this[x](this.state, k), k), this.save);
+    this.setState(
+      produce(this.state, draft => {
+        this[x](draft, k);
+        this[y](draft, k);
+      }),
+      this.save,
+    );
   };
   render = () => {
     const fn = {
