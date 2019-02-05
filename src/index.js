@@ -321,8 +321,6 @@ const Tree = (ks, props) => {
     const list = ks.map(k => {
       const handleTextChange = e => {
         props.fn.setText(k, e.target.value);
-        e.target.style.height = "0px";
-        e.target.style.height = e.target.scrollHeight + "px";
       };
       const handleEstimateChange = e => {
         props.fn.setEstimate(k, e.target.value);
