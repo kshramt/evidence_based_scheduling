@@ -376,7 +376,7 @@ const Tree = (ks, props) => {
               ? DontToXButtonList
               : TodoToXButtonList
             ).map(b => b(k, props))}
-            {
+            {v.done_time === null && v.dont_time === null ? (
               <button
                 onClick={() => {
                   props.fn.new_(k);
@@ -384,10 +384,10 @@ const Tree = (ks, props) => {
               >
                 New
               </button>
-            }
-            {v.children.length &&
+            ) : null}
+            {v.children.length === 0 &&
             v.done_time === null &&
-            v.dont_time === null ? null : (
+            v.dont_time === null ? (
               <button
                 onClick={() => {
                   props.fn.delete_(k);
@@ -395,7 +395,7 @@ const Tree = (ks, props) => {
               >
                 Delete
               </button>
-            )}
+            ) : null}
             {digits2(props.kvs[k].cache.total_time_spent / 3600)}
             {/* {JSON.stringify(v)} */}
           </div>
