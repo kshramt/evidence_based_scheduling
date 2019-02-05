@@ -16,7 +16,7 @@ class App extends React.Component {
     };
   }
   eval_ = k => {
-    this.setState(produce(this.state, draft => this._eval(draft, k)));
+    this.setState(produce(this.state, draft => this._eval_(draft, k)));
   };
   _eval_ = (draft, k) => {
     const candidates = Object.values(draft.data.kvs).filter(v => {
