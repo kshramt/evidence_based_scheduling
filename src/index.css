@@ -1,5 +1,8 @@
+div.running{
+    background-color: Moccasin;
+}
 input.todo, input.done, input.dont{
-    width:7ex;
+    width: 7ex;
 }
 textarea.todo{
     height: 6ex;

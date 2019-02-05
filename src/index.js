@@ -321,6 +321,8 @@ const Tree = (ks, props) => {
     const list = ks.map(k => {
       const handleTextChange = e => {
         props.fn.setText(k, e.target.value);
+        e.target.style.height = "0px";
+        e.target.style.height = e.target.scrollHeight + "px";
       };
       const handleEstimateChange = e => {
         props.fn.setEstimate(k, e.target.value);
@@ -328,15 +330,7 @@ const Tree = (ks, props) => {
       const v = props.kvs[k];
       return (
         <li key={"li-" + k} className={classOf(v)}>
-          <div
-            style={
-              k === props.current_entry
-                ? {
-                    backgroundColor: "Moccasin",
-                  }
-                : null
-            }
-          >
+          <div className={k === props.current_entry ? "running" : null}>
             <textarea
               key={"text-" + k}
               value={v.text}
