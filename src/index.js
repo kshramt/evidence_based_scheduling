@@ -169,7 +169,6 @@ class App extends React.Component {
       produce(this.state, draft => {
         draft.data.kvs[k].text = text;
       }),
-      this.save,
     );
   };
   rmFromTodo = (draft, k) => {
@@ -246,6 +245,7 @@ class App extends React.Component {
       start: this.start,
       stop: this.stop,
       new_: this.new_,
+      save: this.save,
       setEstimate: this.setEstimate,
       setText: this.setText,
       todoToDone: this.todoToDone,
@@ -319,12 +319,6 @@ const Panel = (title, props) => {
 const Tree = (ks, props) => {
   if (ks) {
     const list = ks.map(k => {
-      const handleTextChange = e => {
-        props.fn.setText(k, e.target.value);
-      };
-      const handleEstimateChange = e => {
-        props.fn.setEstimate(k, e.target.value);
-      };
       const v = props.kvs[k];
       return (
         <li key={"li-" + k} className={classOf(v)}>
@@ -332,13 +326,18 @@ const Tree = (ks, props) => {
             <textarea
               key={"text-" + k}
               value={v.text}
-              onChange={handleTextChange}
+              onChange={e => {
+                props.fn.setText(k, e.target.value);
+              }}
+              onBlur={props.fn.save}
               className={classOf(v)}
             />
             <input
               type="number"
               value={v.estimate}
-              onChange={handleEstimateChange}
+              onChange={e => {
+                props.fn.setEstimate(k, e.target.value);
+              }}
               className={classOf(v)}
             />
             {v.cache.percentiles && v.done_time === null && v.dont_time === null
