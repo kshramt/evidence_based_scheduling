@@ -5,10 +5,10 @@ input.todo, input.done, input.dont{
     width: 7ex;
 }
 textarea.todo{
-    height: 6ex;
+    height: 3ex;
     width: 80ex;
 }
 textarea.done, textarea.dont{
     height: 3ex;
-    width: 80ex;
+    width: 40ex;
 }
