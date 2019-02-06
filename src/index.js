@@ -14,6 +14,7 @@ class App extends React.Component {
     this.state = {
       data: props.data,
     };
+    this.dirty = false;
   }
   eval_ = k => {
     this.setState(produce(this.state, draft => this._eval_(draft, k)));
@@ -68,6 +69,7 @@ class App extends React.Component {
           children.splice(i, 1);
         }
         delete draft.data.kvs[k];
+        this.dirty = true;
       }),
       this.save,
     );
@@ -92,24 +94,28 @@ class App extends React.Component {
           draft.data.kvs[parent].children.unshift(k);
         }
         setCache(k, draft.data.kvs);
+        this.dirty = true;
       }),
       this.save,
     );
   };
   save = () => {
-    fetch("api/" + API_VERSION + "/post", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-      },
-      body: JSON.stringify(
-        produce(this.state.data, draft => {
-          for (let v of Object.values(draft.kvs)) {
-            delete v.cache;
-          }
-        }),
-      ),
-    });
+    if (this.dirty) {
+      fetch("api/" + API_VERSION + "/post", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+        },
+        body: JSON.stringify(
+          produce(this.state.data, draft => {
+            for (let v of Object.values(draft.kvs)) {
+              delete v.cache;
+            }
+          }),
+        ),
+      });
+      this.dirty = false;
+    }
   };
   start = k => {
     this.setState(
@@ -133,6 +139,7 @@ class App extends React.Component {
           }
           this._eval_(draft, k);
           draft.data.current_entry = k;
+          this.dirty = true;
         }
       }),
       this.save,
@@ -154,12 +161,14 @@ class App extends React.Component {
       }
       this._eval_(draft, draft.data.current_entry);
       draft.data.current_entry = null;
+      this.dirty = true;
     }
   };
   setEstimate = (k, estimate) => {
     this.setState(
       produce(this.state, draft => {
         draft.data.kvs[k].estimate = Number(estimate);
+        this.dirty = true;
       }),
       this.save,
     );
@@ -168,6 +177,7 @@ class App extends React.Component {
     this.setState(
       produce(this.state, draft => {
         draft.data.kvs[k].text = text;
+        this.dirty = true;
       }),
     );
   };
@@ -234,6 +244,7 @@ class App extends React.Component {
       produce(this.state, draft => {
         this[x](draft, k);
         this[y](draft, k);
+        this.dirty = true;
       }),
       this.save,
     );
