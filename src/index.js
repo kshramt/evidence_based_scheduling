@@ -1,10 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom";
+import Plot from "react-plotly.js";
 import produce from "immer";
 
 import "./index.css";
 
-// todo: 3) create new child, 4) change-order button
 const API_VERSION = "v1";
 const NO_ESTIMATION = 0;
 
@@ -13,6 +13,7 @@ class App extends React.Component {
     super(props);
     this.state = {
       data: props.data,
+      ratios: [],
     };
     this.dirty = false;
   }
@@ -26,6 +27,7 @@ class App extends React.Component {
     const ratios = candidates.map(v => {
       return v.cache.total_time_spent / 3600 / v.estimate;
     });
+    draft.ratios = ratios.map(Math.log);
     const weights = candidates.map(v => {
       return 1;
     });
@@ -270,6 +272,19 @@ class App extends React.Component {
         <div className="header">
           <h1>Evidence Based Scheduling</h1>
         </div>
+        <Plot
+          data={[
+            {
+              x: this.state.ratios,
+              type: "histogram",
+            },
+          ]}
+          layout={{
+            width: 300,
+            height: 300,
+            title: "Logarithm of ratios",
+          }}
+        />
         <button onClick={this.stop}>Stop</button>
         <Todo
           ks={this.state.data.todo}
