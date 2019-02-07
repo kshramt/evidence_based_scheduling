@@ -484,7 +484,7 @@ const toRear = (a, x) => {
   return a;
 };
 
-const cumsum = xs => {
+export const cumsum = xs => {
   const ret = [0];
   xs.reduce((total, current, i) => {
     const t = total + current;
@@ -494,7 +494,7 @@ const cumsum = xs => {
   return ret;
 };
 
-const sum = xs => {
+export const sum = xs => {
   return xs.reduce((total, current) => {
     return total + current;
   }, 0);
@@ -512,7 +512,7 @@ function* leafs(v, kvs) {
   }
 }
 
-function* multinomial(xs, ws) {
+export function* multinomial(xs, ws) {
   const total = sum(ws);
   const partitions = cumsum(ws.map(w => w / total)).map(v => {
     return Math.min(v, 1);
@@ -558,7 +558,7 @@ const setCache = (k, kvs) => {
   }
 };
 
-export const main = () => {
+const main = () => {
   fetch("api/" + API_VERSION + "/get")
     .then(r => r.json())
     .then(data => {
