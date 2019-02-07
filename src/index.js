@@ -334,6 +334,15 @@ const Tree = (ks, props) => {
       return (
         <li key={"li-" + k} className={classOf(v)}>
           <div className={k === props.current_entry ? "running" : null}>
+            {v.done_time === null && v.dont_time === null ? (
+              <button
+                onClick={() => {
+                  props.fn.new_(k);
+                }}
+              >
+                New
+              </button>
+            ) : null}
             <textarea
               key={"text-" + k}
               value={v.text}
@@ -351,8 +360,9 @@ const Tree = (ks, props) => {
               }}
               className={classOf(v)}
             />
+            {digits2(props.kvs[k].cache.total_time_spent / 3600) + " "}
             {v.cache.percentiles && v.done_time === null && v.dont_time === null
-              ? v.cache.percentiles.map(digits1).join(", ")
+              ? v.cache.percentiles.map(digits1).join(" ")
               : null}
             {v.done_time || v.dont_time ? null : k === props.current_entry ? (
               <button
@@ -386,15 +396,6 @@ const Tree = (ks, props) => {
               ? DontToXButtonList
               : TodoToXButtonList
             ).map(b => b(k, props))}
-            {v.done_time === null && v.dont_time === null ? (
-              <button
-                onClick={() => {
-                  props.fn.new_(k);
-                }}
-              >
-                New
-              </button>
-            ) : null}
             {v.children.length === 0 &&
             v.done_time === null &&
             v.dont_time === null ? (
@@ -406,7 +407,6 @@ const Tree = (ks, props) => {
                 Delete
               </button>
             ) : null}
-            {digits2(props.kvs[k].cache.total_time_spent / 3600)}
             {/* {JSON.stringify(v)} */}
           </div>
           {Tree(props.kvs[k].children, props)}
