@@ -350,7 +350,11 @@ const Tree = (ks, props, ref) => {
       return (
         <li key={"li-" + k} className={classOf(v)}>
           <div className={k === props.current_entry ? "running" : null}>
-            {v.done_time === null && v.dont_time === null ? (
+            {v.done_time ? (
+              DONE_MARK
+            ) : v.dont_time ? (
+              DONT_MARK
+            ) : (
               <button
                 onClick={() => {
                   props.fn.new_(k);
@@ -358,7 +362,7 @@ const Tree = (ks, props, ref) => {
               >
                 {NEW_MARK}
               </button>
-            ) : null}
+            )}
             <textarea
               key={"text-" + k}
               value={v.text}
@@ -376,10 +380,7 @@ const Tree = (ks, props, ref) => {
               }}
               className={classOf(v)}
             />
-            {digits2(props.kvs[k].cache.total_time_spent / 3600) + " "}
-            {v.cache.percentiles && v.done_time === null && v.dont_time === null
-              ? v.cache.percentiles.map(digits1).join(" ")
-              : null}
+            {digits2(props.kvs[k].cache.total_time_spent / 3600)}
             {v.done_time || v.dont_time ? null : k === props.current_entry ? (
               <button
                 onClick={() => {
@@ -424,6 +425,9 @@ const Tree = (ks, props, ref) => {
                 {DELETE_MARK}
               </button>
             ) : null}
+            {v.cache.percentiles && v.done_time === null && v.dont_time === null
+              ? v.cache.percentiles.map(digits1).join("_")
+              : null}
             {/* {JSON.stringify(v)} */}
           </div>
           {Tree(props.kvs[k].children, props)}
