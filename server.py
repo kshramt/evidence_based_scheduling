@@ -23,7 +23,7 @@ def jp(path, *more):
     return os.path.normpath(os.path.sep.join((path, os.path.sep.join(more))))
 
 
-DATA_DIR = os.environ.get("EBS_DATA_DIR", ".")
+DATA_DIR = os.environ.get("EBS_DATA_DIR", "data")
 DATA_CHECKPOINT_DIR = os.environ.get("EBS_DATA_CHECKPOINT_DIR", None)
 DATA_BASENAME = os.environ.get("EBS_DATA_BASENAME", "evidence_based_scheduling")
 

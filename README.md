@@ -8,7 +8,7 @@ source venv/bin/activate
 pip3 install -r requirements.txt
 npm ci
 
-EBS_DATA_DIR=. FLASK_APP=evidence_based_scheduling.py FLASK_DEBUG=1 flask run
+EBS_DATA_DIR=. FLASK_APP=server.py FLASK_DEBUG=1 flask run
 # On another terminal window.
 npm start # http://localhost:3000
 ```
