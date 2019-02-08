@@ -12,3 +12,6 @@ textarea.done, textarea.dont{
     height: 3ex;
     width: 40ex;
 }
+button{
+    padding: 0;
+}
