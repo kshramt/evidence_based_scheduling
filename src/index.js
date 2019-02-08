@@ -4,9 +4,16 @@ import produce from "immer";
 
 import "./index.css";
 
-// todo: 3) create new child, 4) change-order button
 const API_VERSION = "v1";
 const NO_ESTIMATION = 0;
+const STOP_MARK = "■";
+const NEW_MARK = "+";
+const START_MARK = "▶";
+const EVAL_MARK = "⏳";
+const DELETE_MARK = "×";
+const DONE_MARK = "✓";
+const DONT_MARK = "🗑";
+const TODO_MARK = "🔁";
 
 class App extends React.Component {
   constructor(props) {
@@ -270,7 +277,7 @@ class App extends React.Component {
         <div className="header">
           <h1>Evidence Based Scheduling</h1>
         </div>
-        <button onClick={this.stop}>Stop</button>
+        <button onClick={this.stop}>{STOP_MARK}</button>
         <Todo
           ks={this.state.data.todo}
           kvs={this.state.data.kvs}
@@ -303,7 +310,7 @@ const Todo = props => {
           props.fn.new_(null);
         }}
       >
-        New
+        {NEW_MARK}
       </button>
       {Tree(props.ks, props)}
     </div>
@@ -340,7 +347,7 @@ const Tree = (ks, props) => {
                   props.fn.new_(k);
                 }}
               >
-                New
+                {NEW_MARK}
               </button>
             ) : null}
             <textarea
@@ -370,7 +377,7 @@ const Tree = (ks, props) => {
                   props.fn.stop();
                 }}
               >
-                Stop
+                {STOP_MARK}
               </button>
             ) : (
               <button
@@ -378,7 +385,7 @@ const Tree = (ks, props) => {
                   props.fn.start(k);
                 }}
               >
-                Start
+                {START_MARK}
               </button>
             )}
             {v.done_time || v.dont_time ? null : (
@@ -387,7 +394,7 @@ const Tree = (ks, props) => {
                   props.fn.eval_(k);
                 }}
               >
-                Eval
+                {EVAL_MARK}
               </button>
             )}
             {(v.done_time
@@ -404,7 +411,7 @@ const Tree = (ks, props) => {
                   props.fn.delete_(k);
                 }}
               >
-                Delete
+                {DELETE_MARK}
               </button>
             ) : null}
             {/* {JSON.stringify(v)} */}
@@ -418,19 +425,19 @@ const Tree = (ks, props) => {
 };
 
 const TodoToDoneButton = (k, props) => {
-  return XToYButton("Done", "todoToDone", k, props);
+  return XToYButton(DONE_MARK, "todoToDone", k, props);
 };
 
 const TodoToDontButton = (k, props) => {
-  return XToYButton("Don't", "todoToDont", k, props);
+  return XToYButton(DONT_MARK, "todoToDont", k, props);
 };
 
 const DoneToTodoButton = (k, props) => {
-  return XToYButton("To do", "doneToTodo", k, props);
+  return XToYButton(TODO_MARK, "doneToTodo", k, props);
 };
 
 const DontToTodoButton = (k, props) => {
-  return XToYButton("To do", "dontToTodo", k, props);
+  return XToYButton(TODO_MARK, "dontToTodo", k, props);
 };
 
 const XToYButton = (title, XToY, k, props) => {
