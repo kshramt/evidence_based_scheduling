@@ -22,6 +22,7 @@ class App extends React.Component {
       data: props.data,
     };
     this.dirty = false;
+    this.ref = React.createRef();
   }
   eval_ = k => {
     this.setState(produce(this.state, draft => this._eval_(draft, k)));
@@ -149,8 +150,15 @@ class App extends React.Component {
           this.dirty = true;
         }
       }),
-      this.save,
+      this._startSetStateHook,
     );
+  };
+  _startSetStateHook = () => {
+    this.save();
+    const rc = this.ref.current;
+    if (rc) {
+      rc.focus();
+    }
   };
   stop = () => {
     this.setState(produce(this.state, this._stop), this.save);
@@ -283,6 +291,7 @@ class App extends React.Component {
           kvs={this.state.data.kvs}
           fn={fn}
           current_entry={this.state.data.current_entry}
+          ref={this.ref}
         />
         <Done
           ks={this.state.data.done}
@@ -301,7 +310,7 @@ class App extends React.Component {
   };
 }
 
-const Todo = props => {
+const Todo = React.forwardRef((props, ref) => {
   return (
     <div>
       <h1>To do</h1>
@@ -312,10 +321,10 @@ const Todo = props => {
       >
         {NEW_MARK}
       </button>
-      {Tree(props.ks, props)}
+      {Tree(props.ks, props, ref)}
     </div>
   );
-};
+});
 
 const Done = props => {
   return Panel("Done", props);
@@ -334,7 +343,7 @@ const Panel = (title, props) => {
   );
 };
 
-const Tree = (ks, props) => {
+const Tree = (ks, props, ref) => {
   if (ks) {
     const list = ks.map(k => {
       const v = props.kvs[k];
@@ -376,6 +385,7 @@ const Tree = (ks, props) => {
                 onClick={() => {
                   props.fn.stop();
                 }}
+                ref={k === props.current_entry ? ref : null}
               >
                 {STOP_MARK}
               </button>
