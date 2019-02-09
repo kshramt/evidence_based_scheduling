@@ -69,15 +69,17 @@ class App extends React.Component {
   delete_ = k => {
     this.setState(
       produce(this.state, draft => {
-        draft.data.todo = draft.data.todo.filter(x => x !== k);
-        const parent = draft.data.kvs[k].parent;
-        if (parent !== null) {
-          const children = draft.data.kvs[parent].children;
-          const i = children.indexOf(k);
-          children.splice(i, 1);
+        if (draft.data.kvs[k].children.length) {
+          draft.data.todo = draft.data.todo.filter(x => x !== k);
+          const parent = draft.data.kvs[k].parent;
+          if (parent !== null) {
+            const children = draft.data.kvs[parent].children;
+            const i = children.indexOf(k);
+            children.splice(i, 1);
+          }
+          delete draft.data.kvs[k];
+          this.dirty = true;
         }
-        delete draft.data.kvs[k];
-        this.dirty = true;
       }),
       this.save,
     );
