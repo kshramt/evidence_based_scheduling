@@ -46,8 +46,9 @@ class App extends React.Component {
       .map(v => {
         return v.estimate;
       });
+    const n_mcmc = 1001;
     const ts = [];
-    for (let i = 0; i < 201; i++) {
+    for (let i = 0; i < n_mcmc; i++) {
       ts.push(
         sum(
           leaf_estimates.map(x => {
@@ -59,12 +60,12 @@ class App extends React.Component {
     ts.sort((a, b) => a - b);
     draft.data.kvs[k].cache.percentiles = [
       ts[0],
-      ts[20],
-      ts[67],
-      ts[100],
-      ts[133],
-      ts[180],
-      ts[200],
+      ts[Math.round((n_mcmc - 1) / 10)],
+      ts[Math.round((n_mcmc - 1) / 3)],
+      ts[Math.round((n_mcmc - 1) / 2)],
+      ts[Math.round(((n_mcmc - 1) * 2) / 3)],
+      ts[Math.round(((n_mcmc - 1) * 9) / 10)],
+      ts[n_mcmc - 1],
     ];
   };
   delete_ = k => {
