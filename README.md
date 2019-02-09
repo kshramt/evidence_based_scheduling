@@ -1,5 +1,10 @@
 # Evidence Based Scheduling
 
+This is a TODO application, which supports [the evidence based scheduling](https://www.joelonsoftware.com/2007/10/26/evidence-based-scheduling/).
+
+![](img/screenshot_v2.jpeg)
+The numbers on the right show 0th, 10th, 33th, 50th, 67th, 90th, and 100th percentiles of the estimated time to complete in hours.
+
 ## Usage
 
 ```
