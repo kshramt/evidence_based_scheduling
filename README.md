@@ -1,5 +1,13 @@
 # Evidence Based Scheduling
 
+## Usage
+
+```
+./build.sh
+docker run --rm -p 5000:5000 -v "$(pwd)":/app/data kshramt/evidence_based_scheduling
+# open localhost:5000 in a Web browser
+```
+
 ## Development
 
 ```

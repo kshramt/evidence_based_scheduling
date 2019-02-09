@@ -35,7 +35,14 @@ except IOError:
     DATA = dict(current_entry=None, done=[], dont=[], kvs=dict(), todo=[])
 
 
-app = flask.Flask(__name__)
+app = flask.Flask(
+    __name__, static_folder=jp("build", "static"), template_folder="build"
+)
+
+
+@app.route("/")
+def root():
+    return flask.render_template("index.html")
 
 
 @app.route("/api/v1/get")
@@ -63,3 +70,7 @@ def save(data):
     with open(jp(DATA_DIR, DATA_BASENAME) + ".json", "w") as fp:
         fp.write(s)
     return time
+
+
+if __name__ == "__main__":
+    app.run(debug=False, host="0.0.0.0")

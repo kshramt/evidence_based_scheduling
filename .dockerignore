@@ -1,0 +1,10 @@
+*
+!requirements.txt
+!package.json
+!package-lock.json
+!server.py
+!src/index.js
+!src/index.css
+!public/favicon.ico
+!public/index.html
+!public/manifest.json
