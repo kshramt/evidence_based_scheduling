@@ -20,3 +20,7 @@ EBS_DATA_DIR=. FLASK_APP=server.py FLASK_DEBUG=1 flask run
 # On another terminal window.
 npm start # http://localhost:3000
 ```
+
+## License
+
+GNU General Public License version 3.
