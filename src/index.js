@@ -21,6 +21,7 @@ class App extends React.Component {
     super(props);
     this.state = {
       data: props.data,
+      saveSuccess: true,
     };
     this.dirty = false;
   }
@@ -126,6 +127,12 @@ class App extends React.Component {
             }
           }),
         ),
+      }).then(r => {
+        this.setState(
+          produce(this.state, draft => {
+            draft.saveSuccess = r.ok;
+          }),
+        );
       });
       this.dirty = false;
     }
@@ -294,9 +301,8 @@ class App extends React.Component {
 
     return (
       <div>
-        <div className="header">
-          <h1>Evidence Based Scheduling</h1>
-        </div>
+        <h1>Evidence Based Scheduling</h1>
+        {this.state.saveSuccess ? null : <p>Failed to save.</p>}
         <button onClick={this.stop}>{STOP_MARK}</button>
         <Todo
           ks={this.state.data.todo}
