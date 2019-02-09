@@ -9,6 +9,7 @@ const NO_ESTIMATION = 0;
 const STOP_MARK = "■";
 const NEW_MARK = "+";
 const START_MARK = "▶";
+const TOP_MARK = "↑";
 const EVAL_MARK = "⏳";
 const DELETE_MARK = "×";
 const DONE_MARK = "✓";
@@ -139,16 +140,7 @@ class App extends React.Component {
             end: null,
           });
           // Move the started entry to the top.
-          {
-            let ck = k;
-            let pk = draft.data.kvs[ck].parent;
-            while (pk !== null) {
-              toFront(draft.data.kvs[pk].children, ck);
-              ck = pk;
-              pk = draft.data.kvs[ck].parent;
-            }
-            toFront(draft.data.todo, ck);
-          }
+          this._top(k, draft);
           this._eval_(draft, k);
           draft.data.current_entry = k;
           this.dirty = true;
@@ -159,6 +151,25 @@ class App extends React.Component {
         this.state.data.kvs[k].cache.stopButtonRef.current.focus();
       },
     );
+  };
+  top = k => {
+    this.setState(
+      produce(this.state, draft => {
+        this._top(k, draft);
+        this.dirty = true;
+      }),
+      this.save,
+    );
+  };
+  _top = (k, draft) => {
+    let ck = k;
+    let pk = draft.data.kvs[ck].parent;
+    while (pk !== null) {
+      toFront(draft.data.kvs[pk].children, ck);
+      ck = pk;
+      pk = draft.data.kvs[ck].parent;
+    }
+    toFront(draft.data.todo, ck);
   };
   stop = () => {
     this.setState(produce(this.state, this._stop), this.save);
@@ -270,6 +281,7 @@ class App extends React.Component {
       delete_: this.delete_,
       start: this.start,
       stop: this.stop,
+      top: this.top,
       new_: this.new_,
       save: this.save,
       setEstimate: this.setEstimate,
@@ -399,6 +411,15 @@ const Tree = (ks, props) => {
                 {START_MARK}
               </button>
             )}
+            {v.done_time === null && v.dont_time === null ? (
+              <button
+                onClick={() => {
+                  props.fn.top(k);
+                }}
+              >
+                {TOP_MARK}
+              </button>
+            ) : null}
             {v.done_time || v.dont_time ? null : (
               <button
                 onClick={() => {
