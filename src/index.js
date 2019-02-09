@@ -392,6 +392,7 @@ const Tree = (ks, props) => {
             />
             <input
               type="number"
+              step="any"
               value={v.estimate}
               onChange={e => {
                 props.fn.setEstimate(k, e.target.value);
