@@ -60,7 +60,7 @@ class App extends React.Component {
     draft.data.kvs[k].cache.percentiles = [
       ts[0],
       ts[20],
-      ts[37],
+      ts[67],
       ts[100],
       ts[133],
       ts[180],
