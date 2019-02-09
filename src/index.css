@@ -6,7 +6,7 @@ input.todo, input.done, input.dont{
 }
 textarea.todo{
     height: 3ex;
-    width: 80ex;
+    width: 60ex;
 }
 textarea.done, textarea.dont{
     height: 3ex;
