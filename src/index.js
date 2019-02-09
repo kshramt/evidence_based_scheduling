@@ -69,7 +69,7 @@ class App extends React.Component {
   delete_ = k => {
     this.setState(
       produce(this.state, draft => {
-        if (draft.data.kvs[k].children.length) {
+        if (draft.data.kvs[k].children.length===0) {
           draft.data.todo = draft.data.todo.filter(x => x !== k);
           const parent = draft.data.kvs[k].parent;
           if (parent !== null) {
