@@ -22,7 +22,6 @@ class App extends React.Component {
       data: props.data,
     };
     this.dirty = false;
-    this.ref = React.createRef();
   }
   eval_ = k => {
     this.setState(produce(this.state, draft => this._eval_(draft, k)));
@@ -69,7 +68,7 @@ class App extends React.Component {
   delete_ = k => {
     this.setState(
       produce(this.state, draft => {
-        if (draft.data.kvs[k].children.length===0) {
+        if (draft.data.kvs[k].children.length === 0) {
           draft.data.todo = draft.data.todo.filter(x => x !== k);
           const parent = draft.data.kvs[k].parent;
           if (parent !== null) {
@@ -85,9 +84,9 @@ class App extends React.Component {
     );
   };
   new_ = parent => {
+    const k = new Date().toISOString();
     this.setState(
       produce(this.state, draft => {
-        const k = new Date().toISOString();
         const v = {
           children: [],
           done_time: null,
@@ -106,7 +105,10 @@ class App extends React.Component {
         setCache(k, draft.data.kvs);
         this.dirty = true;
       }),
-      this.save,
+      () => {
+        this.save();
+        this.state.data.kvs[k].cache.textareaRef.current.focus();
+      },
     );
   };
   save = () => {
@@ -152,15 +154,11 @@ class App extends React.Component {
           this.dirty = true;
         }
       }),
-      this._startSetStateHook,
+      () => {
+        this.save();
+        this.state.data.kvs[k].cache.stopButtonRef.current.focus();
+      },
     );
-  };
-  _startSetStateHook = () => {
-    this.save();
-    const rc = this.ref.current;
-    if (rc) {
-      rc.focus();
-    }
   };
   stop = () => {
     this.setState(produce(this.state, this._stop), this.save);
@@ -293,7 +291,6 @@ class App extends React.Component {
           kvs={this.state.data.kvs}
           fn={fn}
           current_entry={this.state.data.current_entry}
-          ref={this.ref}
         />
         <Done
           ks={this.state.data.done}
@@ -312,7 +309,7 @@ class App extends React.Component {
   };
 }
 
-const Todo = React.forwardRef((props, ref) => {
+const Todo = props => {
   return (
     <div>
       <h1>To do</h1>
@@ -323,10 +320,10 @@ const Todo = React.forwardRef((props, ref) => {
       >
         {NEW_MARK}
       </button>
-      {Tree(props.ks, props, ref)}
+      {Tree(props.ks, props)}
     </div>
   );
-});
+};
 
 const Done = props => {
   return Panel("Done", props);
@@ -345,7 +342,7 @@ const Panel = (title, props) => {
   );
 };
 
-const Tree = (ks, props, ref) => {
+const Tree = (ks, props) => {
   if (ks) {
     const list = ks.map(k => {
       const v = props.kvs[k];
@@ -373,6 +370,7 @@ const Tree = (ks, props, ref) => {
               }}
               onBlur={props.fn.save}
               className={classOf(v)}
+              ref={v.cache.textareaRef}
             />
             <input
               type="number"
@@ -388,7 +386,7 @@ const Tree = (ks, props, ref) => {
                 onClick={() => {
                   props.fn.stop();
                 }}
-                ref={k === props.current_entry ? ref : null}
+                ref={v.cache.stopButtonRef}
               >
                 {STOP_MARK}
               </button>
@@ -578,6 +576,12 @@ const setCache = (k, kvs) => {
   if (v.cache.percentiles === undefined) {
     // 0, 10, 33, 50, 67, 90, 100
     v.cache.percentiles = null;
+  }
+  if (v.cache.stopButtonRef === undefined) {
+    v.cache.stopButtonRef = React.createRef();
+  }
+  if (v.cache.textareaRef === undefined) {
+    v.cache.textareaRef = React.createRef();
   }
 };
 
