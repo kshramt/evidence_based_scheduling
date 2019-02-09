@@ -428,7 +428,7 @@ const Tree = (ks, props, ref) => {
               </button>
             ) : null}
             {v.cache.percentiles && v.done_time === null && v.dont_time === null
-              ? v.cache.percentiles.map(digits1).join("_")
+              ? v.cache.percentiles.map(digits1).join("　")
               : null}
             {/* {JSON.stringify(v)} */}
           </div>
