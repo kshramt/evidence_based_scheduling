@@ -7,7 +7,7 @@ copy . .
 run apk add --no-cache \
       python3 \
       py3-pip \
-&& pip3 install -r requirements.txt \
+&& pip3 install --no-cache-dir -r requirements.txt \
 && npm ci \
 && npm run build \
 && rm -fr \
