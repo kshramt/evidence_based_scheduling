@@ -11,13 +11,13 @@ def mkdir(path):
 
 def jp(path, *more):
     """
-    >>> _jp(".", "a")
+    >>> jp(".", "a")
     'a'
-    >>> _jp("a", "b")
+    >>> jp("a", "b")
     'a/b'
-    >>> _jp("a", "b", "..")
+    >>> jp("a", "b", "..")
     'a'
-    >>> _jp("a", "/b", "c")
+    >>> jp("a", "/b", "c")
     'a/b/c'
     """
     return os.path.normpath(os.path.sep.join((path, os.path.sep.join(more))))
