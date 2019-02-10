@@ -1,8 +1,12 @@
 div.running{
     background-color: Moccasin;
 }
-input.todo, input.done, input.dont{
+input.todo{
     width: 7ex;
+}
+input.done, input.dont{
+    width: 7ex;
+    color: rgb(128, 128, 128);
 }
 textarea.todo{
     height: 3ex;
@@ -11,10 +15,11 @@ textarea.todo{
 textarea.done, textarea.dont{
     height: 3ex;
     width: 40ex;
+    color: rgb(128, 128, 128);
 }
 button{
     padding: 0;
 }
 li.done, li.dont{
-    opacity: 0.5;
+    color: rgb(128, 128, 128);
 }
