@@ -74,7 +74,7 @@ class App extends React.Component {
     this.setState(
       produce(this.state, draft => {
         if (draft.data.kvs[k].children.length === 0) {
-          draft.data.todo = draft.data.todo.filter(x => x !== k);
+          deleteAtVal(draft.data.todo, k);
           const parent = draft.data.kvs[k].parent;
           if (parent !== null) {
             const children = draft.data.kvs[parent].children;
@@ -222,19 +222,19 @@ class App extends React.Component {
       this._stop(draft);
     }
     if (draft.data.kvs[k].parent === null) {
-      draft.data.todo = draft.data.todo.filter(x => x !== k);
+      deleteAtVal(draft.data.todo, k);
     }
   };
   rmFromDone = (draft, k) => {
     draft.data.kvs[k].done_time = null;
     if (draft.data.kvs[k].parent === null) {
-      draft.data.done = draft.data.done.filter(x => x !== k);
+      deleteAtVal(draft.data.done, k);
     }
   };
   rmFromDont = (draft, k) => {
     draft.data.kvs[k].dont_time = null;
     if (draft.data.kvs[k].parent === null) {
-      draft.data.dont = draft.data.dont.filter(x => x !== k);
+      deleteAtVal(draft.data.dont, k);
     }
   };
   addToTodo = (draft, k) => {
@@ -534,6 +534,13 @@ const toRear = (a, x) => {
     a.push(x);
   }
   return a;
+};
+
+const deleteAtVal = (a, x) => {
+  const i = a.indexOf(x);
+  if (i !== -1) {
+    a.splice(i, 1);
+  }
 };
 
 export const cumsum = xs => {
