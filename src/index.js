@@ -32,9 +32,11 @@ class App extends React.Component {
     const candidates = Object.values(draft.data.kvs).filter(v => {
       return v.done_time && v.estimate !== NO_ESTIMATION;
     });
-    const ratios = candidates.map(v => {
-      return v.cache.total_time_spent / 3600 / v.estimate;
-    });
+    const ratios = candidates.length
+      ? candidates.map(v => {
+          return v.cache.total_time_spent / 3600 / v.estimate;
+        })
+      : [1];
     const weights = candidates.map(v => {
       return 1;
     });
