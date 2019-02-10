@@ -24,6 +24,11 @@ class App extends React.Component {
       saveSuccess: true,
     };
     this.dirty = false;
+    this.history = {
+      prev: null,
+      value: this.state,
+      next: null,
+    };
   }
   eval_ = k => {
     this.setState(produce(this.state, draft => this._eval_(draft, k)));
@@ -118,6 +123,7 @@ class App extends React.Component {
   };
   save = () => {
     if (this.dirty) {
+      this.history = pushHistory(this.history, this.state);
       fetch("api/" + API_VERSION + "/post", {
         method: "POST",
         headers: {
@@ -138,6 +144,21 @@ class App extends React.Component {
         );
       });
       this.dirty = false;
+    }
+  };
+  undo = () => {
+    this.save();
+    if (this.history.prev !== null) {
+      this.history = this.history.prev;
+      this.setState(this.history.value);
+      this.save();
+    }
+  };
+  redo = () => {
+    if (this.history.next !== null) {
+      this.history = this.history.next;
+      this.setState(this.history.value);
+      this.save();
     }
   };
   start = k => {
@@ -307,6 +328,8 @@ class App extends React.Component {
         <h1>Evidence Based Scheduling</h1>
         {this.state.saveSuccess ? null : <p>Failed to save.</p>}
         <button onClick={this.stop}>{STOP_MARK}</button>
+        <button onClick={this.undo}>⬅</button>
+        <button onClick={this.redo}>➡</button>
         <Todo
           ks={this.state.data.todo}
           kvs={this.state.data.kvs}
@@ -592,6 +615,14 @@ export function* multinomial(xs, ws) {
     }
   }
 }
+
+const pushHistory = (h, v) => {
+  return (h.next = {
+    prev: h,
+    value: v,
+    next: null,
+  });
+};
 
 const setCache = (k, kvs) => {
   const v = kvs[k];
