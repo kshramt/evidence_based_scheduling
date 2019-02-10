@@ -15,3 +15,6 @@ textarea.done, textarea.dont{
 button{
     padding: 0;
 }
+li.done, li.dont{
+    opacity: 0.5;
+}
