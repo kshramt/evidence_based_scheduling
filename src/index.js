@@ -219,10 +219,10 @@ class App extends React.Component {
               draft.data.kvs[ppk].cache.total_time_spent,
             );
           }
-          this.dirty=true
+          this.dirty = true;
         }
       }),
-      this.save
+      this.save,
     );
   };
   _rmTodoEntry = (draft, k) => {
