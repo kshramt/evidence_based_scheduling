@@ -10,6 +10,9 @@ const STOP_MARK = "■";
 const NEW_MARK = "+";
 const START_MARK = "▶";
 const TOP_MARK = "↑";
+const UNDO_MARK = "⬅";
+const REDO_MARK = "➡";
+const UNINDENT_MARK = "↙";
 const EVAL_MARK = "⏳";
 const DELETE_MARK = "×";
 const DONE_MARK = "✓";
@@ -79,17 +82,7 @@ class App extends React.Component {
     this.setState(
       produce(this.state, draft => {
         if (draft.data.kvs[k].children.length === 0) {
-          const parent = draft.data.kvs[k].parent;
-          if (parent === null) {
-            deleteAtVal(draft.data.todo, k);
-          } else {
-            this._addDt(
-              draft,
-              parent,
-              -draft.data.kvs[k].cache.total_time_spent,
-            );
-            deleteAtVal(draft.data.kvs[parent].children, k);
-          }
+          this._rmTodoEntry(draft, k);
           delete draft.data.kvs[k];
           if (draft.data.current_entry === k) {
             draft.data.current_entry = null;
@@ -198,6 +191,55 @@ class App extends React.Component {
       }),
       this.save,
     );
+  };
+  unindent = k => {
+    this.setState(
+      produce(this.state, draft => {
+        const pk = draft.data.kvs[k].parent;
+        if (pk !== null) {
+          const _total_time_spent_pk_orig =
+            draft.data.kvs[pk].cache.total_time_spent;
+          this._rmTodoEntry(draft, k);
+          const ppk = draft.data.kvs[pk].parent;
+          const _total_time_spent_ppk_orig =
+            ppk === null ? null : draft.data.kvs[ppk].cache.total_time_spent;
+          const entries =
+            ppk === null ? draft.data.todo : draft.data.kvs[ppk].children;
+          const i = entries.indexOf(pk);
+          assert(i !== -1);
+          this._addTodoEntry(draft, ppk, i + 1, k);
+          assertIsApprox(
+            _total_time_spent_pk_orig -
+              draft.data.kvs[pk].cache.total_time_spent,
+            draft.data.kvs[k].cache.total_time_spent,
+          );
+          if (_total_time_spent_ppk_orig !== null) {
+            assertIsApprox(
+              _total_time_spent_ppk_orig,
+              draft.data.kvs[ppk].cache.total_time_spent,
+            );
+          }
+        }
+      }),
+    );
+  };
+  _rmTodoEntry = (draft, k) => {
+    const pk = draft.data.kvs[k].parent;
+    if (pk === null) {
+      deleteAtVal(draft.data.todo, k);
+    } else {
+      deleteAtVal(draft.data.kvs[pk].children, k);
+      this._addDt(draft, pk, -draft.data.kvs[k].cache.total_time_spent);
+    }
+  };
+  _addTodoEntry = (draft, pk, i, k) => {
+    draft.data.kvs[k].parent = pk;
+    if (pk === null) {
+      draft.data.todo.splice(i, 0, k);
+    } else {
+      draft.data.kvs[pk].children.splice(i, 0, k);
+      this._addDt(draft, pk, draft.data.kvs[k].cache.total_time_spent);
+    }
   };
   _top = (k, draft) => {
     let ck = k;
@@ -323,6 +365,7 @@ class App extends React.Component {
       start: this.start,
       stop: this.stop,
       top: this.top,
+      unindent: this.unindent,
       new_: this.new_,
       save: this.save,
       setEstimate: this.setEstimate,
@@ -338,8 +381,8 @@ class App extends React.Component {
         <h1>Evidence Based Scheduling</h1>
         {this.state.saveSuccess ? null : <p>Failed to save.</p>}
         <button onClick={this.stop}>{STOP_MARK}</button>
-        <button onClick={this.undo}>⬅</button>
-        <button onClick={this.redo}>➡</button>
+        <button onClick={this.undo}>{UNDO_MARK}</button>
+        <button onClick={this.redo}>{REDO_MARK}</button>
         <Todo
           ks={this.state.data.todo}
           kvs={this.state.data.kvs}
@@ -461,6 +504,15 @@ const Tree = (ks, props) => {
                 }}
               >
                 {TOP_MARK}
+              </button>
+            ) : null}
+            {v.done_time === null && v.dont_time === null ? (
+              <button
+                onClick={() => {
+                  props.fn.unindent(k);
+                }}
+              >
+                {UNINDENT_MARK}
               </button>
             ) : null}
             {v.done_time || v.dont_time ? null : (
@@ -661,6 +713,22 @@ const setCache = (k, kvs) => {
   }
   if (v.cache.textareaRef === undefined) {
     v.cache.textareaRef = React.createRef();
+  }
+};
+
+const isApprox = (x, y) => {
+  const atol = 1e-7;
+  const rtol = 1e-4;
+  return Math.abs(y - x) <= Math.max(atol, Math.max(Math.abs(x), Math.abs(y)));
+};
+
+const assertIsApprox = (actual, expected) => {
+  assert(isApprox(actual, expected), actual + " ≉ " + expected);
+};
+
+const assert = (v, msg) => {
+  if (!v) {
+    throw new Error(msg);
   }
 };
 
