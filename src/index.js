@@ -79,12 +79,16 @@ class App extends React.Component {
     this.setState(
       produce(this.state, draft => {
         if (draft.data.kvs[k].children.length === 0) {
-          deleteAtVal(draft.data.todo, k);
           const parent = draft.data.kvs[k].parent;
-          if (parent !== null) {
-            const children = draft.data.kvs[parent].children;
-            const i = children.indexOf(k);
-            children.splice(i, 1);
+          if (parent === null) {
+            deleteAtVal(draft.data.todo, k);
+          } else {
+            this._addDt(
+              draft,
+              parent,
+              -draft.data.kvs[k].cache.total_time_spent,
+            );
+            deleteAtVal(draft.data.kvs[parent].children, k);
           }
           delete draft.data.kvs[k];
           this.dirty = true;
@@ -211,14 +215,17 @@ class App extends React.Component {
       last(e.ranges).end = Number(new Date()) / 1000;
       const r = last(e.ranges);
       const dt = r.end - r.start;
-      let node = e;
-      while (node) {
-        node.cache.total_time_spent += dt;
-        node = draft.data.kvs[node.parent];
-      }
+      this._addDt(draft, draft.data.current_entry, dt);
       this._eval_(draft, draft.data.current_entry);
       draft.data.current_entry = null;
       this.dirty = true;
+    }
+  };
+  _addDt = (draft, k, dt) => {
+    while (k) {
+      const node = draft.data.kvs[k];
+      node.cache.total_time_spent += dt;
+      k = node.parent;
     }
   };
   setEstimate = (k, estimate) => {
