@@ -91,6 +91,9 @@ class App extends React.Component {
             deleteAtVal(draft.data.kvs[parent].children, k);
           }
           delete draft.data.kvs[k];
+          if (draft.data.current_entry === k) {
+            draft.data.current_entry = null;
+          }
           this.dirty = true;
         }
       }),
