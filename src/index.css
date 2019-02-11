@@ -14,7 +14,7 @@ textarea.todo{
 }
 textarea.done, textarea.dont{
     height: 3ex;
-    width: 40ex;
+    width: 60ex;
     color: rgb(128, 128, 128);
 }
 button{
