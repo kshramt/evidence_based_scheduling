@@ -478,7 +478,7 @@ const Tree = (ks, props) => {
               }}
               className={classOf(v)}
             />
-            {digits2(props.kvs[k].cache.total_time_spent / 3600)}
+            {digits1(props.kvs[k].cache.total_time_spent / 3600)}
             {v.done_time || v.dont_time ? null : k === props.current_entry ? (
               <button
                 onClick={() => {
