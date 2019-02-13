@@ -721,7 +721,7 @@ const setCache = (k, kvs) => {
 const isApprox = (x, y) => {
   const atol = 1e-7;
   const rtol = 1e-4;
-  return Math.abs(y - x) <= Math.max(atol, Math.max(Math.abs(x), Math.abs(y)));
+  return Math.abs(y - x) <= Math.max(atol, rtol*Math.max(Math.abs(x), Math.abs(y)));
 };
 
 const assertIsApprox = (actual, expected) => {
