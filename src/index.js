@@ -18,6 +18,7 @@ const DELETE_MARK = "×";
 const DONE_MARK = "✓";
 const DONT_MARK = "🗑";
 const TODO_MARK = "🔁";
+const DETAIL_MARK = "⋮";
 
 class App extends React.Component {
   constructor(props) {
@@ -160,6 +161,14 @@ class App extends React.Component {
       this.setState(this.history.value);
       this.save();
     }
+  };
+  flipShowDetail = k => {
+    this.setState(
+      produce(this.state, draft => {
+        draft.data.kvs[k].cache.show_detail = !draft.data.kvs[k].cache
+          .show_detail;
+      }),
+    );
   };
   start = k => {
     this.setState(
@@ -372,6 +381,7 @@ class App extends React.Component {
       save: this.save,
       setEstimate: this.setEstimate,
       setText: this.setText,
+      flipShowDetail: this.flipShowDetail,
       todoToDone: this.todoToDone,
       todoToDont: this.todoToDont,
       doneToTodo: this.doneToTodo,
@@ -532,21 +542,33 @@ const Tree = (ks, props) => {
               ? DontToXButtonList
               : TodoToXButtonList
             ).map(b => b(k, props))}
-            {v.children.length === 0 &&
-            v.done_time === null &&
-            v.dont_time === null ? (
+
+            {v.done_time === null && v.dont_time === null ? (
               <button
                 onClick={() => {
-                  props.fn.delete_(k);
+                  props.fn.flipShowDetail(k);
                 }}
               >
-                {DELETE_MARK}
+                {DETAIL_MARK}
               </button>
             ) : null}
             {v.cache.percentiles && v.done_time === null && v.dont_time === null
               ? v.cache.percentiles.map(digits1).join("　")
               : null}
-            {/* {JSON.stringify(v)} */}
+            {v.cache.show_detail ? (
+              <div>
+                {/* v.ranges.length?(<input type="number" step="any" value=()/>):null */}
+                {v.children.length === 0 ? (
+                  <button
+                    onClick={() => {
+                      props.fn.delete_(k);
+                    }}
+                  >
+                    {DELETE_MARK}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
           </div>
           {Tree(props.kvs[k].children, props)}
         </li>
@@ -716,12 +738,17 @@ const setCache = (k, kvs) => {
   if (v.cache.textareaRef === undefined) {
     v.cache.textareaRef = React.createRef();
   }
+  if (v.cache.show_detail === undefined) {
+    v.cache.show_detail = false;
+  }
 };
 
 const isApprox = (x, y) => {
   const atol = 1e-7;
   const rtol = 1e-4;
-  return Math.abs(y - x) <= Math.max(atol, rtol*Math.max(Math.abs(x), Math.abs(y)));
+  return (
+    Math.abs(y - x) <= Math.max(atol, rtol * Math.max(Math.abs(x), Math.abs(y)))
+  );
 };
 
 const assertIsApprox = (actual, expected) => {
