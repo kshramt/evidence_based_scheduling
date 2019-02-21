@@ -35,7 +35,7 @@ class App extends React.Component {
     };
   }
   eval_ = k => {
-    this.setState(produce(this.state, draft => this._eval_(draft, k)));
+    this.setState(state => produce(state, draft => this._eval_(draft, k)));
   };
   _eval_ = (draft, k) => {
     const candidates = Object.values(draft.data.kvs).filter(v => {
@@ -81,41 +81,43 @@ class App extends React.Component {
   };
   delete_ = k => {
     this.setState(
-      produce(this.state, draft => {
-        if (draft.data.kvs[k].children.length === 0) {
-          this._rmTodoEntry(draft, k);
-          delete draft.data.kvs[k];
-          if (draft.data.current_entry === k) {
-            draft.data.current_entry = null;
+      state =>
+        produce(state, draft => {
+          if (draft.data.kvs[k].children.length === 0) {
+            this._rmTodoEntry(draft, k);
+            delete draft.data.kvs[k];
+            if (draft.data.current_entry === k) {
+              draft.data.current_entry = null;
+            }
+            this.dirty = true;
           }
-          this.dirty = true;
-        }
-      }),
+        }),
       this.save,
     );
   };
   new_ = parent => {
     const k = new Date().toISOString();
     this.setState(
-      produce(this.state, draft => {
-        const v = {
-          children: [],
-          done_time: null,
-          dont_time: null,
-          estimate: NO_ESTIMATION,
-          parent,
-          ranges: [],
-          text: "",
-        };
-        draft.data.kvs[k] = v;
-        if (parent === null) {
-          draft.data.todo.unshift(k);
-        } else {
-          draft.data.kvs[parent].children.unshift(k);
-        }
-        setCache(k, draft.data.kvs);
-        this.dirty = true;
-      }),
+      state =>
+        produce(state, draft => {
+          const v = {
+            children: [],
+            done_time: null,
+            dont_time: null,
+            estimate: NO_ESTIMATION,
+            parent,
+            ranges: [],
+            text: "",
+          };
+          draft.data.kvs[k] = v;
+          if (parent === null) {
+            draft.data.todo.unshift(k);
+          } else {
+            draft.data.kvs[parent].children.unshift(k);
+          }
+          setCache(k, draft.data.kvs);
+          this.dirty = true;
+        }),
       () => {
         this.save();
         this.state.data.kvs[k].cache.textareaRef.current.focus();
@@ -138,8 +140,8 @@ class App extends React.Component {
           }),
         ),
       }).then(r => {
-        this.setState(
-          produce(this.state, draft => {
+        this.setState(state =>
+          produce(state, draft => {
             draft.saveSuccess = r.ok;
           }),
         );
@@ -151,20 +153,20 @@ class App extends React.Component {
     this.save();
     if (this.history.prev !== null) {
       this.history = this.history.prev;
-      this.setState(this.history.value);
+      this.setState(state => this.history.value);
       this.save();
     }
   };
   redo = () => {
     if (this.history.next !== null) {
       this.history = this.history.next;
-      this.setState(this.history.value);
+      this.setState(state => this.history.value);
       this.save();
     }
   };
   flipShowDetail = k => {
-    this.setState(
-      produce(this.state, draft => {
+    this.setState(state =>
+      produce(state, draft => {
         draft.data.kvs[k].cache.show_detail = !draft.data.kvs[k].cache
           .show_detail;
       }),
@@ -172,20 +174,21 @@ class App extends React.Component {
   };
   start = k => {
     this.setState(
-      produce(this.state, draft => {
-        if (k !== draft.data.current_entry) {
-          this._stop(draft);
-          draft.data.kvs[k].ranges.push({
-            start: Number(new Date()) / 1000,
-            end: null,
-          });
-          // Move the started entry to the top.
-          this._top(k, draft);
-          this._eval_(draft, k);
-          draft.data.current_entry = k;
-          this.dirty = true;
-        }
-      }),
+      state =>
+        produce(state, draft => {
+          if (k !== draft.data.current_entry) {
+            this._stop(draft);
+            draft.data.kvs[k].ranges.push({
+              start: Number(new Date()) / 1000,
+              end: null,
+            });
+            // Move the started entry to the top.
+            this._top(k, draft);
+            this._eval_(draft, k);
+            draft.data.current_entry = k;
+            this.dirty = true;
+          }
+        }),
       () => {
         this.save();
         this.state.data.kvs[k].cache.stopButtonRef.current.focus();
@@ -194,43 +197,45 @@ class App extends React.Component {
   };
   top = k => {
     this.setState(
-      produce(this.state, draft => {
-        this._top(k, draft);
-        this.dirty = true;
-      }),
+      state =>
+        produce(state, draft => {
+          this._top(k, draft);
+          this.dirty = true;
+        }),
       this.save,
     );
   };
   unindent = k => {
     this.setState(
-      produce(this.state, draft => {
-        const pk = draft.data.kvs[k].parent;
-        if (pk !== null) {
-          const _total_time_spent_pk_orig =
-            draft.data.kvs[pk].cache.total_time_spent;
-          this._rmTodoEntry(draft, k);
-          const ppk = draft.data.kvs[pk].parent;
-          const _total_time_spent_ppk_orig =
-            ppk === null ? null : draft.data.kvs[ppk].cache.total_time_spent;
-          const entries =
-            ppk === null ? draft.data.todo : draft.data.kvs[ppk].children;
-          const i = entries.indexOf(pk);
-          assert(i !== -1);
-          this._addTodoEntry(draft, ppk, i + 1, k);
-          assertIsApprox(
-            _total_time_spent_pk_orig -
-              draft.data.kvs[pk].cache.total_time_spent,
-            draft.data.kvs[k].cache.total_time_spent,
-          );
-          if (_total_time_spent_ppk_orig !== null) {
+      state =>
+        produce(state, draft => {
+          const pk = draft.data.kvs[k].parent;
+          if (pk !== null) {
+            const _total_time_spent_pk_orig =
+              draft.data.kvs[pk].cache.total_time_spent;
+            this._rmTodoEntry(draft, k);
+            const ppk = draft.data.kvs[pk].parent;
+            const _total_time_spent_ppk_orig =
+              ppk === null ? null : draft.data.kvs[ppk].cache.total_time_spent;
+            const entries =
+              ppk === null ? draft.data.todo : draft.data.kvs[ppk].children;
+            const i = entries.indexOf(pk);
+            assert(i !== -1);
+            this._addTodoEntry(draft, ppk, i + 1, k);
             assertIsApprox(
-              _total_time_spent_ppk_orig,
-              draft.data.kvs[ppk].cache.total_time_spent,
+              _total_time_spent_pk_orig -
+                draft.data.kvs[pk].cache.total_time_spent,
+              draft.data.kvs[k].cache.total_time_spent,
             );
+            if (_total_time_spent_ppk_orig !== null) {
+              assertIsApprox(
+                _total_time_spent_ppk_orig,
+                draft.data.kvs[ppk].cache.total_time_spent,
+              );
+            }
+            this.dirty = true;
           }
-          this.dirty = true;
-        }
-      }),
+        }),
       this.save,
     );
   };
@@ -263,7 +268,7 @@ class App extends React.Component {
     toFront(draft.data.todo, ck);
   };
   stop = () => {
-    this.setState(produce(this.state, this._stop), this.save);
+    this.setState(state => produce(this.state, this._stop), this.save);
   };
   _stop = draft => {
     if (draft.data.current_entry !== null) {
@@ -286,16 +291,17 @@ class App extends React.Component {
   };
   setEstimate = (k, estimate) => {
     this.setState(
-      produce(this.state, draft => {
-        draft.data.kvs[k].estimate = Number(estimate);
-        this.dirty = true;
-      }),
+      state =>
+        produce(state, draft => {
+          draft.data.kvs[k].estimate = Number(estimate);
+          this.dirty = true;
+        }),
       this.save,
     );
   };
   setText = (k, text) => {
-    this.setState(
-      produce(this.state, draft => {
+    this.setState(state =>
+      produce(state, draft => {
         draft.data.kvs[k].text = text;
         this.dirty = true;
       }),
@@ -361,11 +367,12 @@ class App extends React.Component {
   };
   xToY = (x, y, k) => {
     this.setState(
-      produce(this.state, draft => {
-        this[x](draft, k);
-        this[y](draft, k);
-        this.dirty = true;
-      }),
+      state =>
+        produce(state, draft => {
+          this[x](draft, k);
+          this[y](draft, k);
+          this.dirty = true;
+        }),
       this.save,
     );
   };
