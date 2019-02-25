@@ -8,13 +8,7 @@ input.done, input.dont{
     width: 7ex;
     color: rgb(128, 128, 128);
 }
-textarea.todo{
-    height: 3ex;
-    width: 60ex;
-}
 textarea.done, textarea.dont{
-    height: 3ex;
-    width: 60ex;
     color: rgb(128, 128, 128);
 }
 button{
