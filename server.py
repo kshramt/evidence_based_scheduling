@@ -5,6 +5,10 @@ import os
 import flask
 
 
+class Err(Exception):
+    pass
+
+
 def mkdir(path):
     return os.makedirs(path, exist_ok=True)
 
@@ -28,11 +32,32 @@ DATA_CHECKPOINT_DIR = os.environ.get("EBS_DATA_CHECKPOINT_DIR", None)
 DATA_BASENAME = os.environ.get("EBS_DATA_BASENAME", "evidence_based_scheduling")
 
 
+def _update_data_version(data):
+    if "version" not in data:
+        return _update_data_version(_v1_of_vnone(data))
+    elif data["version"] == 1:
+        return data
+    else:
+        raise Err(f"Unsupported data version: {data.get('version', 'None')}")
+
+
+def _v1_of_vnone(data):
+    assert "version" not in data, data
+    for v in data["kvs"].values():
+        if "width" not in v:
+            v["width"] = "60ex"
+        if "height" not in v:
+            v["height"] = "3ex"
+    data["version"] = 1
+    return data
+
+
 try:
     with open(jp(DATA_DIR, DATA_BASENAME) + ".json") as fp:
         DATA = json.load(fp)
 except IOError:
     DATA = dict(current_entry=None, done=[], dont=[], kvs=dict(), todo=[])
+DATA = _update_data_version(DATA)
 
 
 app = flask.Flask(

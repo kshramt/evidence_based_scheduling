@@ -105,9 +105,11 @@ class App extends React.Component {
             done_time: null,
             dont_time: null,
             estimate: NO_ESTIMATION,
+            height: "3ex",
             parent,
             ranges: [],
             text: "",
+            width: "60ex",
           };
           draft.data.kvs[k] = v;
           if (parent === null) {
@@ -307,6 +309,23 @@ class App extends React.Component {
       }),
     );
   };
+  resizeTextArea = (k, width, height) => {
+    this.setState(
+      state =>
+        produce(state, draft => {
+          const v = draft.data.kvs[k];
+          if (v.width !== width) {
+            v.width = width;
+            this.dirty = true;
+          }
+          if (v.height !== height) {
+            v.height = height;
+            this.dirty = true;
+          }
+        }),
+      this.save,
+    );
+  };
   rmFromTodo = (draft, k) => {
     if (draft.data.current_entry === k) {
       this._stop(draft);
@@ -388,6 +407,7 @@ class App extends React.Component {
       save: this.save,
       setEstimate: this.setEstimate,
       setText: this.setText,
+      resizeTextArea: this.resizeTextArea,
       flipShowDetail: this.flipShowDetail,
       todoToDone: this.todoToDone,
       todoToDont: this.todoToDont,
@@ -479,13 +499,23 @@ const Tree = (ks, props) => {
               </button>
             )}
             <textarea
-              key={"text-" + k}
               value={v.text}
               onChange={e => {
                 props.fn.setText(k, e.target.value);
               }}
               onBlur={props.fn.save}
+              onMouseUp={e => {
+                props.fn.resizeTextArea(
+                  k,
+                  e.target.style.width,
+                  e.target.style.height,
+                );
+              }}
               className={classOf(v)}
+              style={{
+                width: v.width,
+                height: v.height,
+              }}
               ref={v.cache.textareaRef}
             />
             <input
