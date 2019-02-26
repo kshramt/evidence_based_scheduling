@@ -311,8 +311,14 @@ class App extends React.Component {
         produce(state, draft => {
           const l = lastRange(draft.data.kvs[k].ranges);
           if (l !== null) {
-            l.end = l.start + t * 3600;
-            this.dirty = true;
+            const t1 = l.end - l.start;
+            const t2 = t * 3600;
+            const dt = t2 - t1;
+            if (dt !== 0) {
+              l.end = l.start + t2;
+              this._addDt(draft, k, dt);
+              this.dirty = true;
+            }
           }
         }),
       this.save,
