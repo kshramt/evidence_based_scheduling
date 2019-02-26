@@ -30,6 +30,7 @@ def jp(path, *more):
 DATA_DIR = os.environ.get("EBS_DATA_DIR", "data")
 DATA_CHECKPOINT_DIR = os.environ.get("EBS_DATA_CHECKPOINT_DIR", None)
 DATA_BASENAME = os.environ.get("EBS_DATA_BASENAME", "evidence_based_scheduling")
+NO_UPDATE_SERVER_DATA = os.environ.get("EBS_NO_UPDATE_SERVER_DATA", None)
 
 
 def _update_data_version(data):
@@ -78,7 +79,8 @@ def get():
 @app.route("/api/v1/post", methods=["POST"])
 def post():
     global DATA
-    DATA = flask.request.json
+    if not NO_UPDATE_SERVER_DATA:
+        DATA = flask.request.json
     return save(flask.request.json)
 
 
