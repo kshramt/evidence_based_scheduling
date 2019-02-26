@@ -305,6 +305,19 @@ class App extends React.Component {
       this.save,
     );
   };
+  setLastRange = (k, t) => {
+    this.setState(
+      state =>
+        produce(state, draft => {
+          const l = lastRange(draft.data.kvs[k].ranges);
+          if (l !== null) {
+            l.end = l.start + t * 3600;
+            this.dirty = true;
+          }
+        }),
+      this.save,
+    );
+  };
   setText = (k, text) => {
     this.setState(state =>
       produce(state, draft => {
@@ -410,6 +423,7 @@ class App extends React.Component {
       new_: this.new_,
       save: this.save,
       setEstimate: this.setEstimate,
+      setLastRange: this.setLastRange,
       setText: this.setText,
       resizeTextArea: this.resizeTextArea,
       flipShowDetail: this.flipShowDetail,
@@ -598,7 +612,9 @@ const Tree = (ks, props) => {
               : null}
             {v.cache.show_detail ? (
               <div>
-                {/* v.ranges.length?(<input type="number" step="any" value=()/>):null */}
+                {showLastRange(lastRange(v.ranges), e => {
+                  props.fn.setLastRange(k, e.target.value);
+                })}
                 {v.children.length === 0 ? (
                   <button
                     onClick={() => {
@@ -617,6 +633,29 @@ const Tree = (ks, props) => {
     });
     return <ol>{list}</ol>;
   }
+};
+
+const showLastRange = (l, onChange) => {
+  return l === null ? null : (
+    <input
+      type="number"
+      step="any"
+      value={(l.end - l.start) / 3600}
+      onChange={onChange}
+    />
+  );
+};
+
+const lastRange = ranges => {
+  return ranges.length
+    ? last(ranges).end === null
+      ? lastRange(butLast(ranges))
+      : last(ranges)
+    : null;
+};
+
+const butLast = xs => {
+  return xs.length ? xs.slice(0, -1) : xs;
 };
 
 const TodoToDoneButton = (k, props) => {
