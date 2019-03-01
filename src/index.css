@@ -14,6 +14,9 @@ textarea.done, textarea.dont{
 button{
     padding: 0;
 }
+li > div > *{
+    vertical-align: top;
+}
 li.done, li.dont{
     color: rgb(128, 128, 128);
 }
