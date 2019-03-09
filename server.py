@@ -53,14 +53,6 @@ def _v1_of_vnone(data):
     return data
 
 
-try:
-    with open(jp(DATA_DIR, DATA_BASENAME) + ".json") as fp:
-        DATA = json.load(fp)
-except IOError:
-    DATA = dict(current_entry=None, done=[], dont=[], kvs=dict(), todo=[])
-DATA = _update_data_version(DATA)
-
-
 app = flask.Flask(
     __name__, static_folder=jp("build", "static"), template_folder="build"
 )
@@ -73,14 +65,17 @@ def root():
 
 @app.route("/api/v1/get")
 def get():
-    return flask.json.jsonify(DATA)
+    try:
+        with open(jp(DATA_DIR, DATA_BASENAME) + ".json") as fp:
+            data = json.load(fp)
+    except IOError:
+        data = dict(current_entry=None, done=[], dont=[], kvs=dict(), todo=[])
+    data = _update_data_version(data)
+    return flask.json.jsonify(data)
 
 
 @app.route("/api/v1/post", methods=["POST"])
 def post():
-    global DATA
-    if not NO_UPDATE_SERVER_DATA:
-        DATA = flask.request.json
     return save(flask.request.json)
 
 
