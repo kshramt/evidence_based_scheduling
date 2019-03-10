@@ -129,45 +129,46 @@ class App extends React.Component {
   save = () => {
     if (this.dirty) {
       this.history = pushHistory(this.history, this.state);
-      fetch("api/" + API_VERSION + "/post", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-        },
-        body: JSON.stringify(
-          produce(this.state.data, draft => {
-            for (let v of Object.values(draft.kvs)) {
-              delete v.cache;
-              v.children.push(null);
-            }
-            draft.todo.push(null);
-            draft.done.push(null);
-            draft.dont.push(null);
-          }),
-        ),
-      }).then(r => {
-        this.setState(state =>
-          produce(state, draft => {
-            draft.saveSuccess = r.ok;
-          }),
-        );
-      });
-      this.dirty = false;
+      this._save();
     }
+  };
+  _save = () => {
+    fetch("api/" + API_VERSION + "/post", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+      },
+      body: JSON.stringify(
+        produce(this.state.data, draft => {
+          for (let v of Object.values(draft.kvs)) {
+            delete v.cache;
+            v.children.push(null);
+          }
+          draft.todo.push(null);
+          draft.done.push(null);
+          draft.dont.push(null);
+        }),
+      ),
+    }).then(r => {
+      this.setState(state =>
+        produce(state, draft => {
+          draft.saveSuccess = r.ok;
+        }),
+      );
+    });
+    this.dirty = false;
   };
   undo = () => {
     this.save();
     if (this.history.prev !== null) {
       this.history = this.history.prev;
-      this.setState(state => this.history.value);
-      this.save();
+      this.setState(state => this.history.value, this._save);
     }
   };
   redo = () => {
     if (this.history.next !== null) {
       this.history = this.history.next;
-      this.setState(state => this.history.value);
-      this.save();
+      this.setState(state => this.history.value, this._save);
     }
   };
   flipShowDetail = k => {
