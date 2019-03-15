@@ -220,10 +220,10 @@ class App extends React.Component {
           if (pk !== null) {
             const _total_time_spent_pk_orig =
               draft.data.kvs[pk].cache.total_time_spent;
-            this._rmTodoEntry(draft, k);
             const ppk = draft.data.kvs[pk].parent;
             const _total_time_spent_ppk_orig =
               ppk === null ? null : draft.data.kvs[ppk].cache.total_time_spent;
+            this._rmTodoEntry(draft, k);
             const entries =
               ppk === null ? draft.data.todo : draft.data.kvs[ppk].children;
             const i = entries.indexOf(pk);
