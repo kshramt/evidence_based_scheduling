@@ -190,7 +190,7 @@ class App extends React.Component {
               end: null,
             });
             // Move the started entry to the top.
-            this._top(k, draft);
+            this._top(draft, k);
             this._eval_(draft, k);
             draft.data.current_entry = k;
             this.dirty = true;
@@ -206,7 +206,7 @@ class App extends React.Component {
     this.setState(
       state =>
         produce(state, draft => {
-          this._top(k, draft);
+          this._top(draft, k);
           this.dirty = true;
         }),
       this.save,
@@ -264,7 +264,7 @@ class App extends React.Component {
       this._addDt(draft, pk, draft.data.kvs[k].cache.total_time_spent);
     }
   };
-  _top = (k, draft) => {
+  _top = (draft, k) => {
     let ck = k;
     let pk = draft.data.kvs[ck].parent;
     while (pk !== null) {
