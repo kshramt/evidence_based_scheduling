@@ -1,3 +1,9 @@
+div.menu{
+    position: fixed;
+    top: 1ex;
+    left: 1ex;
+    background-color: white;
+}
 div.running{
     background-color: Moccasin;
 }

@@ -511,11 +511,14 @@ class App extends React.Component {
 
     return (
       <div>
-        <h1>Evidence Based Scheduling</h1>
-        {this.state.saveSuccess ? null : <p>Failed to save.</p>}
-        <button onClick={this.stop}>{STOP_MARK}</button>
-        <button onClick={this.undo}>{UNDO_MARK}</button>
-        <button onClick={this.redo}>{REDO_MARK}</button>
+        <div className={"menu"}>
+          {this.state.saveSuccess ? null : <p>Failed to save.</p>}
+          <div>
+            <button onClick={this.stop}>{STOP_MARK}</button>
+            <button onClick={this.undo}>{UNDO_MARK}</button>
+            <button onClick={this.redo}>{REDO_MARK}</button>
+          </div>
+        </div>
         <Todo
           ks={this.state.data.todo}
           kvs={this.state.data.kvs}
