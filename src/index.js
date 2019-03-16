@@ -9,10 +9,13 @@ const NO_ESTIMATION = 0;
 const STOP_MARK = "■";
 const NEW_MARK = "+";
 const START_MARK = "▶";
-const TOP_MARK = "↑";
+const TOP_MARK = "⬆";
+const MOVE_UP_MARK = "↑";
+const MOVE_DOWN_MARK = "↓";
 const UNDO_MARK = "⬅";
 const REDO_MARK = "➡";
 const UNINDENT_MARK = "↙";
+const INDENT_MARK = "↗︎";
 const EVAL_MARK = "⏳";
 const DELETE_MARK = "×";
 const DONE_MARK = "✓";
@@ -212,6 +215,38 @@ class App extends React.Component {
       this.save,
     );
   };
+  moveUp = k => {
+    this.setState(
+      state =>
+        produce(state, draft => {
+          const pk = draft.data.kvs[k].parent;
+          const entries =
+            pk === null ? draft.data.todo : draft.data.kvs[pk].children;
+          moveUp(entries, k);
+          this.dirty = true;
+        }),
+      () => {
+        this.save();
+        this.state.data.kvs[k].cache.moveUpButtonRef.current.focus();
+      },
+    );
+  };
+  moveDown = k => {
+    this.setState(
+      state =>
+        produce(state, draft => {
+          const pk = draft.data.kvs[k].parent;
+          const entries =
+            pk === null ? draft.data.todo : draft.data.kvs[pk].children;
+          moveDown(entries, k);
+          this.dirty = true;
+        }),
+      () => {
+        this.save();
+        this.state.data.kvs[k].cache.moveDownButtonRef.current.focus();
+      },
+    );
+  };
   unindent = k => {
     this.setState(
       state =>
@@ -243,7 +278,38 @@ class App extends React.Component {
             this.dirty = true;
           }
         }),
-      this.save,
+      () => {
+        this.save();
+        this.state.data.kvs[k].cache.unindentButtonRef.current.focus();
+      },
+    );
+  };
+  indent = k => {
+    this.setState(
+      state =>
+        produce(state, draft => {
+          const pk = draft.data.kvs[k].parent;
+          const entries =
+            pk === null ? draft.data.todo : draft.data.kvs[pk].children;
+          const i = entries.indexOf(k);
+          if (i > 0) {
+            const new_pk = entries[i - 1];
+            const total_time_spent_new_pk_orig =
+              draft.data.kvs[new_pk].cache.total_time_spent;
+            const total_time_spent_k = draft.data.kvs[k].cache.total_time_spent;
+            this._rmTodoEntry(draft, k);
+            this._addTodoEntry(draft, new_pk, 0, k);
+            assertIsApprox(
+              draft.data.kvs[new_pk].cache.total_time_spent,
+              total_time_spent_new_pk_orig + total_time_spent_k,
+            );
+            this.dirty = true;
+          }
+        }),
+      () => {
+        this.save();
+        this.state.data.kvs[k].cache.indentButtonRef.current.focus();
+      },
     );
   };
   _rmTodoEntry = (draft, k) => {
@@ -426,7 +492,10 @@ class App extends React.Component {
       start: this.start,
       stop: this.stop,
       top: this.top,
+      moveUp: this.moveUp,
+      moveDown: this.moveDown,
       unindent: this.unindent,
+      indent: this.indent,
       new_: this.new_,
       save: this.save,
       setEstimate: this.setEstimate,
@@ -583,10 +652,41 @@ const Tree = (ks, props) => {
             {v.done_time === null && v.dont_time === null ? (
               <button
                 onClick={() => {
+                  props.fn.moveUp(k);
+                }}
+                ref={v.cache.moveUpButtonRef}
+              >
+                {MOVE_UP_MARK}
+              </button>
+            ) : null}
+            {v.done_time === null && v.dont_time === null ? (
+              <button
+                onClick={() => {
+                  props.fn.moveDown(k);
+                }}
+                ref={v.cache.moveDownButtonRef}
+              >
+                {MOVE_DOWN_MARK}
+              </button>
+            ) : null}
+            {v.done_time === null && v.dont_time === null ? (
+              <button
+                onClick={() => {
                   props.fn.unindent(k);
                 }}
+                ref={v.cache.unindentButtonRef}
               >
                 {UNINDENT_MARK}
+              </button>
+            ) : null}
+            {v.done_time === null && v.dont_time === null ? (
+              <button
+                onClick={() => {
+                  props.fn.indent(k);
+                }}
+                ref={v.cache.indentButtonRef}
+              >
+                {INDENT_MARK}
               </button>
             ) : null}
             {v.done_time || v.dont_time ? null : (
@@ -722,6 +822,21 @@ const toFront = (a, x) => {
   }
   return a;
 };
+const moveUp = (a, x) => {
+  const i = a.indexOf(x);
+  if (i > 0) {
+    [a[i - 1], a[i]] = [a[i], a[i - 1]];
+  }
+  return a;
+};
+
+const moveDown = (a, x) => {
+  const i = a.indexOf(x);
+  if (-1 < i && i < a.length - 1) {
+    [a[i], a[i + 1]] = [a[i + 1], a[i]];
+  }
+  return a;
+};
 
 const toRear = (a, x) => {
   const i = a.indexOf(x);
@@ -821,6 +936,18 @@ const setCache = (k, kvs) => {
   }
   if (v.cache.stopButtonRef === undefined) {
     v.cache.stopButtonRef = React.createRef();
+  }
+  if (v.cache.moveUpButtonRef === undefined) {
+    v.cache.moveUpButtonRef = React.createRef();
+  }
+  if (v.cache.moveDownButtonRef === undefined) {
+    v.cache.moveDownButtonRef = React.createRef();
+  }
+  if (v.cache.unindentButtonRef === undefined) {
+    v.cache.unindentButtonRef = React.createRef();
+  }
+  if (v.cache.indentButtonRef === undefined) {
+    v.cache.indentButtonRef = React.createRef();
   }
   if (v.cache.textareaRef === undefined) {
     v.cache.textareaRef = React.createRef();
