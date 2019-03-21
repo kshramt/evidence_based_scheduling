@@ -37,9 +37,17 @@ def _update_data_version(data):
     if "version" not in data:
         return _update_data_version(_v1_of_vnone(data))
     elif data["version"] == 1:
+        return _update_data_version(_v2_of_v1(data))
+    elif data["version"] == 2:
         return data
     else:
         raise Err(f"Unsupported data version: {data.get('version', 'None')}")
+
+
+def _v2_of_v1(data):
+    data = _split_text_v1(data)
+    data["version"] = 2
+    return data
 
 
 def _v1_of_vnone(data):
@@ -70,7 +78,9 @@ def get():
             data = json.load(fp)
     except IOError:
         data = dict(current_entry=None, done=[], dont=[], kvs=dict(), todo=[])
+    data = _remove_tail_none_v1(data)
     data = _update_data_version(data)
+    data = _join_text_v1(data)
     return flask.json.jsonify(data)
 
 
@@ -80,6 +90,8 @@ def post():
 
 
 def save(data):
+    data = _split_text_v1(data)
+    data = _add_tail_none_v1(data)
     s = json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     time = datetime.datetime.now().isoformat()
     if DATA_CHECKPOINT_DIR is not None:
@@ -92,6 +104,40 @@ def save(data):
     with open(jp(DATA_DIR, DATA_BASENAME) + ".json", "w") as fp:
         fp.write(s)
     return time
+
+
+def _split_text_v1(data):
+    for v in data["kvs"].values():
+        v["text"] = v["text"].split("\n")
+    return data
+
+
+def _join_text_v1(data):
+    for v in data["kvs"].values():
+        v["text"] = "\n".join(v["text"])
+    return data
+
+
+def _add_tail_none_v1(x):
+    if isinstance(x, list):
+        x = [_add_tail_none_v1(v) for v in x]
+        x.append(None)
+        return x
+    elif isinstance(x, dict):
+        return {k: _add_tail_none_v1(v) for k, v in x.items()}
+    else:
+        return x
+
+
+def _remove_tail_none_v1(x):
+    if isinstance(x, list):
+        if x and x[-1] is None:
+            x = x[:-1]
+        return [_remove_tail_none_v1(v) for v in x]
+    elif isinstance(x, dict):
+        return {k: _remove_tail_none_v1(v) for k, v in x.items()}
+    else:
+        return x
 
 
 if __name__ == "__main__":

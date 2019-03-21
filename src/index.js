@@ -145,11 +145,7 @@ class App extends React.Component {
         produce(this.state.data, draft => {
           for (let v of Object.values(draft.kvs)) {
             delete v.cache;
-            v.children.push(null);
           }
-          draft.todo.push(null);
-          draft.done.push(null);
-          draft.dont.push(null);
         }),
       ),
     }).then(r => {
@@ -982,12 +978,6 @@ const main = () => {
   fetch("api/" + API_VERSION + "/get")
     .then(r => r.json())
     .then(data => {
-      data.todo = data.todo.filter(x => x !== null);
-      data.done = data.done.filter(x => x !== null);
-      data.dont = data.dont.filter(x => x !== null);
-      for (const k of Object.keys(data.kvs)) {
-        data.kvs[k].children = data.kvs[k].children.filter(x => x !== null);
-      }
       for (const k of Object.keys(data.kvs)) {
         setCache(k, data.kvs);
       }
