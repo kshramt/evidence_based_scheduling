@@ -515,6 +515,13 @@ class App extends React.Component {
           {this.state.saveSuccess ? null : <p>Failed to save.</p>}
           <div>
             <button onClick={this.stop}>{STOP_MARK}</button>
+            <button
+              onClick={() => {
+                this.new_(null);
+              }}
+            >
+              {NEW_MARK}
+            </button>
             <button onClick={this.undo}>{UNDO_MARK}</button>
             <button onClick={this.redo}>{REDO_MARK}</button>
           </div>
