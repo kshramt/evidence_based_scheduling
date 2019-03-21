@@ -553,13 +553,6 @@ const Todo = props => {
   return (
     <div>
       <h1>To do</h1>
-      <button
-        onClick={() => {
-          props.fn.new_(null);
-        }}
-      >
-        {NEW_MARK}
-      </button>
       {Tree(props.ks, props)}
     </div>
   );
