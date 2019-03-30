@@ -38,9 +38,17 @@ def _update_data_version(data):
     elif data["version"] == 1:
         return _update_data_version(_v2_of_v1(data))
     elif data["version"] == 2:
+        return _update_data_version(_v3_of_v2(data))
+    elif data["version"] == 3:
         return data
     else:
         raise Err(f"Unsupported data version: {data.get('version', 'None')}")
+
+
+def _v3_of_v2(data):
+    data = _format_datetime_v1(data)
+    data["version"] = 3
+    return data
 
 
 def _v2_of_v1(data):
@@ -80,6 +88,7 @@ def get():
     data = _remove_tail_none_v1(data)
     data = _update_data_version(data)
     data = _join_text_v1(data)
+    data = _parse_datetime_v1(data)
     return flask.json.jsonify(data)
 
 
@@ -89,6 +98,7 @@ def post():
 
 
 def save(data):
+    data = _format_datetime_v1(data)
     data = _split_text_v1(data)
     data = _add_tail_none_v1(data)
     s = json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
@@ -103,6 +113,26 @@ def save(data):
     with open(jp(DATA_DIR, DATA_BASENAME) + ".json", "w") as fp:
         fp.write(s)
     return time
+
+
+def _format_datetime_v1(data):
+    for v in data["kvs"].values():
+        for r in v["ranges"]:
+            for k in ["start", "end"]:
+                if r[k] is not None:
+                    r[k] = datetime.datetime.fromtimestamp(
+                        r[k], datetime.timezone.utc
+                    ).isoformat()
+    return data
+
+
+def _parse_datetime_v1(data):
+    for v in data["kvs"].values():
+        for r in v["ranges"]:
+            for k in ["start", "end"]:
+                if r[k] is not None:
+                    r[k] = datetime.datetime.fromisoformat(r[k]).timestamp()
+    return data
 
 
 def _split_text_v1(data):
