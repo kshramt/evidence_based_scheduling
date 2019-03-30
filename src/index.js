@@ -188,6 +188,12 @@ class App extends React.Component {
               start: Number(new Date()) / 1000,
               end: null,
             });
+            if (draft.data.kvs[k].done_time) {
+              draft.data.kvs[k].done_time = null;
+            }
+            if (draft.data.kvs[k].dont_time) {
+              draft.data.kvs[k].dont_time = null;
+            }
             // Move the started entry to the top.
             this._top(draft, k);
             this._eval_(draft, k);
