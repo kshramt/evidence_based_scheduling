@@ -720,7 +720,7 @@ const Tree = (ks, props) => {
               </button>
             ) : null}
             {v.cache.percentiles && v.done_time === null && v.dont_time === null
-              ? v.cache.percentiles.map(digits1).join("　")
+              ? v.cache.percentiles.map(digits1).join(" ")
               : null}
             {v.cache.show_detail ? (
               <div>
