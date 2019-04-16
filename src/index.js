@@ -112,7 +112,7 @@ class App extends React.Component {
             parent,
             ranges: [],
             text: "",
-            width: "60ex",
+            width: "50ex",
           };
           draft.data.kvs[k] = v;
           if (parent === null) {

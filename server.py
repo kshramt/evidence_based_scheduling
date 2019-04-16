@@ -61,7 +61,7 @@ def _v1_of_vnone(data):
     assert "version" not in data, data
     for v in data["kvs"].values():
         if "width" not in v:
-            v["width"] = "60ex"
+            v["width"] = "50ex"
         if "height" not in v:
             v["height"] = "3ex"
     data["version"] = 1
