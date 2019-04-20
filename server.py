@@ -132,7 +132,9 @@ def get():
             data = json.load(fp)
     except IOError:
         t = _js_now_v1()
-        data = dict(current_entry=None, root=t, kvs=dict(t=_new_entry_v1(t)), version=4)
+        data = dict(
+            current_entry=None, root=t, kvs={t: _new_entry_v1(t)}, queue=[], version=4
+        )
     data = _remove_tail_none_v1(data)
     data = _update_data_version(data)
     data = _join_text_v1(data)
