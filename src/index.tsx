@@ -91,6 +91,7 @@ interface IData {
   current_entry: null | string;
   root: string;
   kvs: IKvs;
+  queue: string[];
 }
 
 interface IKvs {
@@ -205,6 +206,7 @@ class App extends React.Component<IAppProps, IState> {
         produce(state, draft => {
           if (draft.data.kvs[k].todo.length === 0) {
             this._rmTodoEntry(draft, k);
+            deleteAtVal(draft.data.queue, k);
             delete draft.data.kvs[k];
             if (draft.data.current_entry === k) {
               draft.data.current_entry = null;
@@ -223,6 +225,7 @@ class App extends React.Component<IAppProps, IState> {
           const v = newEntryValue(parent, k);
           draft.data.kvs[k] = v;
           draft.data.kvs[parent].todo.unshift(k);
+          draft.data.queue.unshift(k);
           setCache(draft.caches, k, draft.data.kvs);
           this.dirty = true;
         }),
@@ -433,6 +436,7 @@ class App extends React.Component<IAppProps, IState> {
       ck = pk;
       pk = draft.data.kvs[ck].parent;
     }
+    toFront(draft.data.queue, k);
   };
   stop = () => {
     this.setState(state => produce(this.state, this._stop), this.save);
@@ -616,7 +620,7 @@ class App extends React.Component<IAppProps, IState> {
     };
 
     return (
-      <div>
+      <div id="columns">
         <div className={"menu"}>
           {this.state.saveSuccess ? null : <p>Failed to save.</p>}
           <div>
@@ -632,13 +636,24 @@ class App extends React.Component<IAppProps, IState> {
             <button onClick={this.redo}>{REDO_MARK}</button>
           </div>
         </div>
-        <Node
-          k={this.state.data.root}
-          kvs={this.state.data.kvs}
-          current_entry={this.state.data.current_entry}
-          fn={fn}
-          caches={this.state.caches}
-        />
+        <div id="tree">
+          <Node
+            k={this.state.data.root}
+            kvs={this.state.data.kvs}
+            current_entry={this.state.data.current_entry}
+            fn={fn}
+            caches={this.state.caches}
+          />
+        </div>
+        <div id="queue">
+          <Queue
+            ks={this.state.data.queue}
+            kvs={this.state.data.kvs}
+            current_entry={this.state.data.current_entry}
+            fn={fn}
+            caches={this.state.caches}
+          />
+        </div>
       </div>
     );
   };
@@ -650,11 +665,12 @@ const Node = (props: INodeProps) => {
     <div>
       <div className={props.k === props.current_entry ? "running" : undefined}>
         {v.parent === null ? null : v.status === "done" ? (
-          DONE_MARK
+          <span id={`id${v.start_time}`}>{DONE_MARK}</span>
         ) : v.status === "dont" ? (
-          DONT_MARK
+          <span id={`id${v.start_time}`}>{DONT_MARK}</span>
         ) : (
           <button
+            id={`id${v.start_time}`}
             onClick={() => {
               props.fn.new_(props.k);
             }}
@@ -696,7 +712,7 @@ const Node = (props: INodeProps) => {
           />
         )}
         {digits1(props.caches[props.k].total_time_spent / 3600)}
-        {v.parent && props.k === props.current_entry ? (
+        {v.parent === null ? null : props.k === props.current_entry ? (
           <button
             onClick={props.fn.stop}
             ref={props.caches[props.k].stopButtonRef}
@@ -761,7 +777,7 @@ const Node = (props: INodeProps) => {
             {INDENT_MARK}
           </button>
         ) : null}
-        {v.parent && v.status === "todo" ? (
+        {v.status === "todo" ? (
           <button
             onClick={() => {
               props.fn.eval_(props.k);
@@ -770,12 +786,14 @@ const Node = (props: INodeProps) => {
             {EVAL_MARK}
           </button>
         ) : null}
-        {(v.status === "done"
-          ? [DoneToTodoButton]
-          : v.status === "dont"
-          ? [DontToTodoButton]
-          : [TodoToDoneButton, TodoToDontButton]
-        ).map(b => b(props.k, props))}
+        {v.parent
+          ? (v.status === "done"
+              ? [DoneToTodoButton]
+              : v.status === "dont"
+              ? [DontToTodoButton]
+              : [TodoToDoneButton, TodoToDontButton]
+            ).map(b => b(props.k, props))
+          : null}
         {v.parent && v.status === "todo" ? (
           <button
             onClick={() => {
@@ -842,6 +860,157 @@ const List = (props: IListProps) => {
         return (
           <li key={k} className={v.status}>
             <Node
+              k={k}
+              kvs={props.kvs}
+              current_entry={props.current_entry}
+              fn={props.fn}
+              caches={props.caches}
+            />
+          </li>
+        );
+      })}
+    </ol>
+  ) : null;
+};
+
+const QueueNode = (props: INodeProps) => {
+  const v = props.kvs[props.k];
+  return (
+    <div className={props.k === props.current_entry ? "running" : undefined}>
+      {v.parent ? (
+        <a href={`#id${v.start_time}`}>
+          <button>←</button>
+        </a>
+      ) : null}
+      {v.parent === null ? null : v.status === "done" ? (
+        DONE_MARK
+      ) : v.status === "dont" ? (
+        DONT_MARK
+      ) : (
+        <button
+          onClick={() => {
+            props.fn.new_(props.k);
+          }}
+        >
+          {NEW_MARK}
+        </button>
+      )}
+      {v.parent === null ? null : (
+        <textarea
+          value={v.text}
+          onChange={e => {
+            props.fn.setText(props.k, e.currentTarget.value);
+          }}
+          onBlur={props.fn.save}
+          onMouseUp={e => {
+            props.fn.resizeTextArea(
+              props.k,
+              e.currentTarget.style.width,
+              e.currentTarget.style.height,
+            );
+          }}
+          className={v.status}
+          style={{
+            width: v.width,
+            height: v.height,
+          }}
+          ref={props.caches[props.k].textareaRef}
+        />
+      )}
+      {v.parent === null ? null : (
+        <input
+          type="number"
+          step="any"
+          value={v.estimate}
+          onChange={e => {
+            props.fn.setEstimate(props.k, Number(e.currentTarget.value));
+          }}
+          className={v.status}
+        />
+      )}
+      {digits1(props.caches[props.k].total_time_spent / 3600)}
+      {v.parent === null ? null : props.k === props.current_entry ? (
+        <button
+          onClick={props.fn.stop}
+          ref={props.caches[props.k].stopButtonRef}
+        >
+          {STOP_MARK}
+        </button>
+      ) : (
+        <button
+          onClick={() => {
+            props.fn.start(props.k);
+          }}
+        >
+          {START_MARK}
+        </button>
+      )}
+      {v.parent && v.status === "todo" ? (
+        <button
+          onClick={() => {
+            props.fn.top(props.k);
+          }}
+        >
+          {TOP_MARK}
+        </button>
+      ) : null}
+      {v.status === "todo" ? (
+        <button
+          onClick={() => {
+            props.fn.eval_(props.k);
+          }}
+        >
+          {EVAL_MARK}
+        </button>
+      ) : null}
+      {v.parent
+        ? (v.status === "done"
+            ? [DoneToTodoButton]
+            : v.status === "dont"
+            ? [DontToTodoButton]
+            : [TodoToDoneButton, TodoToDontButton]
+          ).map(b => b(props.k, props))
+        : null}
+      {v.parent && v.status === "todo" ? (
+        <button
+          onClick={() => {
+            props.fn.flipShowDetail(props.k);
+          }}
+        >
+          {DETAIL_MARK}
+        </button>
+      ) : null}
+      {v.status === "todo"
+        ? props.caches[props.k].percentiles.map(digits1).join(" ")
+        : null}
+      {v.parent && v.status === "todo" && props.caches[props.k].show_detail ? (
+        <div>
+          {showLastRange(lastRange(v.ranges), e => {
+            props.fn.setLastRange(props.k, Number(e.currentTarget.value));
+          })}
+          {v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0 ? (
+            <button
+              onClick={() => {
+                props.fn.delete_(props.k);
+              }}
+            >
+              {DELETE_MARK}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+const Queue = (props: IListProps) => {
+  return props.ks.length ? (
+    <ol>
+      {props.ks.map(k => {
+        const v = props.kvs[k];
+        return (
+          <li key={k} className={v.status}>
+            <QueueNode
               k={k}
               kvs={props.kvs}
               current_entry={props.current_entry}
@@ -1089,7 +1258,7 @@ const newEntryValue = (parent: string, start_time: string) => {
     status: "todo" as TStatus,
     text: "",
     todo: [] as string[],
-    width: "50ex",
+    width: "49ex",
   };
 };
 

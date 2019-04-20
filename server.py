@@ -85,6 +85,7 @@ def _v4_of_v3(data):
     for k, v in data["kvs"].items():
         del v["done_time"], v["dont_time"], v["children"]
     data["root"] = t
+    data["queue"] = sorted(set(data["kvs"].keys()) - set([data["root"]]))
     data["kvs"][t] = e
 
     data["version"] = 4
@@ -107,7 +108,7 @@ def _v1_of_vnone(data):
     assert "version" not in data, data
     for v in data["kvs"].values():
         if "width" not in v:
-            v["width"] = "50ex"
+            v["width"] = "49ex"
         if "height" not in v:
             v["height"] = "3ex"
     data["version"] = 1
@@ -175,7 +176,7 @@ def _new_entry_v1(t: str) -> dict:
         "status": "todo",  # done | dont | todo
         "text": [""],
         "todo": [],
-        "width": "50ex",
+        "width": "49ex",
     }
 
 

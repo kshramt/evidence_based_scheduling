@@ -1,3 +1,19 @@
+html, body, #root, #columns{
+    height: 100%;
+    margin: 0;
+}
+#tree {
+    height: 100%;
+    float: left;
+    width: 60%;
+    overflow-y: scroll;
+}
+#queue{
+    height: 100%;
+    float: left;
+    width: 40%;
+    overflow-y: scroll;
+}
 div.menu{
     position: fixed;
     top: 1ex;
@@ -20,7 +36,7 @@ textarea.done, textarea.dont{
 button{
     padding: 0;
 }
-li > div > *{
+li > div > div > *, li > div > *{
     vertical-align: top;
 }
 li.done, li.dont{
