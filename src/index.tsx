@@ -666,16 +666,16 @@ const Node = (props: INodeProps) => {
     <div>
       <div className={props.k === props.current_entry ? "running" : undefined}>
         {v.parent === null ? null : v.status === "done" ? (
-          <button key="done" id={`id${v.start_time}`}>
+          <button key="done" id={`id${props.k}`}>
             {DONE_MARK}
           </button>
         ) : v.status === "dont" ? (
-          <button key="dont" id={`id${v.start_time}`}>
+          <button key="dont" id={`id${props.k}`}>
             {DONT_MARK}
           </button>
         ) : (
           <button
-            id={`id${v.start_time}`}
+            id={`id${props.k}`}
             onClick={() => {
               props.fn.new_(props.k);
             }}
@@ -883,7 +883,7 @@ const QueueNode = (props: INodeProps) => {
   return (
     <div className={props.k === props.current_entry ? "running" : undefined}>
       {v.parent ? (
-        <a href={`#id${v.start_time}`}>
+        <a href={`#id${props.k}`}>
           <button>←</button>
         </a>
       ) : null}
