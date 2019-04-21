@@ -1,0 +1,11 @@
+language: python
+services:
+  - docker
+os:
+  - linux
+python:
+  - "3.7"
+notifications:
+    email: false
+script:
+  - ./build.sh
