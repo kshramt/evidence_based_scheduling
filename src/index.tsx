@@ -23,6 +23,9 @@ const DONT_MARK = "🗑";
 const TODO_MARK = "🔁";
 const DETAIL_MARK = "⋮";
 
+const DONE_MARK_BUTTON = <button key="done">{DONE_MARK}</button>;
+const DONT_MARK_BUTTON = <button key="dont">{DONT_MARK}</button>;
+
 type TStatus = "done" | "dont" | "todo";
 type TKVoid = (k: string) => void;
 
@@ -888,9 +891,9 @@ const QueueNode = (props: INodeProps) => {
         </a>
       ) : null}
       {v.parent === null ? null : v.status === "done" ? (
-        <button key="done">{DONE_MARK}</button>
+        DONE_MARK_BUTTON
       ) : v.status === "dont" ? (
-        <button key="dont">{DONT_MARK}</button>
+        DONT_MARK_BUTTON
       ) : (
         <button
           onClick={() => {
