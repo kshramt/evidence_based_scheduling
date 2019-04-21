@@ -134,6 +134,25 @@ interface ICache {
   indentButtonRef: React.RefObject<HTMLButtonElement>;
   textareaRef: React.RefObject<HTMLTextAreaElement>;
   show_detail: boolean;
+  treeDoneMarkButton: JSX.Element;
+  treeDontMarkButton: JSX.Element;
+  treeNewButton: JSX.Element;
+  queueNewButton: JSX.Element;
+  stopButton: JSX.Element;
+  startButton: JSX.Element;
+  topButton: JSX.Element;
+  moveUpButton: JSX.Element;
+  moveDownButton: JSX.Element;
+  unindentButton: JSX.Element;
+  indentButton: JSX.Element;
+  evalButton: JSX.Element;
+  showDetailButton: JSX.Element;
+  deleteButton: JSX.Element;
+  toTreeButton: JSX.Element;
+  doneToTodoButton: JSX.Element;
+  dontToTodoButton: JSX.Element;
+  todoToDoneButton: JSX.Element;
+  todoToDontButton: JSX.Element;
 }
 
 class App extends React.Component<IAppProps, IState> {
@@ -256,7 +275,7 @@ class App extends React.Component<IAppProps, IState> {
           draft.data.kvs[k] = v;
           draft.data.kvs[parent].todo.unshift(k);
           draft.data.queue.unshift(k);
-          setCache(draft.caches, k, draft.data.kvs, this.fn);
+          setCache(draft.caches as ICaches, k, draft.data.kvs, this.fn);
           this.dirty = true;
         }),
       () => {
@@ -631,14 +650,8 @@ class App extends React.Component<IAppProps, IState> {
         <div className={"menu"}>
           {this.state.saveSuccess ? null : <p>Failed to save.</p>}
           <div>
-            <button onClick={this.stop}>{STOP_MARK}</button>
-            <button
-              onClick={() => {
-                this.new_(this.state.data.root);
-              }}
-            >
-              {NEW_MARK}
-            </button>
+            {this.state.caches[this.state.data.root].stopButton}
+            {this.state.caches[this.state.data.root].treeNewButton}
             <button onClick={this.undo}>{UNDO_MARK}</button>
             <button onClick={this.redo}>{REDO_MARK}</button>
           </div>
@@ -671,24 +684,13 @@ const Node = (props: INodeProps) => {
   return (
     <div>
       <div className={props.k === props.current_entry ? "running" : undefined}>
-        {v.parent === null ? null : v.status === "done" ? (
-          <button key="done" id={`id${props.k}`}>
-            {DONE_MARK}
-          </button>
-        ) : v.status === "dont" ? (
-          <button key="dont" id={`id${props.k}`}>
-            {DONT_MARK}
-          </button>
-        ) : (
-          <button
-            id={`id${props.k}`}
-            onClick={() => {
-              props.fn.new_(props.k);
-            }}
-          >
-            {NEW_MARK}
-          </button>
-        )}
+        {v.parent === null
+          ? null
+          : v.status === "done"
+          ? props.caches[props.k].treeDoneMarkButton
+          : v.status === "dont"
+          ? props.caches[props.k].treeDontMarkButton
+          : props.caches[props.k].treeNewButton}
         {v.parent === null ? null : (
           <textarea
             value={v.text}
@@ -723,97 +725,40 @@ const Node = (props: INodeProps) => {
           />
         )}
         {digits1(props.caches[props.k].total_time_spent / 3600)}
-        {v.parent === null ? null : props.k === props.current_entry ? (
-          <button
-            onClick={props.fn.stop}
-            ref={props.caches[props.k].stopButtonRef}
-          >
-            {STOP_MARK}
-          </button>
-        ) : (
-          <button
-            onClick={() => {
-              props.fn.start(props.k);
-            }}
-          >
-            {START_MARK}
-          </button>
-        )}
-        {v.parent && v.status === "todo" ? (
-          <button
-            onClick={() => {
-              props.fn.top(props.k);
-            }}
-          >
-            {TOP_MARK}
-          </button>
-        ) : null}
-        {v.parent && v.status === "todo" ? (
-          <button
-            onClick={() => {
-              props.fn.moveUp(props.k);
-            }}
-            ref={props.caches[props.k].moveUpButtonRef}
-          >
-            {MOVE_UP_MARK}
-          </button>
-        ) : null}
-        {v.parent && v.status === "todo" ? (
-          <button
-            onClick={() => {
-              props.fn.moveDown(props.k);
-            }}
-            ref={props.caches[props.k].moveDownButtonRef}
-          >
-            {MOVE_DOWN_MARK}
-          </button>
-        ) : null}
-        {v.parent && v.status === "todo" ? (
-          <button
-            onClick={() => {
-              props.fn.unindent(props.k);
-            }}
-            ref={props.caches[props.k].unindentButtonRef}
-          >
-            {UNINDENT_MARK}
-          </button>
-        ) : null}
-        {v.parent && v.status === "todo" ? (
-          <button
-            onClick={() => {
-              props.fn.indent(props.k);
-            }}
-            ref={props.caches[props.k].indentButtonRef}
-          >
-            {INDENT_MARK}
-          </button>
-        ) : null}
-        {v.status === "todo" ? (
-          <button
-            onClick={() => {
-              props.fn.eval_(props.k);
-            }}
-          >
-            {EVAL_MARK}
-          </button>
-        ) : null}
-        {v.parent
-          ? (v.status === "done"
-              ? [DoneToTodoButton]
-              : v.status === "dont"
-              ? [DontToTodoButton]
-              : [TodoToDoneButton, TodoToDontButton]
-            ).map(b => b(props.k, props))
+        {v.parent === null
+          ? null
+          : props.k === props.current_entry
+          ? props.caches[props.k].stopButton
+          : props.caches[props.k].startButton}
+        {v.parent && v.status === "todo"
+          ? props.caches[props.k].topButton
           : null}
-        {v.parent && v.status === "todo" ? (
-          <button
-            onClick={() => {
-              props.fn.flipShowDetail(props.k);
-            }}
-          >
-            {DETAIL_MARK}
-          </button>
-        ) : null}
+        {v.parent && v.status === "todo"
+          ? props.caches[props.k].moveUpButton
+          : null}
+        {v.parent && v.status === "todo"
+          ? props.caches[props.k].moveDownButton
+          : null}
+        {v.parent && v.status === "todo"
+          ? props.caches[props.k].unindentButton
+          : null}
+        {v.parent && v.status === "todo"
+          ? props.caches[props.k].indentButton
+          : null}
+        {v.status === "todo" ? props.caches[props.k].evalButton : null}
+        {v.parent
+          ? v.status === "done"
+            ? props.caches[props.k].doneToTodoButton
+            : v.status === "dont"
+            ? props.caches[props.k].dontToTodoButton
+            : [
+                props.caches[props.k].todoToDoneButton,
+                props.caches[props.k].todoToDontButton,
+              ]
+          : null}
+        {v.parent && v.status === "todo"
+          ? props.caches[props.k].showDetailButton
+          : null}
         {v.status === "todo"
           ? props.caches[props.k].percentiles.map(digits1).join(" ")
           : null}
@@ -824,17 +769,9 @@ const Node = (props: INodeProps) => {
             {showLastRange(lastRange(v.ranges), e => {
               props.fn.setLastRange(props.k, Number(e.currentTarget.value));
             })}
-            {v.todo.length === 0 &&
-            v.done.length === 0 &&
-            v.dont.length === 0 ? (
-              <button
-                onClick={() => {
-                  props.fn.delete_(props.k);
-                }}
-              >
-                {DELETE_MARK}
-              </button>
-            ) : null}
+            {v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0
+              ? props.caches[props.k].deleteButton
+              : null}
           </div>
         ) : null}
       </div>
@@ -888,24 +825,14 @@ const QueueNode = (props: INodeProps) => {
   const v = props.kvs[props.k];
   return (
     <div className={props.k === props.current_entry ? "running" : undefined}>
-      {v.parent ? (
-        <a href={`#id${props.k}`}>
-          <button>←</button>
-        </a>
-      ) : null}
-      {v.parent === null ? null : v.status === "done" ? (
-        DONE_MARK_BUTTON
-      ) : v.status === "dont" ? (
-        DONT_MARK_BUTTON
-      ) : (
-        <button
-          onClick={() => {
-            props.fn.new_(props.k);
-          }}
-        >
-          {NEW_MARK}
-        </button>
-      )}
+      {v.parent ? props.caches[props.k].toTreeButton : null}
+      {v.parent === null
+        ? null
+        : v.status === "done"
+        ? DONE_MARK_BUTTON
+        : v.status === "dont"
+        ? DONT_MARK_BUTTON
+        : props.caches[props.k].queueNewButton}
       {v.parent === null ? null : (
         <textarea
           value={v.text}
@@ -940,57 +867,26 @@ const QueueNode = (props: INodeProps) => {
         />
       )}
       {digits1(props.caches[props.k].total_time_spent / 3600)}
-      {v.parent === null ? null : props.k === props.current_entry ? (
-        <button
-          onClick={props.fn.stop}
-          ref={props.caches[props.k].stopButtonRef}
-        >
-          {STOP_MARK}
-        </button>
-      ) : (
-        <button
-          onClick={() => {
-            props.fn.start(props.k);
-          }}
-        >
-          {START_MARK}
-        </button>
-      )}
-      {v.parent && v.status === "todo" ? (
-        <button
-          onClick={() => {
-            props.fn.top(props.k);
-          }}
-        >
-          {TOP_MARK}
-        </button>
-      ) : null}
-      {v.status === "todo" ? (
-        <button
-          onClick={() => {
-            props.fn.eval_(props.k);
-          }}
-        >
-          {EVAL_MARK}
-        </button>
-      ) : null}
+      {v.parent === null
+        ? null
+        : props.k === props.current_entry
+        ? props.caches[props.k].stopButton
+        : props.caches[props.k].startButton}
+      {v.parent && v.status === "todo" ? props.caches[props.k].topButton : null}
+      {v.status === "todo" ? props.caches[props.k].evalButton : null}
       {v.parent
-        ? (v.status === "done"
-            ? [DoneToTodoButton]
-            : v.status === "dont"
-            ? [DontToTodoButton]
-            : [TodoToDoneButton, TodoToDontButton]
-          ).map(b => b(props.k, props))
+        ? v.status === "done"
+          ? props.caches[props.k].doneToTodoButton
+          : v.status === "dont"
+          ? props.caches[props.k].dontToTodoButton
+          : [
+              props.caches[props.k].todoToDoneButton,
+              props.caches[props.k].todoToDontButton,
+            ]
         : null}
-      {v.parent && v.status === "todo" ? (
-        <button
-          onClick={() => {
-            props.fn.flipShowDetail(props.k);
-          }}
-        >
-          {DETAIL_MARK}
-        </button>
-      ) : null}
+      {v.parent && v.status === "todo"
+        ? props.caches[props.k].showDetailButton
+        : null}
       {v.status === "todo"
         ? props.caches[props.k].percentiles.map(digits1).join(" ")
         : null}
@@ -999,15 +895,9 @@ const QueueNode = (props: INodeProps) => {
           {showLastRange(lastRange(v.ranges), e => {
             props.fn.setLastRange(props.k, Number(e.currentTarget.value));
           })}
-          {v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0 ? (
-            <button
-              onClick={() => {
-                props.fn.delete_(props.k);
-              }}
-            >
-              {DELETE_MARK}
-            </button>
-          ) : null}
+          {v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0
+            ? props.caches[props.k].deleteButton
+            : null}
         </div>
       ) : null}
     </div>
@@ -1059,22 +949,6 @@ const lastRange = (ranges: IRange[]): null | IRange => {
 
 const butLast = <T extends {}>(xs: T[]): T[] => {
   return xs.length ? xs.slice(0, -1) : xs;
-};
-
-const TodoToDoneButton = (k: string, props: INodeProps) => {
-  return XToYButton(DONE_MARK, props.fn.todoToDone, "todoToDone", k);
-};
-
-const TodoToDontButton = (k: string, props: INodeProps) => {
-  return XToYButton(DONT_MARK, props.fn.todoToDont, "todoToDont", k);
-};
-
-const DoneToTodoButton = (k: string, props: INodeProps) => {
-  return XToYButton(TODO_MARK, props.fn.doneToTodo, "doneToTodo", k);
-};
-
-const DontToTodoButton = (k: string, props: INodeProps) => {
-  return XToYButton(TODO_MARK, props.fn.dontToTodo, "dontToTodo", k);
 };
 
 const XToYButton = (
@@ -1212,14 +1086,19 @@ const pushHistory = (h: IHistory, v: IState) => {
 };
 
 // I need `Draft<ICaches>` here since refs contain readonly properties.
-const setCache = (caches: ICaches | Draft<ICaches>, k: string, kvs: IKvs) => {
+const setCache = (caches: ICaches, k: string, kvs: IKvs, fn: IFn) => {
   if (caches[k] === undefined) {
     const sumChildren = (xs: string[]) => {
       return xs.reduce((total, current) => {
-        setCache(caches, current, kvs);
+        setCache(caches, current, kvs, fn);
         return total + caches[current].total_time_spent;
       }, 0);
     };
+    const stopButtonRef = React.createRef<HTMLButtonElement>();
+    const moveUpButtonRef = React.createRef<HTMLButtonElement>();
+    const moveDownButtonRef = React.createRef<HTMLButtonElement>();
+    const unindentButtonRef = React.createRef<HTMLButtonElement>();
+    const indentButtonRef = React.createRef<HTMLButtonElement>();
     caches[k] = {
       total_time_spent: kvs[k].ranges.reduce((total, current) => {
         return current.end === null
@@ -1227,13 +1106,141 @@ const setCache = (caches: ICaches | Draft<ICaches>, k: string, kvs: IKvs) => {
           : total + (current.end - current.start);
       }, sumChildren(kvs[k].todo) + sumChildren(kvs[k].done) + sumChildren(kvs[k].dont)),
       percentiles: [] as number[], // 0, 10, 33, 50, 67, 90, 100
-      stopButtonRef: React.createRef<HTMLButtonElement>(),
-      moveUpButtonRef: React.createRef<HTMLButtonElement>(),
-      moveDownButtonRef: React.createRef<HTMLButtonElement>(),
-      unindentButtonRef: React.createRef<HTMLButtonElement>(),
-      indentButtonRef: React.createRef<HTMLButtonElement>(),
+      stopButtonRef,
+      moveUpButtonRef,
+      moveDownButtonRef,
+      unindentButtonRef,
+      indentButtonRef,
       textareaRef: React.createRef<HTMLTextAreaElement>(),
       show_detail: false,
+      treeDoneMarkButton: (
+        <button key="done" id={`id${k}`}>
+          {DONE_MARK}
+        </button>
+      ),
+      treeDontMarkButton: (
+        <button key="dont" id={`id${k}`}>
+          {DONT_MARK}
+        </button>
+      ),
+      treeNewButton: (
+        <button
+          id={`id${k}`}
+          onClick={() => {
+            fn.new_(k);
+          }}
+        >
+          {NEW_MARK}
+        </button>
+      ),
+      queueNewButton: (
+        <button
+          onClick={() => {
+            fn.new_(k);
+          }}
+        >
+          {NEW_MARK}
+        </button>
+      ),
+      stopButton: (
+        <button onClick={fn.stop} ref={stopButtonRef}>
+          {STOP_MARK}
+        </button>
+      ),
+      startButton: (
+        <button
+          onClick={() => {
+            fn.start(k);
+          }}
+        >
+          {START_MARK}
+        </button>
+      ),
+      topButton: (
+        <button
+          onClick={() => {
+            fn.top(k);
+          }}
+        >
+          {TOP_MARK}
+        </button>
+      ),
+      moveUpButton: (
+        <button
+          onClick={() => {
+            fn.moveUp(k);
+          }}
+          ref={moveUpButtonRef}
+        >
+          {MOVE_UP_MARK}
+        </button>
+      ),
+      moveDownButton: (
+        <button
+          onClick={() => {
+            fn.moveDown(k);
+          }}
+          ref={moveDownButtonRef}
+        >
+          {MOVE_DOWN_MARK}
+        </button>
+      ),
+      unindentButton: (
+        <button
+          onClick={() => {
+            fn.unindent(k);
+          }}
+          ref={unindentButtonRef}
+        >
+          {UNINDENT_MARK}
+        </button>
+      ),
+      indentButton: (
+        <button
+          onClick={() => {
+            fn.indent(k);
+          }}
+          ref={indentButtonRef}
+        >
+          {INDENT_MARK}
+        </button>
+      ),
+      evalButton: (
+        <button
+          onClick={() => {
+            fn.eval_(k);
+          }}
+        >
+          {EVAL_MARK}
+        </button>
+      ),
+      showDetailButton: (
+        <button
+          onClick={() => {
+            fn.flipShowDetail(k);
+          }}
+        >
+          {DETAIL_MARK}
+        </button>
+      ),
+      deleteButton: (
+        <button
+          onClick={() => {
+            fn.delete_(k);
+          }}
+        >
+          {DELETE_MARK}
+        </button>
+      ),
+      toTreeButton: (
+        <a href={`#id${k}`}>
+          <button>←</button>
+        </a>
+      ),
+      doneToTodoButton: XToYButton(TODO_MARK, fn.doneToTodo, "doneToTodo", k),
+      dontToTodoButton: XToYButton(TODO_MARK, fn.dontToTodo, "dontToTodo", k),
+      todoToDoneButton: XToYButton(DONE_MARK, fn.todoToDone, "todoToDone", k),
+      todoToDontButton: XToYButton(DONT_MARK, fn.todoToDont, "todoToDont", k),
     };
   }
 };
