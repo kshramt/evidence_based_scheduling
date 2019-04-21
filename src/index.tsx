@@ -87,7 +87,6 @@ interface IState {
 
 interface IAppProps {
   data: IData;
-  caches: ICaches;
 }
 
 interface IData {
@@ -141,12 +140,39 @@ class App extends React.Component<IAppProps, IState> {
   state: IState;
   dirty: boolean;
   history: IHistory;
+  fn: IFn;
 
   constructor(props: IAppProps) {
     super(props);
+    this.fn = {
+      eval_: this.eval_,
+      delete_: this.delete_,
+      start: this.start,
+      stop: this.stop,
+      top: this.top,
+      moveUp: this.moveUp,
+      moveDown: this.moveDown,
+      unindent: this.unindent,
+      indent: this.indent,
+      new_: this.new_,
+      save: this.save,
+      setEstimate: this.setEstimate,
+      setLastRange: this.setLastRange,
+      setText: this.setText,
+      resizeTextArea: this.resizeTextArea,
+      flipShowDetail: this.flipShowDetail,
+      todoToDone: this.todoToDone,
+      todoToDont: this.todoToDont,
+      doneToTodo: this.doneToTodo,
+      dontToTodo: this.dontToTodo,
+    };
+    const caches = {} as ICaches;
+    for (const k of Object.keys(props.data.kvs)) {
+      setCache(caches, k, props.data.kvs, this.fn);
+    }
     this.state = {
       data: props.data,
-      caches: props.caches,
+      caches,
       saveSuccess: true,
     };
     this.dirty = false;
@@ -230,7 +256,7 @@ class App extends React.Component<IAppProps, IState> {
           draft.data.kvs[k] = v;
           draft.data.kvs[parent].todo.unshift(k);
           draft.data.queue.unshift(k);
-          setCache(draft.caches, k, draft.data.kvs);
+          setCache(draft.caches, k, draft.data.kvs, this.fn);
           this.dirty = true;
         }),
       () => {
@@ -600,29 +626,6 @@ class App extends React.Component<IAppProps, IState> {
     );
   };
   render = () => {
-    const fn = {
-      eval_: this.eval_,
-      delete_: this.delete_,
-      start: this.start,
-      stop: this.stop,
-      top: this.top,
-      moveUp: this.moveUp,
-      moveDown: this.moveDown,
-      unindent: this.unindent,
-      indent: this.indent,
-      new_: this.new_,
-      save: this.save,
-      setEstimate: this.setEstimate,
-      setLastRange: this.setLastRange,
-      setText: this.setText,
-      resizeTextArea: this.resizeTextArea,
-      flipShowDetail: this.flipShowDetail,
-      todoToDone: this.todoToDone,
-      todoToDont: this.todoToDont,
-      doneToTodo: this.doneToTodo,
-      dontToTodo: this.dontToTodo,
-    };
-
     return (
       <div id="columns">
         <div className={"menu"}>
@@ -645,7 +648,7 @@ class App extends React.Component<IAppProps, IState> {
             k={this.state.data.root}
             kvs={this.state.data.kvs}
             current_entry={this.state.data.current_entry}
-            fn={fn}
+            fn={this.fn}
             caches={this.state.caches}
           />
         </div>
@@ -654,7 +657,7 @@ class App extends React.Component<IAppProps, IState> {
             ks={this.state.data.queue}
             kvs={this.state.data.kvs}
             current_entry={this.state.data.current_entry}
-            fn={fn}
+            fn={this.fn}
             caches={this.state.caches}
           />
         </div>
@@ -1274,14 +1277,7 @@ const main = () => {
   fetch("api/" + API_VERSION + "/get")
     .then(r => r.json())
     .then((data: IData) => {
-      const caches = {} as ICaches;
-      for (const k of Object.keys(data.kvs)) {
-        setCache(caches, k, data.kvs);
-      }
-      ReactDOM.render(
-        <App data={data} caches={caches} />,
-        document.getElementById("root"),
-      );
+      ReactDOM.render(<App data={data} />, document.getElementById("root"));
     });
 };
 
