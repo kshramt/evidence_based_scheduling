@@ -4,8 +4,20 @@ services:
 os:
   - linux
 python:
-  - "3.7"
+  - "3.6"
 notifications:
     email: false
+env:
+  - PROGRESS=plain
+before_install:
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+  - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+  - sudo apt-get update
+  - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
 script:
+  - echo '{"experimental":true}' | sudo tee /etc/docker/daemon.json
+  - sudo service docker restart
   - ./build.sh
+  - docker run -d --name server --rm -p 5000:5000 -v "$PWD":/app/data kshramt/evidence_based_scheduling
+  - curl http://localhost:5000/api/v1/get
+  - docker kill server

@@ -3,7 +3,7 @@
 !package.json
 !package-lock.json
 !server.py
-!src/index.js
+!src/index.tsx
 !src/index.css
 !public/favicon.ico
 !public/index.html
