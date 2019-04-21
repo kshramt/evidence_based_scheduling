@@ -208,6 +208,7 @@ class App extends React.Component<IAppProps, IState> {
             this._rmTodoEntry(draft, k);
             deleteAtVal(draft.data.queue, k);
             delete draft.data.kvs[k];
+            delete draft.caches[k];
             if (draft.data.current_entry === k) {
               draft.data.current_entry = null;
             }
