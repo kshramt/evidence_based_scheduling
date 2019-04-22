@@ -134,8 +134,10 @@ interface ICache {
   indentButtonRef: React.RefObject<HTMLButtonElement>;
   textareaRef: React.RefObject<HTMLTextAreaElement>;
   show_detail: boolean;
-  treeDoneMarkButton: JSX.Element;
-  treeDontMarkButton: JSX.Element;
+  treeDoneToTodoButton: JSX.Element;
+  treeDontToTodoButton: JSX.Element;
+  queueDoneToTodoButton: JSX.Element;
+  queueDontToTodoButton: JSX.Element;
   treeNewButton: JSX.Element;
   queueNewButton: JSX.Element;
   stopButton: JSX.Element;
@@ -149,8 +151,6 @@ interface ICache {
   showDetailButton: JSX.Element;
   deleteButton: JSX.Element;
   toTreeButton: JSX.Element;
-  doneToTodoButton: JSX.Element;
-  dontToTodoButton: JSX.Element;
   todoToDoneButton: JSX.Element;
   todoToDontButton: JSX.Element;
 }
@@ -688,9 +688,9 @@ const Node = (props: INodeProps) => {
         {v.parent === null
           ? null
           : v.status === "done"
-          ? cache.treeDoneMarkButton
+          ? cache.treeDoneToTodoButton
           : v.status === "dont"
-          ? cache.treeDontMarkButton
+          ? cache.treeDontToTodoButton
           : cache.treeNewButton}
         {v.parent === null ? null : (
           <textarea
@@ -737,12 +737,8 @@ const Node = (props: INodeProps) => {
         {v.parent && v.status === "todo" ? cache.unindentButton : null}
         {v.parent && v.status === "todo" ? cache.indentButton : null}
         {v.status === "todo" ? cache.evalButton : null}
-        {v.parent
-          ? v.status === "done"
-            ? cache.doneToTodoButton
-            : v.status === "dont"
-            ? cache.dontToTodoButton
-            : [cache.todoToDoneButton, cache.todoToDontButton]
+        {v.parent && v.status === "todo"
+          ? [cache.todoToDoneButton, cache.todoToDontButton]
           : null}
         {v.parent && v.status === "todo" ? cache.showDetailButton : null}
         {v.status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
@@ -812,9 +808,9 @@ const QueueNode = (props: INodeProps) => {
       {v.parent === null
         ? null
         : v.status === "done"
-        ? DONE_MARK_BUTTON
+        ? cache.queueDoneToTodoButton
         : v.status === "dont"
-        ? DONT_MARK_BUTTON
+        ? cache.queueDontToTodoButton
         : cache.queueNewButton}
       {v.parent === null ? null : (
         <textarea
@@ -857,12 +853,8 @@ const QueueNode = (props: INodeProps) => {
         : cache.startButton}
       {v.parent && v.status === "todo" ? cache.topButton : null}
       {v.status === "todo" ? cache.evalButton : null}
-      {v.parent
-        ? v.status === "done"
-          ? cache.doneToTodoButton
-          : v.status === "dont"
-          ? cache.dontToTodoButton
-          : [cache.todoToDoneButton, cache.todoToDontButton]
+      {v.parent && v.status === "todo"
+        ? [cache.todoToDoneButton, cache.todoToDontButton]
         : null}
       {v.parent && v.status === "todo" ? cache.showDetailButton : null}
       {v.status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
@@ -1089,14 +1081,47 @@ const setCache = (caches: ICaches, k: string, kvs: IKvs, fn: IFn) => {
       indentButtonRef,
       textareaRef: React.createRef<HTMLTextAreaElement>(),
       show_detail: false,
-      treeDoneMarkButton: (
-        <button key="done" id={`id${k}`}>
+      treeDoneToTodoButton: (
+        <button
+          id={`id${k}`}
+          className="done"
+          onClick={() => {
+            fn.doneToTodo(k);
+          }}
+        >
           {DONE_MARK}
         </button>
       ),
-      treeDontMarkButton: (
-        <button key="dont" id={`id${k}`}>
-          {DONT_MARK}
+      treeDontToTodoButton: (
+        <button
+          id={`id${k}`}
+          className="dont"
+          onClick={() => {
+            fn.dontToTodo(k);
+          }}
+        >
+          {DONE_MARK}
+        </button>
+      ),
+      // todo: DRY
+      queueDoneToTodoButton: (
+        <button
+          className="done"
+          onClick={() => {
+            fn.doneToTodo(k);
+          }}
+        >
+          {DONE_MARK}
+        </button>
+      ),
+      queueDontToTodoButton: (
+        <button
+          className="dont"
+          onClick={() => {
+            fn.dontToTodo(k);
+          }}
+        >
+          {DONE_MARK}
         </button>
       ),
       treeNewButton: (
@@ -1213,8 +1238,6 @@ const setCache = (caches: ICaches, k: string, kvs: IKvs, fn: IFn) => {
           <button>←</button>
         </a>
       ),
-      doneToTodoButton: XToYButton(TODO_MARK, fn.doneToTodo, "doneToTodo", k),
-      dontToTodoButton: XToYButton(TODO_MARK, fn.dontToTodo, "dontToTodo", k),
       todoToDoneButton: XToYButton(DONE_MARK, fn.todoToDone, "todoToDone", k),
       todoToDontButton: XToYButton(DONT_MARK, fn.todoToDont, "todoToDont", k),
     };
