@@ -681,16 +681,17 @@ class App extends React.Component<IAppProps, IState> {
 
 const Node = (props: INodeProps) => {
   const v = props.kvs[props.k];
+  const cache = props.caches[props.k];
   return (
     <div>
       <div className={props.k === props.current_entry ? "running" : undefined}>
         {v.parent === null
           ? null
           : v.status === "done"
-          ? props.caches[props.k].treeDoneMarkButton
+          ? cache.treeDoneMarkButton
           : v.status === "dont"
-          ? props.caches[props.k].treeDontMarkButton
-          : props.caches[props.k].treeNewButton}
+          ? cache.treeDontMarkButton
+          : cache.treeNewButton}
         {v.parent === null ? null : (
           <textarea
             value={v.text}
@@ -710,7 +711,7 @@ const Node = (props: INodeProps) => {
               width: v.width,
               height: v.height,
             }}
-            ref={props.caches[props.k].textareaRef}
+            ref={cache.textareaRef}
           />
         )}
         {v.parent === null ? null : (
@@ -724,53 +725,34 @@ const Node = (props: INodeProps) => {
             className={v.status}
           />
         )}
-        {digits1(props.caches[props.k].total_time_spent / 3600)}
+        {digits1(cache.total_time_spent / 3600)}
         {v.parent === null
           ? null
           : props.k === props.current_entry
-          ? props.caches[props.k].stopButton
-          : props.caches[props.k].startButton}
-        {v.parent && v.status === "todo"
-          ? props.caches[props.k].topButton
-          : null}
-        {v.parent && v.status === "todo"
-          ? props.caches[props.k].moveUpButton
-          : null}
-        {v.parent && v.status === "todo"
-          ? props.caches[props.k].moveDownButton
-          : null}
-        {v.parent && v.status === "todo"
-          ? props.caches[props.k].unindentButton
-          : null}
-        {v.parent && v.status === "todo"
-          ? props.caches[props.k].indentButton
-          : null}
-        {v.status === "todo" ? props.caches[props.k].evalButton : null}
+          ? cache.stopButton
+          : cache.startButton}
+        {v.parent && v.status === "todo" ? cache.topButton : null}
+        {v.parent && v.status === "todo" ? cache.moveUpButton : null}
+        {v.parent && v.status === "todo" ? cache.moveDownButton : null}
+        {v.parent && v.status === "todo" ? cache.unindentButton : null}
+        {v.parent && v.status === "todo" ? cache.indentButton : null}
+        {v.status === "todo" ? cache.evalButton : null}
         {v.parent
           ? v.status === "done"
-            ? props.caches[props.k].doneToTodoButton
+            ? cache.doneToTodoButton
             : v.status === "dont"
-            ? props.caches[props.k].dontToTodoButton
-            : [
-                props.caches[props.k].todoToDoneButton,
-                props.caches[props.k].todoToDontButton,
-              ]
+            ? cache.dontToTodoButton
+            : [cache.todoToDoneButton, cache.todoToDontButton]
           : null}
-        {v.parent && v.status === "todo"
-          ? props.caches[props.k].showDetailButton
-          : null}
-        {v.status === "todo"
-          ? props.caches[props.k].percentiles.map(digits1).join(" ")
-          : null}
-        {v.parent &&
-        v.status === "todo" &&
-        props.caches[props.k].show_detail ? (
+        {v.parent && v.status === "todo" ? cache.showDetailButton : null}
+        {v.status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
+        {v.parent && v.status === "todo" && cache.show_detail ? (
           <div>
             {showLastRange(lastRange(v.ranges), e => {
               props.fn.setLastRange(props.k, Number(e.currentTarget.value));
             })}
             {v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0
-              ? props.caches[props.k].deleteButton
+              ? cache.deleteButton
               : null}
           </div>
         ) : null}
@@ -823,16 +805,17 @@ const List = (props: IListProps) => {
 
 const QueueNode = (props: INodeProps) => {
   const v = props.kvs[props.k];
+  const cache = props.caches[props.k];
   return (
     <div className={props.k === props.current_entry ? "running" : undefined}>
-      {v.parent ? props.caches[props.k].toTreeButton : null}
+      {v.parent ? cache.toTreeButton : null}
       {v.parent === null
         ? null
         : v.status === "done"
         ? DONE_MARK_BUTTON
         : v.status === "dont"
         ? DONT_MARK_BUTTON
-        : props.caches[props.k].queueNewButton}
+        : cache.queueNewButton}
       {v.parent === null ? null : (
         <textarea
           value={v.text}
@@ -852,7 +835,7 @@ const QueueNode = (props: INodeProps) => {
             width: v.width,
             height: v.height,
           }}
-          ref={props.caches[props.k].textareaRef}
+          ref={cache.textareaRef}
         />
       )}
       {v.parent === null ? null : (
@@ -866,37 +849,30 @@ const QueueNode = (props: INodeProps) => {
           className={v.status}
         />
       )}
-      {digits1(props.caches[props.k].total_time_spent / 3600)}
+      {digits1(cache.total_time_spent / 3600)}
       {v.parent === null
         ? null
         : props.k === props.current_entry
-        ? props.caches[props.k].stopButton
-        : props.caches[props.k].startButton}
-      {v.parent && v.status === "todo" ? props.caches[props.k].topButton : null}
-      {v.status === "todo" ? props.caches[props.k].evalButton : null}
+        ? cache.stopButton
+        : cache.startButton}
+      {v.parent && v.status === "todo" ? cache.topButton : null}
+      {v.status === "todo" ? cache.evalButton : null}
       {v.parent
         ? v.status === "done"
-          ? props.caches[props.k].doneToTodoButton
+          ? cache.doneToTodoButton
           : v.status === "dont"
-          ? props.caches[props.k].dontToTodoButton
-          : [
-              props.caches[props.k].todoToDoneButton,
-              props.caches[props.k].todoToDontButton,
-            ]
+          ? cache.dontToTodoButton
+          : [cache.todoToDoneButton, cache.todoToDontButton]
         : null}
-      {v.parent && v.status === "todo"
-        ? props.caches[props.k].showDetailButton
-        : null}
-      {v.status === "todo"
-        ? props.caches[props.k].percentiles.map(digits1).join(" ")
-        : null}
-      {v.parent && v.status === "todo" && props.caches[props.k].show_detail ? (
+      {v.parent && v.status === "todo" ? cache.showDetailButton : null}
+      {v.status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
+      {v.parent && v.status === "todo" && cache.show_detail ? (
         <div>
           {showLastRange(lastRange(v.ranges), e => {
             props.fn.setLastRange(props.k, Number(e.currentTarget.value));
           })}
           {v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0
-            ? props.caches[props.k].deleteButton
+            ? cache.deleteButton
             : null}
         </div>
       ) : null}
