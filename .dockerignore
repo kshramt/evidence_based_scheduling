@@ -2,6 +2,7 @@
 !requirements.txt
 !package.json
 !package-lock.json
+!tsconfig.json
 !server.py
 !src/index.tsx
 !src/index.css
