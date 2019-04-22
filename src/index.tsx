@@ -153,6 +153,10 @@ interface ICache {
   toTreeButton: JSX.Element;
   todoToDoneButton: JSX.Element;
   todoToDontButton: JSX.Element;
+  setLastRange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  setEstimate: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  setText: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  resizeTextArea: (e: React.MouseEvent<HTMLTextAreaElement>) => void;
 }
 
 class App extends React.Component<IAppProps, IState> {
@@ -695,17 +699,9 @@ const Node = (props: INodeProps) => {
         {v.parent === null ? null : (
           <textarea
             value={v.text}
-            onChange={e => {
-              props.fn.setText(props.k, e.currentTarget.value);
-            }}
+            onChange={cache.setText}
             onBlur={props.fn.save}
-            onMouseUp={e => {
-              props.fn.resizeTextArea(
-                props.k,
-                e.currentTarget.style.width,
-                e.currentTarget.style.height,
-              );
-            }}
+            onMouseUp={cache.resizeTextArea}
             className={v.status}
             style={{
               width: v.width,
@@ -719,9 +715,7 @@ const Node = (props: INodeProps) => {
             type="number"
             step="any"
             value={v.estimate}
-            onChange={e => {
-              props.fn.setEstimate(props.k, Number(e.currentTarget.value));
-            }}
+            onChange={cache.setEstimate}
             className={v.status}
           />
         )}
@@ -744,9 +738,7 @@ const Node = (props: INodeProps) => {
         {v.status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
         {v.parent && v.status === "todo" && cache.show_detail ? (
           <div>
-            {showLastRange(lastRange(v.ranges), e => {
-              props.fn.setLastRange(props.k, Number(e.currentTarget.value));
-            })}
+            {showLastRange(lastRange(v.ranges), cache.setLastRange)}
             {v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0
               ? cache.deleteButton
               : null}
@@ -815,17 +807,9 @@ const QueueNode = (props: INodeProps) => {
       {v.parent === null ? null : (
         <textarea
           value={v.text}
-          onChange={e => {
-            props.fn.setText(props.k, e.currentTarget.value);
-          }}
+          onChange={cache.setText}
           onBlur={props.fn.save}
-          onMouseUp={e => {
-            props.fn.resizeTextArea(
-              props.k,
-              e.currentTarget.style.width,
-              e.currentTarget.style.height,
-            );
-          }}
+          onMouseUp={cache.resizeTextArea}
           className={v.status}
           style={{
             width: v.width,
@@ -839,9 +823,7 @@ const QueueNode = (props: INodeProps) => {
           type="number"
           step="any"
           value={v.estimate}
-          onChange={e => {
-            props.fn.setEstimate(props.k, Number(e.currentTarget.value));
-          }}
+          onChange={cache.setEstimate}
           className={v.status}
         />
       )}
@@ -860,9 +842,7 @@ const QueueNode = (props: INodeProps) => {
       {v.status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
       {v.parent && v.status === "todo" && cache.show_detail ? (
         <div>
-          {showLastRange(lastRange(v.ranges), e => {
-            props.fn.setLastRange(props.k, Number(e.currentTarget.value));
-          })}
+          {showLastRange(lastRange(v.ranges), cache.setLastRange)}
           {v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0
             ? cache.deleteButton
             : null}
@@ -1240,6 +1220,22 @@ const setCache = (caches: ICaches, k: string, kvs: IKvs, fn: IFn) => {
       ),
       todoToDoneButton: XToYButton(DONE_MARK, fn.todoToDone, "todoToDone", k),
       todoToDontButton: XToYButton(DONT_MARK, fn.todoToDont, "todoToDont", k),
+      setLastRange: (e: React.ChangeEvent<HTMLInputElement>) => {
+        fn.setLastRange(k, Number(e.currentTarget.value));
+      },
+      setEstimate: (e: React.ChangeEvent<HTMLInputElement>) => {
+        fn.setEstimate(k, Number(e.currentTarget.value));
+      },
+      setText: (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        fn.setText(k, e.currentTarget.value);
+      },
+      resizeTextArea: (e: React.MouseEvent<HTMLTextAreaElement>) => {
+        fn.resizeTextArea(
+          k,
+          e.currentTarget.style.width,
+          e.currentTarget.style.height,
+        );
+      },
     };
   }
 };
