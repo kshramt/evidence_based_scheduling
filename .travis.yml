@@ -15,7 +15,7 @@ before_install:
 script:
   - echo '{"experimental":true}' | sudo tee /etc/docker/daemon.json
   - sudo service docker restart
-  - ./build.sh
+  - DOCKER_BUILDKIT=1 docker build -q -t kshramt/evidence_based_scheduling:latest .
   - docker run -d --name server --rm -p 5000:5000 -v "$PWD":/app/data kshramt/evidence_based_scheduling
-  - curl http://localhost:5000/api/v1/get
+  - curl http://localhost:5000
   - docker kill server
