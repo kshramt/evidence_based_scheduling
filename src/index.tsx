@@ -1100,7 +1100,7 @@ const setCache = (caches: ICaches, k: string, kvs: IKvs, fn: IFn) => {
             fn.dontToTodo(k);
           }}
         >
-          {DONE_MARK}
+          {DONT_MARK}
         </button>
       ),
       // todo: DRY
@@ -1121,7 +1121,7 @@ const setCache = (caches: ICaches, k: string, kvs: IKvs, fn: IFn) => {
             fn.dontToTodo(k);
           }}
         >
-          {DONE_MARK}
+          {DONT_MARK}
         </button>
       ),
       treeNewButton: (
