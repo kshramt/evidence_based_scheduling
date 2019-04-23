@@ -20,7 +20,6 @@ const EVAL_MARK = "⏳";
 const DELETE_MARK = "×";
 const DONE_MARK = "✓";
 const DONT_MARK = "🗑";
-const TODO_MARK = "🔁";
 const DETAIL_MARK = "⋮";
 
 const DONE_MARK_BUTTON = <button key="done">{DONE_MARK}</button>;
