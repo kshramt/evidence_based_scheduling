@@ -229,9 +229,9 @@ class App extends React.Component<IAppProps, IState> {
       .map(v => {
         return v.estimate;
       });
-    const n_mcmc = 1001;
+    const n_mc = 1001;
     const ts = [];
-    for (let i = 0; i < n_mcmc; i++) {
+    for (let i = 0; i < n_mc; i++) {
       ts.push(
         sum(
           leaf_estimates.map(x => {
@@ -243,12 +243,12 @@ class App extends React.Component<IAppProps, IState> {
     ts.sort((a, b) => a - b);
     draft.caches[k].percentiles = [
       ts[0],
-      ts[Math.round((n_mcmc - 1) / 10)],
-      ts[Math.round((n_mcmc - 1) / 3)],
-      ts[Math.round((n_mcmc - 1) / 2)],
-      ts[Math.round(((n_mcmc - 1) * 2) / 3)],
-      ts[Math.round(((n_mcmc - 1) * 9) / 10)],
-      ts[n_mcmc - 1],
+      ts[Math.round((n_mc - 1) / 10)],
+      ts[Math.round((n_mc - 1) / 3)],
+      ts[Math.round((n_mc - 1) / 2)],
+      ts[Math.round(((n_mc - 1) * 2) / 3)],
+      ts[Math.round(((n_mc - 1) * 9) / 10)],
+      ts[n_mc - 1],
     ];
   };
   delete_ = (k: string) => {
