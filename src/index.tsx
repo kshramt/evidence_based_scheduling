@@ -22,9 +22,6 @@ const DONE_MARK = "✓";
 const DONT_MARK = "🗑";
 const DETAIL_MARK = "⋮";
 
-const DONE_MARK_BUTTON = <button key="done">{DONE_MARK}</button>;
-const DONT_MARK_BUTTON = <button key="dont">{DONT_MARK}</button>;
-
 type TStatus = "done" | "dont" | "todo";
 type TKVoid = (k: string) => void;
 
