@@ -14,8 +14,10 @@ before_install:
   - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
 script:
   - echo '{"experimental":true}' | sudo tee /etc/docker/daemon.json
+  - set -e
   - sudo service docker restart
   - DOCKER_BUILDKIT=1 docker build -q -t kshramt/evidence_based_scheduling:latest .
   - docker run -d --name server --rm -p 5000:5000 -v "$PWD":/app/data kshramt/evidence_based_scheduling
+  - sleep 10
   - curl http://localhost:5000
   - docker kill server
