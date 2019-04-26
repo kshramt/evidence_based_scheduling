@@ -181,14 +181,13 @@ def _new_entry_v1(t: str) -> dict:
         "dont": [],
         "end_time": None,
         "estimate": NO_ESTIMATION,
-        "height": "3ex",
         "parent": None,
         "ranges": [],
         "start_time": t,
         "status": "todo",  # done | dont | todo
+        "style": dict(width="49ex", height="3ex"),
         "text": [""],
         "todo": [],
-        "width": "49ex",
     }
 
 
