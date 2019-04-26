@@ -143,7 +143,7 @@ def get():
     except IOError:
         t = _js_now_v1()
         data = dict(
-            current_entry=None, root=t, kvs={t: _new_entry_v1(t)}, queue=[], version=4
+            current_entry=None, root=t, kvs={t: _new_entry_v1(t)}, queue=[], version=5
         )
     data = _remove_tail_none_v1(data)
     data = _update_data_version(data)
