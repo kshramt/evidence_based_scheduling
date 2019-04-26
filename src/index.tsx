@@ -42,33 +42,6 @@ interface INodeProps {
   caches: ICaches;
 }
 
-interface IFn {
-  new_: TKVoid;
-  setText: (k: string, text: string) => void;
-  save: () => void;
-  resizeTextArea: (
-    k: string,
-    width: null | string,
-    height: null | string,
-  ) => void;
-  setEstimate: (k: string, estimate: number) => void;
-  stop: () => void;
-  start: TKVoid;
-  top: TKVoid;
-  moveUp: TKVoid;
-  moveDown: TKVoid;
-  unindent: TKVoid;
-  indent: TKVoid;
-  eval_: TKVoid;
-  flipShowDetail: TKVoid;
-  delete_: TKVoid;
-  todoToDone: TKVoid;
-  todoToDont: TKVoid;
-  doneToTodo: TKVoid;
-  dontToTodo: TKVoid;
-  setLastRange: (k: string, t: number) => void;
-}
-
 interface IHistory {
   prev: null | IHistory;
   value: IState;
@@ -166,35 +139,12 @@ class App extends React.Component<IAppProps, IState> {
   state: IState;
   dirty: boolean;
   history: IHistory;
-  fn: IFn;
 
   constructor(props: IAppProps) {
     super(props);
-    this.fn = {
-      eval_: this.eval_,
-      delete_: this.delete_,
-      start: this.start,
-      stop: this.stop,
-      top: this.top,
-      moveUp: this.moveUp,
-      moveDown: this.moveDown,
-      unindent: this.unindent,
-      indent: this.indent,
-      new_: this.new_,
-      save: this.save,
-      setEstimate: this.setEstimate,
-      setLastRange: this.setLastRange,
-      setText: this.setText,
-      resizeTextArea: this.resizeTextArea,
-      flipShowDetail: this.flipShowDetail,
-      todoToDone: this.todoToDone,
-      todoToDont: this.todoToDont,
-      doneToTodo: this.doneToTodo,
-      dontToTodo: this.dontToTodo,
-    };
     const caches = {} as ICaches;
     for (const k of Object.keys(props.data.kvs)) {
-      setCache(caches, k, props.data.kvs, this.fn);
+      this.setCache(caches, k, props.data.kvs);
     }
     this.state = {
       data: props.data,
@@ -208,6 +158,245 @@ class App extends React.Component<IAppProps, IState> {
       next: null,
     };
   }
+  setCache = (caches: ICaches, k: string, kvs: IKvs) => {
+    if (caches[k] === undefined) {
+      const sumChildren = (xs: string[]) => {
+        return xs.reduce((total, current) => {
+          this.setCache(caches, current, kvs);
+          return total + caches[current].total_time_spent;
+        }, 0);
+      };
+      const stopButtonRef = React.createRef<HTMLButtonElement>();
+      const moveUpButtonRef = React.createRef<HTMLButtonElement>();
+      const moveDownButtonRef = React.createRef<HTMLButtonElement>();
+      const unindentButtonRef = React.createRef<HTMLButtonElement>();
+      const textAreaRef = React.createRef<HTMLTextAreaElement>();
+      const indentButtonRef = React.createRef<HTMLButtonElement>();
+      const resizeTextArea = (e: React.MouseEvent<HTMLTextAreaElement>) => {
+        this.resizeTextArea(
+          k,
+          e.currentTarget.style.width,
+          e.currentTarget.style.height,
+        );
+      };
+      const setText = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        this.setText(k, e.currentTarget.value);
+      };
+      caches[k] = {
+        total_time_spent: kvs[k].ranges.reduce((total, current) => {
+          return current.end === null
+            ? total
+            : total + (current.end - current.start);
+        }, sumChildren(kvs[k].todo) + sumChildren(kvs[k].done) + sumChildren(kvs[k].dont)),
+        percentiles: [] as number[], // 0, 10, 33, 50, 67, 90, 100
+        stopButtonRef,
+        moveUpButtonRef,
+        moveDownButtonRef,
+        unindentButtonRef,
+        indentButtonRef,
+        textAreaRef,
+        show_detail: false,
+        treeDoneToTodoButton: (
+          <button
+            id={`id${k}`}
+            className="done"
+            onClick={() => {
+              this.doneToTodo(k);
+            }}
+          >
+            {DONE_MARK}
+          </button>
+        ),
+        treeDontToTodoButton: (
+          <button
+            id={`id${k}`}
+            className="dont"
+            onClick={() => {
+              this.dontToTodo(k);
+            }}
+          >
+            {DONT_MARK}
+          </button>
+        ),
+        // todo: DRY
+        queueDoneToTodoButton: (
+          <button
+            className="done"
+            onClick={() => {
+              this.doneToTodo(k);
+            }}
+          >
+            {DONE_MARK}
+          </button>
+        ),
+        queueDontToTodoButton: (
+          <button
+            className="dont"
+            onClick={() => {
+              this.dontToTodo(k);
+            }}
+          >
+            {DONT_MARK}
+          </button>
+        ),
+        treeNewButton: (
+          <button
+            id={`id${k}`}
+            onClick={() => {
+              this.new_(k);
+            }}
+          >
+            {NEW_MARK}
+          </button>
+        ),
+        queueNewButton: (
+          <button
+            onClick={() => {
+              this.new_(k);
+            }}
+          >
+            {NEW_MARK}
+          </button>
+        ),
+        stopButton: (
+          <button onClick={this.stop} ref={stopButtonRef}>
+            {STOP_MARK}
+          </button>
+        ),
+        startButton: (
+          <button
+            onClick={() => {
+              this.start(k);
+            }}
+          >
+            {START_MARK}
+          </button>
+        ),
+        topButton: (
+          <button
+            onClick={() => {
+              this.top(k);
+            }}
+          >
+            {TOP_MARK}
+          </button>
+        ),
+        moveUpButton: (
+          <button
+            onClick={() => {
+              this.moveUp(k);
+            }}
+            ref={moveUpButtonRef}
+          >
+            {MOVE_UP_MARK}
+          </button>
+        ),
+        moveDownButton: (
+          <button
+            onClick={() => {
+              this.moveDown(k);
+            }}
+            ref={moveDownButtonRef}
+          >
+            {MOVE_DOWN_MARK}
+          </button>
+        ),
+        unindentButton: (
+          <button
+            onClick={() => {
+              this.unindent(k);
+            }}
+            ref={unindentButtonRef}
+          >
+            {UNINDENT_MARK}
+          </button>
+        ),
+        indentButton: (
+          <button
+            onClick={() => {
+              this.indent(k);
+            }}
+            ref={indentButtonRef}
+          >
+            {INDENT_MARK}
+          </button>
+        ),
+        evalButton: (
+          <button
+            onClick={() => {
+              this.eval_(k);
+            }}
+          >
+            {EVAL_MARK}
+          </button>
+        ),
+        showDetailButton: (
+          <button
+            onClick={() => {
+              this.flipShowDetail(k);
+            }}
+          >
+            {DETAIL_MARK}
+          </button>
+        ),
+        deleteButton: (
+          <button
+            onClick={() => {
+              this.delete_(k);
+            }}
+          >
+            {DELETE_MARK}
+          </button>
+        ),
+        toTreeButton: (
+          <a href={`#id${k}`}>
+            <button>←</button>
+          </a>
+        ),
+        todoToDoneButton: XToYButton(
+          DONE_MARK,
+          this.todoToDone,
+          "todoToDone",
+          k,
+        ),
+        todoToDontButton: XToYButton(
+          DONT_MARK,
+          this.todoToDont,
+          "todoToDont",
+          k,
+        ),
+        setLastRange: (e: React.ChangeEvent<HTMLInputElement>) => {
+          this.setLastRange(k, Number(e.currentTarget.value));
+        },
+        setEstimate: (e: React.ChangeEvent<HTMLInputElement>) => {
+          this.setEstimate(k, Number(e.currentTarget.value));
+        },
+        setText,
+        resizeTextArea,
+        textAreaOf: (
+          text: string,
+          status: TStatus,
+          width: string,
+          height: string,
+        ) => {
+          return (
+            <textarea
+              value={text}
+              onChange={setText}
+              onBlur={this.save}
+              onMouseUp={resizeTextArea}
+              className={status}
+              style={{
+                width: width,
+                height: height,
+              }}
+              ref={textAreaRef}
+            />
+          );
+        },
+      };
+    }
+  };
   eval_ = (k: string) => {
     this.setState(state => produce(state, draft => this._eval_(draft, k)));
   };
@@ -282,7 +471,7 @@ class App extends React.Component<IAppProps, IState> {
           draft.data.kvs[k] = v;
           draft.data.kvs[parent].todo.unshift(k);
           draft.data.queue.unshift(k);
-          setCache(draft.caches as ICaches, k, draft.data.kvs, this.fn);
+          this.setCache(draft.caches as ICaches, k, draft.data.kvs);
           this.dirty = true;
         }),
       () => {
@@ -651,6 +840,7 @@ class App extends React.Component<IAppProps, IState> {
       }),
     );
   };
+
   render = () => {
     return (
       <div id="columns">
@@ -1005,237 +1195,6 @@ const pushHistory = (h: IHistory, v: IState) => {
     value: v,
     next: null,
   });
-};
-
-// I need `Draft<ICaches>` here since refs contain readonly properties.
-const setCache = (caches: ICaches, k: string, kvs: IKvs, fn: IFn) => {
-  if (caches[k] === undefined) {
-    const sumChildren = (xs: string[]) => {
-      return xs.reduce((total, current) => {
-        setCache(caches, current, kvs, fn);
-        return total + caches[current].total_time_spent;
-      }, 0);
-    };
-    const stopButtonRef = React.createRef<HTMLButtonElement>();
-    const moveUpButtonRef = React.createRef<HTMLButtonElement>();
-    const moveDownButtonRef = React.createRef<HTMLButtonElement>();
-    const unindentButtonRef = React.createRef<HTMLButtonElement>();
-    const textAreaRef = React.createRef<HTMLTextAreaElement>();
-    const indentButtonRef = React.createRef<HTMLButtonElement>();
-    const resizeTextArea = (e: React.MouseEvent<HTMLTextAreaElement>) => {
-      fn.resizeTextArea(
-        k,
-        e.currentTarget.style.width,
-        e.currentTarget.style.height,
-      );
-    };
-    const setText = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      fn.setText(k, e.currentTarget.value);
-    };
-    caches[k] = {
-      total_time_spent: kvs[k].ranges.reduce((total, current) => {
-        return current.end === null
-          ? total
-          : total + (current.end - current.start);
-      }, sumChildren(kvs[k].todo) + sumChildren(kvs[k].done) + sumChildren(kvs[k].dont)),
-      percentiles: [] as number[], // 0, 10, 33, 50, 67, 90, 100
-      stopButtonRef,
-      moveUpButtonRef,
-      moveDownButtonRef,
-      unindentButtonRef,
-      indentButtonRef,
-      textAreaRef,
-      show_detail: false,
-      treeDoneToTodoButton: (
-        <button
-          id={`id${k}`}
-          className="done"
-          onClick={() => {
-            fn.doneToTodo(k);
-          }}
-        >
-          {DONE_MARK}
-        </button>
-      ),
-      treeDontToTodoButton: (
-        <button
-          id={`id${k}`}
-          className="dont"
-          onClick={() => {
-            fn.dontToTodo(k);
-          }}
-        >
-          {DONT_MARK}
-        </button>
-      ),
-      // todo: DRY
-      queueDoneToTodoButton: (
-        <button
-          className="done"
-          onClick={() => {
-            fn.doneToTodo(k);
-          }}
-        >
-          {DONE_MARK}
-        </button>
-      ),
-      queueDontToTodoButton: (
-        <button
-          className="dont"
-          onClick={() => {
-            fn.dontToTodo(k);
-          }}
-        >
-          {DONT_MARK}
-        </button>
-      ),
-      treeNewButton: (
-        <button
-          id={`id${k}`}
-          onClick={() => {
-            fn.new_(k);
-          }}
-        >
-          {NEW_MARK}
-        </button>
-      ),
-      queueNewButton: (
-        <button
-          onClick={() => {
-            fn.new_(k);
-          }}
-        >
-          {NEW_MARK}
-        </button>
-      ),
-      stopButton: (
-        <button onClick={fn.stop} ref={stopButtonRef}>
-          {STOP_MARK}
-        </button>
-      ),
-      startButton: (
-        <button
-          onClick={() => {
-            fn.start(k);
-          }}
-        >
-          {START_MARK}
-        </button>
-      ),
-      topButton: (
-        <button
-          onClick={() => {
-            fn.top(k);
-          }}
-        >
-          {TOP_MARK}
-        </button>
-      ),
-      moveUpButton: (
-        <button
-          onClick={() => {
-            fn.moveUp(k);
-          }}
-          ref={moveUpButtonRef}
-        >
-          {MOVE_UP_MARK}
-        </button>
-      ),
-      moveDownButton: (
-        <button
-          onClick={() => {
-            fn.moveDown(k);
-          }}
-          ref={moveDownButtonRef}
-        >
-          {MOVE_DOWN_MARK}
-        </button>
-      ),
-      unindentButton: (
-        <button
-          onClick={() => {
-            fn.unindent(k);
-          }}
-          ref={unindentButtonRef}
-        >
-          {UNINDENT_MARK}
-        </button>
-      ),
-      indentButton: (
-        <button
-          onClick={() => {
-            fn.indent(k);
-          }}
-          ref={indentButtonRef}
-        >
-          {INDENT_MARK}
-        </button>
-      ),
-      evalButton: (
-        <button
-          onClick={() => {
-            fn.eval_(k);
-          }}
-        >
-          {EVAL_MARK}
-        </button>
-      ),
-      showDetailButton: (
-        <button
-          onClick={() => {
-            fn.flipShowDetail(k);
-          }}
-        >
-          {DETAIL_MARK}
-        </button>
-      ),
-      deleteButton: (
-        <button
-          onClick={() => {
-            fn.delete_(k);
-          }}
-        >
-          {DELETE_MARK}
-        </button>
-      ),
-      toTreeButton: (
-        <a href={`#id${k}`}>
-          <button>←</button>
-        </a>
-      ),
-      todoToDoneButton: XToYButton(DONE_MARK, fn.todoToDone, "todoToDone", k),
-      todoToDontButton: XToYButton(DONT_MARK, fn.todoToDont, "todoToDont", k),
-      setLastRange: (e: React.ChangeEvent<HTMLInputElement>) => {
-        fn.setLastRange(k, Number(e.currentTarget.value));
-      },
-      setEstimate: (e: React.ChangeEvent<HTMLInputElement>) => {
-        fn.setEstimate(k, Number(e.currentTarget.value));
-      },
-      setText,
-      resizeTextArea,
-      textAreaOf: (
-        text: string,
-        status: TStatus,
-        width: string,
-        height: string,
-      ) => {
-        return (
-          <textarea
-            value={text}
-            onChange={setText}
-            onBlur={fn.save}
-            onMouseUp={resizeTextArea}
-            className={status}
-            style={{
-              width: width,
-              height: height,
-            }}
-            ref={textAreaRef}
-          />
-        );
-      },
-    };
-  }
 };
 
 const isApprox = (x: number, y: number) => {
