@@ -32,7 +32,6 @@ interface IListProps {
   ks: string[];
   kvs: IKvs;
   current_entry: null | string;
-  fn: IFn;
   caches: ICaches;
 }
 
@@ -40,7 +39,6 @@ interface INodeProps {
   k: string;
   kvs: IKvs;
   current_entry: null | string;
-  fn: IFn;
   caches: ICaches;
 }
 
@@ -131,7 +129,7 @@ interface ICache {
   moveDownButtonRef: React.RefObject<HTMLButtonElement>;
   unindentButtonRef: React.RefObject<HTMLButtonElement>;
   indentButtonRef: React.RefObject<HTMLButtonElement>;
-  textareaRef: React.RefObject<HTMLTextAreaElement>;
+  textAreaRef: React.RefObject<HTMLTextAreaElement>;
   show_detail: boolean;
   treeDoneToTodoButton: JSX.Element;
   treeDontToTodoButton: JSX.Element;
@@ -156,6 +154,12 @@ interface ICache {
   setEstimate: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setText: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   resizeTextArea: (e: React.MouseEvent<HTMLTextAreaElement>) => void;
+  textAreaOf: (
+    text: string,
+    status: TStatus,
+    width: string,
+    height: string,
+  ) => JSX.Element;
 }
 
 class App extends React.Component<IAppProps, IState> {
@@ -283,7 +287,7 @@ class App extends React.Component<IAppProps, IState> {
         }),
       () => {
         this.save();
-        focus(this.state.caches[k].textareaRef.current);
+        focus(this.state.caches[k].textAreaRef.current);
       },
     );
   };
@@ -664,7 +668,6 @@ class App extends React.Component<IAppProps, IState> {
             k={this.state.data.root}
             kvs={this.state.data.kvs}
             current_entry={this.state.data.current_entry}
-            fn={this.fn}
             caches={this.state.caches}
           />
         </div>
@@ -673,7 +676,6 @@ class App extends React.Component<IAppProps, IState> {
             ks={this.state.data.queue}
             kvs={this.state.data.kvs}
             current_entry={this.state.data.current_entry}
-            fn={this.fn}
             caches={this.state.caches}
           />
         </div>
@@ -695,20 +697,9 @@ const Node = (props: INodeProps) => {
           : v.status === "dont"
           ? cache.treeDontToTodoButton
           : cache.treeNewButton}
-        {v.parent === null ? null : (
-          <textarea
-            value={v.text}
-            onChange={cache.setText}
-            onBlur={props.fn.save}
-            onMouseUp={cache.resizeTextArea}
-            className={v.status}
-            style={{
-              width: v.width,
-              height: v.height,
-            }}
-            ref={cache.textareaRef}
-          />
-        )}
+        {v.parent === null
+          ? null
+          : cache.textAreaOf(v.text, v.status, v.width, v.height)}
         {v.parent === null ? null : (
           <input
             type="number"
@@ -748,21 +739,18 @@ const Node = (props: INodeProps) => {
         ks={v.todo}
         kvs={props.kvs}
         current_entry={props.current_entry}
-        fn={props.fn}
         caches={props.caches}
       />
       <List
         ks={v.done}
         kvs={props.kvs}
         current_entry={props.current_entry}
-        fn={props.fn}
         caches={props.caches}
       />
       <List
         ks={v.dont}
         kvs={props.kvs}
         current_entry={props.current_entry}
-        fn={props.fn}
         caches={props.caches}
       />
     </div>
@@ -780,7 +768,6 @@ const List = (props: IListProps) => {
               k={k}
               kvs={props.kvs}
               current_entry={props.current_entry}
-              fn={props.fn}
               caches={props.caches}
             />
           </li>
@@ -803,20 +790,9 @@ const QueueNode = (props: INodeProps) => {
         : v.status === "dont"
         ? cache.queueDontToTodoButton
         : cache.queueNewButton}
-      {v.parent === null ? null : (
-        <textarea
-          value={v.text}
-          onChange={cache.setText}
-          onBlur={props.fn.save}
-          onMouseUp={cache.resizeTextArea}
-          className={v.status}
-          style={{
-            width: v.width,
-            height: v.height,
-          }}
-          ref={cache.textareaRef}
-        />
-      )}
+      {v.parent === null
+        ? null
+        : cache.textAreaOf(v.text, v.status, v.width, v.height)}
       {v.parent === null ? null : (
         <input
           type="number"
@@ -862,7 +838,6 @@ const Queue = (props: IListProps) => {
               k={k}
               kvs={props.kvs}
               current_entry={props.current_entry}
-              fn={props.fn}
               caches={props.caches}
             />
           </li>
@@ -1045,7 +1020,18 @@ const setCache = (caches: ICaches, k: string, kvs: IKvs, fn: IFn) => {
     const moveUpButtonRef = React.createRef<HTMLButtonElement>();
     const moveDownButtonRef = React.createRef<HTMLButtonElement>();
     const unindentButtonRef = React.createRef<HTMLButtonElement>();
+    const textAreaRef = React.createRef<HTMLTextAreaElement>();
     const indentButtonRef = React.createRef<HTMLButtonElement>();
+    const resizeTextArea = (e: React.MouseEvent<HTMLTextAreaElement>) => {
+      fn.resizeTextArea(
+        k,
+        e.currentTarget.style.width,
+        e.currentTarget.style.height,
+      );
+    };
+    const setText = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      fn.setText(k, e.currentTarget.value);
+    };
     caches[k] = {
       total_time_spent: kvs[k].ranges.reduce((total, current) => {
         return current.end === null
@@ -1058,7 +1044,7 @@ const setCache = (caches: ICaches, k: string, kvs: IKvs, fn: IFn) => {
       moveDownButtonRef,
       unindentButtonRef,
       indentButtonRef,
-      textareaRef: React.createRef<HTMLTextAreaElement>(),
+      textAreaRef,
       show_detail: false,
       treeDoneToTodoButton: (
         <button
@@ -1225,14 +1211,27 @@ const setCache = (caches: ICaches, k: string, kvs: IKvs, fn: IFn) => {
       setEstimate: (e: React.ChangeEvent<HTMLInputElement>) => {
         fn.setEstimate(k, Number(e.currentTarget.value));
       },
-      setText: (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        fn.setText(k, e.currentTarget.value);
-      },
-      resizeTextArea: (e: React.MouseEvent<HTMLTextAreaElement>) => {
-        fn.resizeTextArea(
-          k,
-          e.currentTarget.style.width,
-          e.currentTarget.style.height,
+      setText,
+      resizeTextArea,
+      textAreaOf: (
+        text: string,
+        status: TStatus,
+        width: string,
+        height: string,
+      ) => {
+        return (
+          <textarea
+            value={text}
+            onChange={setText}
+            onBlur={fn.save}
+            onMouseUp={resizeTextArea}
+            className={status}
+            style={{
+              width: width,
+              height: height,
+            }}
+            ref={textAreaRef}
+          />
         );
       },
     };
