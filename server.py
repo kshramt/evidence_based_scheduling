@@ -5,6 +5,9 @@ import os
 import flask
 
 
+LATEST_VERSION = 5
+
+
 class Err(Exception):
     pass
 
@@ -55,7 +58,7 @@ def _v5_of_v4(data):
     for k, v in data["kvs"].items():
         v["style"] = dict(width=v["width"], height=v["height"])
         del v["width"], v["height"]
-    data["version"] = 5
+    data["version"] = LATEST_VERSION
     return data
 
 
@@ -143,7 +146,7 @@ def get():
     except IOError:
         t = _js_now_v1()
         data = dict(
-            current_entry=None, root=t, kvs={t: _new_entry_v1(t)}, queue=[], version=5
+            current_entry=None, root=t, kvs={t: _new_entry_v1(t)}, queue=[], version=LATEST_VERSION
         )
     data = _remove_tail_none_v1(data)
     data = _update_data_version(data)
