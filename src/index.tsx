@@ -75,13 +75,17 @@ interface IEntry {
   dont: string[];
   end_time: null | string;
   estimate: number;
-  height: string;
   parent: null | string;
   ranges: IRange[];
   start_time: string;
   status: TStatus;
+  style: IStyle;
   text: string;
   todo: string[];
+}
+
+interface IStyle {
+  height: string;
   width: string;
 }
 
@@ -127,12 +131,7 @@ interface ICache {
   setEstimate: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setText: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   resizeTextArea: (e: React.MouseEvent<HTMLTextAreaElement>) => void;
-  textAreaOf: (
-    text: string,
-    status: TStatus,
-    width: string,
-    height: string,
-  ) => JSX.Element;
+  textAreaOf: (text: string, status: TStatus, style: IStyle) => JSX.Element;
 }
 
 class App extends React.Component<IAppProps, IState> {
@@ -373,12 +372,7 @@ class App extends React.Component<IAppProps, IState> {
         },
         setText,
         resizeTextArea,
-        textAreaOf: (
-          text: string,
-          status: TStatus,
-          width: string,
-          height: string,
-        ) => {
+        textAreaOf: (text: string, status: TStatus, style: IStyle) => {
           return (
             <textarea
               value={text}
@@ -386,10 +380,7 @@ class App extends React.Component<IAppProps, IState> {
               onBlur={this.save}
               onMouseUp={resizeTextArea}
               className={status}
-              style={{
-                width: width,
-                height: height,
-              }}
+              style={style}
               ref={textAreaRef}
             />
           );
@@ -747,12 +738,12 @@ class App extends React.Component<IAppProps, IState> {
         state =>
           produce(state, draft => {
             const v = draft.data.kvs[k];
-            if (v.width !== width) {
-              v.width = width;
+            if (v.style.width !== width) {
+              v.style.width = width;
               this.dirty = true;
             }
-            if (v.height !== height) {
-              v.height = height;
+            if (v.style.height !== height) {
+              v.style.height = height;
               this.dirty = true;
             }
           }),
@@ -887,9 +878,7 @@ const Node = (props: INodeProps) => {
           : v.status === "dont"
           ? cache.treeDontToTodoButton
           : cache.treeNewButton}
-        {v.parent === null
-          ? null
-          : cache.textAreaOf(v.text, v.status, v.width, v.height)}
+        {v.parent === null ? null : cache.textAreaOf(v.text, v.status, v.style)}
         {v.parent === null ? null : (
           <input
             type="number"
@@ -980,9 +969,7 @@ const QueueNode = (props: INodeProps) => {
         : v.status === "dont"
         ? cache.queueDontToTodoButton
         : cache.queueNewButton}
-      {v.parent === null
-        ? null
-        : cache.textAreaOf(v.text, v.status, v.width, v.height)}
+      {v.parent === null ? null : cache.textAreaOf(v.text, v.status, v.style)}
       {v.parent === null ? null : (
         <input
           type="number"
@@ -1221,14 +1208,13 @@ const newEntryValue = (parent: string, start_time: string) => {
     dont: [] as string[],
     end_time: null,
     estimate: NO_ESTIMATION,
-    height: "3ex",
     parent,
     ranges: [] as IRange[],
     start_time,
     status: "todo" as TStatus,
+    style: { width: "49ex", height: "3ex" },
     text: "",
     todo: [] as string[],
-    width: "49ex",
   };
 };
 

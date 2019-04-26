@@ -44,9 +44,19 @@ def _update_data_version(data):
     elif data["version"] == 3:
         return _update_data_version(_v4_of_v3(data))
     elif data["version"] == 4:
+        return _update_data_version(_v5_of_v4(data))
+    elif data["version"] == 5:
         return data
     else:
         raise Err(f"Unsupported data version: {data.get('version', 'None')}")
+
+
+def _v5_of_v4(data):
+    for k, v in data["kvs"].items():
+        v["style"] = dict(width=v["width"], height=v["height"])
+        del v["width"], v["height"]
+    data["version"] = 5
+    return data
 
 
 def _v4_of_v3(data):
