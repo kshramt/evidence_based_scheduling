@@ -37,6 +37,8 @@ textarea.done, textarea.dont{
 }
 button{
     padding: 0;
+    border: none;
+    background: none;
 }
 li > div > div > *, li > div > *{
     vertical-align: top;
