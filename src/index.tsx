@@ -39,6 +39,13 @@ interface INodeProps {
   caches: ICaches;
 }
 
+interface IEntryProps {
+  k: string;
+  v: IEntry;
+  current_entry: null | string;
+  cache: ICache;
+}
+
 interface IHistory {
   prev: null | IHistory;
   value: IState;
@@ -871,50 +878,12 @@ const Node = (props: INodeProps) => {
   const cache = props.caches[props.k];
   return (
     <div>
-      <div className={props.k === props.current_entry ? "running" : undefined}>
-        {v.parent === null
-          ? null
-          : v.status === "done"
-          ? cache.treeDoneToTodoButton
-          : v.status === "dont"
-          ? cache.treeDontToTodoButton
-          : cache.treeNewButton}
-        {v.parent === null ? null : cache.textAreaOf(v.text, v.status, v.style)}
-        {v.parent === null ? null : (
-          <input
-            type="number"
-            step="any"
-            value={v.estimate}
-            onChange={cache.setEstimate}
-            className={v.status}
-          />
-        )}
-        {digits1(cache.total_time_spent / 3600)}
-        {v.parent === null
-          ? null
-          : props.k === props.current_entry
-          ? cache.stopButton
-          : cache.startButton}
-        {v.parent && v.status === "todo" ? cache.topButton : null}
-        {v.parent && v.status === "todo" ? cache.moveUpButton : null}
-        {v.parent && v.status === "todo" ? cache.moveDownButton : null}
-        {v.parent && v.status === "todo" ? cache.unindentButton : null}
-        {v.parent && v.status === "todo" ? cache.indentButton : null}
-        {v.status === "todo" ? cache.evalButton : null}
-        {v.parent && v.status === "todo"
-          ? [cache.todoToDoneButton, cache.todoToDontButton]
-          : null}
-        {v.parent && v.status === "todo" ? cache.showDetailButton : null}
-        {v.status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
-        {v.parent && v.status === "todo" && cache.show_detail ? (
-          <div>
-            {showLastRange(lastRange(v.ranges), cache.setLastRange)}
-            {v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0
-              ? cache.deleteButton
-              : null}
-          </div>
-        ) : null}
-      </div>
+      <Entry
+        k={props.k}
+        v={props.kvs[props.k]}
+        current_entry={props.current_entry}
+        cache={props.caches[props.k]}
+      />
       <List
         ks={v.todo}
         kvs={props.kvs}
@@ -937,6 +906,57 @@ const Node = (props: INodeProps) => {
   );
 };
 
+const Entry = React.memo((props: IEntryProps) => {
+  const v = props.v;
+  const cache = props.cache;
+  return (
+    <div className={props.k === props.current_entry ? "running" : undefined}>
+      {v.parent === null
+        ? null
+        : v.status === "done"
+        ? cache.treeDoneToTodoButton
+        : v.status === "dont"
+        ? cache.treeDontToTodoButton
+        : cache.treeNewButton}
+      {v.parent === null ? null : cache.textAreaOf(v.text, v.status, v.style)}
+      {v.parent === null ? null : (
+        <input
+          type="number"
+          step="any"
+          value={v.estimate}
+          onChange={cache.setEstimate}
+          className={v.status}
+        />
+      )}
+      {digits1(cache.total_time_spent / 3600)}
+      {v.parent === null
+        ? null
+        : props.k === props.current_entry
+        ? cache.stopButton
+        : cache.startButton}
+      {v.parent && v.status === "todo" ? cache.topButton : null}
+      {v.parent && v.status === "todo" ? cache.moveUpButton : null}
+      {v.parent && v.status === "todo" ? cache.moveDownButton : null}
+      {v.parent && v.status === "todo" ? cache.unindentButton : null}
+      {v.parent && v.status === "todo" ? cache.indentButton : null}
+      {v.status === "todo" ? cache.evalButton : null}
+      {v.parent && v.status === "todo"
+        ? [cache.todoToDoneButton, cache.todoToDontButton]
+        : null}
+      {v.parent && v.status === "todo" ? cache.showDetailButton : null}
+      {v.status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
+      {v.parent && v.status === "todo" && cache.show_detail ? (
+        <div>
+          {showLastRange(lastRange(v.ranges), cache.setLastRange)}
+          {v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0
+            ? cache.deleteButton
+            : null}
+        </div>
+      ) : null}
+    </div>
+  );
+});
+
 const List = (props: IListProps) => {
   return props.ks.length ? (
     <ol>
@@ -957,9 +977,9 @@ const List = (props: IListProps) => {
   ) : null;
 };
 
-const QueueNode = (props: INodeProps) => {
-  const v = props.kvs[props.k];
-  const cache = props.caches[props.k];
+const QueueNode = React.memo((props: IEntryProps) => {
+  const v = props.v;
+  const cache = props.cache;
   return (
     <div className={props.k === props.current_entry ? "running" : undefined}>
       {v.parent ? cache.toTreeButton : null}
@@ -1003,7 +1023,7 @@ const QueueNode = (props: INodeProps) => {
       ) : null}
     </div>
   );
-};
+});
 
 const Queue = (props: IListProps) => {
   return props.ks.length ? (
@@ -1014,9 +1034,9 @@ const Queue = (props: IListProps) => {
           <li key={k} className={v.status}>
             <QueueNode
               k={k}
-              kvs={props.kvs}
+              v={props.kvs[k]}
               current_entry={props.current_entry}
-              caches={props.caches}
+              cache={props.caches[k]}
             />
           </li>
         );
