@@ -1,5 +1,7 @@
 # Evidence Based Scheduling
 
+[![Build Status](https://travis-ci.com/conda-forge/cminpack-feedstock.svg?branch=master)](https://travis-ci.com/conda-forge/cminpack-feedstock)
+
 This is a TODO application, which supports [the evidence based scheduling](https://www.joelonsoftware.com/2007/10/26/evidence-based-scheduling/).
 
 ![](img/screenshot_v2.jpeg)
