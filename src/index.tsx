@@ -399,8 +399,12 @@ class App extends React.Component<IAppProps, IState> {
           );
         })
       : [1];
+    const now = Number(new Date()) / 1000;
     const weights = candidates.map(v => {
-      return 1;
+      // 1/e per year
+      return Math.exp(
+        -(now - Date.parse(v.end_time as string) / 1000) / (86400 * 365.25),
+      );
     });
     const rng = multinomial(ratios, weights);
     const leaf_estimates = Array.from(leafs(draft.data.kvs[k], draft.data.kvs))
