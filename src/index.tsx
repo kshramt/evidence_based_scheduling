@@ -135,7 +135,12 @@ interface ICache {
   setEstimate: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setText: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   resizeTextArea: (e: React.MouseEvent<HTMLTextAreaElement>) => void;
-  textAreaOf: (text: string, status: TStatus, style: IStyle) => JSX.Element;
+  textAreaOf: (
+    text: string,
+    status: TStatus,
+    style: IStyle,
+    ref: null | React.RefObject<HTMLTextAreaElement>,
+  ) => JSX.Element;
 }
 
 class App extends React.Component<IAppProps, IState> {
@@ -376,7 +381,12 @@ class App extends React.Component<IAppProps, IState> {
         },
         setText,
         resizeTextArea,
-        textAreaOf: (text: string, status: TStatus, style: IStyle) => {
+        textAreaOf: (
+          text: string,
+          status: TStatus,
+          style: IStyle,
+          ref: null | React.RefObject<HTMLTextAreaElement>,
+        ) => {
           return (
             <textarea
               value={text}
@@ -385,7 +395,7 @@ class App extends React.Component<IAppProps, IState> {
               onMouseUp={resizeTextArea}
               className={status}
               style={style}
-              ref={textAreaRef}
+              ref={ref}
             />
           );
         },
@@ -918,7 +928,9 @@ const Entry = React.memo((props: IEntryProps) => {
         : v.status === "dont"
         ? cache.treeDontToTodoButton
         : cache.treeNewButton}
-      {v.parent === null ? null : cache.textAreaOf(v.text, v.status, v.style)}
+      {v.parent === null
+        ? null
+        : cache.textAreaOf(v.text, v.status, v.style, cache.textAreaRef)}
       {v.parent === null ? null : (
         <input
           type="number"
@@ -990,7 +1002,9 @@ const QueueNode = React.memo((props: IEntryProps) => {
         : v.status === "dont"
         ? cache.queueDontToTodoButton
         : cache.queueNewButton}
-      {v.parent === null ? null : cache.textAreaOf(v.text, v.status, v.style)}
+      {v.parent === null
+        ? null
+        : cache.textAreaOf(v.text, v.status, v.style, null)}
       {v.parent === null ? null : (
         <input
           type="number"
