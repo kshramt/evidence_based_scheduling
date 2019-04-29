@@ -887,7 +887,7 @@ const Node = (props: INodeProps) => {
   const v = props.kvs[props.k];
   const cache = props.caches[props.k];
   return (
-    <div>
+    <React.Fragment>
       <Entry
         k={props.k}
         v={props.kvs[props.k]}
@@ -912,7 +912,7 @@ const Node = (props: INodeProps) => {
         current_entry={props.current_entry}
         caches={props.caches}
       />
-    </div>
+    </React.Fragment>
   );
 };
 
