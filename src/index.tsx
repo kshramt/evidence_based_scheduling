@@ -147,6 +147,7 @@ class App extends React.Component<IAppProps, IState> {
   state: IState;
   dirty: boolean;
   history: IHistory;
+  menuButtons: JSX.Element;
 
   constructor(props: IAppProps) {
     super(props);
@@ -165,6 +166,14 @@ class App extends React.Component<IAppProps, IState> {
       value: this.state,
       next: null,
     };
+    this.menuButtons = (
+      <div>
+        {this.state.caches[this.state.data.root].stopButton}
+        {this.state.caches[this.state.data.root].treeNewButton}
+        <button onClick={this.undo}>{UNDO_MARK}</button>
+        <button onClick={this.redo}>{REDO_MARK}</button>
+      </div>
+    );
   }
   setCache = (caches: ICaches, k: string, kvs: IKvs) => {
     if (caches[k] === undefined) {
@@ -855,12 +864,7 @@ class App extends React.Component<IAppProps, IState> {
       <div id="columns">
         <div className={"menu"}>
           {this.state.saveSuccess ? null : <p>Failed to save.</p>}
-          <div>
-            {this.state.caches[this.state.data.root].stopButton}
-            {this.state.caches[this.state.data.root].treeNewButton}
-            <button onClick={this.undo}>{UNDO_MARK}</button>
-            <button onClick={this.redo}>{REDO_MARK}</button>
-          </div>
+          {this.menuButtons}
         </div>
         <div id="tree">
           <Node
