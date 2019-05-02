@@ -618,26 +618,13 @@ class App extends React.Component<IAppProps, IState> {
         produce(state, draft => {
           const pk = draft.data.kvs[k].parent;
           if (pk !== null) {
-            const _total_time_spent_pk_orig = draft.caches[pk].total_time_spent;
             const ppk = draft.data.kvs[pk].parent;
-            const _total_time_spent_ppk_orig =
-              ppk === null ? null : draft.caches[ppk].total_time_spent;
             this._rmTodoEntry(draft, k);
             if (ppk) {
               const entries = draft.data.kvs[ppk].todo;
               const i = entries.indexOf(pk);
               assert(i !== -1, "Must not happen.");
               this._addTodoEntry(draft, ppk, i + 1, k);
-              assertIsApprox(
-                _total_time_spent_pk_orig - draft.caches[pk].total_time_spent,
-                draft.caches[k].total_time_spent,
-              );
-              if (_total_time_spent_ppk_orig !== null) {
-                assertIsApprox(
-                  _total_time_spent_ppk_orig,
-                  draft.caches[ppk].total_time_spent,
-                );
-              }
               this.dirty = true;
             }
           }
@@ -658,15 +645,9 @@ class App extends React.Component<IAppProps, IState> {
             const i = entries.indexOf(k);
             if (i > 0) {
               const new_pk = entries[i - 1];
-              const total_time_spent_new_pk_orig =
-                draft.caches[new_pk].total_time_spent;
               const total_time_spent_k = draft.caches[k].total_time_spent;
               this._rmTodoEntry(draft, k);
               this._addTodoEntry(draft, new_pk, 0, k);
-              assertIsApprox(
-                draft.caches[new_pk].total_time_spent,
-                total_time_spent_new_pk_orig + total_time_spent_k,
-              );
               this.dirty = true;
             }
           }
