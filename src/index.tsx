@@ -956,7 +956,7 @@ const Entry = React.memo((props: IEntryProps) => {
       {v.parent && v.status === "todo" ? cache.unindentButton : null}
       {v.parent && v.status === "todo" ? cache.indentButton : null}
       {v.status === "todo" ? cache.evalButton : null}
-      {v.parent && v.status === "todo"
+      {v.parent && v.status === "todo" && v.todo.length === 0
         ? [cache.todoToDoneButton, cache.todoToDontButton]
         : null}
       {v.parent && v.status === "todo" ? cache.showDetailButton : null}
