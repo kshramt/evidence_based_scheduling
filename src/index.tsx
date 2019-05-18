@@ -29,7 +29,10 @@ type TKVoid = (k: string) => void;
 
 interface IListProps {
   ks: string[];
-  statuses: string[];
+}
+
+interface IQueueProps {
+  ks: string[];
 }
 
 interface INodeProps {
@@ -76,6 +79,10 @@ interface IEntryOwnProps {
 }
 
 interface IListOwnProps {
+  ks: string[];
+}
+
+interface IQueueOwnProps {
   ks: string[];
 }
 
@@ -1201,7 +1208,9 @@ class App extends React.Component<IAppProps, IState> {
       const cache = props.cache;
       return (
         <div
-          className={props.k === props.current_entry ? "running" : undefined}
+          className={
+            props.k === props.current_entry ? `${v.status} running` : v.status
+          }
         >
           {v.parent === null
             ? null
@@ -1252,21 +1261,12 @@ class App extends React.Component<IAppProps, IState> {
         </div>
       );
     });
-    const List = connect((state: IState, ownProps: IListOwnProps) => {
-      const ks = ownProps.ks;
-      return {
-        ks,
-        statuses: ks.map(k => {
-          return state.data.kvs[k].status;
-        }),
-      };
-    })((props: IListProps) => {
+    const List = React.memo((props: IListProps) => {
       return props.ks.length ? (
         <ol>
-          {Array.from(props.ks.keys()).map(i => {
-            const k = props.ks[i];
+          {props.ks.map(k => {
             return (
-              <li key={k} className={props.statuses[i]}>
+              <li key={k}>
                 <Node k={k} />
               </li>
             );
@@ -1287,7 +1287,9 @@ class App extends React.Component<IAppProps, IState> {
       const cache = props.cache;
       return (
         <div
-          className={props.k === props.current_entry ? "running" : undefined}
+          className={
+            props.k === props.current_entry ? `${v.status} running` : v.status
+          }
         >
           {v.parent ? cache.toTreeButton : null}
           {v.parent === null
@@ -1335,21 +1337,17 @@ class App extends React.Component<IAppProps, IState> {
         </div>
       );
     });
-    const Queue = connect((state: IState, ownProps: IListOwnProps) => {
+    const Queue = connect((state: IState, ownProps: IQueueOwnProps) => {
       const ks = ownProps.ks;
       return {
         ks,
-        statuses: ks.map(k => {
-          return state.data.kvs[k].status;
-        }),
       };
-    })((props: IListProps) => {
+    })((props: IQueueProps) => {
       return props.ks.length ? (
         <ol>
-          {Array.from(props.ks.keys()).map(i => {
-            const k = props.ks[i];
+          {props.ks.map(k => {
             return (
-              <li key={k} className={props.statuses[i]}>
+              <li key={k}>
                 <QueueNode k={k} />
               </li>
             );
