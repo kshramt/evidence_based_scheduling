@@ -1,5 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
+import { connect, Provider } from "react-redux";
+import { Action, Store, createStore } from "redux";
 import produce, { Draft } from "immer";
 
 import "./index.css";
@@ -27,22 +29,23 @@ type TKVoid = (k: string) => void;
 
 interface IListProps {
   ks: string[];
-  kvs: IKvs;
-  current_entry: null | string;
-  caches: ICaches;
+}
+
+interface IQueueProps {
+  ks: string[];
 }
 
 interface INodeProps {
   k: string;
-  kvs: IKvs;
-  current_entry: null | string;
-  caches: ICaches;
+  todo: string[];
+  done: string[];
+  dont: string[];
 }
 
 interface IEntryProps {
   k: string;
   v: IEntry;
-  current_entry: null | string;
+  running: boolean;
   cache: ICache;
 }
 
@@ -61,6 +64,30 @@ interface IState {
 
 interface IAppProps {
   data: IData;
+}
+
+interface IMenuProps {
+  saveSuccess: boolean;
+}
+
+interface INodeOwnProps {
+  k: string;
+}
+
+interface IEntryOwnProps {
+  k: string;
+}
+
+interface IListOwnProps {
+  ks: string[];
+}
+
+interface IQueueOwnProps {
+  ks: string[];
+}
+
+interface IQueueColumnProps {
+  queue: string[];
 }
 
 interface IData {
@@ -143,11 +170,156 @@ interface ICache {
   ) => JSX.Element;
 }
 
+interface IEvalAction extends Action {
+  type: "eval_";
+  k: string;
+}
+interface IDeleteActin extends Action {
+  type: "delete_";
+  k: string;
+}
+interface INewAction extends Action {
+  type: "new_";
+  parent: string;
+}
+interface ISaveAction extends Action {
+  type: "save";
+}
+interface IUndoAction extends Action {
+  type: "undo";
+}
+interface IRedoActin extends Action {
+  type: "redo";
+}
+interface IFliipShowDetailAction extends Action {
+  type: "flipShowDetail";
+  k: string;
+}
+interface IStartAction extends Action {
+  type: "start";
+  k: string;
+}
+interface IFocusStopButtonAction extends Action {
+  type: "focusStopButton";
+  k: string;
+}
+interface ITopAction extends Action {
+  type: "top";
+  k: string;
+}
+interface IStopAction extends Action {
+  type: "stop";
+}
+interface IMoveUpAction extends Action {
+  type: "moveUp";
+  k: string;
+}
+interface IFocusMoveUpButtonAction extends Action {
+  type: "focusMoveUpButton";
+  k: string;
+}
+interface IMoveDownAction extends Action {
+  type: "moveDown";
+  k: string;
+}
+interface IFocusMoveDownButtonAction extends Action {
+  type: "focusMoveDownButton";
+  k: string;
+}
+interface IUnindentAction extends Action {
+  type: "unindent";
+  k: string;
+}
+interface IFocusUnindentButtonAction extends Action {
+  type: "focusUnindentButton";
+  k: string;
+}
+interface IIndentAction extends Action {
+  type: "indent";
+  k: string;
+}
+interface IFocusIndentButtonAction extends Action {
+  type: "focusIndentButton";
+  k: string;
+}
+interface ISetEstimateAction extends Action {
+  type: "setEstimate";
+  k: string;
+  estimate: number;
+}
+interface ISetLastRangeAction extends Action {
+  type: "setLastRange";
+  k: string;
+  t: number;
+}
+interface ISetTextAction extends Action {
+  type: "setText";
+  k: string;
+  text: string;
+}
+interface IResizeTextAreaAction extends Action {
+  type: "resizeTextArea";
+  k: string;
+  width: null | string;
+  height: null | string;
+}
+interface ITodoToDoneAction extends Action {
+  type: "todoToDone";
+  k: string;
+}
+interface ITodoToDontAction extends Action {
+  type: "todoToDont";
+  k: string;
+}
+interface IDoneToTodoAction extends Action {
+  type: "doneToTodo";
+  k: string;
+}
+interface IDontToTodoAction extends Action {
+  type: "dontToTodo";
+  k: string;
+}
+interface IFocusTextAreaAction extends Action {
+  type: "focusTextArea";
+  k: string;
+}
+
+type TActions =
+  | IEvalAction
+  | IDeleteActin
+  | INewAction
+  | ISaveAction
+  | IUndoAction
+  | IRedoActin
+  | IFliipShowDetailAction
+  | IStartAction
+  | IFocusStopButtonAction
+  | ITopAction
+  | IStopAction
+  | IMoveUpAction
+  | IFocusMoveUpButtonAction
+  | IMoveDownAction
+  | IFocusMoveDownButtonAction
+  | IUnindentAction
+  | IFocusUnindentButtonAction
+  | IIndentAction
+  | IFocusIndentButtonAction
+  | ISetEstimateAction
+  | ISetLastRangeAction
+  | ISetTextAction
+  | IResizeTextAreaAction
+  | ITodoToDoneAction
+  | ITodoToDontAction
+  | IDoneToTodoAction
+  | IDontToTodoAction
+  | IFocusTextAreaAction;
+
 class App extends React.Component<IAppProps, IState> {
-  state: IState;
-  dirty: boolean;
+  dirtyHistory: boolean;
+  dirtyDump: boolean;
   history: IHistory;
   menuButtons: JSX.Element;
+  store: Store<IState>;
 
   constructor(props: IAppProps) {
     super(props);
@@ -155,21 +327,97 @@ class App extends React.Component<IAppProps, IState> {
     for (const k of Object.keys(props.data.kvs)) {
       this.setCache(caches, k, props.data.kvs);
     }
-    this.state = {
+    const state = {
       data: props.data,
       caches,
       saveSuccess: true,
     };
-    this.dirty = false;
+    const _state = state;
+    this.store = createStore((state: undefined | IState, action: TActions) => {
+      if (typeof state === "undefined") {
+        return _state;
+      } else {
+        switch (action.type) {
+          case "eval_":
+            return this.$eval_(state, action.k);
+          case "delete_":
+            return this.$delete_(state, action.k);
+          case "new_":
+            return this.$new_(state, action.parent);
+          case "save":
+            return this.$save(state);
+          case "undo":
+            return this.$undo(state);
+          case "redo":
+            return this.$redo(state);
+          case "flipShowDetail":
+            return this.$flipShowDetail(state, action.k);
+          case "start":
+            return this.$start(state, action.k);
+          case "focusStopButton":
+            return this.$focusStopButton(state, action.k);
+          case "top":
+            return this.$top(state, action.k);
+          case "stop":
+            return this.$stop(state);
+          case "moveUp":
+            return this.$moveUp(state, action.k);
+          case "focusMoveUpButton":
+            return this.$focusMoveUpButton(state, action.k);
+          case "moveDown":
+            return this.$moveDown(state, action.k);
+          case "focusMoveDownButton":
+            return this.$focusMoveDownButton(state, action.k);
+          case "unindent":
+            return this.$unindent(state, action.k);
+          case "focusUnindentButton":
+            return this.$focusUnindentButton(state, action.k);
+          case "indent":
+            return this.$indent(state, action.k);
+          case "focusIndentButton":
+            return this.$focusIndentButton(state, action.k);
+          case "setEstimate":
+            return this.$setEstimate(state, action.k, action.estimate);
+          case "setLastRange":
+            return this.$setLastRange(state, action.k, action.t);
+          case "setText":
+            return this.$setText(state, action.k, action.text);
+          case "resizeTextArea":
+            return this.$resizeTextArea(
+              state,
+              action.k,
+              action.width,
+              action.height,
+            );
+          case "todoToDone":
+            return this.$todoToDone(state, action.k);
+          case "todoToDont":
+            return this.$todoToDont(state, action.k);
+          case "doneToTodo":
+            return this.$doneToTodo(state, action.k);
+          case "dontToTodo":
+            return this.$dontToTodo(state, action.k);
+          case "focusTextArea":
+            return this.$focusTextArea(state, action.k);
+          default:
+            const _: never = action; // 1 or state cannot be used here
+            return state;
+        }
+      }
+    }, state);
+
+    this.dirtyHistory = false;
+    this.dirtyDump = false;
     this.history = {
       prev: null,
-      value: this.state,
+      value: state,
       next: null,
     };
+
     this.menuButtons = (
       <div>
-        {this.state.caches[this.state.data.root].stopButton}
-        {this.state.caches[this.state.data.root].treeNewButton}
+        {state.caches[state.data.root].stopButton}
+        {state.caches[state.data.root].treeNewButton}
         <button onClick={this.undo}>{UNDO_MARK}</button>
         <button onClick={this.redo}>{REDO_MARK}</button>
       </div>
@@ -215,7 +463,6 @@ class App extends React.Component<IAppProps, IState> {
         show_detail: false,
         treeDoneToTodoButton: (
           <button
-            id={`id${k}`}
             className="done"
             onClick={() => {
               this.doneToTodo(k);
@@ -226,7 +473,6 @@ class App extends React.Component<IAppProps, IState> {
         ),
         treeDontToTodoButton: (
           <button
-            id={`id${k}`}
             className="dont"
             onClick={() => {
               this.dontToTodo(k);
@@ -258,7 +504,6 @@ class App extends React.Component<IAppProps, IState> {
         ),
         treeNewButton: (
           <button
-            id={`id${k}`}
             onClick={() => {
               this.new_(k);
             }}
@@ -275,11 +520,6 @@ class App extends React.Component<IAppProps, IState> {
             {NEW_MARK}
           </button>
         ),
-        stopButton: (
-          <button onClick={this.stop} ref={stopButtonRef}>
-            {STOP_MARK}
-          </button>
-        ),
         startButton: (
           <button
             onClick={() => {
@@ -287,6 +527,11 @@ class App extends React.Component<IAppProps, IState> {
             }}
           >
             {START_MARK}
+          </button>
+        ),
+        stopButton: (
+          <button onClick={this.stop} ref={stopButtonRef}>
+            {STOP_MARK}
           </button>
         ),
         topButton: (
@@ -366,7 +611,7 @@ class App extends React.Component<IAppProps, IState> {
           </button>
         ),
         toTreeButton: (
-          <a href={`#id${k}`}>
+          <a href={`#tree${k}`}>
             <button>←</button>
           </a>
         ),
@@ -412,7 +657,12 @@ class App extends React.Component<IAppProps, IState> {
     }
   };
   eval_ = (k: string) => {
-    this.setState(state => produce(state, draft => this._eval_(draft, k)));
+    this.store.dispatch({ type: "eval_", k });
+  };
+  $eval_ = (state: IState, k: string) => {
+    return produce(state, draft => {
+      this._eval_(draft, k);
+    });
   };
   _eval_ = (draft: Draft<IState>, k: string) => {
     const candidates = Object.values(draft.data.kvs).filter(v => {
@@ -426,13 +676,14 @@ class App extends React.Component<IAppProps, IState> {
         })
       : [1];
     const now = Number(new Date()) / 1000;
-    const weights = candidates.map(v => {
-      // 1/e per year
-      return Math.exp(
-        -(now - Date.parse(v.end_time as string) / 1000) / (86400 * 365.25),
-      );
-    });
-    const rng = multinomial(ratios, weights);
+    const weights = candidates.length
+      ? candidates.map(v => {
+          // 1/e per year
+          return Math.exp(
+            -(now - Date.parse(v.end_time as string) / 1000) / (86400 * 365.25),
+          );
+        })
+      : [1];
     const leaf_estimates = Array.from(leafs(draft.data.kvs[k], draft.data.kvs))
       .filter(v => {
         return v.estimate !== NO_ESTIMATION;
@@ -441,17 +692,7 @@ class App extends React.Component<IAppProps, IState> {
         return v.estimate;
       });
     const n_mc = 1001;
-    const ts = [];
-    for (let i = 0; i < n_mc; i++) {
-      ts.push(
-        sum(
-          leaf_estimates.map(x => {
-            return rng.next().value * x;
-          }),
-        ),
-      );
-    }
-    ts.sort((a, b) => a - b);
+    const ts = this._estimate(leaf_estimates, ratios, weights, n_mc);
     draft.caches[k].percentiles = [
       ts[0],
       ts[Math.round((n_mc - 1) / 10)],
@@ -462,201 +703,266 @@ class App extends React.Component<IAppProps, IState> {
       ts[n_mc - 1],
     ];
   };
+  _estimate(
+    estimates: number[],
+    ratios: number[],
+    weights: number[],
+    n_mc: number,
+  ) {
+    const ts = [];
+    const rng = multinomial(ratios, weights);
+    for (let i = 0; i < n_mc; i++) {
+      ts.push(
+        sum(
+          estimates.map(x => {
+            return rng.next().value * x;
+          }),
+        ),
+      );
+    }
+    ts.sort((a, b) => a - b);
+    return ts;
+  }
   delete_ = (k: string) => {
-    this.setState(
-      state =>
-        produce(state, draft => {
-          if (draft.data.kvs[k].todo.length === 0) {
-            this._rmTodoEntry(draft, k);
-            deleteAtVal(draft.data.queue, k);
-            delete draft.data.kvs[k];
-            delete draft.caches[k];
-            if (draft.data.current_entry === k) {
-              draft.data.current_entry = null;
-            }
-            this.dirty = true;
-          }
-        }),
-      this.save,
-    );
+    this.store.dispatch({ type: "delete_", k });
+    this.store.dispatch({ type: "save" });
+  };
+  $delete_ = (state: IState, k: string) => {
+    return produce(state, draft => {
+      if (draft.data.kvs[k].todo.length === 0) {
+        this._rmTodoEntry(draft, k);
+        deleteAtVal(draft.data.queue, k);
+        delete draft.data.kvs[k];
+        delete draft.caches[k];
+        if (draft.data.current_entry === k) {
+          draft.data.current_entry = null;
+        }
+        this.dirtyHistory = this.dirtyDump = true;
+      }
+    });
   };
   new_ = (parent: string) => {
+    this.store.dispatch({ type: "new_", parent });
+    this.store.dispatch({ type: "save" });
+    this.store.dispatch({
+      type: "focusTextArea",
+      k: this.store.getState().data.kvs[parent].todo[0],
+    });
+  };
+  $new_ = (state: IState, parent: string) => {
     const k = new Date().toISOString();
-    this.setState(
-      state =>
-        produce(state, draft => {
-          const v = newEntryValue(parent, k);
-          draft.data.kvs[k] = v;
-          draft.data.kvs[parent].todo.unshift(k);
-          draft.data.queue.unshift(k);
-          this.setCache(draft.caches as ICaches, k, draft.data.kvs);
-          this.dirty = true;
-        }),
-      () => {
-        this.save();
-        focus(this.state.caches[k].textAreaRef.current);
-      },
-    );
+    return produce(state, draft => {
+      const v = newEntryValue(parent, k);
+      draft.data.kvs[k] = v;
+      draft.data.kvs[parent].todo.unshift(k);
+      draft.data.queue.unshift(k);
+      this.setCache(draft.caches as ICaches, k, draft.data.kvs);
+      this.dirtyHistory = this.dirtyDump = true;
+    });
   };
   save = () => {
-    if (this.dirty) {
-      this.history = pushHistory(this.history, this.state);
-      this._save();
-    }
+    this.store.dispatch({ type: "save" });
   };
-  _save = () => {
-    fetch("api/" + API_VERSION + "/post", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-      },
-      body: JSON.stringify(this.state.data),
-    }).then(r => {
-      this.setState(state =>
-        produce(state, draft => {
+  $save = (state: IState) => {
+    if (this.dirtyHistory) {
+      this.history = pushHistory(this.history, state);
+      this.dirtyHistory = false;
+    }
+    if (this.dirtyDump) {
+      fetch("api/" + API_VERSION + "/post", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+        },
+        body: JSON.stringify(state.data),
+      }).then(r => {
+        state = produce(state, draft => {
           draft.saveSuccess = r.ok;
-        }),
-      );
-    });
-    this.dirty = false;
+        });
+      });
+      this.dirtyDump = false;
+    }
+    return state;
   };
   undo = () => {
-    this.save();
+    this.store.dispatch({ type: "save" });
+    this.store.dispatch({ type: "undo" });
+    this.store.dispatch({ type: "save" });
+  };
+  $undo = (state: IState) => {
     if (this.history.prev !== null) {
       this.history = this.history.prev;
-      this.setState(state => this.history.value, this._save);
+      state = this.history.value;
+      this.dirtyDump = true;
     }
+    return state;
   };
   redo = () => {
+    this.store.dispatch({ type: "save" });
+    this.store.dispatch({ type: "redo" });
+    this.store.dispatch({ type: "save" });
+  };
+  $redo = (state: IState) => {
     if (this.history.next !== null) {
       this.history = this.history.next;
-      this.setState(state => this.history.value, this._save);
+      state = this.history.value;
     }
+    return state;
   };
   flipShowDetail = (k: string) => {
-    this.setState(state =>
-      produce(state, draft => {
-        draft.caches[k].show_detail = !draft.caches[k].show_detail;
-      }),
-    );
+    this.store.dispatch({ type: "flipShowDetail", k });
+  };
+  $flipShowDetail = (state: IState, k: string) => {
+    return produce(state, draft => {
+      draft.caches[k].show_detail = !draft.caches[k].show_detail;
+    });
   };
   start = (k: string) => {
-    this.setState(
-      state =>
-        produce(state, draft => {
-          if (k !== draft.data.current_entry) {
-            if (draft.data.kvs[k].status === "done") {
-              this._rmFromDone(draft, k);
-              this._addToTodo(draft, k);
-            } else if (draft.data.kvs[k].status === "dont") {
-              this._rmFromDont(draft, k);
-              this._addToTodo(draft, k);
-            }
-            this._top(draft, k);
-            assert(draft.data.kvs[k].status === "todo", "Must not happen");
-            this._stop(draft);
-            draft.data.current_entry = k;
-            draft.data.kvs[k].ranges.push({
-              start: Number(new Date()) / 1000,
-              end: null,
-            });
-            this._eval_(draft, k);
-            this.dirty = true;
-          }
-        }),
-      () => {
-        this.save();
-        focus(this.state.caches[k].stopButtonRef.current);
-      },
-    );
+    this.store.dispatch({ type: "start", k });
+    this.store.dispatch({ type: "save" });
+    this.store.dispatch({ type: "focusStopButton", k });
+  };
+  $start = (state: IState, k: string) => {
+    return produce(state, draft => {
+      if (k !== draft.data.current_entry) {
+        if (draft.data.kvs[k].status === "done") {
+          this._rmFromDone(draft, k);
+          this._addToTodo(draft, k);
+        } else if (draft.data.kvs[k].status === "dont") {
+          this._rmFromDont(draft, k);
+          this._addToTodo(draft, k);
+        }
+        this._top(draft, k);
+        assert(draft.data.kvs[k].status === "todo", "Must not happen");
+        this._stop(draft);
+        draft.data.current_entry = k;
+        draft.data.kvs[k].ranges.push({
+          start: Number(new Date()) / 1000,
+          end: null,
+        });
+        this._eval_(draft, k);
+        this.dirtyHistory = this.dirtyDump = true;
+      }
+    });
+  };
+  $focusStopButton = (state: IState, k: string) => {
+    focus(state.caches[k].stopButtonRef.current);
+    return state;
   };
   top = (k: string) => {
-    this.setState(
-      state =>
-        produce(state, draft => {
-          this._top(draft, k);
-          this.dirty = true;
-        }),
-      this.save,
-    );
+    this.store.dispatch({ type: "top", k });
+    this.store.dispatch({ type: "save" });
+  };
+  $top = (state: IState, k: string) => {
+    return produce(state, draft => {
+      this._top(draft, k);
+      this.dirtyHistory = this.dirtyDump = true;
+    });
   };
   moveUp = (k: string) => {
-    this.setState(
-      state =>
-        produce(state, draft => {
-          const pk = draft.data.kvs[k].parent;
-          if (pk) {
-            moveUp(draft.data.kvs[pk].todo, k);
-            this.dirty = true;
-          }
-        }),
-      () => {
-        this.save();
-        focus(this.state.caches[k].moveUpButtonRef.current);
-      },
-    );
+    this.store.dispatch({ type: "moveUp", k });
+    this.store.dispatch({ type: "save" });
+    this.store.dispatch({ type: "focusMoveUpButton", k });
+  };
+  $moveUp = (state: IState, k: string) => {
+    return produce(state, draft => {
+      const pk = draft.data.kvs[k].parent;
+      if (pk) {
+        moveUp(draft.data.kvs[pk].todo, k);
+        this.dirtyHistory = this.dirtyDump = true;
+      }
+    });
+  };
+  $focusMoveUpButton = (state: IState, k: string) => {
+    focus(state.caches[k].moveUpButtonRef.current);
+    return state;
   };
   moveDown = (k: string) => {
-    this.setState(
-      state =>
-        produce(state, draft => {
-          const pk = draft.data.kvs[k].parent;
-          if (pk) {
-            moveDown(draft.data.kvs[pk].todo, k);
-            this.dirty = true;
-          }
-        }),
-      () => {
-        this.save();
-        focus(this.state.caches[k].moveDownButtonRef.current);
-      },
-    );
+    this.store.dispatch({ type: "moveDown", k });
+    this.store.dispatch({ type: "save" });
+    this.store.dispatch({ type: "focusMoveDownButton", k });
+  };
+  $moveDown = (state: IState, k: string) => {
+    return produce(state, draft => {
+      const pk = draft.data.kvs[k].parent;
+      if (pk) {
+        moveDown(draft.data.kvs[pk].todo, k);
+        this.dirtyHistory = this.dirtyDump = true;
+      }
+    });
+  };
+  $focusMoveDownButton = (state: IState, k: string) => {
+    focus(state.caches[k].moveDownButtonRef.current);
+    return state;
   };
   unindent = (k: string) => {
-    this.setState(
-      state =>
-        produce(state, draft => {
-          const pk = draft.data.kvs[k].parent;
-          if (pk !== null) {
-            const ppk = draft.data.kvs[pk].parent;
-            this._rmTodoEntry(draft, k);
-            if (ppk) {
-              const entries = draft.data.kvs[ppk].todo;
-              const i = entries.indexOf(pk);
-              assert(i !== -1, "Must not happen.");
-              this._addTodoEntry(draft, ppk, i + 1, k);
-              this.dirty = true;
-            }
+    this.store.dispatch({ type: "unindent", k });
+    this.store.dispatch({ type: "save" });
+    this.store.dispatch({ type: "focusUnindentButton" });
+  };
+  $unindent = (state: IState, k: string) => {
+    return produce(state, draft => {
+      const pk = draft.data.kvs[k].parent;
+      if (pk !== null) {
+        const _total_time_spent_pk_orig = draft.caches[pk].total_time_spent;
+        const ppk = draft.data.kvs[pk].parent;
+        const _total_time_spent_ppk_orig =
+          ppk === null ? null : draft.caches[ppk].total_time_spent;
+        this._rmTodoEntry(draft, k);
+        if (ppk) {
+          const entries = draft.data.kvs[ppk].todo;
+          const i = entries.indexOf(pk);
+          assert(i !== -1, "Must not happen.");
+          this._addTodoEntry(draft, ppk, i + 1, k);
+          assertIsApprox(
+            _total_time_spent_pk_orig - draft.caches[pk].total_time_spent,
+            draft.caches[k].total_time_spent,
+          );
+          if (_total_time_spent_ppk_orig !== null) {
+            assertIsApprox(
+              _total_time_spent_ppk_orig,
+              draft.caches[ppk].total_time_spent,
+            );
           }
-        }),
-      () => {
-        this.save();
-        focus(this.state.caches[k].unindentButtonRef.current);
-      },
-    );
+          this.dirtyHistory = this.dirtyDump = true;
+        }
+      }
+    });
+  };
+  $focusUnindentButton = (state: IState, k: string) => {
+    focus(state.caches[k].unindentButtonRef.current);
+    return state;
   };
   indent = (k: string) => {
-    this.setState(
-      state =>
-        produce(state, draft => {
-          const pk = draft.data.kvs[k].parent;
-          if (pk) {
-            const entries = draft.data.kvs[pk].todo;
-            const i = entries.indexOf(k);
-            if (i > 0) {
-              const new_pk = entries[i - 1];
-              const total_time_spent_k = draft.caches[k].total_time_spent;
-              this._rmTodoEntry(draft, k);
-              this._addTodoEntry(draft, new_pk, 0, k);
-              this.dirty = true;
-            }
-          }
-        }),
-      () => {
-        this.save();
-        focus(this.state.caches[k].indentButtonRef.current);
-      },
-    );
+    this.store.dispatch({ type: "indent", k });
+    this.store.dispatch({ type: "save" });
+    this.store.dispatch({ type: "focusIndentButton" });
+  };
+  $indent = (state: IState, k: string) => {
+    return produce(state, draft => {
+      const pk = draft.data.kvs[k].parent;
+      if (pk) {
+        const entries = draft.data.kvs[pk].todo;
+        const i = entries.indexOf(k);
+        if (i > 0) {
+          const new_pk = entries[i - 1];
+          const total_time_spent_new_pk_orig =
+            draft.caches[new_pk].total_time_spent;
+          const total_time_spent_k = draft.caches[k].total_time_spent;
+          this._rmTodoEntry(draft, k);
+          this._addTodoEntry(draft, new_pk, 0, k);
+          assertIsApprox(
+            draft.caches[new_pk].total_time_spent,
+            total_time_spent_new_pk_orig + total_time_spent_k,
+          );
+          this.dirtyHistory = this.dirtyDump = true;
+        }
+      }
+    });
+  };
+  $focusIndentButton = (state: IState, k: string) => {
+    focus(state.caches[k].indentButtonRef.current);
+    return state;
   };
   _rmTodoEntry = (draft: Draft<IState>, k: string) => {
     const pk = draft.data.kvs[k].parent;
@@ -683,7 +989,11 @@ class App extends React.Component<IAppProps, IState> {
     toFront(draft.data.queue, k);
   };
   stop = () => {
-    this.setState(state => produce(this.state, this._stop), this.save);
+    this.store.dispatch({ type: "stop" });
+    this.store.dispatch({ type: "save" });
+  };
+  $stop = (state: IState) => {
+    return produce(state, this._stop);
   };
   _stop = (draft: Draft<IState>) => {
     if (draft.data.current_entry !== null) {
@@ -694,7 +1004,7 @@ class App extends React.Component<IAppProps, IState> {
       this._addDt(draft, draft.data.current_entry, dt);
       this._eval_(draft, draft.data.current_entry);
       draft.data.current_entry = null;
-      this.dirty = true;
+      this.dirtyHistory = this.dirtyDump = true;
     }
   };
   _addDt = (draft: Draft<IState>, k: null | string, dt: number) => {
@@ -704,60 +1014,66 @@ class App extends React.Component<IAppProps, IState> {
     }
   };
   setEstimate = (k: string, estimate: number) => {
-    this.setState(
-      state =>
-        produce(state, draft => {
-          draft.data.kvs[k].estimate = estimate;
-          this.dirty = true;
-        }),
-      this.save,
-    );
+    this.store.dispatch({ type: "setEstimate", k, estimate });
+    this.store.dispatch({ type: "save" });
+  };
+  $setEstimate = (state: IState, k: string, estimate: number) => {
+    return produce(state, draft => {
+      draft.data.kvs[k].estimate = estimate;
+      this.dirtyHistory = this.dirtyDump = true;
+    });
   };
   setLastRange = (k: string, t: number) => {
-    this.setState(
-      state =>
-        produce(state, draft => {
-          const l = lastRange(draft.data.kvs[k].ranges);
-          if (l !== null && l.end) {
-            const t1 = l.end - l.start;
-            const t2 = t * 3600;
-            const dt = t2 - t1;
-            if (dt !== 0) {
-              l.end = l.start + t2;
-              this._addDt(draft, k, dt);
-              this.dirty = true;
-            }
-          }
-        }),
-      this.save,
-    );
+    this.store.dispatch({ type: "setLastRange", k, t });
+    this.store.dispatch({ type: "save" });
+  };
+  $setLastRange = (state: IState, k: string, t: number) => {
+    return produce(state, draft => {
+      const l = lastRange(draft.data.kvs[k].ranges);
+      if (l !== null && l.end) {
+        const t1 = l.end - l.start;
+        const t2 = t * 3600;
+        const dt = t2 - t1;
+        if (dt !== 0) {
+          l.end = l.start + t2;
+          this._addDt(draft, k, dt);
+          this.dirtyHistory = this.dirtyDump = true;
+        }
+      }
+    });
   };
   setText = (k: string, text: string) => {
-    this.setState(state =>
-      produce(state, draft => {
-        draft.data.kvs[k].text = text;
-        this.dirty = true;
-      }),
-    );
+    this.store.dispatch({ type: "setText", k, text });
+  };
+  $setText = (state: IState, k: string, text: string) => {
+    return produce(state, draft => {
+      draft.data.kvs[k].text = text;
+      this.dirtyHistory = this.dirtyDump = true;
+    });
   };
   resizeTextArea = (k: string, width: null | string, height: null | string) => {
-    if (width && height) {
-      this.setState(
-        state =>
-          produce(state, draft => {
-            const v = draft.data.kvs[k];
-            if (v.style.width !== width) {
-              v.style.width = width;
-              this.dirty = true;
-            }
-            if (v.style.height !== height) {
-              v.style.height = height;
-              this.dirty = true;
-            }
-          }),
-        this.save,
-      );
-    }
+    this.store.dispatch({ type: "resizeTextArea", k, width, height });
+    this.store.dispatch({ type: "save" });
+  };
+  $resizeTextArea = (
+    state: IState,
+    k: string,
+    width: null | string,
+    height: null | string,
+  ) => {
+    return width && height
+      ? produce(state, draft => {
+          const v = draft.data.kvs[k];
+          if (v.style.width !== width) {
+            v.style.width = width;
+            this.dirtyHistory = this.dirtyDump = true;
+          }
+          if (v.style.height !== height) {
+            v.style.height = height;
+            this.dirtyHistory = this.dirtyDump = true;
+          }
+        })
+      : state;
   };
   _rmFromTodo = (draft: Draft<IState>, k: string) => {
     if (draft.data.current_entry === k) {
@@ -804,245 +1120,258 @@ class App extends React.Component<IAppProps, IState> {
     }
   };
   todoToDone = (k: string) => {
-    this.setState(state =>
-      produce(state, draft => {
-        this._rmFromTodo(draft, k);
-        this._addToDone(draft, k);
-        this.dirty = true;
-      }),
-    );
+    this.store.dispatch({ type: "todoToDone", k });
+    this.store.dispatch({ type: "save" });
+  };
+  $todoToDone = (state: IState, k: string) => {
+    return produce(state, draft => {
+      this._rmFromTodo(draft, k);
+      this._addToDone(draft, k);
+      this.dirtyHistory = this.dirtyDump = true;
+    });
   };
   todoToDont = (k: string) => {
-    this.setState(state =>
-      produce(state, draft => {
-        this._rmFromTodo(draft, k);
-        this._addToDont(draft, k);
-        this.dirty = true;
-      }),
-    );
+    this.store.dispatch({ type: "todoToDont", k });
+    this.store.dispatch({ type: "save" });
+  };
+  $todoToDont = (state: IState, k: string) => {
+    return produce(state, draft => {
+      this._rmFromTodo(draft, k);
+      this._addToDont(draft, k);
+      this.dirtyHistory = this.dirtyDump = true;
+    });
   };
   doneToTodo = (k: string) => {
-    this.setState(state =>
-      produce(state, draft => {
-        this._rmFromDone(draft, k);
-        this._addToTodo(draft, k);
-        this.dirty = true;
-      }),
-    );
+    this.store.dispatch({ type: "doneToTodo", k });
+    this.store.dispatch({ type: "save" });
+  };
+  $doneToTodo = (state: IState, k: string) => {
+    return produce(state, draft => {
+      this._rmFromDone(draft, k);
+      this._addToTodo(draft, k);
+      this.dirtyHistory = this.dirtyDump = true;
+    });
   };
   dontToTodo = (k: string) => {
-    this.setState(state =>
-      produce(state, draft => {
-        this._rmFromDont(draft, k);
-        this._addToTodo(draft, k);
-        this.dirty = true;
-      }),
-    );
+    this.store.dispatch({ type: "dontToTodo", k });
+    this.store.dispatch({ type: "save" });
   };
-
+  $dontToTodo = (state: IState, k: string) => {
+    return produce(state, draft => {
+      this._rmFromDont(draft, k);
+      this._addToTodo(draft, k);
+      this.dirtyHistory = this.dirtyDump = true;
+    });
+  };
+  $focusTextArea = (state: IState, k: string) => {
+    focus(state.caches[k].textAreaRef.current);
+    return state;
+  };
   render = () => {
-    return (
-      <div id="columns">
+    const Menu = connect((state: IState) => {
+      return { saveSuccess: state.saveSuccess };
+    })((props: IMenuProps) => {
+      return (
         <div className={"menu"}>
-          {this.state.saveSuccess ? null : <p>Failed to save.</p>}
+          {props.saveSuccess ? null : <p>Failed to save.</p>}
           {this.menuButtons}
         </div>
-        <div id="tree">
-          <Node
-            k={this.state.data.root}
-            kvs={this.state.data.kvs}
-            current_entry={this.state.data.current_entry}
-            caches={this.state.caches}
-          />
+      );
+    });
+    const Node = connect((state: IState, ownProps: INodeOwnProps) => {
+      const k = ownProps.k;
+      const v = state.data.kvs[k];
+      return { k, todo: v.todo, done: v.done, dont: v.dont };
+    })((props: INodeProps) => {
+      return (
+        <React.Fragment>
+          <Entry k={props.k} />
+          <List ks={props.todo} />
+          <List ks={props.done} />
+          <List ks={props.dont} />
+        </React.Fragment>
+      );
+    });
+    const Entry = connect((state: IState, ownProps: IEntryOwnProps) => {
+      const k = ownProps.k;
+      return {
+        k,
+        v: state.data.kvs[k],
+        cache: state.caches[k],
+        running: k === state.data.current_entry,
+      };
+    })((props: IEntryProps) => {
+      const v = props.v;
+      const cache = props.cache;
+      return (
+        <div
+          id={`tree${props.k}`}
+          className={props.running ? `${v.status} running` : v.status}
+        >
+          {v.parent === null
+            ? null
+            : v.status === "done"
+            ? cache.treeDoneToTodoButton
+            : v.status === "dont"
+            ? cache.treeDontToTodoButton
+            : cache.treeNewButton}
+          {v.parent === null
+            ? null
+            : cache.textAreaOf(v.text, v.status, v.style, cache.textAreaRef)}
+          {v.parent === null ? null : (
+            <input
+              type="number"
+              step="any"
+              value={v.estimate}
+              onChange={cache.setEstimate}
+              className={v.status}
+            />
+          )}
+          {digits1(cache.total_time_spent / 3600)}
+          {v.parent === null
+            ? null
+            : props.running
+            ? cache.stopButton
+            : cache.startButton}
+          {v.parent && v.status === "todo" ? cache.topButton : null}
+          {v.parent && v.status === "todo" ? cache.moveUpButton : null}
+          {v.parent && v.status === "todo" ? cache.moveDownButton : null}
+          {v.parent && v.status === "todo" ? cache.unindentButton : null}
+          {v.parent && v.status === "todo" ? cache.indentButton : null}
+          {v.status === "todo" ? cache.evalButton : null}
+          {v.parent && v.status === "todo" && v.todo.length === 0
+            ? [cache.todoToDoneButton, cache.todoToDontButton]
+            : null}
+          {v.parent && v.status === "todo" ? cache.showDetailButton : null}
+          {v.status === "todo"
+            ? cache.percentiles.map(digits1).join(" ")
+            : null}
+          {v.parent && v.status === "todo" && cache.show_detail ? (
+            <div>
+              {showLastRange(lastRange(v.ranges), cache.setLastRange)}
+              {v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0
+                ? cache.deleteButton
+                : null}
+            </div>
+          ) : null}
         </div>
+      );
+    });
+    const List = React.memo((props: IListProps) => {
+      return props.ks.length ? (
+        <ol>
+          {props.ks.map(k => {
+            return (
+              <li key={k}>
+                <Node k={k} />
+              </li>
+            );
+          })}
+        </ol>
+      ) : null;
+    });
+    const QueueNode = connect((state: IState, ownProps: IEntryOwnProps) => {
+      const k = ownProps.k;
+      return {
+        k,
+        v: state.data.kvs[k],
+        cache: state.caches[k],
+        running: k === state.data.current_entry,
+      };
+    })((props: IEntryProps) => {
+      const v = props.v;
+      const cache = props.cache;
+      return (
+        <div
+          id={`queue${props.k}`}
+          className={props.running ? `${v.status} running` : v.status}
+        >
+          {v.parent ? cache.toTreeButton : null}
+          {v.parent === null
+            ? null
+            : v.status === "done"
+            ? cache.queueDoneToTodoButton
+            : v.status === "dont"
+            ? cache.queueDontToTodoButton
+            : cache.queueNewButton}
+          {v.parent === null
+            ? null
+            : cache.textAreaOf(v.text, v.status, v.style, null)}
+          {v.parent === null ? null : (
+            <input
+              type="number"
+              step="any"
+              value={v.estimate}
+              onChange={cache.setEstimate}
+              className={v.status}
+            />
+          )}
+          {digits1(cache.total_time_spent / 3600)}
+          {v.parent === null
+            ? null
+            : props.running
+            ? cache.stopButton
+            : cache.startButton}
+          {v.parent && v.status === "todo" ? cache.topButton : null}
+          {v.status === "todo" ? cache.evalButton : null}
+          {v.parent && v.status === "todo"
+            ? [cache.todoToDoneButton, cache.todoToDontButton]
+            : null}
+          {v.parent && v.status === "todo" ? cache.showDetailButton : null}
+          {v.status === "todo"
+            ? cache.percentiles.map(digits1).join(" ")
+            : null}
+          {v.parent && v.status === "todo" && cache.show_detail ? (
+            <div>
+              {showLastRange(lastRange(v.ranges), cache.setLastRange)}
+              {v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0
+                ? cache.deleteButton
+                : null}
+            </div>
+          ) : null}
+        </div>
+      );
+    });
+    const Queue = connect((state: IState, ownProps: IQueueOwnProps) => {
+      const ks = ownProps.ks;
+      return {
+        ks,
+      };
+    })((props: IQueueProps) => {
+      return props.ks.length ? (
+        <ol>
+          {props.ks.map(k => {
+            return (
+              <li key={k}>
+                <QueueNode k={k} />
+              </li>
+            );
+          })}
+        </ol>
+      ) : null;
+    });
+    const QueueColumn = connect((state: IState) => {
+      return { queue: state.data.queue };
+    })((props: IQueueColumnProps) => {
+      return (
         <div id="queue">
-          <Queue
-            ks={this.state.data.queue}
-            kvs={this.state.data.kvs}
-            current_entry={this.state.data.current_entry}
-            caches={this.state.caches}
-          />
+          <Queue ks={props.queue} />
         </div>
-      </div>
+      );
+    });
+    return (
+      <Provider store={this.store}>
+        <div id="columns">
+          <Menu />
+          <div id="tree">
+            <Node k={this.store.getState().data.root} />
+          </div>
+          <QueueColumn />
+        </div>
+      </Provider>
     );
   };
 }
-
-const Node = (props: INodeProps) => {
-  const v = props.kvs[props.k];
-  const cache = props.caches[props.k];
-  return (
-    <React.Fragment>
-      <Entry
-        k={props.k}
-        v={props.kvs[props.k]}
-        current_entry={props.current_entry}
-        cache={props.caches[props.k]}
-      />
-      <List
-        ks={v.todo}
-        kvs={props.kvs}
-        current_entry={props.current_entry}
-        caches={props.caches}
-      />
-      <List
-        ks={v.done}
-        kvs={props.kvs}
-        current_entry={props.current_entry}
-        caches={props.caches}
-      />
-      <List
-        ks={v.dont}
-        kvs={props.kvs}
-        current_entry={props.current_entry}
-        caches={props.caches}
-      />
-    </React.Fragment>
-  );
-};
-
-const Entry = React.memo((props: IEntryProps) => {
-  const v = props.v;
-  const cache = props.cache;
-  return (
-    <div className={props.k === props.current_entry ? "running" : undefined}>
-      {v.parent === null
-        ? null
-        : v.status === "done"
-        ? cache.treeDoneToTodoButton
-        : v.status === "dont"
-        ? cache.treeDontToTodoButton
-        : cache.treeNewButton}
-      {v.parent === null
-        ? null
-        : cache.textAreaOf(v.text, v.status, v.style, cache.textAreaRef)}
-      {v.parent === null ? null : (
-        <input
-          type="number"
-          step="any"
-          value={v.estimate}
-          onChange={cache.setEstimate}
-          className={v.status}
-        />
-      )}
-      {digits1(cache.total_time_spent / 3600)}
-      {v.parent === null
-        ? null
-        : props.k === props.current_entry
-        ? cache.stopButton
-        : cache.startButton}
-      {v.parent && v.status === "todo" ? cache.topButton : null}
-      {v.parent && v.status === "todo" ? cache.moveUpButton : null}
-      {v.parent && v.status === "todo" ? cache.moveDownButton : null}
-      {v.parent && v.status === "todo" ? cache.unindentButton : null}
-      {v.parent && v.status === "todo" ? cache.indentButton : null}
-      {v.status === "todo" ? cache.evalButton : null}
-      {v.parent && v.status === "todo" && v.todo.length === 0
-        ? [cache.todoToDoneButton, cache.todoToDontButton]
-        : null}
-      {v.parent && v.status === "todo" ? cache.showDetailButton : null}
-      {v.status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
-      {v.parent && v.status === "todo" && cache.show_detail ? (
-        <div>
-          {showLastRange(lastRange(v.ranges), cache.setLastRange)}
-          {v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0
-            ? cache.deleteButton
-            : null}
-        </div>
-      ) : null}
-    </div>
-  );
-});
-
-const List = (props: IListProps) => {
-  return props.ks.length ? (
-    <ol>
-      {props.ks.map(k => {
-        const v = props.kvs[k];
-        return (
-          <li key={k} className={v.status}>
-            <Node
-              k={k}
-              kvs={props.kvs}
-              current_entry={props.current_entry}
-              caches={props.caches}
-            />
-          </li>
-        );
-      })}
-    </ol>
-  ) : null;
-};
-
-const QueueNode = React.memo((props: IEntryProps) => {
-  const v = props.v;
-  const cache = props.cache;
-  return (
-    <div className={props.k === props.current_entry ? "running" : undefined}>
-      {v.parent ? cache.toTreeButton : null}
-      {v.parent === null
-        ? null
-        : v.status === "done"
-        ? cache.queueDoneToTodoButton
-        : v.status === "dont"
-        ? cache.queueDontToTodoButton
-        : cache.queueNewButton}
-      {v.parent === null
-        ? null
-        : cache.textAreaOf(v.text, v.status, v.style, null)}
-      {v.parent === null ? null : (
-        <input
-          type="number"
-          step="any"
-          value={v.estimate}
-          onChange={cache.setEstimate}
-          className={v.status}
-        />
-      )}
-      {digits1(cache.total_time_spent / 3600)}
-      {v.parent === null
-        ? null
-        : props.k === props.current_entry
-        ? cache.stopButton
-        : cache.startButton}
-      {v.parent && v.status === "todo" ? cache.topButton : null}
-      {v.status === "todo" ? cache.evalButton : null}
-      {v.parent && v.status === "todo"
-        ? [cache.todoToDoneButton, cache.todoToDontButton]
-        : null}
-      {v.parent && v.status === "todo" ? cache.showDetailButton : null}
-      {v.status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
-      {v.parent && v.status === "todo" && cache.show_detail ? (
-        <div>
-          {showLastRange(lastRange(v.ranges), cache.setLastRange)}
-          {v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0
-            ? cache.deleteButton
-            : null}
-        </div>
-      ) : null}
-    </div>
-  );
-});
-
-const Queue = (props: IListProps) => {
-  return props.ks.length ? (
-    <ol>
-      {props.ks.map(k => {
-        const v = props.kvs[k];
-        return (
-          <li key={k} className={v.status}>
-            <QueueNode
-              k={k}
-              v={props.kvs[k]}
-              current_entry={props.current_entry}
-              cache={props.caches[k]}
-            />
-          </li>
-        );
-      })}
-    </ol>
-  ) : null;
-};
 
 const showLastRange = (
   l: null | IRange,
