@@ -45,7 +45,7 @@ interface INodeProps {
 interface IEntryProps {
   k: string;
   v: IEntry;
-  current_entry: null | string;
+  running: boolean;
   cache: ICache;
 }
 
@@ -199,8 +199,8 @@ interface IStartAction extends Action {
   type: "start";
   k: string;
 }
-interface IFocusStartButtonAction extends Action {
-  type: "focusStartButton";
+interface IFocusStopButtonAction extends Action {
+  type: "focusStopButton";
   k: string;
 }
 interface ITopAction extends Action {
@@ -293,7 +293,7 @@ type TActions =
   | IRedoActin
   | IFliipShowDetailAction
   | IStartAction
-  | IFocusStartButtonAction
+  | IFocusStopButtonAction
   | ITopAction
   | IStopAction
   | IMoveUpAction
@@ -354,8 +354,8 @@ class App extends React.Component<IAppProps, IState> {
             return this.$flipShowDetail(state, action.k);
           case "start":
             return this.$start(state, action.k);
-          case "focusStartButton":
-            return this.$focusStartButton(state, action.k);
+          case "focusStopButton":
+            return this.$focusStopButton(state, action.k);
           case "top":
             return this.$top(state, action.k);
           case "stop":
@@ -463,7 +463,6 @@ class App extends React.Component<IAppProps, IState> {
         show_detail: false,
         treeDoneToTodoButton: (
           <button
-            id={`id${k}`}
             className="done"
             onClick={() => {
               this.doneToTodo(k);
@@ -474,7 +473,6 @@ class App extends React.Component<IAppProps, IState> {
         ),
         treeDontToTodoButton: (
           <button
-            id={`id${k}`}
             className="dont"
             onClick={() => {
               this.dontToTodo(k);
@@ -506,7 +504,6 @@ class App extends React.Component<IAppProps, IState> {
         ),
         treeNewButton: (
           <button
-            id={`id${k}`}
             onClick={() => {
               this.new_(k);
             }}
@@ -523,11 +520,6 @@ class App extends React.Component<IAppProps, IState> {
             {NEW_MARK}
           </button>
         ),
-        stopButton: (
-          <button onClick={this.stop} ref={stopButtonRef}>
-            {STOP_MARK}
-          </button>
-        ),
         startButton: (
           <button
             onClick={() => {
@@ -535,6 +527,11 @@ class App extends React.Component<IAppProps, IState> {
             }}
           >
             {START_MARK}
+          </button>
+        ),
+        stopButton: (
+          <button onClick={this.stop} ref={stopButtonRef}>
+            {STOP_MARK}
           </button>
         ),
         topButton: (
@@ -614,7 +611,7 @@ class App extends React.Component<IAppProps, IState> {
           </button>
         ),
         toTreeButton: (
-          <a href={`#id${k}`}>
+          <a href={`#tree${k}`}>
             <button>←</button>
           </a>
         ),
@@ -823,7 +820,7 @@ class App extends React.Component<IAppProps, IState> {
   start = (k: string) => {
     this.store.dispatch({ type: "start", k });
     this.store.dispatch({ type: "save" });
-    this.store.dispatch({ type: "focusStartButton", k });
+    this.store.dispatch({ type: "focusStopButton", k });
   };
   $start = (state: IState, k: string) => {
     return produce(state, draft => {
@@ -848,7 +845,7 @@ class App extends React.Component<IAppProps, IState> {
       }
     });
   };
-  $focusStartButton = (state: IState, k: string) => {
+  $focusStopButton = (state: IState, k: string) => {
     focus(state.caches[k].stopButtonRef.current);
     return state;
   };
@@ -1201,16 +1198,15 @@ class App extends React.Component<IAppProps, IState> {
         k,
         v: state.data.kvs[k],
         cache: state.caches[k],
-        current_entry: state.data.current_entry,
+        running: k === state.data.current_entry,
       };
     })((props: IEntryProps) => {
       const v = props.v;
       const cache = props.cache;
       return (
         <div
-          className={
-            props.k === props.current_entry ? `${v.status} running` : v.status
-          }
+          id={`tree${props.k}`}
+          className={props.running ? `${v.status} running` : v.status}
         >
           {v.parent === null
             ? null
@@ -1234,7 +1230,7 @@ class App extends React.Component<IAppProps, IState> {
           {digits1(cache.total_time_spent / 3600)}
           {v.parent === null
             ? null
-            : props.k === props.current_entry
+            : props.running
             ? cache.stopButton
             : cache.startButton}
           {v.parent && v.status === "todo" ? cache.topButton : null}
@@ -1280,16 +1276,15 @@ class App extends React.Component<IAppProps, IState> {
         k,
         v: state.data.kvs[k],
         cache: state.caches[k],
-        current_entry: state.data.current_entry,
+        running: k === state.data.current_entry,
       };
     })((props: IEntryProps) => {
       const v = props.v;
       const cache = props.cache;
       return (
         <div
-          className={
-            props.k === props.current_entry ? `${v.status} running` : v.status
-          }
+          id={`queue${props.k}`}
+          className={props.running ? `${v.status} running` : v.status}
         >
           {v.parent ? cache.toTreeButton : null}
           {v.parent === null
@@ -1314,7 +1309,7 @@ class App extends React.Component<IAppProps, IState> {
           {digits1(cache.total_time_spent / 3600)}
           {v.parent === null
             ? null
-            : props.k === props.current_entry
+            : props.running
             ? cache.stopButton
             : cache.startButton}
           {v.parent && v.status === "todo" ? cache.topButton : null}
