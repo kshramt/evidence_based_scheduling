@@ -1155,7 +1155,8 @@ class App extends React.Component<IAppProps, IState> {
     });
   };
   $focusTextArea = (state: IState, k: string) => {
-    focus(state.caches[k].textAreaRef.current);
+    // todo: Use more reliable method to focus on the textarea.
+    setTimeout(() => focus(state.caches[k].textAreaRef.current), 100);
     return state;
   };
   render = () => {
