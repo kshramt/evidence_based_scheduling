@@ -25,7 +25,6 @@ const DONT_MARK = "🗑";
 const DETAIL_MARK = "⋮";
 
 type TStatus = "done" | "dont" | "todo";
-type TKVoid = (k: string) => void;
 
 interface IListProps {
   ks: string[];
@@ -76,14 +75,6 @@ interface INodeOwnProps {
 
 interface IEntryOwnProps {
   k: string;
-}
-
-interface IListOwnProps {
-  ks: string[];
-}
-
-interface IQueueOwnProps {
-  ks: string[];
 }
 
 interface IQueueColumnProps {
@@ -1332,12 +1323,7 @@ class App extends React.Component<IAppProps, IState> {
         </div>
       );
     });
-    const Queue = connect((state: IState, ownProps: IQueueOwnProps) => {
-      const ks = ownProps.ks;
-      return {
-        ks,
-      };
-    })((props: IQueueProps) => {
+    const Queue = React.memo((props: IQueueProps) => {
       return props.ks.length ? (
         <ol>
           {props.ks.map(k => {
