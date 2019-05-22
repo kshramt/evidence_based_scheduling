@@ -657,7 +657,10 @@ class App extends React.Component<IAppProps, IState> {
   };
   _eval_ = (draft: Draft<IState>, k: string) => {
     const candidates = Object.values(draft.data.kvs).filter(v => {
-      return v.status === "done" && v.estimate !== NO_ESTIMATION;
+      return (
+        (v.status === "done" || v.status === "dont") &&
+        v.estimate !== NO_ESTIMATION
+      );
     });
     const ratios = candidates.length
       ? candidates.map(v => {
