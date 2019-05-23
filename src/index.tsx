@@ -685,15 +685,15 @@ class App extends React.Component<IAppProps, IState> {
       .map(v => {
         return v.estimate;
       });
-    const n_mc = 1001;
+    const n_mc = 1000;
     const ts = this._estimate(leaf_estimates, ratios, weights, n_mc);
     draft.caches[k].percentiles = [
       ts[0],
-      ts[Math.round((n_mc - 1) / 10)],
-      ts[Math.round((n_mc - 1) / 3)],
-      ts[Math.round((n_mc - 1) / 2)],
-      ts[Math.round(((n_mc - 1) * 2) / 3)],
-      ts[Math.round(((n_mc - 1) * 9) / 10)],
+      ts[Math.round(n_mc / 10)],
+      ts[Math.round(n_mc / 3)],
+      ts[Math.round(n_mc / 2)],
+      ts[Math.round((n_mc * 2) / 3)],
+      ts[Math.round((n_mc * 9) / 10)],
       ts[n_mc - 1],
     ];
   };
