@@ -310,7 +310,7 @@ class App extends React.Component<IAppProps, IState> {
   dirtyDump: boolean;
   history: IHistory;
   menuButtons: JSX.Element;
-  store: Store<IState>;
+  store: Store<IState, TActions>;
 
   constructor(props: IAppProps) {
     super(props);
@@ -892,7 +892,7 @@ class App extends React.Component<IAppProps, IState> {
   unindent = (k: string) => {
     this.store.dispatch({ type: "unindent", k });
     this.store.dispatch({ type: "save" });
-    this.store.dispatch({ type: "focusUnindentButton" });
+    this.store.dispatch({ type: "focusUnindentButton", k });
   };
   $unindent = (state: IState, k: string) => {
     return produce(state, draft => {
@@ -930,7 +930,7 @@ class App extends React.Component<IAppProps, IState> {
   indent = (k: string) => {
     this.store.dispatch({ type: "indent", k });
     this.store.dispatch({ type: "save" });
-    this.store.dispatch({ type: "focusIndentButton" });
+    this.store.dispatch({ type: "focusIndentButton", k });
   };
   $indent = (state: IState, k: string) => {
     return produce(state, draft => {
