@@ -840,7 +840,7 @@ class App extends React.Component<IAppProps, IState> {
     });
   };
   $focusStopButton = (state: IState, k: string) => {
-    focus(state.caches[k].stopButtonRef.current);
+    setTimeout(() => focus(state.caches[k].stopButtonRef.current), 100);
     return state;
   };
   top = (k: string) => {
