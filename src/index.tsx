@@ -840,7 +840,7 @@ class App extends React.Component<IAppProps, IState> {
     });
   };
   $focusStopButton = (state: IState, k: string) => {
-    setTimeout(() => focus(state.caches[k].stopButtonRef.current), 100);
+    setTimeout(() => focus(state.caches[k].stopButtonRef.current), 50);
     return state;
   };
   top = (k: string) => {
@@ -1159,7 +1159,7 @@ class App extends React.Component<IAppProps, IState> {
   };
   $focusTextArea = (state: IState, k: string) => {
     // todo: Use more reliable method to focus on the textarea.
-    setTimeout(() => focus(state.caches[k].textAreaRef.current), 100);
+    setTimeout(() => focus(state.caches[k].textAreaRef.current), 50);
     return state;
   };
   render = () => {
