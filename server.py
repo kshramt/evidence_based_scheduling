@@ -186,6 +186,7 @@ def _new_entry_v1(t: str) -> dict:
         "estimate": NO_ESTIMATION,
         "parent": None,
         "ranges": [],
+        "show_detail": False,
         "start_time": t,
         "status": "todo",  # done | dont | todo
         "style": dict(width="49ex", height="3ex"),

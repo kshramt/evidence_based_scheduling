@@ -99,6 +99,7 @@ interface IEntry {
   estimate: number;
   parent: null | string;
   ranges: IRange[];
+  show_detail: boolean;
   start_time: string;
   status: TStatus;
   style: IStyle;
@@ -129,7 +130,6 @@ interface ICache {
   unindentButtonRef: React.RefObject<HTMLButtonElement>;
   indentButtonRef: React.RefObject<HTMLButtonElement>;
   textAreaRef: React.RefObject<HTMLTextAreaElement>;
-  show_detail: boolean;
   treeDoneToTodoButton: JSX.Element;
   treeDontToTodoButton: JSX.Element;
   queueDoneToTodoButton: JSX.Element;
@@ -451,7 +451,6 @@ class App extends React.Component<IAppProps, IState> {
         unindentButtonRef,
         indentButtonRef,
         textAreaRef,
-        show_detail: false,
         treeDoneToTodoButton: (
           <button
             className="done"
@@ -805,10 +804,12 @@ class App extends React.Component<IAppProps, IState> {
   };
   flipShowDetail = (k: string) => {
     this.store.dispatch({ type: "flipShowDetail", k });
+    this.store.dispatch({ type: "save" });
   };
   $flipShowDetail = (state: IState, k: string) => {
     return produce(state, draft => {
-      draft.caches[k].show_detail = !draft.caches[k].show_detail;
+      draft.data.kvs[k].show_detail = !draft.data.kvs[k].show_detail;
+      this.dirtyHistory = this.dirtyDump = true;
     });
   };
   start = (k: string) => {
@@ -1241,7 +1242,7 @@ class App extends React.Component<IAppProps, IState> {
           {v.status === "todo"
             ? cache.percentiles.map(digits1).join(" ")
             : null}
-          {v.parent && v.status === "todo" && cache.show_detail ? (
+          {v.parent && v.status === "todo" && v.show_detail ? (
             <div>
               {showLastRange(lastRange(v.ranges), cache.setLastRange)}
               {v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0
@@ -1316,7 +1317,7 @@ class App extends React.Component<IAppProps, IState> {
           {v.status === "todo"
             ? cache.percentiles.map(digits1).join(" ")
             : null}
-          {v.parent && v.status === "todo" && cache.show_detail ? (
+          {v.parent && v.status === "todo" && v.show_detail ? (
             <div>
               {showLastRange(lastRange(v.ranges), cache.setLastRange)}
               {v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0
@@ -1549,6 +1550,7 @@ const newEntryValue = (parent: string, start_time: string) => {
     estimate: NO_ESTIMATION,
     parent,
     ranges: [] as IRange[],
+    show_detail: false,
     start_time,
     status: "todo" as TStatus,
     style: { width: "49ex", height: "3ex" },
