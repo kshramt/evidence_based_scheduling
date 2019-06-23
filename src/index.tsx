@@ -1313,11 +1313,11 @@ class App extends React.Component<IAppProps, IState> {
           {v.parent && v.status === "todo"
             ? [cache.todoToDoneButton, cache.todoToDontButton]
             : null}
-          {v.parent && v.status === "todo" ? cache.showDetailButton : null}
+          {v.parent ? cache.showDetailButton : null}
           {v.status === "todo"
             ? cache.percentiles.map(digits1).join(" ")
             : null}
-          {v.parent && v.status === "todo" && v.show_detail ? (
+          {v.parent && v.show_detail ? (
             <div>
               {showLastRange(lastRange(v.ranges), cache.setLastRange)}
               {v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0
