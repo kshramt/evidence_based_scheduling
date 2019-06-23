@@ -39,6 +39,7 @@ interface INodeProps {
   todo: string[];
   done: string[];
   dont: string[];
+  showTodoOnly: boolean;
 }
 
 interface IEntryProps {
@@ -46,6 +47,14 @@ interface IEntryProps {
   v: IEntry;
   running: boolean;
   cache: ICache;
+}
+
+interface IQueueNodeProps {
+  k: string;
+  v: IEntry;
+  running: boolean;
+  cache: ICache;
+  showTodoOnly: boolean;
 }
 
 interface IHistory {
@@ -86,6 +95,7 @@ interface IData {
   root: string;
   kvs: IKvs;
   queue: string[];
+  showTodoOnly: boolean;
 }
 
 interface IKvs {
@@ -181,6 +191,9 @@ interface IUndoAction extends Action {
 }
 interface IRedoActin extends Action {
   type: "redo";
+}
+interface IFliipShowTodoOnlyAction extends Action {
+  type: "flipShowTodoOnly";
 }
 interface IFliipShowDetailAction extends Action {
   type: "flipShowDetail";
@@ -282,6 +295,7 @@ type TActions =
   | ISaveAction
   | IUndoAction
   | IRedoActin
+  | IFliipShowTodoOnlyAction
   | IFliipShowDetailAction
   | IStartAction
   | IFocusStopButtonAction
@@ -341,6 +355,8 @@ class App extends React.Component<IAppProps, IState> {
             return this.$undo(state);
           case "redo":
             return this.$redo(state);
+          case "flipShowTodoOnly":
+            return this.$flipShowTodoOnly(state);
           case "flipShowDetail":
             return this.$flipShowDetail(state, action.k);
           case "start":
@@ -411,6 +427,7 @@ class App extends React.Component<IAppProps, IState> {
         {state.caches[state.data.root].treeNewButton}
         <button onClick={this.undo}>{UNDO_MARK}</button>
         <button onClick={this.redo}>{REDO_MARK}</button>
+        <button onClick={this.flipShowTodoOnly}>👀</button>
       </div>
     );
   }
@@ -802,6 +819,16 @@ class App extends React.Component<IAppProps, IState> {
     }
     return state;
   };
+  flipShowTodoOnly = () => {
+    this.store.dispatch({ type: "flipShowTodoOnly" });
+    this.store.dispatch({ type: "save" });
+  };
+  $flipShowTodoOnly = (state: IState) => {
+    return produce(state, draft => {
+      draft.data.showTodoOnly = !draft.data.showTodoOnly;
+      this.dirtyHistory = this.dirtyDump = true;
+    });
+  };
   flipShowDetail = (k: string) => {
     this.store.dispatch({ type: "flipShowDetail", k });
     this.store.dispatch({ type: "save" });
@@ -1177,14 +1204,20 @@ class App extends React.Component<IAppProps, IState> {
     const Node = connect((state: IState, ownProps: INodeOwnProps) => {
       const k = ownProps.k;
       const v = state.data.kvs[k];
-      return { k, todo: v.todo, done: v.done, dont: v.dont };
+      return {
+        k,
+        todo: v.todo,
+        done: v.done,
+        dont: v.dont,
+        showTodoOnly: state.data.showTodoOnly,
+      };
     })((props: INodeProps) => {
       return (
         <React.Fragment>
           <Entry k={props.k} />
           <List ks={props.todo} />
-          <List ks={props.done} />
-          <List ks={props.dont} />
+          {props.showTodoOnly ? null : <List ks={props.done} />}
+          {props.showTodoOnly ? null : <List ks={props.dont} />}
         </React.Fragment>
       );
     });
@@ -1273,11 +1306,12 @@ class App extends React.Component<IAppProps, IState> {
         v: state.data.kvs[k],
         cache: state.caches[k],
         running: k === state.data.current_entry,
+        showTodoOnly: state.data.showTodoOnly,
       };
-    })((props: IEntryProps) => {
+    })((props: IQueueNodeProps) => {
       const v = props.v;
       const cache = props.cache;
-      return (
+      return props.showTodoOnly && v.status !== "todo" ? null : (
         <div
           id={`queue${props.k}`}
           className={props.running ? `${v.status} running` : v.status}
