@@ -16,8 +16,8 @@ const MOVE_UP_MARK = "↑";
 const MOVE_DOWN_MARK = "↓";
 const UNDO_MARK = "⬅";
 const REDO_MARK = "➡";
-const UNINDENT_MARK = "↙";
-const INDENT_MARK = "↗︎";
+const UNINDENT_MARK = "↖︎";
+const INDENT_MARK = "↘︎︎";
 const EVAL_MARK = "⏳";
 const DELETE_MARK = "×";
 const DONE_MARK = "✓";
@@ -935,7 +935,7 @@ class App extends React.Component<IAppProps, IState> {
           const entries = draft.data.kvs[ppk].todo;
           const i = entries.indexOf(pk);
           assert(i !== -1, "Must not happen.");
-          this._addTodoEntry(draft, ppk, i + 1, k);
+          this._addTodoEntry(draft, ppk, i, k);
           assertIsApprox(
             _total_time_spent_pk_orig - draft.caches[pk].total_time_spent,
             draft.caches[k].total_time_spent,
@@ -965,9 +965,9 @@ class App extends React.Component<IAppProps, IState> {
       const pk = draft.data.kvs[k].parent;
       if (pk) {
         const entries = draft.data.kvs[pk].todo;
-        const i = entries.indexOf(k);
-        if (i > 0) {
-          const new_pk = entries[i - 1];
+        if (last(entries) !== k) {
+          const i = entries.indexOf(k);
+          const new_pk = entries[i + 1];
           const total_time_spent_new_pk_orig =
             draft.caches[new_pk].total_time_spent;
           const total_time_spent_k = draft.caches[k].total_time_spent;
