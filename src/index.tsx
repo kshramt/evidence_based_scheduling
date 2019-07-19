@@ -862,7 +862,6 @@ class App extends React.Component<IAppProps, IState> {
           start: Number(new Date()) / 1000,
           end: null,
         });
-        this._eval_(draft, k);
         this.dirtyHistory = this.dirtyDump = true;
       }
     });
@@ -1024,7 +1023,6 @@ class App extends React.Component<IAppProps, IState> {
       r.end = Number(new Date()) / 1000;
       const dt = r.end - r.start;
       this._addDt(draft, draft.data.current_entry, dt);
-      this._eval_(draft, draft.data.current_entry);
       draft.data.current_entry = null;
       this.dirtyHistory = this.dirtyDump = true;
     }
