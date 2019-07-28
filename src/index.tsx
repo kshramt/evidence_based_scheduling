@@ -1276,7 +1276,10 @@ class App extends React.Component<IAppProps, IState> {
           {v.parent && v.show_detail ? (
             <div>
               {showLastRange(lastRange(v.ranges), cache.setLastRange)}
-              {v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0
+              {v.status === "todo" &&
+              v.todo.length === 0 &&
+              v.done.length === 0 &&
+              v.dont.length === 0
                 ? cache.deleteButton
                 : null}
             </div>
@@ -1352,7 +1355,10 @@ class App extends React.Component<IAppProps, IState> {
           {v.parent && v.show_detail ? (
             <div>
               {showLastRange(lastRange(v.ranges), cache.setLastRange)}
-              {v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0
+              {v.status === "todo" &&
+              v.todo.length === 0 &&
+              v.done.length === 0 &&
+              v.dont.length === 0
                 ? cache.deleteButton
                 : null}
             </div>
