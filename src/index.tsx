@@ -925,12 +925,11 @@ class App extends React.Component<IAppProps, IState> {
     return produce(state, draft => {
       const pk = draft.data.kvs[k].parent;
       if (pk !== null) {
-        const _total_time_spent_pk_orig = draft.caches[pk].total_time_spent;
         const ppk = draft.data.kvs[pk].parent;
-        const _total_time_spent_ppk_orig =
-          ppk === null ? null : draft.caches[ppk].total_time_spent;
-        this._rmTodoEntry(draft, k);
-        if (ppk) {
+        if (ppk !== null) {
+          const _total_time_spent_pk_orig = draft.caches[pk].total_time_spent;
+          const _total_time_spent_ppk_orig = draft.caches[ppk].total_time_spent;
+          this._rmTodoEntry(draft, k);
           const entries = draft.data.kvs[ppk].todo;
           const i = entries.indexOf(pk);
           assert(i !== -1, "Must not happen.");
