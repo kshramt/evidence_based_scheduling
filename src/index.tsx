@@ -26,112 +26,112 @@ const DETAIL_MARK = "⋮";
 
 type TStatus = "done" | "dont" | "todo";
 
-interface IListProps {
+type TListProps = {
   ks: string[];
-}
+};
 
-interface IQueueProps {
+type TQueueProps = {
   ks: string[];
-}
+};
 
-interface INodeProps {
+type TNodeProps = {
   k: string;
   todo: string[];
   done: string[];
   dont: string[];
   showTodoOnly: boolean;
-}
+};
 
-interface IEntryProps {
+type TEntryProps = {
   k: string;
-  v: IEntry;
+  v: TEntry;
   running: boolean;
-  cache: ICache;
-}
+  cache: TCache;
+};
 
-interface IQueueNodeProps {
+type TQueueNodeProps = {
   k: string;
-  v: IEntry;
+  v: TEntry;
   running: boolean;
-  cache: ICache;
+  cache: TCache;
   showTodoOnly: boolean;
-}
+};
 
-interface IHistory {
-  prev: null | IHistory;
-  value: IState;
-  next: null | IHistory;
-}
+type THistory = {
+  prev: null | THistory;
+  value: TState;
+  next: null | THistory;
+};
 
-interface IState {
-  data: IData;
-  caches: ICaches;
+type TState = {
+  data: TData;
+  caches: TCaches;
 
   saveSuccess: boolean;
-}
+};
 
-interface IAppProps {
-  data: IData;
-}
+type TAppProps = {
+  data: TData;
+};
 
-interface IMenuProps {
+type TMenuProps = {
   saveSuccess: boolean;
-}
+};
 
-interface INodeOwnProps {
+type TNodeOwnProps = {
   k: string;
-}
+};
 
-interface IEntryOwnProps {
+type TEntryOwnProps = {
   k: string;
-}
+};
 
-interface IQueueColumnProps {
+type TQueueColumnProps = {
   queue: string[];
-}
+};
 
-interface IData {
+type TData = {
   current_entry: null | string;
   root: string;
-  kvs: IKvs;
+  kvs: TKvs;
   queue: string[];
   showTodoOnly: boolean;
-}
+};
 
-interface IKvs {
-  [k: string]: IEntry;
-}
+type TKvs = {
+  [k: string]: TEntry;
+};
 
-interface IEntry {
+type TEntry = {
   done: string[];
   dont: string[];
   end_time: null | string;
   estimate: number;
   parent: null | string;
-  ranges: IRange[];
+  ranges: TRange[];
   show_detail: boolean;
   start_time: string;
   status: TStatus;
-  style: IStyle;
+  style: TStyle;
   text: string;
   todo: string[];
-}
+};
 
-interface IStyle {
+type TStyle = {
   height: string;
   width: string;
-}
+};
 
-interface IRange {
+type TRange = {
   start: number;
   end: null | number;
-}
+};
 
-interface ICaches {
-  [k: string]: ICache;
-}
+type TCaches = {
+  [k: string]: TCache;
+};
 
-interface ICache {
+type TCache = {
   total_time_spent: number;
   percentiles: number[];
   stopButtonRef: React.RefObject<HTMLButtonElement>;
@@ -166,10 +166,10 @@ interface ICache {
   textAreaOf: (
     text: string,
     status: TStatus,
-    style: IStyle,
+    style: TStyle,
     ref: null | React.RefObject<HTMLTextAreaElement>,
   ) => JSX.Element;
-}
+};
 
 interface IEvalAction extends Action {
   type: "eval_";
@@ -319,16 +319,16 @@ type TActions =
   | IDontToTodoAction
   | IFocusTextAreaAction;
 
-class App extends React.Component<IAppProps, IState> {
+class App extends React.Component<TAppProps, TState> {
   dirtyHistory: boolean;
   dirtyDump: boolean;
-  history: IHistory;
+  history: THistory;
   menuButtons: JSX.Element;
-  store: Store<IState, TActions>;
+  store: Store<TState, TActions>;
 
-  constructor(props: IAppProps) {
+  constructor(props: TAppProps) {
     super(props);
-    const caches = {} as ICaches;
+    const caches = {} as TCaches;
     for (const k of Object.keys(props.data.kvs)) {
       this.setCache(caches, k, props.data.kvs);
     }
@@ -338,7 +338,7 @@ class App extends React.Component<IAppProps, IState> {
       saveSuccess: true,
     };
     const _state = state;
-    this.store = createStore((state: undefined | IState, action: TActions) => {
+    this.store = createStore((state: undefined | TState, action: TActions) => {
       if (typeof state === "undefined") {
         return _state;
       } else {
@@ -431,7 +431,7 @@ class App extends React.Component<IAppProps, IState> {
       </div>
     );
   }
-  setCache = (caches: ICaches, k: string, kvs: IKvs) => {
+  setCache = (caches: TCaches, k: string, kvs: TKvs) => {
     if (caches[k] === undefined) {
       const sumChildren = (xs: string[]) => {
         return xs.reduce((total, current) => {
@@ -645,7 +645,7 @@ class App extends React.Component<IAppProps, IState> {
         textAreaOf: (
           text: string,
           status: TStatus,
-          style: IStyle,
+          style: TStyle,
           ref: null | React.RefObject<HTMLTextAreaElement>,
         ) => {
           return (
@@ -666,12 +666,12 @@ class App extends React.Component<IAppProps, IState> {
   eval_ = (k: string) => {
     this.store.dispatch({ type: "eval_", k });
   };
-  $eval_ = (state: IState, k: string) => {
+  $eval_ = (state: TState, k: string) => {
     return produce(state, draft => {
       this._eval_(draft, k);
     });
   };
-  _eval_ = (draft: Draft<IState>, k: string) => {
+  _eval_ = (draft: Draft<TState>, k: string) => {
     const candidates = Object.values(draft.data.kvs).filter(v => {
       return (
         (v.status === "done" || v.status === "dont") &&
@@ -737,7 +737,7 @@ class App extends React.Component<IAppProps, IState> {
     this.store.dispatch({ type: "delete_", k });
     this.store.dispatch({ type: "save" });
   };
-  $delete_ = (state: IState, k: string) => {
+  $delete_ = (state: TState, k: string) => {
     return produce(state, draft => {
       if (draft.data.kvs[k].todo.length === 0) {
         this._rmTodoEntry(draft, k);
@@ -759,21 +759,21 @@ class App extends React.Component<IAppProps, IState> {
       k: this.store.getState().data.kvs[parent].todo[0],
     });
   };
-  $new_ = (state: IState, parent: string) => {
+  $new_ = (state: TState, parent: string) => {
     const k = new Date().toISOString();
     return produce(state, draft => {
       const v = newEntryValue(parent, k);
       draft.data.kvs[k] = v;
       draft.data.kvs[parent].todo.unshift(k);
       draft.data.queue.unshift(k);
-      this.setCache(draft.caches as ICaches, k, draft.data.kvs);
+      this.setCache(draft.caches as TCaches, k, draft.data.kvs);
       this.dirtyHistory = this.dirtyDump = true;
     });
   };
   save = () => {
     this.store.dispatch({ type: "save" });
   };
-  $save = (state: IState) => {
+  $save = (state: TState) => {
     if (this.dirtyHistory) {
       this.history = pushHistory(this.history, state);
       this.dirtyHistory = false;
@@ -799,7 +799,7 @@ class App extends React.Component<IAppProps, IState> {
     this.store.dispatch({ type: "undo" });
     this.store.dispatch({ type: "save" });
   };
-  $undo = (state: IState) => {
+  $undo = (state: TState) => {
     if (this.history.prev !== null) {
       this.history = this.history.prev;
       state = this.history.value;
@@ -812,7 +812,7 @@ class App extends React.Component<IAppProps, IState> {
     this.store.dispatch({ type: "redo" });
     this.store.dispatch({ type: "save" });
   };
-  $redo = (state: IState) => {
+  $redo = (state: TState) => {
     if (this.history.next !== null) {
       this.history = this.history.next;
       state = this.history.value;
@@ -823,7 +823,7 @@ class App extends React.Component<IAppProps, IState> {
     this.store.dispatch({ type: "flipShowTodoOnly" });
     this.store.dispatch({ type: "save" });
   };
-  $flipShowTodoOnly = (state: IState) => {
+  $flipShowTodoOnly = (state: TState) => {
     return produce(state, draft => {
       draft.data.showTodoOnly = !draft.data.showTodoOnly;
       this.dirtyHistory = this.dirtyDump = true;
@@ -833,7 +833,7 @@ class App extends React.Component<IAppProps, IState> {
     this.store.dispatch({ type: "flipShowDetail", k });
     this.store.dispatch({ type: "save" });
   };
-  $flipShowDetail = (state: IState, k: string) => {
+  $flipShowDetail = (state: TState, k: string) => {
     return produce(state, draft => {
       draft.data.kvs[k].show_detail = !draft.data.kvs[k].show_detail;
       this.dirtyHistory = this.dirtyDump = true;
@@ -844,7 +844,7 @@ class App extends React.Component<IAppProps, IState> {
     this.store.dispatch({ type: "save" });
     this.store.dispatch({ type: "focusStopButton", k });
   };
-  $start = (state: IState, k: string) => {
+  $start = (state: TState, k: string) => {
     return produce(state, draft => {
       if (k !== draft.data.current_entry) {
         if (draft.data.kvs[k].status === "done") {
@@ -866,7 +866,7 @@ class App extends React.Component<IAppProps, IState> {
       }
     });
   };
-  $focusStopButton = (state: IState, k: string) => {
+  $focusStopButton = (state: TState, k: string) => {
     setTimeout(() => focus(state.caches[k].stopButtonRef.current), 50);
     return state;
   };
@@ -874,7 +874,7 @@ class App extends React.Component<IAppProps, IState> {
     this.store.dispatch({ type: "top", k });
     this.store.dispatch({ type: "save" });
   };
-  $top = (state: IState, k: string) => {
+  $top = (state: TState, k: string) => {
     return produce(state, draft => {
       this._top(draft, k);
       this.dirtyHistory = this.dirtyDump = true;
@@ -885,7 +885,7 @@ class App extends React.Component<IAppProps, IState> {
     this.store.dispatch({ type: "save" });
     this.store.dispatch({ type: "focusMoveUpButton", k });
   };
-  $moveUp = (state: IState, k: string) => {
+  $moveUp = (state: TState, k: string) => {
     return produce(state, draft => {
       const pk = draft.data.kvs[k].parent;
       if (pk) {
@@ -894,7 +894,7 @@ class App extends React.Component<IAppProps, IState> {
       }
     });
   };
-  $focusMoveUpButton = (state: IState, k: string) => {
+  $focusMoveUpButton = (state: TState, k: string) => {
     focus(state.caches[k].moveUpButtonRef.current);
     return state;
   };
@@ -903,7 +903,7 @@ class App extends React.Component<IAppProps, IState> {
     this.store.dispatch({ type: "save" });
     this.store.dispatch({ type: "focusMoveDownButton", k });
   };
-  $moveDown = (state: IState, k: string) => {
+  $moveDown = (state: TState, k: string) => {
     return produce(state, draft => {
       const pk = draft.data.kvs[k].parent;
       if (pk) {
@@ -912,7 +912,7 @@ class App extends React.Component<IAppProps, IState> {
       }
     });
   };
-  $focusMoveDownButton = (state: IState, k: string) => {
+  $focusMoveDownButton = (state: TState, k: string) => {
     focus(state.caches[k].moveDownButtonRef.current);
     return state;
   };
@@ -921,7 +921,7 @@ class App extends React.Component<IAppProps, IState> {
     this.store.dispatch({ type: "save" });
     this.store.dispatch({ type: "focusUnindentButton", k });
   };
-  $unindent = (state: IState, k: string) => {
+  $unindent = (state: TState, k: string) => {
     return produce(state, draft => {
       const pk = draft.data.kvs[k].parent;
       if (pk !== null) {
@@ -949,7 +949,7 @@ class App extends React.Component<IAppProps, IState> {
       }
     });
   };
-  $focusUnindentButton = (state: IState, k: string) => {
+  $focusUnindentButton = (state: TState, k: string) => {
     focus(state.caches[k].unindentButtonRef.current);
     return state;
   };
@@ -958,7 +958,7 @@ class App extends React.Component<IAppProps, IState> {
     this.store.dispatch({ type: "save" });
     this.store.dispatch({ type: "focusIndentButton", k });
   };
-  $indent = (state: IState, k: string) => {
+  $indent = (state: TState, k: string) => {
     return produce(state, draft => {
       const pk = draft.data.kvs[k].parent;
       if (pk) {
@@ -980,25 +980,25 @@ class App extends React.Component<IAppProps, IState> {
       }
     });
   };
-  $focusIndentButton = (state: IState, k: string) => {
+  $focusIndentButton = (state: TState, k: string) => {
     focus(state.caches[k].indentButtonRef.current);
     return state;
   };
-  _rmTodoEntry = (draft: Draft<IState>, k: string) => {
+  _rmTodoEntry = (draft: Draft<TState>, k: string) => {
     const pk = draft.data.kvs[k].parent;
     if (pk) {
       deleteAtVal(draft.data.kvs[pk].todo, k);
       this._addDt(draft, pk, -draft.caches[k].total_time_spent);
     }
   };
-  _addTodoEntry = (draft: Draft<IState>, pk: string, i: number, k: string) => {
+  _addTodoEntry = (draft: Draft<TState>, pk: string, i: number, k: string) => {
     if (pk) {
       draft.data.kvs[k].parent = pk;
       draft.data.kvs[pk].todo.splice(i, 0, k);
       this._addDt(draft, pk, draft.caches[k].total_time_spent);
     }
   };
-  _top = (draft: Draft<IState>, k: string) => {
+  _top = (draft: Draft<TState>, k: string) => {
     let ck = k;
     let pk = draft.data.kvs[ck].parent;
     while (pk !== null) {
@@ -1012,10 +1012,10 @@ class App extends React.Component<IAppProps, IState> {
     this.store.dispatch({ type: "stop" });
     this.store.dispatch({ type: "save" });
   };
-  $stop = (state: IState) => {
+  $stop = (state: TState) => {
     return produce(state, this._stop);
   };
-  _stop = (draft: Draft<IState>) => {
+  _stop = (draft: Draft<TState>) => {
     if (draft.data.current_entry !== null) {
       const e = draft.data.kvs[draft.data.current_entry];
       const r = last(e.ranges);
@@ -1026,7 +1026,7 @@ class App extends React.Component<IAppProps, IState> {
       this.dirtyHistory = this.dirtyDump = true;
     }
   };
-  _addDt = (draft: Draft<IState>, k: null | string, dt: number) => {
+  _addDt = (draft: Draft<TState>, k: null | string, dt: number) => {
     while (k) {
       draft.caches[k].total_time_spent += dt;
       k = draft.data.kvs[k].parent;
@@ -1036,7 +1036,7 @@ class App extends React.Component<IAppProps, IState> {
     this.store.dispatch({ type: "setEstimate", k, estimate });
     this.store.dispatch({ type: "save" });
   };
-  $setEstimate = (state: IState, k: string, estimate: number) => {
+  $setEstimate = (state: TState, k: string, estimate: number) => {
     return produce(state, draft => {
       draft.data.kvs[k].estimate = estimate;
       this.dirtyHistory = this.dirtyDump = true;
@@ -1046,7 +1046,7 @@ class App extends React.Component<IAppProps, IState> {
     this.store.dispatch({ type: "setLastRange", k, t });
     this.store.dispatch({ type: "save" });
   };
-  $setLastRange = (state: IState, k: string, t: number) => {
+  $setLastRange = (state: TState, k: string, t: number) => {
     return produce(state, draft => {
       const l = lastRange(draft.data.kvs[k].ranges);
       if (l !== null && l.end) {
@@ -1064,7 +1064,7 @@ class App extends React.Component<IAppProps, IState> {
   setText = (k: string, text: string) => {
     this.store.dispatch({ type: "setText", k, text });
   };
-  $setText = (state: IState, k: string, text: string) => {
+  $setText = (state: TState, k: string, text: string) => {
     return produce(state, draft => {
       draft.data.kvs[k].text = text;
       this.dirtyHistory = this.dirtyDump = true;
@@ -1075,7 +1075,7 @@ class App extends React.Component<IAppProps, IState> {
     this.store.dispatch({ type: "save" });
   };
   $resizeTextArea = (
-    state: IState,
+    state: TState,
     k: string,
     width: null | string,
     height: null | string,
@@ -1094,7 +1094,7 @@ class App extends React.Component<IAppProps, IState> {
         })
       : state;
   };
-  _rmFromTodo = (draft: Draft<IState>, k: string) => {
+  _rmFromTodo = (draft: Draft<TState>, k: string) => {
     if (draft.data.current_entry === k) {
       this._stop(draft);
     }
@@ -1103,26 +1103,26 @@ class App extends React.Component<IAppProps, IState> {
       deleteAtVal(draft.data.kvs[pk].todo, k);
     }
   };
-  _rmFromDone = (draft: Draft<IState>, k: string) => {
+  _rmFromDone = (draft: Draft<TState>, k: string) => {
     const pk = draft.data.kvs[k].parent;
     if (pk) {
       deleteAtVal(draft.data.kvs[pk].done, k);
     }
   };
-  _rmFromDont = (draft: Draft<IState>, k: string) => {
+  _rmFromDont = (draft: Draft<TState>, k: string) => {
     const pk = draft.data.kvs[k].parent;
     if (pk) {
       deleteAtVal(draft.data.kvs[pk].dont, k);
     }
   };
-  _addToTodo = (draft: Draft<IState>, k: string) => {
+  _addToTodo = (draft: Draft<TState>, k: string) => {
     draft.data.kvs[k].status = "todo";
     const pk = draft.data.kvs[k].parent;
     if (pk) {
       draft.data.kvs[pk].todo.unshift(k);
     }
   };
-  _addToDone = (draft: Draft<IState>, k: string) => {
+  _addToDone = (draft: Draft<TState>, k: string) => {
     draft.data.kvs[k].status = "done";
     draft.data.kvs[k].end_time = new Date().toISOString();
     const pk = draft.data.kvs[k].parent;
@@ -1130,7 +1130,7 @@ class App extends React.Component<IAppProps, IState> {
       draft.data.kvs[pk].done.unshift(k);
     }
   };
-  _addToDont = (draft: Draft<IState>, k: string) => {
+  _addToDont = (draft: Draft<TState>, k: string) => {
     draft.data.kvs[k].status = "dont";
     draft.data.kvs[k].end_time = new Date().toISOString();
     const pk = draft.data.kvs[k].parent;
@@ -1142,7 +1142,7 @@ class App extends React.Component<IAppProps, IState> {
     this.store.dispatch({ type: "todoToDone", k });
     this.store.dispatch({ type: "save" });
   };
-  $todoToDone = (state: IState, k: string) => {
+  $todoToDone = (state: TState, k: string) => {
     return produce(state, draft => {
       this._rmFromTodo(draft, k);
       this._addToDone(draft, k);
@@ -1153,7 +1153,7 @@ class App extends React.Component<IAppProps, IState> {
     this.store.dispatch({ type: "todoToDont", k });
     this.store.dispatch({ type: "save" });
   };
-  $todoToDont = (state: IState, k: string) => {
+  $todoToDont = (state: TState, k: string) => {
     return produce(state, draft => {
       this._rmFromTodo(draft, k);
       this._addToDont(draft, k);
@@ -1164,7 +1164,7 @@ class App extends React.Component<IAppProps, IState> {
     this.store.dispatch({ type: "doneToTodo", k });
     this.store.dispatch({ type: "save" });
   };
-  $doneToTodo = (state: IState, k: string) => {
+  $doneToTodo = (state: TState, k: string) => {
     return produce(state, draft => {
       this._rmFromDone(draft, k);
       this._addToTodo(draft, k);
@@ -1175,22 +1175,22 @@ class App extends React.Component<IAppProps, IState> {
     this.store.dispatch({ type: "dontToTodo", k });
     this.store.dispatch({ type: "save" });
   };
-  $dontToTodo = (state: IState, k: string) => {
+  $dontToTodo = (state: TState, k: string) => {
     return produce(state, draft => {
       this._rmFromDont(draft, k);
       this._addToTodo(draft, k);
       this.dirtyHistory = this.dirtyDump = true;
     });
   };
-  $focusTextArea = (state: IState, k: string) => {
+  $focusTextArea = (state: TState, k: string) => {
     // todo: Use more reliable method to focus on the textarea.
     setTimeout(() => focus(state.caches[k].textAreaRef.current), 50);
     return state;
   };
   render = () => {
-    const Menu = connect((state: IState) => {
+    const Menu = connect((state: TState) => {
       return { saveSuccess: state.saveSuccess };
-    })((props: IMenuProps) => {
+    })((props: TMenuProps) => {
       return (
         <div className={"menu"}>
           {props.saveSuccess ? null : <p>Failed to save.</p>}
@@ -1198,7 +1198,7 @@ class App extends React.Component<IAppProps, IState> {
         </div>
       );
     });
-    const Node = connect((state: IState, ownProps: INodeOwnProps) => {
+    const Node = connect((state: TState, ownProps: TNodeOwnProps) => {
       const k = ownProps.k;
       const v = state.data.kvs[k];
       return {
@@ -1208,7 +1208,7 @@ class App extends React.Component<IAppProps, IState> {
         dont: v.dont,
         showTodoOnly: state.data.showTodoOnly,
       };
-    })((props: INodeProps) => {
+    })((props: TNodeProps) => {
       return (
         <React.Fragment>
           <Entry k={props.k} />
@@ -1218,7 +1218,7 @@ class App extends React.Component<IAppProps, IState> {
         </React.Fragment>
       );
     });
-    const Entry = connect((state: IState, ownProps: IEntryOwnProps) => {
+    const Entry = connect((state: TState, ownProps: TEntryOwnProps) => {
       const k = ownProps.k;
       return {
         k,
@@ -1226,7 +1226,7 @@ class App extends React.Component<IAppProps, IState> {
         cache: state.caches[k],
         running: k === state.data.current_entry,
       };
-    })((props: IEntryProps) => {
+    })((props: TEntryProps) => {
       const v = props.v;
       const cache = props.cache;
       return (
@@ -1286,7 +1286,7 @@ class App extends React.Component<IAppProps, IState> {
         </div>
       );
     });
-    const List = React.memo((props: IListProps) => {
+    const List = React.memo((props: TListProps) => {
       return props.ks.length ? (
         <ol>
           {props.ks.map(k => {
@@ -1299,7 +1299,7 @@ class App extends React.Component<IAppProps, IState> {
         </ol>
       ) : null;
     });
-    const QueueNode = connect((state: IState, ownProps: IEntryOwnProps) => {
+    const QueueNode = connect((state: TState, ownProps: TEntryOwnProps) => {
       const k = ownProps.k;
       return {
         k,
@@ -1308,7 +1308,7 @@ class App extends React.Component<IAppProps, IState> {
         running: k === state.data.current_entry,
         showTodoOnly: state.data.showTodoOnly,
       };
-    })((props: IQueueNodeProps) => {
+    })((props: TQueueNodeProps) => {
       const v = props.v;
       const cache = props.cache;
       return props.showTodoOnly && v.status !== "todo" ? null : (
@@ -1365,7 +1365,7 @@ class App extends React.Component<IAppProps, IState> {
         </div>
       );
     });
-    const Queue = React.memo((props: IQueueProps) => {
+    const Queue = React.memo((props: TQueueProps) => {
       return props.ks.length ? (
         <ol>
           {props.ks.map(k => {
@@ -1378,9 +1378,9 @@ class App extends React.Component<IAppProps, IState> {
         </ol>
       ) : null;
     });
-    const QueueColumn = connect((state: IState) => {
+    const QueueColumn = connect((state: TState) => {
       return { queue: state.data.queue };
-    })((props: IQueueColumnProps) => {
+    })((props: TQueueColumnProps) => {
       return (
         <div id="queue">
           <Queue ks={props.queue} />
@@ -1402,7 +1402,7 @@ class App extends React.Component<IAppProps, IState> {
 }
 
 const showLastRange = (
-  l: null | IRange,
+  l: null | TRange,
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
 ) => {
   return l === null || l.end === null ? null : (
@@ -1415,7 +1415,7 @@ const showLastRange = (
   );
 };
 
-const lastRange = (ranges: IRange[]): null | IRange => {
+const lastRange = (ranges: TRange[]): null | TRange => {
   return ranges.length
     ? last(ranges).end === null
       ? lastRange(butLast(ranges))
@@ -1519,7 +1519,7 @@ export const sum = (xs: number[]) => {
   }, 0);
 };
 
-function* leafs(v: IEntry, kvs: IKvs): Iterable<IEntry> {
+function* leafs(v: TEntry, kvs: TKvs): Iterable<TEntry> {
   if (v.status === "todo") {
     if (v.todo.length) {
       for (const c of v.todo) {
@@ -1553,7 +1553,7 @@ export function* multinomial<T>(xs: T[], ws: number[]) {
   }
 }
 
-const pushHistory = (h: IHistory, v: IState) => {
+const pushHistory = (h: THistory, v: TState) => {
   return (h.next = {
     prev: h,
     value: v,
@@ -1586,7 +1586,7 @@ const newEntryValue = (parent: string, start_time: string) => {
     end_time: null,
     estimate: NO_ESTIMATION,
     parent,
-    ranges: [] as IRange[],
+    ranges: [] as TRange[],
     show_detail: false,
     start_time,
     status: "todo" as TStatus,
@@ -1599,7 +1599,7 @@ const newEntryValue = (parent: string, start_time: string) => {
 const main = () => {
   fetch("api/" + API_VERSION + "/get")
     .then(r => r.json())
-    .then((data: IData) => {
+    .then((data: TData) => {
       ReactDOM.render(<App data={data} />, document.getElementById("root"));
     });
 };
