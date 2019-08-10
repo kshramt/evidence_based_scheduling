@@ -192,10 +192,10 @@ interface IUndoAction extends Action {
 interface IRedoActin extends Action {
   type: "redo";
 }
-interface IFliipShowTodoOnlyAction extends Action {
+interface IFlipShowTodoOnlyAction extends Action {
   type: "flipShowTodoOnly";
 }
-interface IFliipShowDetailAction extends Action {
+interface IFlipShowDetailAction extends Action {
   type: "flipShowDetail";
   k: string;
 }
@@ -295,8 +295,8 @@ type TActions =
   | ISaveAction
   | IUndoAction
   | IRedoActin
-  | IFliipShowTodoOnlyAction
-  | IFliipShowDetailAction
+  | IFlipShowTodoOnlyAction
+  | IFlipShowDetailAction
   | IStartAction
   | IFocusStopButtonAction
   | ITopAction
