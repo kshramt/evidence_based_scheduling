@@ -37,3 +37,6 @@ button{
 .done, .dont{
     color: rgb(170, 170, 170);
 }
+textarea{
+    border-color: rgb(235, 235, 235);
+}
