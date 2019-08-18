@@ -1391,10 +1391,10 @@ class App extends React.Component<TAppProps, TState> {
       <Provider store={this.store}>
         <div id="columns">
           <Menu />
+          <QueueColumn />
           <div id="tree">
             <Node k={this.store.getState().data.root} />
           </div>
-          <QueueColumn />
         </div>
       </Provider>
     );
