@@ -33,7 +33,7 @@ input.done, input.dont{
 }
 button{
     padding: 0;
-    font-size: 33%;
+    font-size: 50%;
 }
 .done, .dont{
     color: rgb(170, 170, 170);
