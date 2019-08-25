@@ -25,10 +25,7 @@ div.menu{
 div.running{
     background-color: Moccasin;
 }
-input.todo{
-    width: 7ex;
-}
-input.done, input.dont{
+input{
     width: 7ex;
 }
 button{

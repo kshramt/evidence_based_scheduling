@@ -1272,17 +1272,17 @@ class App extends React.Component<TAppProps, TState> {
           {v.status === "todo"
             ? cache.percentiles.map(digits1).join(" ")
             : null}
-          {v.parent && v.show_detail ? (
-            <div>
-              {showLastRange(lastRange(v.ranges), cache.setLastRange)}
-              {v.status === "todo" &&
+          {v.parent && v.show_detail
+            ? showLastRange(lastRange(v.ranges), cache.setLastRange)
+            : null}
+          {v.parent && v.show_detail
+            ? v.status === "todo" &&
               v.todo.length === 0 &&
               v.done.length === 0 &&
               v.dont.length === 0
-                ? cache.deleteButton
-                : null}
-            </div>
-          ) : null}
+              ? cache.deleteButton
+              : null
+            : null}
         </div>
       );
     });
@@ -1351,17 +1351,17 @@ class App extends React.Component<TAppProps, TState> {
           {v.status === "todo"
             ? cache.percentiles.map(digits1).join(" ")
             : null}
-          {v.parent && v.show_detail ? (
-            <div>
-              {showLastRange(lastRange(v.ranges), cache.setLastRange)}
-              {v.status === "todo" &&
+          {v.parent && v.show_detail
+            ? showLastRange(lastRange(v.ranges), cache.setLastRange)
+            : null}
+          {v.parent && v.show_detail
+            ? v.status === "todo" &&
               v.todo.length === 0 &&
               v.done.length === 0 &&
               v.dont.length === 0
-                ? cache.deleteButton
-                : null}
-            </div>
-          ) : null}
+              ? cache.deleteButton
+              : null
+            : null}
         </div>
       );
     });
