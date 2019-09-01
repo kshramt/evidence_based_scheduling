@@ -619,7 +619,7 @@ class App extends React.Component<TAppProps, TState> {
         ),
         toTreeButton: (
           <a href={`#tree${k}`}>
-            <button>←</button>
+            <button>→</button>
           </a>
         ),
         todoToDoneButton: XToYButton(
