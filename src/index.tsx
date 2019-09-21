@@ -1083,10 +1083,10 @@ class App extends React.Component<TAppProps, TState> {
     return width && height
       ? produce(state, draft => {
           const v = draft.data.kvs[k];
-          if (v.style.width !== width) {
-            v.style.width = width;
-            this.dirtyHistory = this.dirtyDump = true;
-          }
+          // if (v.style.width !== width) {
+          //   v.style.width = width;
+          //   this.dirtyHistory = this.dirtyDump = true;
+          // }
           if (v.style.height !== height) {
             v.style.height = height;
             this.dirtyHistory = this.dirtyDump = true;
