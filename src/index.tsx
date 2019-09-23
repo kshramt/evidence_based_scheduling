@@ -1268,15 +1268,23 @@ class App extends React.Component<TAppProps, TState> {
             ? cache.stopButton
             : cache.startButton}
           {v.parent && v.status === "todo" ? cache.topButton : null}
-          {v.parent && v.status === "todo" ? cache.moveUpButton : null}
-          {v.parent && v.status === "todo" ? cache.moveDownButton : null}
-          {v.parent && v.status === "todo" ? cache.unindentButton : null}
-          {v.parent && v.status === "todo" ? cache.indentButton : null}
           {v.status === "todo" ? cache.evalButton : null}
           {v.parent && v.status === "todo" && v.todo.length === 0
             ? [cache.todoToDoneButton, cache.todoToDontButton]
             : null}
           {v.parent ? cache.showDetailButton : null}
+          {v.parent && v.show_detail && v.status === "todo"
+            ? cache.moveUpButton
+            : null}
+          {v.parent && v.show_detail && v.status === "todo"
+            ? cache.moveDownButton
+            : null}
+          {v.parent && v.show_detail && v.status === "todo"
+            ? cache.unindentButton
+            : null}
+          {v.parent && v.show_detail && v.status === "todo"
+            ? cache.indentButton
+            : null}
           {v.status === "todo"
             ? cache.percentiles.map(digits1).join(" ")
             : null}
