@@ -999,6 +999,10 @@ class App extends React.Component<TAppProps, TState> {
     }
   };
   _top = (draft: Draft<TState>, k: string) => {
+    this._topTree(draft, k);
+    this._topQueue(draft, k);
+  };
+  _topTree = (draft: Draft<TState>, k: string) => {
     let ck = k;
     let pk = draft.data.kvs[ck].parent;
     while (pk !== null) {
@@ -1006,6 +1010,8 @@ class App extends React.Component<TAppProps, TState> {
       ck = pk;
       pk = draft.data.kvs[ck].parent;
     }
+  };
+  _topQueue = (draft: Draft<TState>, k: string) => {
     toFront(draft.data.queue, k);
   };
   stop = () => {
@@ -1146,6 +1152,7 @@ class App extends React.Component<TAppProps, TState> {
     return produce(state, draft => {
       this._rmFromTodo(draft, k);
       this._addToDone(draft, k);
+      this._topQueue(draft, k);
       this.dirtyHistory = this.dirtyDump = true;
     });
   };
@@ -1157,6 +1164,7 @@ class App extends React.Component<TAppProps, TState> {
     return produce(state, draft => {
       this._rmFromTodo(draft, k);
       this._addToDont(draft, k);
+      this._topQueue(draft, k);
       this.dirtyHistory = this.dirtyDump = true;
     });
   };
