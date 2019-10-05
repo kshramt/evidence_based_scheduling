@@ -2,9 +2,11 @@ import React from "react";
 import ReactDOM from "react-dom";
 import { connect, Provider } from "react-redux";
 import { Action, Store, createStore } from "redux";
-import produce, { Draft } from "immer";
+import produce, { Draft, setAutoFreeze } from "immer";
 
 import "./index.css";
+
+setAutoFreeze(false); // Refs in the cache should not be frozen.
 
 const API_VERSION = "v1";
 const NO_ESTIMATION = 0;
@@ -1568,8 +1570,8 @@ export function* multinomial<T>(xs: T[], ws: number[]) {
     }
   }
   // todo: For the stricter generators introduced in TypeScript version 3.6.
-  assert(false, "Must not happen.")
-  return 0
+  assert(false, "Must not happen.");
+  return 0;
 }
 
 const pushHistory = (h: THistory, v: TState) => {
