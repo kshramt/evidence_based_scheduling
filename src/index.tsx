@@ -1567,6 +1567,9 @@ export function* multinomial<T>(xs: T[], ws: number[]) {
       }
     }
   }
+  // todo: For the stricter generators introduced in TypeScript version 3.6.
+  assert(false, "Must not happen.")
+  return 0
 }
 
 const pushHistory = (h: THistory, v: TState) => {
