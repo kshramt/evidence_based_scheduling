@@ -1521,7 +1521,7 @@ const deleteAtVal = <T extends {}>(a: T[], x: T) => {
   }
 };
 
-export const cumsum = (xs: number[]) => {
+const cumsum = (xs: number[]) => {
   const ret = [0];
   xs.reduce((total, current, i) => {
     const t = total + current;
@@ -1531,7 +1531,7 @@ export const cumsum = (xs: number[]) => {
   return ret;
 };
 
-export const sum = (xs: number[]) => {
+const sum = (xs: number[]) => {
   return xs.reduce((total, current) => {
     return total + current;
   }, 0);
@@ -1549,7 +1549,7 @@ function* leafs(v: TEntry, kvs: TKvs): Iterable<TEntry> {
   }
 }
 
-export function* multinomial<T>(xs: T[], ws: number[]) {
+function* multinomial<T>(xs: T[], ws: number[]) {
   const total = sum(ws);
   const partitions = cumsum(ws.map(w => w / total)).map(v => {
     return Math.min(v, 1);
