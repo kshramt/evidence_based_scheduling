@@ -2,10 +2,10 @@ from node:11.9.0-alpine as js
 
 workdir /app
 
-copy package.json package-lock.json .
+copy package.json package-lock.json ./
 run npm ci
 
-copy . ./
+copy . .
 run npm run build
 
 
