@@ -5,7 +5,7 @@ workdir /app
 copy package.json package-lock.json .
 run npm ci
 
-copy . .
+copy . ./
 run npm run build
 
 
