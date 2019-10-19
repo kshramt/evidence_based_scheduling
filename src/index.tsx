@@ -850,11 +850,9 @@ class App extends React.Component<TAppProps, TState> {
     return produce(state, draft => {
       if (k !== draft.data.current_entry) {
         if (draft.data.kvs[k].status === "done") {
-          this._rmFromDone(draft, k);
-          this._addToTodo(draft, k);
+          this._doneToTodo(draft, k);
         } else if (draft.data.kvs[k].status === "dont") {
-          this._rmFromDont(draft, k);
-          this._addToTodo(draft, k);
+          this._dontToTodo(draft, k);
         }
         this._top(draft, k);
         assert(draft.data.kvs[k].status === "todo", "Must not happen");
@@ -1102,6 +1100,22 @@ class App extends React.Component<TAppProps, TState> {
         })
       : state;
   };
+  _doneToTodo = (draft: Draft<TState>, k: string) => {
+    this._rmFromDone(draft, k);
+    this._addToTodo(draft, k);
+    const pk = draft.data.kvs[k].parent;
+    if (pk !== null && draft.data.kvs[pk].status !== "todo") {
+      this._doneToTodo(draft, pk);
+    }
+  };
+  _dontToTodo = (draft: Draft<TState>, k: string) => {
+    this._rmFromDont(draft, k);
+    this._addToTodo(draft, k);
+    const pk = draft.data.kvs[k].parent;
+    if (pk !== null && draft.data.kvs[pk].status !== "todo") {
+      this._dontToTodo(draft, pk);
+    }
+  };
   _rmFromTodo = (draft: Draft<TState>, k: string) => {
     if (draft.data.current_entry === k) {
       this._stop(draft);
@@ -1176,8 +1190,7 @@ class App extends React.Component<TAppProps, TState> {
   };
   $doneToTodo = (state: TState, k: string) => {
     return produce(state, draft => {
-      this._rmFromDone(draft, k);
-      this._addToTodo(draft, k);
+      this._doneToTodo(draft, k);
       this.dirtyHistory = this.dirtyDump = true;
     });
   };
@@ -1187,8 +1200,7 @@ class App extends React.Component<TAppProps, TState> {
   };
   $dontToTodo = (state: TState, k: string) => {
     return produce(state, draft => {
-      this._rmFromDont(draft, k);
-      this._addToTodo(draft, k);
+      this._dontToTodo(draft, k);
       this.dirtyHistory = this.dirtyDump = true;
     });
   };
