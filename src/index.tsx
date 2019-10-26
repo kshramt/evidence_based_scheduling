@@ -704,7 +704,7 @@ class App extends React.Component<TAppProps, TState> {
         return v.estimate;
       });
     const n_mc = 2000;
-    const ts = this._estimate(leaf_estimates, ratios, weights, n_mc);
+    const ts = _estimate(leaf_estimates, ratios, weights, n_mc);
     draft.caches[k].percentiles = [
       ts[0],
       ts[Math.round(n_mc / 10)],
@@ -715,26 +715,6 @@ class App extends React.Component<TAppProps, TState> {
       ts[n_mc - 1],
     ];
   };
-  _estimate(
-    estimates: number[],
-    ratios: number[],
-    weights: number[],
-    n_mc: number,
-  ) {
-    const ts = [];
-    const rng = multinomial(ratios, weights);
-    for (let i = 0; i < n_mc; i++) {
-      ts.push(
-        sum(
-          estimates.map(x => {
-            return rng.next().value * x;
-          }),
-        ),
-      );
-    }
-    ts.sort((a, b) => a - b);
-    return ts;
-  }
   delete_ = (k: string) => {
     this.store.dispatch({ type: "delete_", k });
     this.store.dispatch({ type: "save" });
@@ -1220,203 +1200,6 @@ class App extends React.Component<TAppProps, TState> {
         </div>
       );
     });
-    const Node = connect((state: TState, ownProps: TNodeOwnProps) => {
-      const k = ownProps.k;
-      const v = state.data.kvs[k];
-      return {
-        k,
-        todo: v.todo,
-        done: v.done,
-        dont: v.dont,
-        showTodoOnly: state.data.showTodoOnly,
-      };
-    })((props: TNodeProps) => {
-      return (
-        <React.Fragment>
-          <Entry k={props.k} />
-          <List ks={props.todo} />
-          {props.showTodoOnly ? null : <List ks={props.done} />}
-          {props.showTodoOnly ? null : <List ks={props.dont} />}
-        </React.Fragment>
-      );
-    });
-    const Entry = connect((state: TState, ownProps: TEntryOwnProps) => {
-      const k = ownProps.k;
-      return {
-        k,
-        v: state.data.kvs[k],
-        cache: state.caches[k],
-        running: k === state.data.current_entry,
-      };
-    })((props: TEntryProps) => {
-      const v = props.v;
-      const cache = props.cache;
-      return (
-        <div
-          id={`tree${props.k}`}
-          className={props.running ? `${v.status} running` : v.status}
-        >
-          {v.parent === null
-            ? null
-            : v.status === "done"
-            ? cache.treeDoneToTodoButton
-            : v.status === "dont"
-            ? cache.treeDontToTodoButton
-            : cache.treeNewButton}
-          {v.parent === null
-            ? null
-            : cache.textAreaOf(v.text, v.status, v.style, cache.textAreaRef)}
-          {v.parent === null ? null : (
-            <input
-              type="number"
-              step="any"
-              value={v.estimate}
-              onChange={cache.setEstimate}
-              className={v.status}
-            />
-          )}
-          {digits1(cache.total_time_spent / 3600)}
-          {v.parent === null
-            ? null
-            : props.running
-            ? cache.stopButton
-            : cache.startButton}
-          {v.parent && v.status === "todo" ? cache.topButton : null}
-          {v.status === "todo" ? cache.evalButton : null}
-          {v.parent && v.status === "todo" && v.todo.length === 0
-            ? [cache.todoToDoneButton, cache.todoToDontButton]
-            : null}
-          {v.parent ? cache.showDetailButton : null}
-          {v.parent && v.show_detail && v.status === "todo"
-            ? cache.moveUpButton
-            : null}
-          {v.parent && v.show_detail && v.status === "todo"
-            ? cache.moveDownButton
-            : null}
-          {v.parent && v.show_detail && v.status === "todo"
-            ? cache.unindentButton
-            : null}
-          {v.parent && v.show_detail && v.status === "todo"
-            ? cache.indentButton
-            : null}
-          {v.status === "todo"
-            ? cache.percentiles.map(digits1).join(" ")
-            : null}
-          {v.parent && v.show_detail
-            ? showLastRange(lastRange(v.ranges), cache.setLastRange)
-            : null}
-          {v.parent && v.show_detail
-            ? v.status === "todo" &&
-              v.todo.length === 0 &&
-              v.done.length === 0 &&
-              v.dont.length === 0
-              ? cache.deleteButton
-              : null
-            : null}
-        </div>
-      );
-    });
-    const List = React.memo((props: TListProps) => {
-      return props.ks.length ? (
-        <ol>
-          {props.ks.map(k => {
-            return (
-              <li key={k}>
-                <Node k={k} />
-              </li>
-            );
-          })}
-        </ol>
-      ) : null;
-    });
-    const QueueNode = connect((state: TState, ownProps: TEntryOwnProps) => {
-      const k = ownProps.k;
-      return {
-        k,
-        v: state.data.kvs[k],
-        cache: state.caches[k],
-        running: k === state.data.current_entry,
-        showTodoOnly: state.data.showTodoOnly,
-      };
-    })((props: TQueueNodeProps) => {
-      const v = props.v;
-      const cache = props.cache;
-      return props.showTodoOnly && v.status !== "todo" ? null : (
-        <div
-          id={`queue${props.k}`}
-          className={props.running ? `${v.status} running` : v.status}
-        >
-          {v.parent ? cache.toTreeButton : null}
-          {v.parent === null
-            ? null
-            : v.status === "done"
-            ? cache.queueDoneToTodoButton
-            : v.status === "dont"
-            ? cache.queueDontToTodoButton
-            : cache.queueNewButton}
-          {v.parent === null
-            ? null
-            : cache.textAreaOf(v.text, v.status, v.style, null)}
-          {v.parent === null ? null : (
-            <input
-              type="number"
-              step="any"
-              value={v.estimate}
-              onChange={cache.setEstimate}
-              className={v.status}
-            />
-          )}
-          {digits1(cache.total_time_spent / 3600)}
-          {v.parent === null
-            ? null
-            : props.running
-            ? cache.stopButton
-            : cache.startButton}
-          {v.parent && v.status === "todo" ? cache.topButton : null}
-          {v.status === "todo" ? cache.evalButton : null}
-          {v.parent && v.status === "todo"
-            ? [cache.todoToDoneButton, cache.todoToDontButton]
-            : null}
-          {v.parent ? cache.showDetailButton : null}
-          {v.status === "todo"
-            ? cache.percentiles.map(digits1).join(" ")
-            : null}
-          {v.parent && v.show_detail
-            ? showLastRange(lastRange(v.ranges), cache.setLastRange)
-            : null}
-          {v.parent && v.show_detail
-            ? v.status === "todo" &&
-              v.todo.length === 0 &&
-              v.done.length === 0 &&
-              v.dont.length === 0
-              ? cache.deleteButton
-              : null
-            : null}
-        </div>
-      );
-    });
-    const Queue = React.memo((props: TQueueProps) => {
-      return props.ks.length ? (
-        <ol>
-          {props.ks.map(k => {
-            return (
-              <li key={k}>
-                <QueueNode k={k} />
-              </li>
-            );
-          })}
-        </ol>
-      ) : null;
-    });
-    const QueueColumn = connect((state: TState) => {
-      return { queue: state.data.queue };
-    })((props: TQueueColumnProps) => {
-      return (
-        <div id="queue">
-          <Queue ks={props.queue} />
-        </div>
-      );
-    });
     return (
       <Provider store={this.store}>
         <div id="columns">
@@ -1430,6 +1213,226 @@ class App extends React.Component<TAppProps, TState> {
     );
   };
 }
+
+const QueueColumn = connect((state: TState) => {
+  return { queue: state.data.queue };
+})((props: TQueueColumnProps) => {
+  return (
+    <div id="queue">
+      <Queue ks={props.queue} />
+    </div>
+  );
+});
+
+const Queue = React.memo((props: TQueueProps) => {
+  return props.ks.length ? (
+    <ol>
+      {props.ks.map(k => {
+        return (
+          <li key={k}>
+            <QueueNode k={k} />
+          </li>
+        );
+      })}
+    </ol>
+  ) : null;
+});
+
+const List = React.memo((props: TListProps) => {
+  return props.ks.length ? (
+    <ol>
+      {props.ks.map(k => {
+        return (
+          <li key={k}>
+            <Node k={k} />
+          </li>
+        );
+      })}
+    </ol>
+  ) : null;
+});
+
+const Node = connect((state: TState, ownProps: TNodeOwnProps) => {
+  const k = ownProps.k;
+  const v = state.data.kvs[k];
+  return {
+    k,
+    todo: v.todo,
+    done: v.done,
+    dont: v.dont,
+    showTodoOnly: state.data.showTodoOnly,
+  };
+})((props: TNodeProps) => {
+  return (
+    <React.Fragment>
+      <Entry k={props.k} />
+      <List ks={props.todo} />
+      {props.showTodoOnly ? null : <List ks={props.done} />}
+      {props.showTodoOnly ? null : <List ks={props.dont} />}
+    </React.Fragment>
+  );
+});
+
+const QueueNode = connect((state: TState, ownProps: TEntryOwnProps) => {
+  const k = ownProps.k;
+  return {
+    k,
+    v: state.data.kvs[k],
+    cache: state.caches[k],
+    running: k === state.data.current_entry,
+    showTodoOnly: state.data.showTodoOnly,
+  };
+})((props: TQueueNodeProps) => {
+  const v = props.v;
+  const cache = props.cache;
+  return props.showTodoOnly && v.status !== "todo" ? null : (
+    <div
+      id={`queue${props.k}`}
+      className={props.running ? `${v.status} running` : v.status}
+    >
+      {v.parent ? cache.toTreeButton : null}
+      {v.parent === null
+        ? null
+        : v.status === "done"
+        ? cache.queueDoneToTodoButton
+        : v.status === "dont"
+        ? cache.queueDontToTodoButton
+        : cache.queueNewButton}
+      {v.parent === null
+        ? null
+        : cache.textAreaOf(v.text, v.status, v.style, null)}
+      {v.parent === null ? null : (
+        <input
+          type="number"
+          step="any"
+          value={v.estimate}
+          onChange={cache.setEstimate}
+          className={v.status}
+        />
+      )}
+      {digits1(cache.total_time_spent / 3600)}
+      {v.parent === null
+        ? null
+        : props.running
+        ? cache.stopButton
+        : cache.startButton}
+      {v.parent && v.status === "todo" ? cache.topButton : null}
+      {v.status === "todo" ? cache.evalButton : null}
+      {v.parent && v.status === "todo"
+        ? [cache.todoToDoneButton, cache.todoToDontButton]
+        : null}
+      {v.parent ? cache.showDetailButton : null}
+      {v.status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
+      {v.parent && v.show_detail
+        ? showLastRange(lastRange(v.ranges), cache.setLastRange)
+        : null}
+      {v.parent && v.show_detail
+        ? v.status === "todo" &&
+          v.todo.length === 0 &&
+          v.done.length === 0 &&
+          v.dont.length === 0
+          ? cache.deleteButton
+          : null
+        : null}
+    </div>
+  );
+});
+
+const Entry = connect((state: TState, ownProps: TEntryOwnProps) => {
+  const k = ownProps.k;
+  return {
+    k,
+    v: state.data.kvs[k],
+    cache: state.caches[k],
+    running: k === state.data.current_entry,
+  };
+})((props: TEntryProps) => {
+  const v = props.v;
+  const cache = props.cache;
+  return (
+    <div
+      id={`tree${props.k}`}
+      className={props.running ? `${v.status} running` : v.status}
+    >
+      {v.parent === null
+        ? null
+        : v.status === "done"
+        ? cache.treeDoneToTodoButton
+        : v.status === "dont"
+        ? cache.treeDontToTodoButton
+        : cache.treeNewButton}
+      {v.parent === null
+        ? null
+        : cache.textAreaOf(v.text, v.status, v.style, cache.textAreaRef)}
+      {v.parent === null ? null : (
+        <input
+          type="number"
+          step="any"
+          value={v.estimate}
+          onChange={cache.setEstimate}
+          className={v.status}
+        />
+      )}
+      {digits1(cache.total_time_spent / 3600)}
+      {v.parent === null
+        ? null
+        : props.running
+        ? cache.stopButton
+        : cache.startButton}
+      {v.parent && v.status === "todo" ? cache.topButton : null}
+      {v.status === "todo" ? cache.evalButton : null}
+      {v.parent && v.status === "todo" && v.todo.length === 0
+        ? [cache.todoToDoneButton, cache.todoToDontButton]
+        : null}
+      {v.parent ? cache.showDetailButton : null}
+      {v.parent && v.show_detail && v.status === "todo"
+        ? cache.moveUpButton
+        : null}
+      {v.parent && v.show_detail && v.status === "todo"
+        ? cache.moveDownButton
+        : null}
+      {v.parent && v.show_detail && v.status === "todo"
+        ? cache.unindentButton
+        : null}
+      {v.parent && v.show_detail && v.status === "todo"
+        ? cache.indentButton
+        : null}
+      {v.status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
+      {v.parent && v.show_detail
+        ? showLastRange(lastRange(v.ranges), cache.setLastRange)
+        : null}
+      {v.parent && v.show_detail
+        ? v.status === "todo" &&
+          v.todo.length === 0 &&
+          v.done.length === 0 &&
+          v.dont.length === 0
+          ? cache.deleteButton
+          : null
+        : null}
+    </div>
+  );
+});
+
+const _estimate = (
+  estimates: number[],
+  ratios: number[],
+  weights: number[],
+  n_mc: number,
+) => {
+  const ts = [];
+  const rng = multinomial(ratios, weights);
+  for (let i = 0; i < n_mc; i++) {
+    ts.push(
+      sum(
+        estimates.map(x => {
+          return rng.next().value * x;
+        }),
+      ),
+    );
+  }
+  ts.sort((a, b) => a - b);
+  return ts;
+};
 
 const showLastRange = (
   l: null | TRange,
