@@ -407,7 +407,7 @@ class App extends React.Component<TAppProps, TState> {
           case "dontToTodo":
             return this.$dontToTodo(state, action.k);
           case "focusTextArea":
-            return this.$focusTextArea(state, action.k);
+            return $focusTextArea(state, action.k);
           default:
             const _: never = action; // 1 or state cannot be used here
             return state;
@@ -670,50 +670,8 @@ class App extends React.Component<TAppProps, TState> {
   };
   $eval_ = (state: TState, k: string) => {
     return produce(state, draft => {
-      this._eval_(draft, k);
+      _eval_(draft, k);
     });
-  };
-  _eval_ = (draft: Draft<TState>, k: string) => {
-    const candidates = Object.values(draft.data.kvs).filter(v => {
-      return (
-        (v.status === "done" || v.status === "dont") &&
-        v.estimate !== NO_ESTIMATION
-      );
-    });
-    const ratios = candidates.length
-      ? candidates.map(v => {
-          return (
-            draft.caches[v.start_time].total_time_spent / 3600 / v.estimate
-          );
-        })
-      : [1];
-    const now = Number(new Date()) / 1000;
-    const weights = candidates.length
-      ? candidates.map(v => {
-          // 1/e per year
-          return Math.exp(
-            -(now - Date.parse(v.end_time as string) / 1000) / (86400 * 365.25),
-          );
-        })
-      : [1];
-    const leaf_estimates = Array.from(leafs(draft.data.kvs[k], draft.data.kvs))
-      .filter(v => {
-        return v.estimate !== NO_ESTIMATION;
-      })
-      .map(v => {
-        return v.estimate;
-      });
-    const n_mc = 2000;
-    const ts = _estimate(leaf_estimates, ratios, weights, n_mc);
-    draft.caches[k].percentiles = [
-      ts[0],
-      ts[Math.round(n_mc / 10)],
-      ts[Math.round(n_mc / 3)],
-      ts[Math.round(n_mc / 2)],
-      ts[Math.round((n_mc * 2) / 3)],
-      ts[Math.round((n_mc * 9) / 10)],
-      ts[n_mc - 1],
-    ];
   };
   delete_ = (k: string) => {
     this.store.dispatch({ type: "delete_", k });
@@ -722,7 +680,7 @@ class App extends React.Component<TAppProps, TState> {
   $delete_ = (state: TState, k: string) => {
     return produce(state, draft => {
       if (draft.data.kvs[k].todo.length === 0) {
-        this._rmTodoEntry(draft, k);
+        _rmTodoEntry(draft, k);
         deleteAtVal(draft.data.queue, k);
         delete draft.data.kvs[k];
         delete draft.caches[k];
@@ -830,11 +788,11 @@ class App extends React.Component<TAppProps, TState> {
     return produce(state, draft => {
       if (k !== draft.data.current_entry) {
         if (draft.data.kvs[k].status === "done") {
-          this._doneToTodo(draft, k);
+          _doneToTodo(draft, k);
         } else if (draft.data.kvs[k].status === "dont") {
-          this._dontToTodo(draft, k);
+          _dontToTodo(draft, k);
         }
-        this._top(draft, k);
+        _top(draft, k);
         assert(draft.data.kvs[k].status === "todo", "Must not happen");
         this._stop(draft);
         draft.data.current_entry = k;
@@ -856,7 +814,7 @@ class App extends React.Component<TAppProps, TState> {
   };
   $top = (state: TState, k: string) => {
     return produce(state, draft => {
-      this._top(draft, k);
+      _top(draft, k);
       this.dirtyHistory = this.dirtyDump = true;
     });
   };
@@ -909,11 +867,11 @@ class App extends React.Component<TAppProps, TState> {
         if (ppk !== null) {
           const _total_time_spent_pk_orig = draft.caches[pk].total_time_spent;
           const _total_time_spent_ppk_orig = draft.caches[ppk].total_time_spent;
-          this._rmTodoEntry(draft, k);
+          _rmTodoEntry(draft, k);
           const entries = draft.data.kvs[ppk].todo;
           const i = entries.indexOf(pk);
           assert(i !== -1, "Must not happen.");
-          this._addTodoEntry(draft, ppk, i, k);
+          _addTodoEntry(draft, ppk, i, k);
           assertIsApprox(
             _total_time_spent_pk_orig - draft.caches[pk].total_time_spent,
             draft.caches[k].total_time_spent,
@@ -949,8 +907,8 @@ class App extends React.Component<TAppProps, TState> {
           const total_time_spent_new_pk_orig =
             draft.caches[new_pk].total_time_spent;
           const total_time_spent_k = draft.caches[k].total_time_spent;
-          this._rmTodoEntry(draft, k);
-          this._addTodoEntry(draft, new_pk, 0, k);
+          _rmTodoEntry(draft, k);
+          _addTodoEntry(draft, new_pk, 0, k);
           assertIsApprox(
             draft.caches[new_pk].total_time_spent,
             total_time_spent_new_pk_orig + total_time_spent_k,
@@ -963,36 +921,6 @@ class App extends React.Component<TAppProps, TState> {
   $focusIndentButton = (state: TState, k: string) => {
     focus(state.caches[k].indentButtonRef.current);
     return state;
-  };
-  _rmTodoEntry = (draft: Draft<TState>, k: string) => {
-    const pk = draft.data.kvs[k].parent;
-    if (pk) {
-      deleteAtVal(draft.data.kvs[pk].todo, k);
-      this._addDt(draft, pk, -draft.caches[k].total_time_spent);
-    }
-  };
-  _addTodoEntry = (draft: Draft<TState>, pk: string, i: number, k: string) => {
-    if (pk) {
-      draft.data.kvs[k].parent = pk;
-      draft.data.kvs[pk].todo.splice(i, 0, k);
-      this._addDt(draft, pk, draft.caches[k].total_time_spent);
-    }
-  };
-  _top = (draft: Draft<TState>, k: string) => {
-    this._topTree(draft, k);
-    this._topQueue(draft, k);
-  };
-  _topTree = (draft: Draft<TState>, k: string) => {
-    let ck = k;
-    let pk = draft.data.kvs[ck].parent;
-    while (pk !== null) {
-      toFront(draft.data.kvs[pk].todo, ck);
-      ck = pk;
-      pk = draft.data.kvs[ck].parent;
-    }
-  };
-  _topQueue = (draft: Draft<TState>, k: string) => {
-    toFront(draft.data.queue, k);
   };
   stop = () => {
     this.store.dispatch({ type: "stop" });
@@ -1007,15 +935,9 @@ class App extends React.Component<TAppProps, TState> {
       const r = last(e.ranges);
       r.end = Number(new Date()) / 1000;
       const dt = r.end - r.start;
-      this._addDt(draft, draft.data.current_entry, dt);
+      _addDt(draft, draft.data.current_entry, dt);
       draft.data.current_entry = null;
       this.dirtyHistory = this.dirtyDump = true;
-    }
-  };
-  _addDt = (draft: Draft<TState>, k: null | string, dt: number) => {
-    while (k) {
-      draft.caches[k].total_time_spent += dt;
-      k = draft.data.kvs[k].parent;
     }
   };
   setEstimate = (k: string, estimate: number) => {
@@ -1041,7 +963,7 @@ class App extends React.Component<TAppProps, TState> {
         const dt = t2 - t1;
         if (dt !== 0) {
           l.end = l.start + t2;
-          this._addDt(draft, k, dt);
+          _addDt(draft, k, dt);
           this.dirtyHistory = this.dirtyDump = true;
         }
       }
@@ -1080,22 +1002,6 @@ class App extends React.Component<TAppProps, TState> {
         })
       : state;
   };
-  _doneToTodo = (draft: Draft<TState>, k: string) => {
-    this._rmFromDone(draft, k);
-    this._addToTodo(draft, k);
-    const pk = draft.data.kvs[k].parent;
-    if (pk !== null && draft.data.kvs[pk].status !== "todo") {
-      this._doneToTodo(draft, pk);
-    }
-  };
-  _dontToTodo = (draft: Draft<TState>, k: string) => {
-    this._rmFromDont(draft, k);
-    this._addToTodo(draft, k);
-    const pk = draft.data.kvs[k].parent;
-    if (pk !== null && draft.data.kvs[pk].status !== "todo") {
-      this._dontToTodo(draft, pk);
-    }
-  };
   _rmFromTodo = (draft: Draft<TState>, k: string) => {
     if (draft.data.current_entry === k) {
       this._stop(draft);
@@ -1105,41 +1011,6 @@ class App extends React.Component<TAppProps, TState> {
       deleteAtVal(draft.data.kvs[pk].todo, k);
     }
   };
-  _rmFromDone = (draft: Draft<TState>, k: string) => {
-    const pk = draft.data.kvs[k].parent;
-    if (pk) {
-      deleteAtVal(draft.data.kvs[pk].done, k);
-    }
-  };
-  _rmFromDont = (draft: Draft<TState>, k: string) => {
-    const pk = draft.data.kvs[k].parent;
-    if (pk) {
-      deleteAtVal(draft.data.kvs[pk].dont, k);
-    }
-  };
-  _addToTodo = (draft: Draft<TState>, k: string) => {
-    draft.data.kvs[k].status = "todo";
-    const pk = draft.data.kvs[k].parent;
-    if (pk) {
-      draft.data.kvs[pk].todo.unshift(k);
-    }
-  };
-  _addToDone = (draft: Draft<TState>, k: string) => {
-    draft.data.kvs[k].status = "done";
-    draft.data.kvs[k].end_time = new Date().toISOString();
-    const pk = draft.data.kvs[k].parent;
-    if (pk) {
-      draft.data.kvs[pk].done.unshift(k);
-    }
-  };
-  _addToDont = (draft: Draft<TState>, k: string) => {
-    draft.data.kvs[k].status = "dont";
-    draft.data.kvs[k].end_time = new Date().toISOString();
-    const pk = draft.data.kvs[k].parent;
-    if (pk) {
-      draft.data.kvs[pk].dont.unshift(k);
-    }
-  };
   todoToDone = (k: string) => {
     this.store.dispatch({ type: "todoToDone", k });
     this.store.dispatch({ type: "save" });
@@ -1147,8 +1018,8 @@ class App extends React.Component<TAppProps, TState> {
   $todoToDone = (state: TState, k: string) => {
     return produce(state, draft => {
       this._rmFromTodo(draft, k);
-      this._addToDone(draft, k);
-      this._topQueue(draft, k);
+      _addToDone(draft, k);
+      _topQueue(draft, k);
       this.dirtyHistory = this.dirtyDump = true;
     });
   };
@@ -1159,8 +1030,8 @@ class App extends React.Component<TAppProps, TState> {
   $todoToDont = (state: TState, k: string) => {
     return produce(state, draft => {
       this._rmFromTodo(draft, k);
-      this._addToDont(draft, k);
-      this._topQueue(draft, k);
+      _addToDont(draft, k);
+      _topQueue(draft, k);
       this.dirtyHistory = this.dirtyDump = true;
     });
   };
@@ -1170,7 +1041,7 @@ class App extends React.Component<TAppProps, TState> {
   };
   $doneToTodo = (state: TState, k: string) => {
     return produce(state, draft => {
-      this._doneToTodo(draft, k);
+      _doneToTodo(draft, k);
       this.dirtyHistory = this.dirtyDump = true;
     });
   };
@@ -1180,14 +1051,9 @@ class App extends React.Component<TAppProps, TState> {
   };
   $dontToTodo = (state: TState, k: string) => {
     return produce(state, draft => {
-      this._dontToTodo(draft, k);
+      _dontToTodo(draft, k);
       this.dirtyHistory = this.dirtyDump = true;
     });
-  };
-  $focusTextArea = (state: TState, k: string) => {
-    // todo: Use more reliable method to focus on the textarea.
-    setTimeout(() => focus(state.caches[k].textAreaRef.current), 50);
-    return state;
   };
   render = () => {
     const Menu = connect((state: TState) => {
@@ -1213,6 +1079,158 @@ class App extends React.Component<TAppProps, TState> {
     );
   };
 }
+
+const _eval_ = (draft: Draft<TState>, k: string) => {
+  const candidates = Object.values(draft.data.kvs).filter(v => {
+    return (
+      (v.status === "done" || v.status === "dont") &&
+      v.estimate !== NO_ESTIMATION
+    );
+  });
+  const ratios = candidates.length
+    ? candidates.map(v => {
+        return draft.caches[v.start_time].total_time_spent / 3600 / v.estimate;
+      })
+    : [1];
+  const now = Number(new Date()) / 1000;
+  const weights = candidates.length
+    ? candidates.map(v => {
+        // 1/e per year
+        return Math.exp(
+          -(now - Date.parse(v.end_time as string) / 1000) / (86400 * 365.25),
+        );
+      })
+    : [1];
+  const leaf_estimates = Array.from(leafs(draft.data.kvs[k], draft.data.kvs))
+    .filter(v => {
+      return v.estimate !== NO_ESTIMATION;
+    })
+    .map(v => {
+      return v.estimate;
+    });
+  const n_mc = 2000;
+  const ts = _estimate(leaf_estimates, ratios, weights, n_mc);
+  draft.caches[k].percentiles = [
+    ts[0],
+    ts[Math.round(n_mc / 10)],
+    ts[Math.round(n_mc / 3)],
+    ts[Math.round(n_mc / 2)],
+    ts[Math.round((n_mc * 2) / 3)],
+    ts[Math.round((n_mc * 9) / 10)],
+    ts[n_mc - 1],
+  ];
+};
+
+const _rmTodoEntry = (draft: Draft<TState>, k: string) => {
+  const pk = draft.data.kvs[k].parent;
+  if (pk) {
+    deleteAtVal(draft.data.kvs[pk].todo, k);
+    _addDt(draft, pk, -draft.caches[k].total_time_spent);
+  }
+};
+
+const _addTodoEntry = (
+  draft: Draft<TState>,
+  pk: string,
+  i: number,
+  k: string,
+) => {
+  if (pk) {
+    draft.data.kvs[k].parent = pk;
+    draft.data.kvs[pk].todo.splice(i, 0, k);
+    _addDt(draft, pk, draft.caches[k].total_time_spent);
+  }
+};
+
+const _top = (draft: Draft<TState>, k: string) => {
+  _topTree(draft, k);
+  _topQueue(draft, k);
+};
+
+const _topTree = (draft: Draft<TState>, k: string) => {
+  let ck = k;
+  let pk = draft.data.kvs[ck].parent;
+  while (pk !== null) {
+    toFront(draft.data.kvs[pk].todo, ck);
+    ck = pk;
+    pk = draft.data.kvs[ck].parent;
+  }
+};
+
+const _addDt = (draft: Draft<TState>, k: null | string, dt: number) => {
+  while (k) {
+    draft.caches[k].total_time_spent += dt;
+    k = draft.data.kvs[k].parent;
+  }
+};
+
+const _topQueue = (draft: Draft<TState>, k: string) => {
+  toFront(draft.data.queue, k);
+};
+
+const _doneToTodo = (draft: Draft<TState>, k: string) => {
+  _rmFromDone(draft, k);
+  _addToTodo(draft, k);
+  const pk = draft.data.kvs[k].parent;
+  if (pk !== null && draft.data.kvs[pk].status !== "todo") {
+    _doneToTodo(draft, pk);
+  }
+};
+
+const _dontToTodo = (draft: Draft<TState>, k: string) => {
+  _rmFromDont(draft, k);
+  _addToTodo(draft, k);
+  const pk = draft.data.kvs[k].parent;
+  if (pk !== null && draft.data.kvs[pk].status !== "todo") {
+    _dontToTodo(draft, pk);
+  }
+};
+
+const _rmFromDone = (draft: Draft<TState>, k: string) => {
+  const pk = draft.data.kvs[k].parent;
+  if (pk) {
+    deleteAtVal(draft.data.kvs[pk].done, k);
+  }
+};
+
+const _rmFromDont = (draft: Draft<TState>, k: string) => {
+  const pk = draft.data.kvs[k].parent;
+  if (pk) {
+    deleteAtVal(draft.data.kvs[pk].dont, k);
+  }
+};
+
+const _addToTodo = (draft: Draft<TState>, k: string) => {
+  draft.data.kvs[k].status = "todo";
+  const pk = draft.data.kvs[k].parent;
+  if (pk) {
+    draft.data.kvs[pk].todo.unshift(k);
+  }
+};
+
+const _addToDone = (draft: Draft<TState>, k: string) => {
+  draft.data.kvs[k].status = "done";
+  draft.data.kvs[k].end_time = new Date().toISOString();
+  const pk = draft.data.kvs[k].parent;
+  if (pk) {
+    draft.data.kvs[pk].done.unshift(k);
+  }
+};
+
+const _addToDont = (draft: Draft<TState>, k: string) => {
+  draft.data.kvs[k].status = "dont";
+  draft.data.kvs[k].end_time = new Date().toISOString();
+  const pk = draft.data.kvs[k].parent;
+  if (pk) {
+    draft.data.kvs[pk].dont.unshift(k);
+  }
+};
+
+const $focusTextArea = (state: TState, k: string) => {
+  // todo: Use more reliable method to focus on the textarea.
+  setTimeout(() => focus(state.caches[k].textAreaRef.current), 50);
+  return state;
+};
 
 const QueueColumn = connect((state: TState) => {
   return { queue: state.data.queue };
