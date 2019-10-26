@@ -341,7 +341,7 @@ class App extends React.Component<TAppProps, TState> {
     };
     const _state = state;
     this.store = createStore((state: undefined | TState, action: TActions) => {
-      if (typeof state === "undefined") {
+      if (state === undefined) {
         return _state;
       } else {
         switch (action.type) {
