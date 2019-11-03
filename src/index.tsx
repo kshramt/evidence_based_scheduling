@@ -1246,7 +1246,7 @@ const Queue = React.memo((props: TQueueProps) => {
   return props.ks.length ? (
     <ol>
       {props.ks.map(k => {
-        return <QueueNode k={k} />;
+        return <QueueNode k={k} key={k} />;
       })}
     </ol>
   ) : null;
