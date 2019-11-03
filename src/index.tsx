@@ -158,7 +158,7 @@ type TCache = {
   evalButton: JSX.Element;
   showDetailButton: JSX.Element;
   deleteButton: JSX.Element;
-  toTreeButton: JSX.Element;
+  toTreeFn: () => void;
   todoToDoneButton: JSX.Element;
   todoToDontButton: JSX.Element;
   setLastRange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -619,11 +619,9 @@ class App extends React.Component<TAppProps, TState> {
             {DELETE_MARK}
           </button>
         ),
-        toTreeButton: (
-          <a href={`#tree${k}`}>
-            <button>→</button>
-          </a>
-        ),
+        toTreeFn: () => {
+          window.location.href = `#tree${k}`;
+        },
         todoToDoneButton: XToYButton(
           DONE_MARK,
           this.todoToDone,
@@ -1300,12 +1298,11 @@ const QueueNode = connect((state: TState, ownProps: TEntryOwnProps) => {
   const v = props.v;
   const cache = props.cache;
   return props.showTodoOnly && v.status !== "todo" ? null : (
-    <li key={props.k}>
+    <li key={props.k} onClick={cache.toTreeFn}>
       <div
         id={`queue${props.k}`}
         className={props.running ? `${v.status} running` : v.status}
       >
-        {v.parent ? cache.toTreeButton : null}
         {v.parent === null
           ? null
           : v.status === "done"
