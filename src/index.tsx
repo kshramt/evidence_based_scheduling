@@ -32,10 +32,6 @@ type TListProps = {
   ks: string[];
 };
 
-type TQueueProps = {
-  ks: string[];
-};
-
 type TNodeProps = {
   k: string;
   todo: string[];
@@ -1235,19 +1231,15 @@ const QueueColumn = connect((state: TState) => {
 })((props: TQueueColumnProps) => {
   return (
     <div id="queue">
-      <Queue ks={props.queue} />
+      (props.queue.length ? (
+      <ol>
+        {props.queue.map(k => {
+          return <QueueNode k={k} key={k} />;
+        })}
+      </ol>
+      ) : null)
     </div>
   );
-});
-
-const Queue = React.memo((props: TQueueProps) => {
-  return props.ks.length ? (
-    <ol>
-      {props.ks.map(k => {
-        return <QueueNode k={k} key={k} />;
-      })}
-    </ol>
-  ) : null;
 });
 
 const List = React.memo((props: TListProps) => {
