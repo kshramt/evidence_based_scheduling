@@ -1231,13 +1231,13 @@ const QueueColumn = connect((state: TState) => {
 })((props: TQueueColumnProps) => {
   return (
     <div id="queue">
-      (props.queue.length ? (
-      <ol>
-        {props.queue.map(k => {
-          return <QueueNode k={k} key={k} />;
-        })}
-      </ol>
-      ) : null)
+      {props.queue.length ? (
+        <ol>
+          {props.queue.map(k => {
+            return <QueueNode k={k} key={k} />;
+          })}
+        </ol>
+      ) : null}
     </div>
   );
 });
