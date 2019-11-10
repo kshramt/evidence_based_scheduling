@@ -984,8 +984,9 @@ class App extends React.Component<TAppProps, TState> {
     width: null | string,
     height: null | string,
   ) => {
-    return width && height
-      ? produce(state, draft => {
+    return width === null || height === null
+      ? state
+      : produce(state, draft => {
           const v = draft.data.kvs[k];
           // if (v.style.width !== width) {
           //   v.style.width = width;
@@ -995,8 +996,7 @@ class App extends React.Component<TAppProps, TState> {
             v.style.height = height;
             this.dirtyHistory = this.dirtyDump = true;
           }
-        })
-      : state;
+        });
   };
   _rmFromTodo = (draft: Draft<TState>, k: string) => {
     if (draft.data.current_entry === k) {
