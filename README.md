@@ -10,14 +10,18 @@ The numbers on the right show 0th, 10th, 33th, 50th, 67th, 90th, and 100th perce
 ## Usage
 
 ```
-./build.sh
-docker run --rm -p 5000:5000 -v "$(pwd)":/app/data kshramt/evidence_based_scheduling
-# open localhost:5000 in a Web browser
+docker run --rm -p 5000:5000 -v "$(pwd)":/app/data kshra/evidence_based_scheduling:latest
 ```
 
 ## Development
 
 ```
+./build.sh
+docker run --rm -p 5000:5000 -v "$(pwd)":/app/data kshramt/evidence_based_scheduling
+# open localhost:5000 in a Web browser
+
+# or
+
 python3 -m  venv venv
 source venv/bin/activate
 pip3 install -r requirements.txt
