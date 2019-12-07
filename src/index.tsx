@@ -942,8 +942,10 @@ class App extends React.Component<TAppProps, TState> {
   };
   $setEstimate = (state: TState, k: string, estimate: number) => {
     return produce(state, draft => {
-      draft.data.kvs[k].estimate = estimate;
-      this.dirtyHistory = this.dirtyDump = true;
+      if (draft.data.kvs[k].estimate !== estimate) {
+        draft.data.kvs[k].estimate = estimate;
+        this.dirtyHistory = this.dirtyDump = true;
+      }
     });
   };
   setLastRange = (k: string, t: number) => {
