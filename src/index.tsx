@@ -824,6 +824,7 @@ class App extends React.Component<TAppProps, TState> {
       const pk = draft.data.kvs[k].parent;
       if (pk) {
         moveUp(draft.data.kvs[pk].todo, k);
+        moveUp(draft.data.queue, k);
         this.dirtyHistory = this.dirtyDump = true;
       }
     });
@@ -842,6 +843,7 @@ class App extends React.Component<TAppProps, TState> {
       const pk = draft.data.kvs[k].parent;
       if (pk) {
         moveDown(draft.data.kvs[pk].todo, k);
+        moveDown(draft.data.queue, k);
         this.dirtyHistory = this.dirtyDump = true;
       }
     });
@@ -1329,6 +1331,12 @@ const QueueNode = connect((state: TState, ownProps: TEntryOwnProps) => {
           ? [cache.todoToDoneButton, cache.todoToDontButton]
           : null}
         {v.parent ? cache.showDetailButton : null}
+        {v.parent && v.show_detail && v.status === "todo"
+          ? cache.moveUpButton
+          : null}
+        {v.parent && v.show_detail && v.status === "todo"
+          ? cache.moveDownButton
+          : null}
         {v.status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
         {v.parent && v.show_detail
           ? showLastRange(lastRange(v.ranges), cache.setLastRange)
