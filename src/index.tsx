@@ -783,10 +783,13 @@ class App extends React.Component<TAppProps, TState> {
   $start = (state: TState, k: string) => {
     return produce(state, draft => {
       if (k !== draft.data.current_entry) {
-        if (draft.data.kvs[k].status === "done") {
-          _doneToTodo(draft, k);
-        } else if (draft.data.kvs[k].status === "dont") {
-          _dontToTodo(draft, k);
+        switch (draft.data.kvs[k].status) {
+          case "done":
+            _doneToTodo(draft, k);
+            break;
+          case "dont":
+            _dontToTodo(draft, k);
+            break;
         }
         _top(draft, k);
         assert(draft.data.kvs[k].status === "todo", "Must not happen");
@@ -1172,8 +1175,15 @@ const _doneToTodo = (draft: Draft<TState>, k: string) => {
   _rmFromDone(draft, k);
   _addToTodo(draft, k);
   const pk = draft.data.kvs[k].parent;
-  if (pk !== null && draft.data.kvs[pk].status !== "todo") {
-    _doneToTodo(draft, pk);
+  if (pk != null) {
+    switch (draft.data.kvs[pk].status) {
+      case "done":
+        _doneToTodo(draft, pk);
+        break;
+      case "dont":
+        _dontToTodo(draft, pk);
+        break;
+    }
   }
 };
 
@@ -1181,8 +1191,15 @@ const _dontToTodo = (draft: Draft<TState>, k: string) => {
   _rmFromDont(draft, k);
   _addToTodo(draft, k);
   const pk = draft.data.kvs[k].parent;
-  if (pk !== null && draft.data.kvs[pk].status !== "todo") {
-    _dontToTodo(draft, pk);
+  if (pk != null) {
+    switch (draft.data.kvs[pk].status) {
+      case "done":
+        _doneToTodo(draft, pk);
+        break;
+      case "dont":
+        _dontToTodo(draft, pk);
+        break;
+    }
   }
 };
 
