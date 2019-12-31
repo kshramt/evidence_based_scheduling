@@ -1256,9 +1256,11 @@ const QueueColumn = connect((state: TState) => {
     <div id="queue">
       {props.queue.length ? (
         <ol>
-          {props.queue.map(k => {
-            return <QueueNode k={k} key={k} />;
-          })}
+          {props.queue
+            .map(k => {
+              return <QueueNode k={k} key={k} />;
+            })
+            .filter(e => e !== null)}
         </ol>
       ) : null}
     </div>
