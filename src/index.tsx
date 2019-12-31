@@ -52,7 +52,7 @@ type TQueueNodeProps = {
   v: TEntry;
   running: boolean;
   cache: TCache;
-  showTodoOnly: boolean;
+  shouldHide: boolean;
 };
 
 type THistory = {
@@ -1302,17 +1302,18 @@ const Node = connect((state: TState, ownProps: TNodeOwnProps) => {
 
 const QueueNode = connect((state: TState, ownProps: TEntryOwnProps) => {
   const k = ownProps.k;
+  const v = state.data.kvs[k];
   return {
     k,
-    v: state.data.kvs[k],
+    v,
     cache: state.caches[k],
     running: k === state.data.current_entry,
-    showTodoOnly: state.data.showTodoOnly,
+    shouldHide: state.data.showTodoOnly && v.status !== "todo",
   };
 })((props: TQueueNodeProps) => {
   const v = props.v;
   const cache = props.cache;
-  return props.showTodoOnly && v.status !== "todo" ? null : (
+  return props.shouldHide ? null : (
     <li key={props.k}>
       <div
         id={`queue${props.k}`}
