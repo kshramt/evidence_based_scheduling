@@ -1347,7 +1347,7 @@ const QueueNode = connect((state: TState, ownProps: TEntryOwnProps) => {
           : cache.startButton}
         {v.parent && v.status === "todo" ? cache.topButton : null}
         {v.status === "todo" ? cache.evalButton : null}
-        {v.parent && v.status === "todo"
+        {v.parent && v.status === "todo" && v.todo.length === 0
           ? [cache.todoToDoneButton, cache.todoToDontButton]
           : null}
         {v.parent ? cache.showDetailButton : null}
