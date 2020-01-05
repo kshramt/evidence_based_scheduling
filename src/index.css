@@ -37,4 +37,5 @@ button{
 }
 textarea{
     border-color: rgb(235, 235, 235);
+    vertical-align: sub;
 }
