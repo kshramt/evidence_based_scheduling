@@ -31,11 +31,12 @@ input{
 button{
     padding: 0;
     font-size: 50%;
+    vertical-align: text-bottom;
 }
 .done, .dont{
     color: rgb(170, 170, 170);
 }
 textarea{
     border-color: rgb(235, 235, 235);
-    vertical-align: sub;
+    vertical-align: text-bottom;
 }
