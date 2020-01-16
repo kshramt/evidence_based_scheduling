@@ -146,13 +146,19 @@ def get():
     except IOError:
         t = _js_now_v1()
         data = dict(
-            current_entry=None, root=t, kvs={t: _new_entry_v1(t)}, queue=[], version=LATEST_VERSION
+            current_entry=None,
+            root=t,
+            kvs={t: _new_entry_v1(t)},
+            queue=[],
+            version=LATEST_VERSION,
         )
     data = _remove_tail_none_v1(data)
     data = _update_data_version(data)
     data = _join_text_v1(data)
     data = _parse_datetime_v1(data)
-    return flask.json.jsonify(data)
+    res = flask.make_response(flask.json.jsonify(data))
+    res.headers["Cache-Control"] = "no-cache"
+    return res
 
 
 @app.route("/api/v1/post", methods=["POST"])
