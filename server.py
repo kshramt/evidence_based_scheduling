@@ -135,7 +135,9 @@ app = flask.Flask(
 
 @app.route("/")
 def root():
-    return flask.render_template("index.html")
+    res = flask.make_response(flask.render_template("index.html"))
+    res.headers["Cache-Control"] = "no-cache"
+    return res
 
 
 @app.route("/api/v1/get")
