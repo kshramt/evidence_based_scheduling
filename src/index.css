@@ -20,10 +20,6 @@ div.menu{
     position: fixed;
     top: 1ex;
     left: 1ex;
-    background-color: white;
-}
-div.running{
-    background-color: Moccasin;
 }
 input{
     width: 6ex;
@@ -37,6 +33,20 @@ button{
     color: rgb(170, 170, 170);
 }
 textarea{
-    border-color: rgb(235, 235, 235);
     vertical-align: text-bottom;
+}
+
+div.menu{
+    background-color: white;
+}
+div.running{
+    background-color: Moccasin;
+}
+textarea{
+    border-color: rgb(235, 235, 235);
+}
+@media screen and (prefers-color-scheme: dark) {
+    html{
+        filter: invert(1);
+    }
 }
