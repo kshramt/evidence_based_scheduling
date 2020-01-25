@@ -136,7 +136,7 @@ app = flask.Flask(
 @app.route("/")
 def root():
     res = flask.make_response(flask.render_template("index.html"))
-    res.headers["Cache-Control"] = "no-cache"
+    res.headers["Cache-Control"] = "no-store"
     return res
 
 
@@ -159,7 +159,7 @@ def get():
     data = _join_text_v1(data)
     data = _parse_datetime_v1(data)
     res = flask.make_response(flask.json.jsonify(data))
-    res.headers["Cache-Control"] = "no-cache"
+    res.headers["Cache-Control"] = "no-store"
     return res
 
 
