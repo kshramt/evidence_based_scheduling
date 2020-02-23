@@ -28,108 +28,108 @@ const DETAIL_MARK = "⋮";
 
 type TStatus = "done" | "dont" | "todo";
 
-type TListProps = {
+interface IListProps {
   ks: string[];
-};
+}
 
-type TNodeProps = {
+interface INodeProps {
   k: string;
   todo: string[];
   done: string[];
   dont: string[];
   showTodoOnly: boolean;
-};
+}
 
-type TEntryProps = {
+interface IEntryProps {
   k: string;
-  v: TEntry;
+  v: IEntry;
   running: boolean;
-  cache: TCache;
-};
+  cache: ICache;
+}
 
-type TQueueNodeProps = {
+interface IQueueNodeProps {
   k: string;
-  v: TEntry;
+  v: IEntry;
   running: boolean;
-  cache: TCache;
+  cache: ICache;
   shouldHide: boolean;
-};
+}
 
-type THistory = {
-  prev: null | THistory;
-  value: TState;
-  next: null | THistory;
-};
+interface IHistory {
+  prev: null | IHistory;
+  value: IState;
+  next: null | IHistory;
+}
 
-type TState = {
-  data: TData;
-  caches: TCaches;
+interface IState {
+  data: IData;
+  caches: ICaches;
 
   saveSuccess: boolean;
-};
+}
 
-type TAppProps = {
-  data: TData;
-};
+interface IAppProps {
+  data: IData;
+}
 
-type TMenuProps = {
+interface IMenuProps {
   saveSuccess: boolean;
-};
+}
 
-type TNodeOwnProps = {
+interface INodeOwnProps {
   k: string;
-};
+}
 
-type TEntryOwnProps = {
+interface IEntryOwnProps {
   k: string;
-};
+}
 
-type TQueueColumnProps = {
+interface IQueueColumnProps {
   queue: string[];
-};
+}
 
-type TData = {
+interface IData {
   current_entry: null | string;
   root: string;
-  kvs: TKvs;
+  kvs: IKvs;
   queue: string[];
   showTodoOnly: boolean;
-};
+}
 
-type TKvs = {
-  [k: string]: TEntry;
-};
+interface IKvs {
+  [k: string]: IEntry;
+}
 
-type TEntry = {
+interface IEntry {
   done: string[];
   dont: string[];
   end_time: null | string;
   estimate: number;
   parent: null | string;
-  ranges: TRange[];
+  ranges: IRange[];
   show_detail: boolean;
   start_time: string;
   status: TStatus;
-  style: TStyle;
+  style: IStyle;
   text: string;
   todo: string[];
-};
+}
 
-type TStyle = {
+interface IStyle {
   height: string;
   width: string;
-};
+}
 
-type TRange = {
+interface IRange {
   start: number;
   end: null | number;
-};
+}
 
-type TCaches = {
-  [k: string]: TCache;
-};
+interface ICaches {
+  [k: string]: ICache;
+}
 
-type TCache = {
+interface ICache {
   total_time_spent: number;
   percentiles: number[];
   stopButtonRef: React.RefObject<HTMLButtonElement>;
@@ -164,10 +164,10 @@ type TCache = {
   textAreaOf: (
     text: string,
     status: TStatus,
-    style: TStyle,
+    style: IStyle,
     ref: null | React.RefObject<HTMLTextAreaElement>,
   ) => JSX.Element;
-};
+}
 
 interface IEvalAction extends Action {
   type: "eval_";
@@ -317,16 +317,16 @@ type TActions =
   | IDontToTodoAction
   | IFocusTextAreaAction;
 
-class App extends React.Component<TAppProps, TState> {
+class App extends React.Component<IAppProps, IState> {
   dirtyHistory: boolean;
   dirtyDump: boolean;
-  history: THistory;
+  history: IHistory;
   menuButtons: JSX.Element;
-  store: Store<TState, TActions>;
+  store: Store<IState, TActions>;
 
-  constructor(props: TAppProps) {
+  constructor(props: IAppProps) {
     super(props);
-    const caches = {} as TCaches;
+    const caches = {} as ICaches;
     for (const k of Object.keys(props.data.kvs)) {
       this.setCache(caches, k, props.data.kvs);
     }
@@ -336,7 +336,7 @@ class App extends React.Component<TAppProps, TState> {
       saveSuccess: true,
     };
     const _state = state;
-    this.store = createStore((state: undefined | TState, action: TActions) => {
+    this.store = createStore((state: undefined | IState, action: TActions) => {
       if (state === undefined) {
         return _state;
       } else {
@@ -429,7 +429,7 @@ class App extends React.Component<TAppProps, TState> {
       </div>
     );
   }
-  setCache = (caches: TCaches, k: string, kvs: TKvs) => {
+  setCache = (caches: ICaches, k: string, kvs: IKvs) => {
     if (caches[k] === undefined) {
       const sumChildren = (xs: string[]) => {
         return xs.reduce((total, current) => {
@@ -643,7 +643,7 @@ class App extends React.Component<TAppProps, TState> {
         textAreaOf: (
           text: string,
           status: TStatus,
-          style: TStyle,
+          style: IStyle,
           ref: null | React.RefObject<HTMLTextAreaElement>,
         ) => {
           return (
@@ -664,7 +664,7 @@ class App extends React.Component<TAppProps, TState> {
   eval_ = (k: string) => {
     this.store.dispatch({ type: "eval_", k });
   };
-  $eval_ = (state: TState, k: string) => {
+  $eval_ = (state: IState, k: string) => {
     return produce(state, draft => {
       _eval_(draft, k);
     });
@@ -673,7 +673,7 @@ class App extends React.Component<TAppProps, TState> {
     this.store.dispatch({ type: "delete_", k });
     this.store.dispatch({ type: "save" });
   };
-  $delete_ = (state: TState, k: string) => {
+  $delete_ = (state: IState, k: string) => {
     return produce(state, draft => {
       if (draft.data.kvs[k].todo.length === 0) {
         _rmTodoEntry(draft, k);
@@ -695,21 +695,21 @@ class App extends React.Component<TAppProps, TState> {
       k: this.store.getState().data.kvs[parent].todo[0],
     });
   };
-  $new_ = (state: TState, parent: string) => {
+  $new_ = (state: IState, parent: string) => {
     const k = new Date().toISOString();
     return produce(state, draft => {
       const v = newEntryValue(parent, k);
       draft.data.kvs[k] = v;
       draft.data.kvs[parent].todo.unshift(k);
       draft.data.queue.unshift(k);
-      this.setCache(draft.caches as TCaches, k, draft.data.kvs);
+      this.setCache(draft.caches as ICaches, k, draft.data.kvs);
       this.dirtyHistory = this.dirtyDump = true;
     });
   };
   save = () => {
     this.store.dispatch({ type: "save" });
   };
-  $save = (state: TState) => {
+  $save = (state: IState) => {
     if (this.dirtyHistory) {
       this.history = pushHistory(this.history, state);
       this.dirtyHistory = false;
@@ -735,7 +735,7 @@ class App extends React.Component<TAppProps, TState> {
     this.store.dispatch({ type: "undo" });
     this.store.dispatch({ type: "save" });
   };
-  $undo = (state: TState) => {
+  $undo = (state: IState) => {
     if (this.history.prev !== null) {
       this.history = this.history.prev;
       state = this.history.value;
@@ -748,7 +748,7 @@ class App extends React.Component<TAppProps, TState> {
     this.store.dispatch({ type: "redo" });
     this.store.dispatch({ type: "save" });
   };
-  $redo = (state: TState) => {
+  $redo = (state: IState) => {
     if (this.history.next !== null) {
       this.history = this.history.next;
       state = this.history.value;
@@ -759,7 +759,7 @@ class App extends React.Component<TAppProps, TState> {
     this.store.dispatch({ type: "flipShowTodoOnly" });
     this.store.dispatch({ type: "save" });
   };
-  $flipShowTodoOnly = (state: TState) => {
+  $flipShowTodoOnly = (state: IState) => {
     return produce(state, draft => {
       draft.data.showTodoOnly = !draft.data.showTodoOnly;
       this.dirtyHistory = this.dirtyDump = true;
@@ -769,7 +769,7 @@ class App extends React.Component<TAppProps, TState> {
     this.store.dispatch({ type: "flipShowDetail", k });
     this.store.dispatch({ type: "save" });
   };
-  $flipShowDetail = (state: TState, k: string) => {
+  $flipShowDetail = (state: IState, k: string) => {
     return produce(state, draft => {
       draft.data.kvs[k].show_detail = !draft.data.kvs[k].show_detail;
       this.dirtyHistory = this.dirtyDump = true;
@@ -780,7 +780,7 @@ class App extends React.Component<TAppProps, TState> {
     this.store.dispatch({ type: "save" });
     this.store.dispatch({ type: "focusStopButton", k });
   };
-  $start = (state: TState, k: string) => {
+  $start = (state: IState, k: string) => {
     return produce(state, draft => {
       if (k !== draft.data.current_entry) {
         switch (draft.data.kvs[k].status) {
@@ -803,7 +803,7 @@ class App extends React.Component<TAppProps, TState> {
       }
     });
   };
-  $focusStopButton = (state: TState, k: string) => {
+  $focusStopButton = (state: IState, k: string) => {
     setTimeout(() => focus(state.caches[k].stopButtonRef.current), 50);
     return state;
   };
@@ -811,7 +811,7 @@ class App extends React.Component<TAppProps, TState> {
     this.store.dispatch({ type: "top", k });
     this.store.dispatch({ type: "save" });
   };
-  $top = (state: TState, k: string) => {
+  $top = (state: IState, k: string) => {
     return produce(state, draft => {
       _top(draft, k);
       this.dirtyHistory = this.dirtyDump = true;
@@ -822,7 +822,7 @@ class App extends React.Component<TAppProps, TState> {
     this.store.dispatch({ type: "save" });
     this.store.dispatch({ type: "focusMoveUpButton", k });
   };
-  $moveUp = (state: TState, k: string) => {
+  $moveUp = (state: IState, k: string) => {
     return produce(state, draft => {
       const pk = draft.data.kvs[k].parent;
       if (pk) {
@@ -832,7 +832,7 @@ class App extends React.Component<TAppProps, TState> {
       }
     });
   };
-  $focusMoveUpButton = (state: TState, k: string) => {
+  $focusMoveUpButton = (state: IState, k: string) => {
     focus(state.caches[k].moveUpButtonRef.current);
     return state;
   };
@@ -841,7 +841,7 @@ class App extends React.Component<TAppProps, TState> {
     this.store.dispatch({ type: "save" });
     this.store.dispatch({ type: "focusMoveDownButton", k });
   };
-  $moveDown = (state: TState, k: string) => {
+  $moveDown = (state: IState, k: string) => {
     return produce(state, draft => {
       const pk = draft.data.kvs[k].parent;
       if (pk) {
@@ -851,7 +851,7 @@ class App extends React.Component<TAppProps, TState> {
       }
     });
   };
-  $focusMoveDownButton = (state: TState, k: string) => {
+  $focusMoveDownButton = (state: IState, k: string) => {
     focus(state.caches[k].moveDownButtonRef.current);
     return state;
   };
@@ -860,7 +860,7 @@ class App extends React.Component<TAppProps, TState> {
     this.store.dispatch({ type: "save" });
     this.store.dispatch({ type: "focusUnindentButton", k });
   };
-  $unindent = (state: TState, k: string) => {
+  $unindent = (state: IState, k: string) => {
     return produce(state, draft => {
       const pk = draft.data.kvs[k].parent;
       if (pk !== null) {
@@ -888,7 +888,7 @@ class App extends React.Component<TAppProps, TState> {
       }
     });
   };
-  $focusUnindentButton = (state: TState, k: string) => {
+  $focusUnindentButton = (state: IState, k: string) => {
     focus(state.caches[k].unindentButtonRef.current);
     return state;
   };
@@ -897,7 +897,7 @@ class App extends React.Component<TAppProps, TState> {
     this.store.dispatch({ type: "save" });
     this.store.dispatch({ type: "focusIndentButton", k });
   };
-  $indent = (state: TState, k: string) => {
+  $indent = (state: IState, k: string) => {
     return produce(state, draft => {
       const pk = draft.data.kvs[k].parent;
       if (pk) {
@@ -919,7 +919,7 @@ class App extends React.Component<TAppProps, TState> {
       }
     });
   };
-  $focusIndentButton = (state: TState, k: string) => {
+  $focusIndentButton = (state: IState, k: string) => {
     focus(state.caches[k].indentButtonRef.current);
     return state;
   };
@@ -927,10 +927,10 @@ class App extends React.Component<TAppProps, TState> {
     this.store.dispatch({ type: "stop" });
     this.store.dispatch({ type: "save" });
   };
-  $stop = (state: TState) => {
+  $stop = (state: IState) => {
     return produce(state, this._stop);
   };
-  _stop = (draft: Draft<TState>) => {
+  _stop = (draft: Draft<IState>) => {
     if (draft.data.current_entry !== null) {
       const e = draft.data.kvs[draft.data.current_entry];
       const r = last(e.ranges);
@@ -945,7 +945,7 @@ class App extends React.Component<TAppProps, TState> {
     this.store.dispatch({ type: "setEstimate", k, estimate });
     this.store.dispatch({ type: "save" });
   };
-  $setEstimate = (state: TState, k: string, estimate: number) => {
+  $setEstimate = (state: IState, k: string, estimate: number) => {
     return produce(state, draft => {
       if (draft.data.kvs[k].estimate !== estimate) {
         draft.data.kvs[k].estimate = estimate;
@@ -957,7 +957,7 @@ class App extends React.Component<TAppProps, TState> {
     this.store.dispatch({ type: "setLastRange", k, t });
     this.store.dispatch({ type: "save" });
   };
-  $setLastRange = (state: TState, k: string, t: number) => {
+  $setLastRange = (state: IState, k: string, t: number) => {
     return produce(state, draft => {
       const l = lastRange(draft.data.kvs[k].ranges);
       if (l !== null && l.end) {
@@ -975,7 +975,7 @@ class App extends React.Component<TAppProps, TState> {
   setText = (k: string, text: string) => {
     this.store.dispatch({ type: "setText", k, text });
   };
-  $setText = (state: TState, k: string, text: string) => {
+  $setText = (state: IState, k: string, text: string) => {
     return produce(state, draft => {
       draft.data.kvs[k].text = text;
       this.dirtyHistory = this.dirtyDump = true;
@@ -986,7 +986,7 @@ class App extends React.Component<TAppProps, TState> {
     this.store.dispatch({ type: "save" });
   };
   $resizeTextArea = (
-    state: TState,
+    state: IState,
     k: string,
     width: null | string,
     height: null | string,
@@ -1005,7 +1005,7 @@ class App extends React.Component<TAppProps, TState> {
           }
         });
   };
-  _rmFromTodo = (draft: Draft<TState>, k: string) => {
+  _rmFromTodo = (draft: Draft<IState>, k: string) => {
     if (draft.data.current_entry === k) {
       this._stop(draft);
     }
@@ -1018,7 +1018,7 @@ class App extends React.Component<TAppProps, TState> {
     this.store.dispatch({ type: "todoToDone", k });
     this.store.dispatch({ type: "save" });
   };
-  $todoToDone = (state: TState, k: string) => {
+  $todoToDone = (state: IState, k: string) => {
     return produce(state, draft => {
       this._rmFromTodo(draft, k);
       _addToDone(draft, k);
@@ -1030,7 +1030,7 @@ class App extends React.Component<TAppProps, TState> {
     this.store.dispatch({ type: "todoToDont", k });
     this.store.dispatch({ type: "save" });
   };
-  $todoToDont = (state: TState, k: string) => {
+  $todoToDont = (state: IState, k: string) => {
     return produce(state, draft => {
       this._rmFromTodo(draft, k);
       _addToDont(draft, k);
@@ -1042,7 +1042,7 @@ class App extends React.Component<TAppProps, TState> {
     this.store.dispatch({ type: "doneToTodo", k });
     this.store.dispatch({ type: "save" });
   };
-  $doneToTodo = (state: TState, k: string) => {
+  $doneToTodo = (state: IState, k: string) => {
     return produce(state, draft => {
       _doneToTodo(draft, k);
       this.dirtyHistory = this.dirtyDump = true;
@@ -1052,16 +1052,16 @@ class App extends React.Component<TAppProps, TState> {
     this.store.dispatch({ type: "dontToTodo", k });
     this.store.dispatch({ type: "save" });
   };
-  $dontToTodo = (state: TState, k: string) => {
+  $dontToTodo = (state: IState, k: string) => {
     return produce(state, draft => {
       _dontToTodo(draft, k);
       this.dirtyHistory = this.dirtyDump = true;
     });
   };
   render = () => {
-    const Menu = connect((state: TState) => {
+    const Menu = connect((state: IState) => {
       return { saveSuccess: state.saveSuccess };
-    })((props: TMenuProps) => {
+    })((props: IMenuProps) => {
       return (
         <div className={"menu"}>
           {props.saveSuccess ? null : <p>Failed to save.</p>}
@@ -1083,7 +1083,7 @@ class App extends React.Component<TAppProps, TState> {
   };
 }
 
-const _eval_ = (draft: Draft<TState>, k: string) => {
+const _eval_ = (draft: Draft<IState>, k: string) => {
   const candidates = Object.values(draft.data.kvs).filter(v => {
     return (
       (v.status === "done" || v.status === "dont") &&
@@ -1124,7 +1124,7 @@ const _eval_ = (draft: Draft<TState>, k: string) => {
   ];
 };
 
-const _rmTodoEntry = (draft: Draft<TState>, k: string) => {
+const _rmTodoEntry = (draft: Draft<IState>, k: string) => {
   const pk = draft.data.kvs[k].parent;
   if (pk) {
     deleteAtVal(draft.data.kvs[pk].todo, k);
@@ -1133,7 +1133,7 @@ const _rmTodoEntry = (draft: Draft<TState>, k: string) => {
 };
 
 const _addTodoEntry = (
-  draft: Draft<TState>,
+  draft: Draft<IState>,
   pk: string,
   i: number,
   k: string,
@@ -1145,12 +1145,12 @@ const _addTodoEntry = (
   }
 };
 
-const _top = (draft: Draft<TState>, k: string) => {
+const _top = (draft: Draft<IState>, k: string) => {
   _topTree(draft, k);
   _topQueue(draft, k);
 };
 
-const _topTree = (draft: Draft<TState>, k: string) => {
+const _topTree = (draft: Draft<IState>, k: string) => {
   let ck = k;
   let pk = draft.data.kvs[ck].parent;
   while (pk !== null) {
@@ -1160,18 +1160,18 @@ const _topTree = (draft: Draft<TState>, k: string) => {
   }
 };
 
-const _addDt = (draft: Draft<TState>, k: null | string, dt: number) => {
+const _addDt = (draft: Draft<IState>, k: null | string, dt: number) => {
   while (k) {
     draft.caches[k].total_time_spent += dt;
     k = draft.data.kvs[k].parent;
   }
 };
 
-const _topQueue = (draft: Draft<TState>, k: string) => {
+const _topQueue = (draft: Draft<IState>, k: string) => {
   toFront(draft.data.queue, k);
 };
 
-const _doneToTodo = (draft: Draft<TState>, k: string) => {
+const _doneToTodo = (draft: Draft<IState>, k: string) => {
   _rmFromDone(draft, k);
   _addToTodo(draft, k);
   const pk = draft.data.kvs[k].parent;
@@ -1187,7 +1187,7 @@ const _doneToTodo = (draft: Draft<TState>, k: string) => {
   }
 };
 
-const _dontToTodo = (draft: Draft<TState>, k: string) => {
+const _dontToTodo = (draft: Draft<IState>, k: string) => {
   _rmFromDont(draft, k);
   _addToTodo(draft, k);
   const pk = draft.data.kvs[k].parent;
@@ -1203,21 +1203,21 @@ const _dontToTodo = (draft: Draft<TState>, k: string) => {
   }
 };
 
-const _rmFromDone = (draft: Draft<TState>, k: string) => {
+const _rmFromDone = (draft: Draft<IState>, k: string) => {
   const pk = draft.data.kvs[k].parent;
   if (pk) {
     deleteAtVal(draft.data.kvs[pk].done, k);
   }
 };
 
-const _rmFromDont = (draft: Draft<TState>, k: string) => {
+const _rmFromDont = (draft: Draft<IState>, k: string) => {
   const pk = draft.data.kvs[k].parent;
   if (pk) {
     deleteAtVal(draft.data.kvs[pk].dont, k);
   }
 };
 
-const _addToTodo = (draft: Draft<TState>, k: string) => {
+const _addToTodo = (draft: Draft<IState>, k: string) => {
   draft.data.kvs[k].status = "todo";
   const pk = draft.data.kvs[k].parent;
   if (pk) {
@@ -1225,7 +1225,7 @@ const _addToTodo = (draft: Draft<TState>, k: string) => {
   }
 };
 
-const _addToDone = (draft: Draft<TState>, k: string) => {
+const _addToDone = (draft: Draft<IState>, k: string) => {
   draft.data.kvs[k].status = "done";
   draft.data.kvs[k].end_time = new Date().toISOString();
   const pk = draft.data.kvs[k].parent;
@@ -1234,7 +1234,7 @@ const _addToDone = (draft: Draft<TState>, k: string) => {
   }
 };
 
-const _addToDont = (draft: Draft<TState>, k: string) => {
+const _addToDont = (draft: Draft<IState>, k: string) => {
   draft.data.kvs[k].status = "dont";
   draft.data.kvs[k].end_time = new Date().toISOString();
   const pk = draft.data.kvs[k].parent;
@@ -1243,15 +1243,15 @@ const _addToDont = (draft: Draft<TState>, k: string) => {
   }
 };
 
-const $focusTextArea = (state: TState, k: string) => {
+const $focusTextArea = (state: IState, k: string) => {
   // todo: Use more reliable method to focus on the textarea.
   setTimeout(() => focus(state.caches[k].textAreaRef.current), 50);
   return state;
 };
 
-const QueueColumn = connect((state: TState) => {
+const QueueColumn = connect((state: IState) => {
   return { queue: state.data.queue };
-})((props: TQueueColumnProps) => {
+})((props: IQueueColumnProps) => {
   return (
     <div id="queue">
       {props.queue.length ? (
@@ -1265,7 +1265,7 @@ const QueueColumn = connect((state: TState) => {
   );
 });
 
-const List = React.memo((props: TListProps) => {
+const List = React.memo((props: IListProps) => {
   return props.ks.length ? (
     <ol>
       {props.ks.map(k => {
@@ -1279,7 +1279,7 @@ const List = React.memo((props: TListProps) => {
   ) : null;
 });
 
-const Node = connect((state: TState, ownProps: TNodeOwnProps) => {
+const Node = connect((state: IState, ownProps: INodeOwnProps) => {
   const k = ownProps.k;
   const v = state.data.kvs[k];
   return {
@@ -1289,7 +1289,7 @@ const Node = connect((state: TState, ownProps: TNodeOwnProps) => {
     dont: v.dont,
     showTodoOnly: state.data.showTodoOnly,
   };
-})((props: TNodeProps) => {
+})((props: INodeProps) => {
   return (
     <React.Fragment>
       <Entry k={props.k} />
@@ -1300,7 +1300,7 @@ const Node = connect((state: TState, ownProps: TNodeOwnProps) => {
   );
 });
 
-const QueueNode = connect((state: TState, ownProps: TEntryOwnProps) => {
+const QueueNode = connect((state: IState, ownProps: IEntryOwnProps) => {
   const k = ownProps.k;
   const v = state.data.kvs[k];
   return {
@@ -1310,7 +1310,7 @@ const QueueNode = connect((state: TState, ownProps: TEntryOwnProps) => {
     running: k === state.data.current_entry,
     shouldHide: state.data.showTodoOnly && v.status !== "todo",
   };
-})((props: TQueueNodeProps) => {
+})((props: IQueueNodeProps) => {
   const v = props.v;
   const cache = props.cache;
   return props.shouldHide ? null : (
@@ -1374,7 +1374,7 @@ const QueueNode = connect((state: TState, ownProps: TEntryOwnProps) => {
   );
 });
 
-const Entry = connect((state: TState, ownProps: TEntryOwnProps) => {
+const Entry = connect((state: IState, ownProps: IEntryOwnProps) => {
   const k = ownProps.k;
   return {
     k,
@@ -1382,7 +1382,7 @@ const Entry = connect((state: TState, ownProps: TEntryOwnProps) => {
     cache: state.caches[k],
     running: k === state.data.current_entry,
   };
-})((props: TEntryProps) => {
+})((props: IEntryProps) => {
   const v = props.v;
   const cache = props.cache;
   return (
@@ -1471,7 +1471,7 @@ const _estimate = (
 };
 
 const showLastRange = (
-  l: null | TRange,
+  l: null | IRange,
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
 ) => {
   return l === null || l.end === null ? null : (
@@ -1484,7 +1484,7 @@ const showLastRange = (
   );
 };
 
-const lastRange = (ranges: TRange[]): null | TRange => {
+const lastRange = (ranges: IRange[]): null | IRange => {
   return ranges.length
     ? last(ranges).end === null
       ? lastRange(butLast(ranges))
@@ -1588,7 +1588,7 @@ export const sum = (xs: number[]) => {
   }, 0);
 };
 
-function* leafs(v: TEntry, kvs: TKvs): Iterable<TEntry> {
+function* leafs(v: IEntry, kvs: IKvs): Iterable<IEntry> {
   if (v.status === "todo") {
     if (v.todo.length) {
       for (const c of v.todo) {
@@ -1625,7 +1625,7 @@ export function* multinomial<T>(xs: T[], ws: number[]) {
   return 0;
 }
 
-const pushHistory = (h: THistory, v: TState) => {
+const pushHistory = (h: IHistory, v: IState) => {
   return (h.next = {
     prev: h,
     value: v,
@@ -1658,7 +1658,7 @@ const newEntryValue = (parent: string, start_time: string) => {
     end_time: null,
     estimate: NO_ESTIMATION,
     parent,
-    ranges: [] as TRange[],
+    ranges: [] as IRange[],
     show_detail: false,
     start_time,
     status: "todo" as TStatus,
@@ -1671,7 +1671,7 @@ const newEntryValue = (parent: string, start_time: string) => {
 const main = () => {
   fetch("api/" + API_VERSION + "/get")
     .then(r => r.json())
-    .then((data: TData) => {
+    .then((data: IData) => {
       ReactDOM.render(<App data={data} />, document.getElementById("root"));
     });
 };
