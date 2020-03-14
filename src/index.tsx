@@ -943,6 +943,11 @@ const QueueNode = connect((state: IState, ownProps: IEntryOwnProps) => {
         {v.parent === null
           ? null
           : cache.textAreaOf(v.text, v.status, v.style, null)}
+        {v.parent === null
+          ? null
+          : props.running
+          ? cache.stopButton
+          : cache.startButton}
         {v.parent === null ? null : (
           <input
             type="number"
@@ -953,11 +958,6 @@ const QueueNode = connect((state: IState, ownProps: IEntryOwnProps) => {
           />
         )}
         {digits1(cache.total_time_spent / 3600)}
-        {v.parent === null
-          ? null
-          : props.running
-          ? cache.stopButton
-          : cache.startButton}
         {v.parent && v.status === "todo" ? cache.topButton : null}
         {v.status === "todo" ? cache.evalButton : null}
         {v.parent && v.status === "todo" && v.todo.length === 0
@@ -1013,6 +1013,11 @@ const Entry = connect((state: IState, ownProps: IEntryOwnProps) => {
       {v.parent === null
         ? null
         : cache.textAreaOf(v.text, v.status, v.style, cache.textAreaRef)}
+      {v.parent === null
+        ? null
+        : props.running
+        ? cache.stopButton
+        : cache.startButton}
       {v.parent === null ? null : (
         <input
           type="number"
@@ -1023,11 +1028,6 @@ const Entry = connect((state: IState, ownProps: IEntryOwnProps) => {
         />
       )}
       {digits1(cache.total_time_spent / 3600)}
-      {v.parent === null
-        ? null
-        : props.running
-        ? cache.stopButton
-        : cache.startButton}
       {v.parent && v.status === "todo" ? cache.topButton : null}
       {v.status === "todo" ? cache.evalButton : null}
       {v.parent && v.status === "todo" && v.todo.length === 0
