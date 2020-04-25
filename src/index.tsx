@@ -341,6 +341,29 @@ class App extends React.Component<IAppProps, IState> {
         <button onClick={this.undo}>{UNDO_MARK}</button>
         <button onClick={this.redo}>{REDO_MARK}</button>
         <button onClick={this.flipShowTodoOnly}>👀</button>
+        <button
+          onClick={() => {
+            let k_min = null;
+            let estimate_min = Infinity;
+            for (const k in state.data.kvs) {
+              const v = state.data.kvs[k];
+              if (
+                v.status === "todo" &&
+                v.todo.length <= 0 &&
+                0 < v.estimate &&
+                v.estimate < estimate_min
+              ) {
+                k_min = k;
+                estimate_min = v.estimate;
+              }
+            }
+            if (k_min !== null) {
+              this.top(k_min);
+            }
+          }}
+        >
+          Small
+        </button>
       </div>
     );
   }
