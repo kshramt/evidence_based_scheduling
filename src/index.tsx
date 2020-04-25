@@ -364,6 +364,42 @@ class App extends React.Component<IAppProps, IState> {
         >
           Small
         </button>
+        <button
+          onClick={() => {
+            let k_min = null;
+            let due_min = ":due: 9999-12-31T23:59:59";
+            for (let k in state.data.kvs) {
+              let v = state.data.kvs[k];
+              if (v.todo.length <= 0) {
+                while (true) {
+                  let due = null;
+                  for (const w of v.text.split("\n")) {
+                    if (w.startsWith(":due: ")) {
+                      due = w;
+                    }
+                  }
+                  if (due !== null) {
+                    if (due < due_min) {
+                      k_min = k;
+                      due_min = due;
+                    }
+                    break;
+                  }
+                  if (v.parent === null) {
+                    break;
+                  }
+                  k = v.parent;
+                  v = state.data.kvs[k];
+                }
+              }
+            }
+            if (k_min !== null) {
+              this.top(k_min);
+            }
+          }}
+        >
+          Due
+        </button>
       </div>
     );
   }
