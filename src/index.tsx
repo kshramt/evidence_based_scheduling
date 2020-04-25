@@ -343,6 +343,7 @@ class App extends React.Component<IAppProps, IState> {
         <button onClick={this.flipShowTodoOnly}>👀</button>
         <button
           onClick={() => {
+            const state = this.store.getState();
             let k_min = null;
             let estimate_min = Infinity;
             for (const k in state.data.kvs) {
@@ -366,11 +367,12 @@ class App extends React.Component<IAppProps, IState> {
         </button>
         <button
           onClick={() => {
+            const state = this.store.getState();
             let k_min = null;
             let due_min = ":due: 9999-12-31T23:59:59";
             for (let k in state.data.kvs) {
               let v = state.data.kvs[k];
-              if (v.todo.length <= 0) {
+              if (v.status === "todo" && v.todo.length <= 0) {
                 while (true) {
                   let due = null;
                   for (const w of v.text.split("\n")) {
