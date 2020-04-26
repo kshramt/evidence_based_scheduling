@@ -9,7 +9,7 @@ copy . .
 run npm run build
 
 
-from python:3.8.2-slim-buster as py
+from python:3.7.3-alpine3.9 as py
 
 workdir /app
 
