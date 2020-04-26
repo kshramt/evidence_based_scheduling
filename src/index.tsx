@@ -1404,6 +1404,7 @@ const root_reducer_of = (state_: IState, app: App) => {
               },
               body: JSON.stringify(state.data),
             }).then(r => {
+              // todo: Use redux-thunk.
               state = produce(state, (draft: Draft<IState>) => {
                 draft.saveSuccess = r.ok;
               });
