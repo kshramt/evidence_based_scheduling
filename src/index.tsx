@@ -1347,25 +1347,26 @@ const root_reducer_of = (state_: IState, app: App) => {
     }
   };
 
-  const _top_ = (draft: Draft<IState>, k: string) => {
-    _top(draft, k);
-    my_state.dirtyHistory = my_state.dirtyDump = true;
-  };
+  const produce_top = (state: IState, k: string) =>
+    produce(state, draft => {
+      _top(draft, k);
+      my_state.dirtyHistory = my_state.dirtyDump = true;
+    });
 
   return (state: undefined | IState, action: TActions) => {
     if (state === undefined) {
       return state_;
     } else {
-      const _state = state;
-      return produce(_state, draft => {
-        switch (action.type) {
-          case "eval_": {
-            const k = action.k;
+      switch (action.type) {
+        case "eval_": {
+          const k = action.k;
+          return produce(state, draft => {
             _eval_(draft, k);
-            return;
-          }
-          case "delete_": {
-            const k = action.k;
+          });
+        }
+        case "delete_": {
+          const k = action.k;
+          return produce(state, draft => {
             if (draft.data.kvs[k].todo.length === 0) {
               _rmTodoEntry(draft, k);
               deleteAtVal(draft.data.queue, k);
@@ -1376,64 +1377,72 @@ const root_reducer_of = (state_: IState, app: App) => {
               }
               my_state.dirtyHistory = my_state.dirtyDump = true;
             }
-            return;
-          }
-          case "new_": {
-            const parent = action.parent;
-            const k = new Date().toISOString();
+          });
+        }
+        case "new_": {
+          const parent = action.parent;
+          const k = new Date().toISOString();
+          return produce(state, draft => {
             const v = newEntryValue(parent, k);
             draft.data.kvs[k] = v;
             draft.data.kvs[parent].todo.unshift(k);
             draft.data.queue.unshift(k);
             app.setCache(draft.caches as ICaches, k, draft.data.kvs);
             my_state.dirtyHistory = my_state.dirtyDump = true;
-            return;
+          });
+        }
+        case "save": {
+          if (my_state.dirtyHistory) {
+            my_state.history = pushHistory(my_state.history, state);
+            my_state.dirtyHistory = false;
           }
-          case "save": {
-            if (my_state.dirtyHistory) {
-              my_state.history = pushHistory(my_state.history, _state);
-              my_state.dirtyHistory = false;
-            }
-            if (my_state.dirtyDump) {
-              fetch("api/" + API_VERSION + "/post", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json; charset=utf-8",
-                },
-                body: JSON.stringify(_state.data),
-              }); // todo: draft.saveSuccess = r.ok
-              my_state.dirtyDump = false;
-            }
-            return;
+          if (my_state.dirtyDump) {
+            fetch("api/" + API_VERSION + "/post", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json; charset=utf-8",
+              },
+              body: JSON.stringify(state.data),
+            }).then(r => {
+              state = produce(state, (draft: Draft<IState>) => {
+                draft.saveSuccess = r.ok;
+              });
+            });
+            my_state.dirtyDump = false;
           }
-          case "undo": {
-            if (my_state.history.prev !== null) {
-              my_state.history = my_state.history.prev;
-              my_state.dirtyDump = true;
-              return my_state.history.value;
-            }
-            return;
+          return state;
+        }
+        case "undo": {
+          if (my_state.history.prev !== null) {
+            my_state.history = my_state.history.prev;
+            state = my_state.history.value;
+            my_state.dirtyDump = true;
           }
-          case "redo": {
-            if (my_state.history.next !== null) {
-              my_state.history = my_state.history.next;
-              return my_state.history.value;
-            }
-            return;
+          return state;
+        }
+        case "redo": {
+          if (my_state.history.next !== null) {
+            my_state.history = my_state.history.next;
+            state = my_state.history.value;
           }
-          case "flipShowTodoOnly": {
+          return state;
+        }
+        case "flipShowTodoOnly": {
+          return produce(state, draft => {
             draft.data.showTodoOnly = !draft.data.showTodoOnly;
             my_state.dirtyHistory = my_state.dirtyDump = true;
-            return;
-          }
-          case "flipShowDetail": {
-            const k = action.k;
+          });
+        }
+        case "flipShowDetail": {
+          const k = action.k;
+          return produce(state, draft => {
             draft.data.kvs[k].show_detail = !draft.data.kvs[k].show_detail;
             my_state.dirtyHistory = my_state.dirtyDump = true;
-            return;
-          }
-          case "start": {
-            const k = action.k;
+          });
+        }
+        case "start": {
+          const k = action.k;
+          return produce(state, draft => {
             if (k !== draft.data.current_entry) {
               switch (draft.data.kvs[k].status) {
                 case "done":
@@ -1453,106 +1462,103 @@ const root_reducer_of = (state_: IState, app: App) => {
               });
               my_state.dirtyHistory = my_state.dirtyDump = true;
             }
-            return;
-          }
-          case "focusStopButton": {
-            const k = action.k;
-            setTimeout(() => focus(_state.caches[k].stopButtonRef.current), 50);
-            return;
-          }
-          case "top": {
-            _top_(draft, action.k);
-            return;
-          }
-          case "smallestToTop": {
-            let k_min = null;
-            let estimate_min = Infinity;
-            for (const k in draft.data.kvs) {
-              const v = draft.data.kvs[k];
-              if (
-                v.status === "todo" &&
-                v.todo.length <= 0 &&
-                0 < v.estimate &&
-                v.estimate < estimate_min
-              ) {
-                k_min = k;
-                estimate_min = v.estimate;
-              }
+          });
+        }
+        case "focusStopButton": {
+          const k = action.k;
+          const s = state; // TypeScript inferese `undefined | IState` for `state` of `state.caches[k]`.
+          setTimeout(() => focus(s.caches[k].stopButtonRef.current), 50);
+          return state;
+        }
+        case "top": {
+          return produce_top(state, action.k);
+        }
+        case "smallestToTop": {
+          let k_min = null;
+          let estimate_min = Infinity;
+          for (const k in state.data.kvs) {
+            const v = state.data.kvs[k];
+            if (
+              v.status === "todo" &&
+              v.todo.length <= 0 &&
+              0 < v.estimate &&
+              v.estimate < estimate_min
+            ) {
+              k_min = k;
+              estimate_min = v.estimate;
             }
-            if (k_min !== null) {
-              _top_(draft, k_min);
-            }
-            return;
           }
-          case "closestToTop": {
-            let k_min = null;
-            let due_min = ":due: 9999-12-31T23:59:59";
-            for (let k in draft.data.kvs) {
-              let v = draft.data.kvs[k];
-              if (v.status === "todo" && v.todo.length <= 0) {
-                while (true) {
-                  let due = null;
-                  for (const w of v.text.split("\n")) {
-                    if (w.startsWith(":due: ")) {
-                      due = w;
-                    }
+          return k_min === null ? state : produce_top(state, k_min);
+        }
+        case "closestToTop": {
+          let k_min = null;
+          let due_min = ":due: 9999-12-31T23:59:59";
+          for (let k in state.data.kvs) {
+            let v = state.data.kvs[k];
+            if (v.status === "todo" && v.todo.length <= 0) {
+              while (true) {
+                let due = null;
+                for (const w of v.text.split("\n")) {
+                  if (w.startsWith(":due: ")) {
+                    due = w;
                   }
-                  if (due !== null) {
-                    if (due < due_min) {
-                      k_min = k;
-                      due_min = due;
-                    }
-                    break;
-                  }
-                  if (v.parent === null) {
-                    break;
-                  }
-                  k = v.parent;
-                  v = draft.data.kvs[k];
                 }
+                if (due !== null) {
+                  if (due < due_min) {
+                    k_min = k;
+                    due_min = due;
+                  }
+                  break;
+                }
+                if (v.parent === null) {
+                  break;
+                }
+                k = v.parent;
+                v = state.data.kvs[k];
               }
             }
-            if (k_min !== null) {
-              _top_(draft, k_min);
-            }
-            return;
           }
-          case "stop": {
-            _stop(draft);
-            return;
-          }
-          case "moveUp": {
-            const k = action.k;
+          return k_min === null ? state : produce_top(state, k_min);
+        }
+        case "stop": {
+          return produce(state, _stop);
+        }
+        case "moveUp": {
+          const k = action.k;
+          return produce(state, draft => {
             const pk = draft.data.kvs[k].parent;
             if (pk) {
               moveUp(draft.data.kvs[pk].todo, k);
               moveUp(draft.data.queue, k);
               my_state.dirtyHistory = my_state.dirtyDump = true;
             }
-            return;
-          }
-          case "focusMoveUpButton": {
-            const k = action.k;
-            focus(_state.caches[k].moveUpButtonRef.current);
-            return;
-          }
-          case "moveDown": {
-            const k = action.k;
+          });
+        }
+        case "focusMoveUpButton": {
+          const k = action.k;
+          const s = state; // TypeScript inferese `undefined | IState` for `state` of `state.caches[k]`.
+          focus(s.caches[k].moveUpButtonRef.current);
+          return state;
+        }
+        case "moveDown": {
+          const k = action.k;
+          return produce(state, draft => {
             const pk = draft.data.kvs[k].parent;
             if (pk) {
               moveDown(draft.data.kvs[pk].todo, k);
               moveDown(draft.data.queue, k);
               my_state.dirtyHistory = my_state.dirtyDump = true;
             }
-            return;
-          }
-          case "focusMoveDownButton": {
-            const k = action.k;
-            focus(_state.caches[k].moveDownButtonRef.current);
-            return;
-          }
-          case "unindent": {
-            const k = action.k;
+          });
+        }
+        case "focusMoveDownButton": {
+          const k = action.k;
+          focus(state.caches[k].moveDownButtonRef.current);
+          return state;
+        }
+        case "unindent": {
+          const k = action.k;
+          return produce(state, draft => {
             const pk = draft.data.kvs[k].parent;
             if (pk !== null) {
               const ppk = draft.data.kvs[pk].parent;
@@ -1579,15 +1585,16 @@ const root_reducer_of = (state_: IState, app: App) => {
                 my_state.dirtyHistory = my_state.dirtyDump = true;
               }
             }
-            return;
-          }
-          case "focusUnindentButton": {
-            const k = action.k;
-            focus(_state.caches[k].unindentButtonRef.current);
-            return;
-          }
-          case "indent": {
-            const k = action.k;
+          });
+        }
+        case "focusUnindentButton": {
+          const k = action.k;
+          focus(state.caches[k].unindentButtonRef.current);
+          return state;
+        }
+        case "indent": {
+          const k = action.k;
+          return produce(state, draft => {
             const pk = draft.data.kvs[k].parent;
             if (pk) {
               const entries = draft.data.kvs[pk].todo;
@@ -1606,25 +1613,27 @@ const root_reducer_of = (state_: IState, app: App) => {
                 my_state.dirtyHistory = my_state.dirtyDump = true;
               }
             }
-            return;
-          }
-          case "focusIndentButton": {
-            const k = action.k;
-            focus(_state.caches[k].indentButtonRef.current);
-            return;
-          }
-          case "setEstimate": {
-            const k = action.k;
-            const estimate = action.estimate;
+          });
+        }
+        case "focusIndentButton": {
+          const k = action.k;
+          focus(state.caches[k].indentButtonRef.current);
+          return state;
+        }
+        case "setEstimate": {
+          const k = action.k;
+          const estimate = action.estimate;
+          return produce(state, draft => {
             if (draft.data.kvs[k].estimate !== estimate) {
               draft.data.kvs[k].estimate = estimate;
               my_state.dirtyHistory = my_state.dirtyDump = true;
             }
-            return;
-          }
-          case "setLastRange": {
-            const k = action.k;
-            const t = action.t;
+          });
+        }
+        case "setLastRange": {
+          const k = action.k;
+          const t = action.t;
+          return produce(state, draft => {
             const l = lastRange(draft.data.kvs[k].ranges);
             if (l !== null && l.end) {
               const t1 = l.end - l.start;
@@ -1636,71 +1645,77 @@ const root_reducer_of = (state_: IState, app: App) => {
                 my_state.dirtyHistory = my_state.dirtyDump = true;
               }
             }
-            return;
-          }
-          case "setText": {
-            const k = action.k;
-            const text = action.text;
+          });
+        }
+        case "setText": {
+          const k = action.k;
+          const text = action.text;
+          return produce(state, draft => {
             draft.data.kvs[k].text = text;
             my_state.dirtyHistory = my_state.dirtyDump = true;
-            return;
-          }
-          case "resizeTextArea": {
-            const k = action.k;
-            const width = action.width;
-            const height = action.height;
-            if (width !== null && height !== null) {
-              const v = draft.data.kvs[k];
-              // if (v.style.width !== width) {
-              //   v.style.width = width;
-              //   my_state.dirtyHistory = my_state.dirtyDump = true;
-              // }
-              if (v.style.height !== height) {
-                v.style.height = height;
-                my_state.dirtyHistory = my_state.dirtyDump = true;
-              }
-            }
-            return;
-          }
-          case "todoToDone": {
-            const k = action.k;
+          });
+        }
+        case "resizeTextArea": {
+          const k = action.k;
+          const width = action.width;
+          const height = action.height;
+          return width === null || height === null
+            ? state
+            : produce(state, draft => {
+                const v = draft.data.kvs[k];
+                // if (v.style.width !== width) {
+                //   v.style.width = width;
+                //   my_state.dirtyHistory = my_state.dirtyDump = true;
+                // }
+                if (v.style.height !== height) {
+                  v.style.height = height;
+                  my_state.dirtyHistory = my_state.dirtyDump = true;
+                }
+              });
+        }
+        case "todoToDone": {
+          const k = action.k;
+          return produce(state, draft => {
             _rmFromTodo(draft, k);
             _addToDone(draft, k);
             _topQueue(draft, k);
             my_state.dirtyHistory = my_state.dirtyDump = true;
-            return;
-          }
-          case "todoToDont": {
-            const k = action.k;
+          });
+        }
+        case "todoToDont": {
+          const k = action.k;
+          return produce(state, draft => {
             _rmFromTodo(draft, k);
             _addToDont(draft, k);
             _topQueue(draft, k);
             my_state.dirtyHistory = my_state.dirtyDump = true;
-            return;
-          }
-          case "doneToTodo": {
-            const k = action.k;
+          });
+        }
+        case "doneToTodo": {
+          const k = action.k;
+          return produce(state, draft => {
             _doneToTodo(draft, k);
             my_state.dirtyHistory = my_state.dirtyDump = true;
-            return;
-          }
-          case "dontToTodo": {
-            const k = action.k;
+          });
+        }
+        case "dontToTodo": {
+          const k = action.k;
+          return produce(state, draft => {
             _dontToTodo(draft, k);
             my_state.dirtyHistory = my_state.dirtyDump = true;
-            return;
-          }
-          case "focusTextArea": {
-            const k = action.k;
-            // todo: Use more reliable method to focus on the textarea.
-            setTimeout(() => focus(_state.caches[k].textAreaRef.current), 50);
-            return;
-          }
-          default:
-            const _: never = action; // 1 or state cannot be used here
-            return;
+          });
         }
-      });
+        case "focusTextArea": {
+          const k = action.k;
+          // todo: Use more reliable method to focus on the textarea.
+          const s = state; // TypeScript inferese `undefined | IState` for `state` of `state.caches[k]`.
+          setTimeout(() => focus(s.caches[k].textAreaRef.current), 50);
+          return state;
+        }
+        default:
+          const _: never = action; // 1 or state cannot be used here
+          return state;
+      }
     }
   };
 };
