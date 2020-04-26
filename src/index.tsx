@@ -209,6 +209,12 @@ interface ITopAction extends Action {
   type: "top";
   k: string;
 }
+interface ISmallestToTopAction extends Action {
+  type: "smallestToTop";
+}
+interface IClosestToTopAction extends Action {
+  type: "closestToTop";
+}
 interface IStopAction extends Action {
   type: "stop";
 }
@@ -298,6 +304,8 @@ type TActions =
   | IStartAction
   | IFocusStopButtonAction
   | ITopAction
+  | ISmallestToTopAction
+  | IClosestToTopAction
   | IStopAction
   | IMoveUpAction
   | IFocusMoveUpButtonAction
@@ -338,66 +346,44 @@ class App extends React.Component<IAppProps, IState> {
       <div>
         {state.caches[state.data.root].stopButton}
         {state.caches[state.data.root].treeNewButton}
-        <button onClick={this.undo}>{UNDO_MARK}</button>
-        <button onClick={this.redo}>{REDO_MARK}</button>
-        <button onClick={this.flipShowTodoOnly}>👀</button>
         <button
           onClick={() => {
-            const state = this.store.getState();
-            let k_min = null;
-            let estimate_min = Infinity;
-            for (const k in state.data.kvs) {
-              const v = state.data.kvs[k];
-              if (
-                v.status === "todo" &&
-                v.todo.length <= 0 &&
-                0 < v.estimate &&
-                v.estimate < estimate_min
-              ) {
-                k_min = k;
-                estimate_min = v.estimate;
-              }
-            }
-            if (k_min !== null) {
-              this.top(k_min);
-            }
+            this.store.dispatch({ type: "save" });
+            this.store.dispatch({ type: "undo" });
+            this.store.dispatch({ type: "save" });
+          }}
+        >
+          {UNDO_MARK}
+        </button>
+        <button
+          onClick={() => {
+            this.store.dispatch({ type: "save" });
+            this.store.dispatch({ type: "redo" });
+            this.store.dispatch({ type: "save" });
+          }}
+        >
+          {REDO_MARK}
+        </button>
+        <button
+          onClick={() => {
+            this.store.dispatch({ type: "flipShowTodoOnly" });
+            this.store.dispatch({ type: "save" });
+          }}
+        >
+          👀
+        </button>
+        <button
+          onClick={() => {
+            this.store.dispatch({ type: "smallestToTop" });
+            this.store.dispatch({ type: "save" });
           }}
         >
           Small
         </button>
         <button
           onClick={() => {
-            const state = this.store.getState();
-            let k_min = null;
-            let due_min = ":due: 9999-12-31T23:59:59";
-            for (let k in state.data.kvs) {
-              let v = state.data.kvs[k];
-              if (v.status === "todo" && v.todo.length <= 0) {
-                while (true) {
-                  let due = null;
-                  for (const w of v.text.split("\n")) {
-                    if (w.startsWith(":due: ")) {
-                      due = w;
-                    }
-                  }
-                  if (due !== null) {
-                    if (due < due_min) {
-                      k_min = k;
-                      due_min = due;
-                    }
-                    break;
-                  }
-                  if (v.parent === null) {
-                    break;
-                  }
-                  k = v.parent;
-                  v = state.data.kvs[k];
-                }
-              }
-            }
-            if (k_min !== null) {
-              this.top(k_min);
-            }
+            this.store.dispatch({ type: "closestToTop" });
+            this.store.dispatch({ type: "save" });
           }}
         >
           Due
@@ -654,20 +640,6 @@ class App extends React.Component<IAppProps, IState> {
   };
   $new_ = (state: IState, parent: string) => {};
   save = () => {
-    this.store.dispatch({ type: "save" });
-  };
-  undo = () => {
-    this.store.dispatch({ type: "save" });
-    this.store.dispatch({ type: "undo" });
-    this.store.dispatch({ type: "save" });
-  };
-  redo = () => {
-    this.store.dispatch({ type: "save" });
-    this.store.dispatch({ type: "redo" });
-    this.store.dispatch({ type: "save" });
-  };
-  flipShowTodoOnly = () => {
-    this.store.dispatch({ type: "flipShowTodoOnly" });
     this.store.dispatch({ type: "save" });
   };
   flipShowDetail = (k: string) => {
@@ -1375,6 +1347,12 @@ const root_reducer_of = (state_: IState, app: App) => {
     }
   };
 
+  const produce_top = (state: IState, k: string) =>
+    produce(state, draft => {
+      _top(draft, k);
+      my_state.dirtyHistory = my_state.dirtyDump = true;
+    });
+
   return (state: undefined | IState, action: TActions) => {
     if (state === undefined) {
       return state_;
@@ -1493,11 +1471,54 @@ const root_reducer_of = (state_: IState, app: App) => {
           return state;
         }
         case "top": {
-          const k = action.k;
-          return produce(state, draft => {
-            _top(draft, k);
-            my_state.dirtyHistory = my_state.dirtyDump = true;
-          });
+          return produce_top(state, action.k);
+        }
+        case "smallestToTop": {
+          let k_min = null;
+          let estimate_min = Infinity;
+          for (const k in state.data.kvs) {
+            const v = state.data.kvs[k];
+            if (
+              v.status === "todo" &&
+              v.todo.length <= 0 &&
+              0 < v.estimate &&
+              v.estimate < estimate_min
+            ) {
+              k_min = k;
+              estimate_min = v.estimate;
+            }
+          }
+          return k_min === null ? state : produce_top(state, k_min);
+        }
+        case "closestToTop": {
+          let k_min = null;
+          let due_min = ":due: 9999-12-31T23:59:59";
+          for (let k in state.data.kvs) {
+            let v = state.data.kvs[k];
+            if (v.status === "todo" && v.todo.length <= 0) {
+              while (true) {
+                let due = null;
+                for (const w of v.text.split("\n")) {
+                  if (w.startsWith(":due: ")) {
+                    due = w;
+                  }
+                }
+                if (due !== null) {
+                  if (due < due_min) {
+                    k_min = k;
+                    due_min = due;
+                  }
+                  break;
+                }
+                if (v.parent === null) {
+                  break;
+                }
+                k = v.parent;
+                v = state.data.kvs[k];
+              }
+            }
+          }
+          return k_min === null ? state : produce_top(state, k_min);
         }
         case "stop": {
           return produce(state, _stop);
