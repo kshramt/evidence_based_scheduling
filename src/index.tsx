@@ -327,6 +327,11 @@ type TActions =
 
 class App extends React.Component<IAppProps, IState> {
   menuButtons: JSX.Element;
+  my_state: {
+    dirtyHistory: boolean;
+    dirtyDump: boolean;
+    history: IHistory;
+  };
   store: Store<IState, TActions>;
 
   constructor(props: IAppProps) {
@@ -339,6 +344,15 @@ class App extends React.Component<IAppProps, IState> {
       data: props.data,
       caches,
       saveSuccess: true,
+    };
+    this.my_state = {
+      dirtyHistory: false,
+      dirtyDump: false,
+      history: {
+        prev: null,
+        value: state,
+        next: null,
+      },
     };
     this.store = createStore(root_reducer_of(state, this), state);
 
@@ -1315,16 +1329,6 @@ const newEntryValue = (parent: string, start_time: string) => {
 };
 
 const root_reducer_of = (state_: IState, app: App) => {
-  const my_state = {
-    dirtyHistory: false,
-    dirtyDump: false,
-    history: {
-      prev: null,
-      value: state_,
-      next: null,
-    } as IHistory,
-  };
-
   const _stop = (draft: Draft<IState>) => {
     if (draft.data.current_entry !== null) {
       const e = draft.data.kvs[draft.data.current_entry];
@@ -1333,7 +1337,7 @@ const root_reducer_of = (state_: IState, app: App) => {
       const dt = r.end - r.start;
       _addDt(draft, draft.data.current_entry, dt);
       draft.data.current_entry = null;
-      my_state.dirtyHistory = my_state.dirtyDump = true;
+      app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
     }
   };
 
@@ -1350,7 +1354,7 @@ const root_reducer_of = (state_: IState, app: App) => {
   const produce_top = (state: IState, k: string) =>
     produce(state, draft => {
       _top(draft, k);
-      my_state.dirtyHistory = my_state.dirtyDump = true;
+      app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
     });
 
   return (state: undefined | IState, action: TActions) => {
@@ -1375,7 +1379,7 @@ const root_reducer_of = (state_: IState, app: App) => {
               if (draft.data.current_entry === k) {
                 draft.data.current_entry = null;
               }
-              my_state.dirtyHistory = my_state.dirtyDump = true;
+              app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
             }
           });
         }
@@ -1388,15 +1392,15 @@ const root_reducer_of = (state_: IState, app: App) => {
             draft.data.kvs[parent].todo.unshift(k);
             draft.data.queue.unshift(k);
             app.setCache(draft.caches as ICaches, k, draft.data.kvs);
-            my_state.dirtyHistory = my_state.dirtyDump = true;
+            app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
           });
         }
         case "save": {
-          if (my_state.dirtyHistory) {
-            my_state.history = pushHistory(my_state.history, state);
-            my_state.dirtyHistory = false;
+          if (app.my_state.dirtyHistory) {
+            app.my_state.history = pushHistory(app.my_state.history, state);
+            app.my_state.dirtyHistory = false;
           }
-          if (my_state.dirtyDump) {
+          if (app.my_state.dirtyDump) {
             fetch("api/" + API_VERSION + "/post", {
               method: "POST",
               headers: {
@@ -1409,36 +1413,36 @@ const root_reducer_of = (state_: IState, app: App) => {
                 draft.saveSuccess = r.ok;
               });
             });
-            my_state.dirtyDump = false;
+            app.my_state.dirtyDump = false;
           }
           return state;
         }
         case "undo": {
-          if (my_state.history.prev !== null) {
-            my_state.history = my_state.history.prev;
-            state = my_state.history.value;
-            my_state.dirtyDump = true;
+          if (app.my_state.history.prev !== null) {
+            app.my_state.history = app.my_state.history.prev;
+            state = app.my_state.history.value;
+            app.my_state.dirtyDump = true;
           }
           return state;
         }
         case "redo": {
-          if (my_state.history.next !== null) {
-            my_state.history = my_state.history.next;
-            state = my_state.history.value;
+          if (app.my_state.history.next !== null) {
+            app.my_state.history = app.my_state.history.next;
+            state = app.my_state.history.value;
           }
           return state;
         }
         case "flipShowTodoOnly": {
           return produce(state, draft => {
             draft.data.showTodoOnly = !draft.data.showTodoOnly;
-            my_state.dirtyHistory = my_state.dirtyDump = true;
+            app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
           });
         }
         case "flipShowDetail": {
           const k = action.k;
           return produce(state, draft => {
             draft.data.kvs[k].show_detail = !draft.data.kvs[k].show_detail;
-            my_state.dirtyHistory = my_state.dirtyDump = true;
+            app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
           });
         }
         case "start": {
@@ -1461,7 +1465,7 @@ const root_reducer_of = (state_: IState, app: App) => {
                 start: Number(new Date()) / 1000,
                 end: null,
               });
-              my_state.dirtyHistory = my_state.dirtyDump = true;
+              app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
             }
           });
         }
@@ -1531,7 +1535,7 @@ const root_reducer_of = (state_: IState, app: App) => {
             if (pk) {
               moveUp(draft.data.kvs[pk].todo, k);
               moveUp(draft.data.queue, k);
-              my_state.dirtyHistory = my_state.dirtyDump = true;
+              app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
             }
           });
         }
@@ -1548,7 +1552,7 @@ const root_reducer_of = (state_: IState, app: App) => {
             if (pk) {
               moveDown(draft.data.kvs[pk].todo, k);
               moveDown(draft.data.queue, k);
-              my_state.dirtyHistory = my_state.dirtyDump = true;
+              app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
             }
           });
         }
@@ -1583,7 +1587,7 @@ const root_reducer_of = (state_: IState, app: App) => {
                     draft.caches[ppk].total_time_spent,
                   );
                 }
-                my_state.dirtyHistory = my_state.dirtyDump = true;
+                app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
               }
             }
           });
@@ -1611,7 +1615,7 @@ const root_reducer_of = (state_: IState, app: App) => {
                   draft.caches[new_pk].total_time_spent,
                   total_time_spent_new_pk_orig + total_time_spent_k,
                 );
-                my_state.dirtyHistory = my_state.dirtyDump = true;
+                app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
               }
             }
           });
@@ -1627,7 +1631,7 @@ const root_reducer_of = (state_: IState, app: App) => {
           return produce(state, draft => {
             if (draft.data.kvs[k].estimate !== estimate) {
               draft.data.kvs[k].estimate = estimate;
-              my_state.dirtyHistory = my_state.dirtyDump = true;
+              app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
             }
           });
         }
@@ -1643,7 +1647,7 @@ const root_reducer_of = (state_: IState, app: App) => {
               if (dt !== 0) {
                 l.end = l.start + t2;
                 _addDt(draft, k, dt);
-                my_state.dirtyHistory = my_state.dirtyDump = true;
+                app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
               }
             }
           });
@@ -1653,7 +1657,7 @@ const root_reducer_of = (state_: IState, app: App) => {
           const text = action.text;
           return produce(state, draft => {
             draft.data.kvs[k].text = text;
-            my_state.dirtyHistory = my_state.dirtyDump = true;
+            app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
           });
         }
         case "resizeTextArea": {
@@ -1666,11 +1670,11 @@ const root_reducer_of = (state_: IState, app: App) => {
                 const v = draft.data.kvs[k];
                 // if (v.style.width !== width) {
                 //   v.style.width = width;
-                //   my_state.dirtyHistory = my_state.dirtyDump = true;
+                //   app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
                 // }
                 if (v.style.height !== height) {
                   v.style.height = height;
-                  my_state.dirtyHistory = my_state.dirtyDump = true;
+                  app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
                 }
               });
         }
@@ -1680,7 +1684,7 @@ const root_reducer_of = (state_: IState, app: App) => {
             _rmFromTodo(draft, k);
             _addToDone(draft, k);
             _topQueue(draft, k);
-            my_state.dirtyHistory = my_state.dirtyDump = true;
+            app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
           });
         }
         case "todoToDont": {
@@ -1689,21 +1693,21 @@ const root_reducer_of = (state_: IState, app: App) => {
             _rmFromTodo(draft, k);
             _addToDont(draft, k);
             _topQueue(draft, k);
-            my_state.dirtyHistory = my_state.dirtyDump = true;
+            app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
           });
         }
         case "doneToTodo": {
           const k = action.k;
           return produce(state, draft => {
             _doneToTodo(draft, k);
-            my_state.dirtyHistory = my_state.dirtyDump = true;
+            app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
           });
         }
         case "dontToTodo": {
           const k = action.k;
           return produce(state, draft => {
             _dontToTodo(draft, k);
-            my_state.dirtyHistory = my_state.dirtyDump = true;
+            app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
           });
         }
         case "focusTextArea": {
