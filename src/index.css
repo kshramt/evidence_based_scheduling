@@ -6,14 +6,14 @@ html, body, #root, #columns{
     height: 100%;
     margin-top: 5ex;
     float: left;
-    width: 50%;
+    width: 40%;
     overflow-y: scroll;
 }
 #queue{
     height: 100%;
     margin-top: 5ex;
     float: left;
-    width: 50%;
+    width: 60%;
     overflow-y: scroll;
 }
 div.menu{
