@@ -768,14 +768,7 @@ const QueueNode = connect((state: IState, ownProps: IEntryOwnProps) => {
         {v.parent && v.show_detail
           ? showLastRange(lastRange(v.ranges), cache.setLastRange)
           : null}
-        {v.parent && v.show_detail ? (
-          v.status === "todo" &&
-          v.todo.length === 0 &&
-          v.done.length === 0 &&
-          v.dont.length === 0 ? (
-            <DeleteButton k={props.k} />
-          ) : null
-        ) : null}
+        <DeleteButton k={props.k} />
       </div>
     </li>
   );
@@ -844,14 +837,7 @@ const Entry = connect((state: IState, ownProps: IEntryOwnProps) => {
       {v.parent && v.show_detail
         ? showLastRange(lastRange(v.ranges), cache.setLastRange)
         : null}
-      {v.parent && v.show_detail ? (
-        v.status === "todo" &&
-        v.todo.length === 0 &&
-        v.done.length === 0 &&
-        v.dont.length === 0 ? (
-          <DeleteButton k={props.k} />
-        ) : null
-      ) : null}
+      <DeleteButton k={props.k} />
     </div>
   );
 });
@@ -1667,16 +1653,42 @@ const ShowDetailButton = connect_k(
   ),
 );
 
-const DeleteButton = connect_k((k: string, dispatch: Dispatch<TActions>) => (
-  <button
-    onClick={() => {
-      dispatch({ type: "delete_", k });
-      dispatch({ type: "save" });
-    }}
-  >
-    {DELETE_MARK}
-  </button>
-));
+const DeleteButton = connect(
+  (
+    props: IState,
+    ownProps: {
+      k: string;
+    },
+  ) => {
+    const v = props.data.kvs[ownProps.k];
+    const show = Boolean(
+      v.parent &&
+        v.show_detail &&
+        v.status === "todo" &&
+        v.todo.length === 0 &&
+        v.done.length === 0 &&
+        v.dont.length === 0,
+    );
+    return {
+      show,
+      k: ownProps.k,
+    };
+  },
+  (dispatch: Dispatch<TActions>) => ({
+    dispatch,
+  }),
+)((props: { show: boolean; k: string; dispatch: Dispatch<TActions> }) =>
+  props.show ? (
+    <button
+      onClick={() => {
+        props.dispatch({ type: "delete_", k: props.k });
+        props.dispatch({ type: "save" });
+      }}
+    >
+      {DELETE_MARK}
+    </button>
+  ) : null,
+);
 
 const main = () => {
   fetch("api/" + API_VERSION + "/get")
