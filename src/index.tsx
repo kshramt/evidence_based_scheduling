@@ -134,7 +134,6 @@ interface ICache {
   percentiles: number[];
   newButton: JSX.Element;
   setLastRange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  setEstimate: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setText: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   resizeTextArea: (e: React.MouseEvent<HTMLTextAreaElement>) => void;
   textAreaOf: (
@@ -418,9 +417,6 @@ class App extends React.Component<IAppProps, IState> {
         setLastRange: (e: React.ChangeEvent<HTMLInputElement>) => {
           this.setLastRange(k, Number(e.currentTarget.value));
         },
-        setEstimate: (e: React.ChangeEvent<HTMLInputElement>) => {
-          this.setEstimate(k, Number(e.currentTarget.value));
-        },
         setText,
         resizeTextArea,
         textAreaOf: (
@@ -454,10 +450,6 @@ class App extends React.Component<IAppProps, IState> {
   };
   $new_ = (state: IState, parent: string) => {};
   save = () => {
-    this.store.dispatch({ type: "save" });
-  };
-  setEstimate = (k: string, estimate: number) => {
-    this.store.dispatch({ type: "setEstimate", k, estimate });
     this.store.dispatch({ type: "save" });
   };
   setLastRange = (k: string, t: number) => {
@@ -727,13 +719,9 @@ const QueueNode = connect((state: IState, ownProps: IEntryOwnProps) => {
         className={props.running ? `${v.status} running` : v.status}
       >
         {v.parent ? toTreeButtonOf(props.k) : null}
-        {v.parent === null ? null : v.status === "done" ? (
-          <DoneToTodoButton k={props.k} />
-        ) : v.status === "dont" ? (
-          <DontToTodoButton k={props.k} />
-        ) : (
-          cache.newButton
-        )}
+        <DoneToTodoButton k={props.k} />
+        <DontToTodoButton k={props.k} />
+        {v.parent !== null && v.status === "todo" ? cache.newButton : null}
         {v.parent === null
           ? null
           : cache.textAreaOf(v.text, v.status, v.style, null)}
@@ -742,28 +730,15 @@ const QueueNode = connect((state: IState, ownProps: IEntryOwnProps) => {
         ) : (
           <StartButton k={props.k} />
         )}
-        {v.parent === null ? null : (
-          <input
-            type="number"
-            step="any"
-            value={v.estimate}
-            onChange={cache.setEstimate}
-            className={v.status}
-          />
-        )}
+        <EstimationInput k={props.k} />
         {digits1(cache.total_time_spent / 3600)}
-        {v.parent && v.status === "todo" ? <TopButton k={props.k} /> : null}
-        {v.status === "todo" ? <EvalButton k={props.k} /> : null}
-        {v.parent && v.status === "todo" && v.todo.length === 0
-          ? [<TodoToDoneButton k={props.k} />, <TodoToDontButton k={props.k} />]
-          : null}
-        {v.parent ? <ShowDetailButton k={props.k} /> : null}
-        {v.parent && v.show_detail && v.status === "todo" ? (
-          <MoveUpButton k={props.k} />
-        ) : null}
-        {v.parent && v.show_detail && v.status === "todo" ? (
-          <MoveDownButton k={props.k} />
-        ) : null}
+        <TopButton k={props.k} />
+        <EvalButton k={props.k} />
+        <TodoToDoneButton k={props.k} />
+        <TodoToDontButton k={props.k} />
+        <ShowDetailButton k={props.k} />
+        <MoveUpButton k={props.k} />
+        <MoveDownButton k={props.k} />
         {v.status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
         {v.parent && v.show_detail
           ? showLastRange(lastRange(v.ranges), cache.setLastRange)
@@ -790,13 +765,9 @@ const Entry = connect((state: IState, ownProps: IEntryOwnProps) => {
       id={`tree${props.k}`}
       className={props.running ? `${v.status} running` : v.status}
     >
-      {v.parent === null ? null : v.status === "done" ? (
-        <DoneToTodoButton k={props.k} />
-      ) : v.status === "dont" ? (
-        <DontToTodoButton k={props.k} />
-      ) : (
-        cache.newButton
-      )}
+      <DoneToTodoButton k={props.k} />
+      <DontToTodoButton k={props.k} />
+      {v.parent !== null && v.status === "todo" ? cache.newButton : null}
       {v.parent === null
         ? null
         : cache.textAreaOf(v.text, v.status, v.style, textAreaRefOf(props.k))}
@@ -805,34 +776,17 @@ const Entry = connect((state: IState, ownProps: IEntryOwnProps) => {
       ) : (
         <StartButton k={props.k} />
       )}
-      {v.parent === null ? null : (
-        <input
-          type="number"
-          step="any"
-          value={v.estimate}
-          onChange={cache.setEstimate}
-          className={v.status}
-        />
-      )}
+      <EstimationInput k={props.k} />
       {digits1(cache.total_time_spent / 3600)}
-      {v.parent && v.status === "todo" ? <TopButton k={props.k} /> : null}
-      {v.status === "todo" ? <EvalButton k={props.k} /> : null}
-      {v.parent && v.status === "todo" && v.todo.length === 0
-        ? [<TodoToDoneButton k={props.k} />, <TodoToDontButton k={props.k} />]
-        : null}
-      {v.parent ? <ShowDetailButton k={props.k} /> : null}
-      {v.parent && v.show_detail && v.status === "todo" ? (
-        <MoveUpButton k={props.k} />
-      ) : null}
-      {v.parent && v.show_detail && v.status === "todo" ? (
-        <MoveDownButton k={props.k} />
-      ) : null}
-      {v.parent && v.show_detail && v.status === "todo" ? (
-        <UnindentButton k={props.k} />
-      ) : null}
-      {v.parent && v.show_detail && v.status === "todo" ? (
-        <IndentButton k={props.k} />
-      ) : null}
+      <TopButton k={props.k} />
+      <EvalButton k={props.k} />
+      <TodoToDoneButton k={props.k} />
+      <TodoToDontButton k={props.k} />
+      <ShowDetailButton k={props.k} />
+      <MoveUpButton k={props.k} />
+      <MoveDownButton k={props.k} />
+      <UnindentButton k={props.k} />
+      <IndentButton k={props.k} />
       {v.status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
       {v.parent && v.show_detail
         ? showLastRange(lastRange(v.ranges), cache.setLastRange)
@@ -1477,217 +1431,387 @@ const toTreeButtonOf = memoize1((k: string) => (
   </a>
 ));
 
-const connect_k = (
-  fn: (k: string, dispatch: Dispatch<TActions>) => JSX.Element,
-) =>
-  connect(null, (dispatch: Dispatch<TActions>, ownProps: { k: string }) => ({
-    dispatch,
-    k: ownProps.k,
-  }))((props: { dispatch: Dispatch<TActions>; k: string }) =>
-    fn(props.k, props.dispatch),
-  );
-
-const TodoToDoneButton = connect_k(
-  (k: string, dispatch: Dispatch<TActions>) => (
-    <button
-      key={"todoToDone-" + k}
-      onClick={() => {
-        dispatch({ type: "todoToDone", k });
-        dispatch({ type: "save" });
-      }}
-    >
-      {DONE_MARK}
-    </button>
-  ),
-);
-
-const TodoToDontButton = connect_k(
-  (k: string, dispatch: Dispatch<TActions>) => (
-    <button
-      key={"todoToDont-" + k}
-      onClick={() => {
-        dispatch({ type: "todoToDont", k });
-        dispatch({ type: "save" });
-      }}
-    >
-      {DONT_MARK}
-    </button>
-  ),
-);
-
-const DoneToTodoButton = connect_k(
-  (k: string, dispatch: Dispatch<TActions>) => (
-    <button
-      className="done"
-      onClick={() => {
-        dispatch({ type: "doneToTodo", k });
-        dispatch({ type: "save" });
-      }}
-    >
-      {DONE_MARK}
-    </button>
-  ),
-);
-
-const DontToTodoButton = connect_k(
-  (k: string, dispatch: Dispatch<TActions>) => (
-    <button
-      className="dont"
-      onClick={() => {
-        dispatch({ type: "dontToTodo", k });
-        dispatch({ type: "save" });
-      }}
-    >
-      {DONT_MARK}
-    </button>
-  ),
-);
-
-const StopButton = connect_k((k: string, dispatch: Dispatch<TActions>) => (
-  <button
-    onClick={() => {
-      dispatch({ type: "stop" });
-      dispatch({ type: "save" });
-    }}
-    ref={stopButtonRefOf(k)}
-  >
-    {STOP_MARK}
-  </button>
-));
-
-const StartButton = connect_k((k: string, dispatch: Dispatch<TActions>) => (
-  <button
-    onClick={() => {
-      dispatch({ type: "start", k });
-      dispatch({ type: "save" });
-      dispatch({ type: "focusStopButton", k });
-    }}
-  >
-    {START_MARK}
-  </button>
-));
-
-const TopButton = connect_k((k: string, dispatch: Dispatch<TActions>) => (
-  <button
-    onClick={() => {
-      dispatch({ type: "top", k });
-      dispatch({ type: "save" });
-    }}
-  >
-    {TOP_MARK}
-  </button>
-));
-
-const MoveUpButton = connect_k((k: string, dispatch: Dispatch<TActions>) => (
-  <button
-    onClick={() => {
-      dispatch({ type: "moveUp", k });
-      dispatch({ type: "save" });
-      dispatch({ type: "focusMoveUpButton", k });
-    }}
-    ref={moveUpButtonRefOf(k)}
-  >
-    {MOVE_UP_MARK}
-  </button>
-));
-
-const MoveDownButton = connect_k((k: string, dispatch: Dispatch<TActions>) => (
-  <button
-    onClick={() => {
-      dispatch({ type: "moveDown", k });
-      dispatch({ type: "save" });
-      dispatch({ type: "focusMoveDownButton", k });
-    }}
-    ref={moveDownButtonRefOf(k)}
-  >
-    {MOVE_DOWN_MARK}
-  </button>
-));
-
-const UnindentButton = connect_k((k: string, dispatch: Dispatch<TActions>) => (
-  <button
-    onClick={() => {
-      dispatch({ type: "unindent", k });
-      dispatch({ type: "save" });
-      dispatch({ type: "focusUnindentButton", k });
-    }}
-    ref={unindentButtonRefOf(k)}
-  >
-    {UNINDENT_MARK}
-  </button>
-));
-
-const IndentButton = connect_k((k: string, dispatch: Dispatch<TActions>) => (
-  <button
-    onClick={() => {
-      dispatch({ type: "indent", k });
-      dispatch({ type: "save" });
-      dispatch({ type: "focusIndentButton", k });
-    }}
-    ref={indentButtonRefOf(k)}
-  >
-    {INDENT_MARK}
-  </button>
-));
-
-const EvalButton = connect_k((k: string, dispatch: Dispatch<TActions>) => (
-  <button
-    onClick={() => {
-      dispatch({ type: "eval_", k });
-    }}
-  >
-    {EVAL_MARK}
-  </button>
-));
-
-const ShowDetailButton = connect_k(
-  (k: string, dispatch: Dispatch<TActions>) => (
-    <button
-      onClick={() => {
-        dispatch({ type: "flipShowDetail", k });
-        dispatch({ type: "save" });
-      }}
-    >
-      {DETAIL_MARK}
-    </button>
-  ),
-);
-
-const DeleteButton = connect(
-  (
-    props: IState,
+const connect_show_k = (
+  fn_show: (v: IEntry) => any,
+  mapDispatchToProps: (
+    dispatch: Dispatch<TActions>,
     ownProps: {
       k: string;
     },
   ) => {
-    const v = props.data.kvs[ownProps.k];
-    const show = Boolean(
-      v.parent &&
-        v.show_detail &&
-        v.status === "todo" &&
-        v.todo.length === 0 &&
-        v.done.length === 0 &&
-        v.dont.length === 0,
-    );
+    onClick: () => void;
+  },
+  fn: (onClick: () => void) => null | JSX.Element,
+) =>
+  connect(
+    (
+      state: IState,
+      ownProps: {
+        k: string;
+      },
+    ) => ({
+      show: Boolean(fn_show(state.data.kvs[ownProps.k])),
+    }),
+    mapDispatchToProps,
+  )((props: { onClick: () => void; show: boolean }) =>
+    props.show ? fn(props.onClick) : null,
+  );
+
+const TodoToDoneButton = connect_show_k(
+  (v: IEntry) => v.parent && v.status === "todo" && v.todo.length === 0,
+  (
+    dispatch: Dispatch<TActions>,
+    ownProps: {
+      k: string;
+    },
+  ) => ({
+    onClick: () => {
+      dispatch({ type: "todoToDone", k: ownProps.k });
+      dispatch({ type: "save" });
+    },
+  }),
+  (onClick: () => void) => <button onClick={onClick}>{DONE_MARK}</button>,
+);
+
+const TodoToDontButton = connect_show_k(
+  (v: IEntry) => v.parent && v.status === "todo" && v.todo.length === 0,
+  (
+    dispatch: Dispatch<TActions>,
+    ownProps: {
+      k: string;
+    },
+  ) => ({
+    onClick: () => {
+      dispatch({ type: "todoToDont", k: ownProps.k });
+      dispatch({ type: "save" });
+    },
+  }),
+  (onClick: () => void) => <button onClick={onClick}>{DONT_MARK}</button>,
+);
+
+const DoneToTodoButton = connect_show_k(
+  (v: IEntry) => v.parent !== null && v.status === "done",
+  (
+    dispatch: Dispatch<TActions>,
+    ownProps: {
+      k: string;
+    },
+  ) => ({
+    onClick: () => {
+      dispatch({ type: "doneToTodo", k: ownProps.k });
+      dispatch({ type: "save" });
+    },
+  }),
+  (onClick: () => void) => (
+    <button className="done" onClick={onClick}>
+      {DONE_MARK}
+    </button>
+  ),
+);
+
+const DontToTodoButton = connect_show_k(
+  (v: IEntry) => v.parent !== null && v.status === "dont",
+  (
+    dispatch: Dispatch<TActions>,
+    ownProps: {
+      k: string;
+    },
+  ) => ({
+    onClick: () => {
+      dispatch({ type: "dontToTodo", k: ownProps.k });
+      dispatch({ type: "save" });
+    },
+  }),
+  (onClick: () => void) => (
+    <button className="dont" onClick={onClick}>
+      {DONT_MARK}
+    </button>
+  ),
+);
+
+const StopButton = connect(
+  (
+    _: IState,
+    ownProps: {
+      k: string;
+    },
+  ) => ownProps,
+  (dispatch: Dispatch<TActions>) => ({
+    onClick: () => {
+      dispatch({ type: "stop" });
+      dispatch({ type: "save" });
+    },
+  }),
+)((props: { k: string; onClick: () => void }) => (
+  <button onClick={props.onClick} ref={stopButtonRefOf(props.k)}>
+    {STOP_MARK}
+  </button>
+));
+
+const StartButton = connect(
+  null,
+  (
+    dispatch: Dispatch<TActions>,
+    ownProps: {
+      k: string;
+    },
+  ) => ({
+    onClick: () => {
+      dispatch({ type: "start", k: ownProps.k });
+      dispatch({ type: "save" });
+      dispatch({ type: "focusStopButton", k: ownProps.k });
+    },
+  }),
+)((props: { onClick: () => void }) => (
+  <button onClick={props.onClick}>{START_MARK}</button>
+));
+
+const TopButton = connect_show_k(
+  (v: IEntry) => v.parent && v.status === "todo",
+  (
+    dispatch: Dispatch<TActions>,
+    ownProps: {
+      k: string;
+    },
+  ) => ({
+    onClick: () => {
+      dispatch({ type: "top", k: ownProps.k });
+      dispatch({ type: "save" });
+    },
+  }),
+  (onClick: () => void) => <button onClick={onClick}>{TOP_MARK}</button>,
+);
+
+const MoveUpButton = connect(
+  (
+    state: IState,
+    ownProps: {
+      k: string;
+    },
+  ) => {
+    const v = state.data.kvs[ownProps.k];
     return {
-      show,
+      show: Boolean(v.parent && v.show_detail && v.status === "todo"),
       k: ownProps.k,
     };
   },
-  (dispatch: Dispatch<TActions>) => ({
-    dispatch,
+  (
+    dispatch: Dispatch<TActions>,
+    ownProps: {
+      k: string;
+    },
+  ) => ({
+    onClick: () => {
+      dispatch({ type: "moveUp", k: ownProps.k });
+      dispatch({ type: "save" });
+      dispatch({ type: "focusMoveUpButton", k: ownProps.k });
+    },
   }),
-)((props: { show: boolean; k: string; dispatch: Dispatch<TActions> }) =>
+)((props: { show: boolean; k: string; onClick: () => void }) =>
   props.show ? (
-    <button
-      onClick={() => {
-        props.dispatch({ type: "delete_", k: props.k });
-        props.dispatch({ type: "save" });
-      }}
-    >
-      {DELETE_MARK}
+    <button onClick={props.onClick} ref={moveUpButtonRefOf(props.k)}>
+      {MOVE_UP_MARK}
     </button>
   ) : null,
+);
+
+const MoveDownButton = connect(
+  (
+    state: IState,
+    ownProps: {
+      k: string;
+    },
+  ) => {
+    const v = state.data.kvs[ownProps.k];
+    return {
+      show: Boolean(v.parent && v.show_detail && v.status === "todo"),
+      k: ownProps.k,
+    };
+  },
+  (
+    dispatch: Dispatch<TActions>,
+    ownProps: {
+      k: string;
+    },
+  ) => ({
+    onClick: () => {
+      dispatch({ type: "moveDown", k: ownProps.k });
+      dispatch({ type: "save" });
+      dispatch({ type: "focusMoveDownButton", k: ownProps.k });
+    },
+  }),
+)((props: { show: boolean; k: string; onClick: () => void }) =>
+  props.show ? (
+    <button onClick={props.onClick} ref={moveDownButtonRefOf(props.k)}>
+      {MOVE_DOWN_MARK}
+    </button>
+  ) : null,
+);
+
+const UnindentButton = connect(
+  (
+    state: IState,
+    ownProps: {
+      k: string;
+    },
+  ) => {
+    const v = state.data.kvs[ownProps.k];
+    return {
+      show: Boolean(v.parent && v.show_detail && v.status === "todo"),
+      k: ownProps.k,
+    };
+  },
+  (
+    dispatch: Dispatch<TActions>,
+    ownProps: {
+      k: string;
+    },
+  ) => ({
+    onClick: () => {
+      dispatch({ type: "unindent", k: ownProps.k });
+      dispatch({ type: "save" });
+      dispatch({ type: "focusUnindentButton", k: ownProps.k });
+    },
+  }),
+)((props: { show: boolean; k: string; onClick: () => void }) =>
+  props.show ? (
+    <button onClick={props.onClick} ref={unindentButtonRefOf(props.k)}>
+      {UNINDENT_MARK}
+    </button>
+  ) : null,
+);
+
+const IndentButton = connect(
+  (
+    state: IState,
+    ownProps: {
+      k: string;
+    },
+  ) => {
+    const v = state.data.kvs[ownProps.k];
+    return {
+      show: Boolean(v.parent && v.show_detail && v.status === "todo"),
+      k: ownProps.k,
+    };
+  },
+  (
+    dispatch: Dispatch<TActions>,
+    ownProps: {
+      k: string;
+    },
+  ) => ({
+    onClick: () => {
+      dispatch({ type: "indent", k: ownProps.k });
+      dispatch({ type: "save" });
+      dispatch({ type: "focusIndentButton", k: ownProps.k });
+    },
+  }),
+)((props: { show: boolean; k: string; onClick: () => void }) =>
+  props.show ? (
+    <button onClick={props.onClick} ref={indentButtonRefOf(props.k)}>
+      {INDENT_MARK}
+    </button>
+  ) : null,
+);
+
+const EvalButton = connect_show_k(
+  (v: IEntry) => v.status === "todo",
+  (
+    dispatch: Dispatch<TActions>,
+    ownProps: {
+      k: string;
+    },
+  ) => ({
+    onClick: () => {
+      dispatch({ type: "eval_", k: ownProps.k });
+    },
+  }),
+  (onClick: () => void) => <button onClick={onClick}>{EVAL_MARK}</button>,
+);
+
+const ShowDetailButton = connect_show_k(
+  (v: IEntry) => v.parent,
+  (
+    dispatch: Dispatch<TActions>,
+    ownProps: {
+      k: string;
+    },
+  ) => ({
+    onClick: () => {
+      dispatch({ type: "flipShowDetail", k: ownProps.k });
+      dispatch({ type: "save" });
+    },
+  }),
+  (onClick: () => void) => <button onClick={onClick}>{DETAIL_MARK}</button>,
+);
+
+const DeleteButton = connect_show_k(
+  (v: IEntry) =>
+    v.parent &&
+    v.show_detail &&
+    v.status === "todo" &&
+    v.todo.length === 0 &&
+    v.done.length === 0 &&
+    v.dont.length === 0,
+  (
+    dispatch: Dispatch<TActions>,
+    ownProps: {
+      k: string;
+    },
+  ) => ({
+    onClick: () => {
+      dispatch({ type: "delete_", k: ownProps.k });
+      dispatch({ type: "save" });
+    },
+  }),
+  (onClick: () => void) => <button onClick={onClick}>{DELETE_MARK}</button>,
+);
+
+const EstimationInput = connect(
+  (
+    state: IState,
+    ownProps: {
+      k: string;
+    },
+  ) => {
+    const v = state.data.kvs[ownProps.k];
+    return {
+      show: v.parent !== null,
+      estimate: v.estimate,
+      className: v.status,
+    };
+  },
+  (
+    dispatch: Dispatch<TActions>,
+    ownProps: {
+      k: string;
+    },
+  ) => ({
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      dispatch({
+        type: "setEstimate",
+        k: ownProps.k,
+        estimate: Number(e.currentTarget.value),
+      });
+      dispatch({ type: "save" });
+    },
+  }),
+)(
+  (props: {
+    show: boolean;
+    estimate: number;
+    className: string;
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  }) =>
+    props.show ? (
+      <input
+        type="number"
+        step="any"
+        value={props.estimate}
+        onChange={props.onChange}
+        className={props.className}
+      />
+    ) : null,
 );
 
 const main = () => {
