@@ -29,8 +29,11 @@ button{
     font-size: 50%;
     vertical-align: text-bottom;
 }
-.done, .dont{
+.dont{
     color: rgb(170, 170, 170);
+}
+.done{
+    color: rgb(230, 170, 170);
 }
 textarea{
     vertical-align: text-bottom;
