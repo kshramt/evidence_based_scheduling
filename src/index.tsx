@@ -42,14 +42,24 @@ interface INodeProps {
 
 interface IEntryProps {
   k: string;
-  v: IEntry;
+  status: TStatus;
+  parent: null | string;
+  text: string;
+  show_detail: boolean;
+  style: IStyle;
+  ranges: IRange[];
   running: boolean;
   cache: ICache;
 }
 
 interface IQueueNodeProps {
   k: string;
-  v: IEntry;
+  status: TStatus;
+  parent: null | string;
+  text: string;
+  show_detail: boolean;
+  style: IStyle;
+  ranges: IRange[];
   running: boolean;
   cache: ICache;
   shouldHide: boolean;
@@ -704,28 +714,34 @@ const QueueNode = connect((state: IState, ownProps: IEntryOwnProps) => {
   const v = state.data.kvs[k];
   return {
     k,
-    v,
+    status: v.status,
+    parent: v.parent,
+    text: v.text,
+    show_detail: v.show_detail,
+    style: v.style,
+    ranges: v.ranges,
     cache: state.caches[k],
     running: k === state.data.current_entry,
     shouldHide: state.data.showTodoOnly && v.status !== "todo",
   };
 })((props: IQueueNodeProps) => {
-  const v = props.v;
   const cache = props.cache;
   return props.shouldHide ? null : (
     <li key={props.k}>
       <div
         id={`queue${props.k}`}
-        className={props.running ? `${v.status} running` : v.status}
+        className={props.running ? `${props.status} running` : props.status}
       >
-        {v.parent ? toTreeButtonOf(props.k) : null}
+        {props.parent ? toTreeButtonOf(props.k) : null}
         <DoneToTodoButton k={props.k} />
         <DontToTodoButton k={props.k} />
-        {v.parent !== null && v.status === "todo" ? cache.newButton : null}
-        {v.parent === null
+        {props.parent !== null && props.status === "todo"
+          ? cache.newButton
+          : null}
+        {props.parent === null
           ? null
-          : cache.textAreaOf(v.text, v.status, v.style, null)}
-        {v.parent === null ? null : props.running ? (
+          : cache.textAreaOf(props.text, props.status, props.style, null)}
+        {props.parent === null ? null : props.running ? (
           <StopButton k={props.k} />
         ) : (
           <StartButton k={props.k} />
@@ -739,9 +755,11 @@ const QueueNode = connect((state: IState, ownProps: IEntryOwnProps) => {
         <ShowDetailButton k={props.k} />
         <MoveUpButton k={props.k} />
         <MoveDownButton k={props.k} />
-        {v.status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
-        {v.parent && v.show_detail
-          ? showLastRange(lastRange(v.ranges), cache.setLastRange)
+        {props.status === "todo"
+          ? cache.percentiles.map(digits1).join(" ")
+          : null}
+        {props.parent && props.show_detail
+          ? showLastRange(lastRange(props.ranges), cache.setLastRange)
           : null}
         <DeleteButton k={props.k} />
       </div>
@@ -751,27 +769,39 @@ const QueueNode = connect((state: IState, ownProps: IEntryOwnProps) => {
 
 const Entry = connect((state: IState, ownProps: IEntryOwnProps) => {
   const k = ownProps.k;
+  const v = state.data.kvs[k];
   return {
     k,
-    v: state.data.kvs[k],
+    status: v.status,
+    parent: v.parent,
+    text: v.text,
+    show_detail: v.show_detail,
+    style: v.style,
+    ranges: v.ranges,
     cache: state.caches[k],
     running: k === state.data.current_entry,
   };
 })((props: IEntryProps) => {
-  const v = props.v;
   const cache = props.cache;
   return (
     <div
       id={`tree${props.k}`}
-      className={props.running ? `${v.status} running` : v.status}
+      className={props.running ? `${props.status} running` : props.status}
     >
       <DoneToTodoButton k={props.k} />
       <DontToTodoButton k={props.k} />
-      {v.parent !== null && v.status === "todo" ? cache.newButton : null}
-      {v.parent === null
+      {props.parent !== null && props.status === "todo"
+        ? cache.newButton
+        : null}
+      {props.parent === null
         ? null
-        : cache.textAreaOf(v.text, v.status, v.style, textAreaRefOf(props.k))}
-      {v.parent === null ? null : props.running ? (
+        : cache.textAreaOf(
+            props.text,
+            props.status,
+            props.style,
+            textAreaRefOf(props.k),
+          )}
+      {props.parent === null ? null : props.running ? (
         <StopButton k={props.k} />
       ) : (
         <StartButton k={props.k} />
@@ -787,9 +817,11 @@ const Entry = connect((state: IState, ownProps: IEntryOwnProps) => {
       <MoveDownButton k={props.k} />
       <UnindentButton k={props.k} />
       <IndentButton k={props.k} />
-      {v.status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
-      {v.parent && v.show_detail
-        ? showLastRange(lastRange(v.ranges), cache.setLastRange)
+      {props.status === "todo"
+        ? cache.percentiles.map(digits1).join(" ")
+        : null}
+      {props.parent && props.show_detail
+        ? showLastRange(lastRange(props.ranges), cache.setLastRange)
         : null}
       <DeleteButton k={props.k} />
     </div>
