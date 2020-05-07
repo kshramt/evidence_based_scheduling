@@ -753,15 +753,10 @@ const QueueNode = connect((state: IState, ownProps: IEntryOwnProps) => {
         <TodoToDoneButton k={props.k} />
         <TodoToDontButton k={props.k} />
         <ShowDetailButton k={props.k} />
-        <MoveUpButton k={props.k} />
-        <MoveDownButton k={props.k} />
+        <QueueDetails k={props.k} />
         {props.status === "todo"
           ? cache.percentiles.map(digits1).join(" ")
           : null}
-        {props.parent && props.show_detail
-          ? showLastRange(lastRange(props.ranges), cache.setLastRange)
-          : null}
-        <DeleteButton k={props.k} />
       </div>
     </li>
   );
@@ -813,17 +808,10 @@ const Entry = connect((state: IState, ownProps: IEntryOwnProps) => {
       <TodoToDoneButton k={props.k} />
       <TodoToDontButton k={props.k} />
       <ShowDetailButton k={props.k} />
-      <MoveUpButton k={props.k} />
-      <MoveDownButton k={props.k} />
-      <UnindentButton k={props.k} />
-      <IndentButton k={props.k} />
+      <TreeDetails k={props.k} />
       {props.status === "todo"
         ? cache.percentiles.map(digits1).join(" ")
         : null}
-      {props.parent && props.show_detail
-        ? showLastRange(lastRange(props.ranges), cache.setLastRange)
-        : null}
-      <DeleteButton k={props.k} />
     </div>
   );
 });
@@ -849,24 +837,10 @@ const _estimate = (
   return ts;
 };
 
-const showLastRange = (
-  l: null | IRange,
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
-) => {
-  return l === null || l.end === null ? null : (
-    <input
-      type="number"
-      step="any"
-      value={(l.end - l.start) / 3600}
-      onChange={onChange}
-    />
-  );
-};
-
-const lastRange = (ranges: IRange[]): null | IRange => {
+const lastRangeOf = (ranges: IRange[]): null | IRange => {
   return ranges.length
     ? last(ranges).end === null
-      ? lastRange(butLast(ranges))
+      ? lastRangeOf(butLast(ranges))
       : last(ranges)
     : null;
 };
@@ -1338,7 +1312,7 @@ const root_reducer_of = (state_: IState, app: App) => {
           const k = action.k;
           const t = action.t;
           return produce(state, draft => {
-            const l = lastRange(draft.data.kvs[k].ranges);
+            const l = lastRangeOf(draft.data.kvs[k].ranges);
             if (l !== null && l.end) {
               const t1 = l.end - l.start;
               const t2 = t * 3600;
@@ -1846,6 +1820,68 @@ const EstimationInput = connect(
     ) : null,
 );
 
+const TreeDetails = connect((state: IState, ownProps: { k: string }) => ({
+  showDetail: state.data.kvs[ownProps.k].show_detail,
+  k: ownProps.k,
+}))((props: { showDetail: boolean; k: string }) =>
+  props.showDetail ? (
+    <React.Fragment>
+      <MoveUpButton k={props.k} />
+      <MoveDownButton k={props.k} />
+      <UnindentButton k={props.k} />
+      <IndentButton k={props.k} />
+      <LastRange k={props.k} />
+      <DeleteButton k={props.k} />
+    </React.Fragment>
+  ) : null,
+);
+
+const QueueDetails = connect((state: IState, ownProps: { k: string }) => ({
+  showDetail: state.data.kvs[ownProps.k].show_detail,
+  k: ownProps.k,
+}))((props: { showDetail: boolean; k: string }) =>
+  props.showDetail ? (
+    <React.Fragment>
+      <MoveUpButton k={props.k} />
+      <MoveDownButton k={props.k} />
+      <LastRange k={props.k} />
+      <DeleteButton k={props.k} />
+    </React.Fragment>
+  ) : null,
+);
+
+const LastRange = connect(
+  (
+    state: IState,
+    ownProps: {
+      k: string;
+    },
+  ) => {
+    const v = state.data.kvs[ownProps.k];
+    const cache = state.caches[ownProps.k];
+    const lastRange = lastRangeOf(v.ranges);
+    return {
+      lastRangeValue:
+        lastRange !== null && lastRange.end !== null && v.parent !== null
+          ? (lastRange.end - lastRange.start) / 3600
+          : null,
+      setLastRange: cache.setLastRange,
+    };
+  },
+)(
+  (props: {
+    lastRangeValue: null | number;
+    setLastRange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  }) =>
+    props.lastRangeValue === null ? null : (
+      <input
+        type="number"
+        step="any"
+        value={props.lastRangeValue}
+        onChange={props.setLastRange}
+      />
+    ),
+);
 const main = () => {
   fetch("api/" + API_VERSION + "/get")
     .then(r => r.json())
