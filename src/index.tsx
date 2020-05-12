@@ -65,12 +65,6 @@ interface IQueueNodeProps {
   shouldHide: boolean;
 }
 
-interface IHistory {
-  prev: null | IHistory;
-  value: IState;
-  next: null | IHistory;
-}
-
 interface IState {
   data: IData;
   caches: ICaches;
@@ -310,18 +304,56 @@ type TActions =
   | IDontToTodoAction
   | IFocusTextAreaAction;
 
+class History<T> {
+  capacity: number;
+  i: number;
+  buf: T[];
+  constructor() {
+    this.capacity = 0;
+    this.i = -1;
+    this.buf = [];
+  }
+
+  value = () => this.buf[this.i];
+
+  push = (v: T) => {
+    this.i += 1;
+    if (this.buf.length <= this.i) {
+      this.buf.push(v);
+      this.capacity = this.buf.length;
+    } else {
+      this.buf[this.i] = v;
+      if (this.capacity < this.i) {
+        this.capacity = this.i;
+      }
+    }
+    return this;
+  };
+
+  undo = () => {
+    this.i = Math.max(this.i - 1, 0);
+    return this.value();
+  };
+
+  redo = () => {
+    this.i = Math.min(this.i + 1, this.capacity - 1);
+    return this.value();
+  };
+}
+
+const HISTORY = new History<IState>();
+
 class App extends React.Component<IAppProps, IState> {
   menuButtons: JSX.Element;
   my_state: {
     dirtyHistory: boolean;
     dirtyDump: boolean;
-    history: IHistory;
   };
   store: Store<IState, TActions>;
 
   constructor(props: IAppProps) {
     super(props);
-    const caches = {} as ICaches;
+    const caches: ICaches = {};
     for (const k of Object.keys(props.data.kvs)) {
       this.setCache(caches, k, props.data.kvs);
     }
@@ -333,12 +365,8 @@ class App extends React.Component<IAppProps, IState> {
     this.my_state = {
       dirtyHistory: false,
       dirtyDump: false,
-      history: {
-        prev: null,
-        value: state,
-        next: null,
-      },
     };
+    HISTORY.push(state);
     this.store = createStore(root_reducer_of(state, this), state);
 
     this.menuButtons = (
@@ -960,14 +988,6 @@ export function* multinomial<T>(xs: T[], ws: number[]) {
   return 0;
 }
 
-const pushHistory = (h: IHistory, v: IState) => {
-  return (h.next = {
-    prev: h,
-    value: v,
-    next: null,
-  });
-};
-
 const isApprox = (x: number, y: number) => {
   const atol = 1e-7;
   const rtol = 1e-4;
@@ -1072,7 +1092,7 @@ const root_reducer_of = (state_: IState, app: App) => {
         }
         case "save": {
           if (app.my_state.dirtyHistory) {
-            app.my_state.history = pushHistory(app.my_state.history, state);
+            HISTORY.push(state);
             app.my_state.dirtyHistory = false;
           }
           if (app.my_state.dirtyDump) {
@@ -1093,17 +1113,18 @@ const root_reducer_of = (state_: IState, app: App) => {
           return state;
         }
         case "undo": {
-          if (app.my_state.history.prev !== null) {
-            app.my_state.history = app.my_state.history.prev;
-            state = app.my_state.history.value;
+          const prev = HISTORY.undo();
+          if (prev !== state) {
+            state = prev;
             app.my_state.dirtyDump = true;
           }
           return state;
         }
         case "redo": {
-          if (app.my_state.history.next !== null) {
-            app.my_state.history = app.my_state.history.next;
-            state = app.my_state.history.value;
+          const next = HISTORY.redo();
+          if (next !== state) {
+            state = next;
+            app.my_state.dirtyDump = true;
           }
           return state;
         }
