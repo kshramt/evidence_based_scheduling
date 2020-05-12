@@ -342,13 +342,13 @@ class History<T> {
 }
 
 const HISTORY = new History<IState>();
+const DIRTY_BITS = {
+  dirtyHistory: false,
+  dirtyDump: false,
+};
 
 class App extends React.Component<IAppProps, IState> {
   menuButtons: JSX.Element;
-  my_state: {
-    dirtyHistory: boolean;
-    dirtyDump: boolean;
-  };
   store: Store<IState, TActions>;
 
   constructor(props: IAppProps) {
@@ -361,10 +361,6 @@ class App extends React.Component<IAppProps, IState> {
       data: props.data,
       caches,
       saveSuccess: true,
-    };
-    this.my_state = {
-      dirtyHistory: false,
-      dirtyDump: false,
     };
     HISTORY.push(state);
     this.store = createStore(root_reducer_of(state, this), state);
@@ -1032,7 +1028,7 @@ const root_reducer_of = (state_: IState, app: App) => {
       const dt = r.end - r.start;
       _addDt(draft, draft.data.current_entry, dt);
       draft.data.current_entry = null;
-      app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
+      DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
     }
   };
 
@@ -1049,7 +1045,7 @@ const root_reducer_of = (state_: IState, app: App) => {
   const produce_top = (state: IState, k: string) =>
     produce(state, draft => {
       _top(draft, k);
-      app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
+      DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
     });
 
   return (state: undefined | IState, action: TActions) => {
@@ -1074,7 +1070,7 @@ const root_reducer_of = (state_: IState, app: App) => {
               if (draft.data.current_entry === k) {
                 draft.data.current_entry = null;
               }
-              app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
+              DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
             }
           });
         }
@@ -1087,15 +1083,15 @@ const root_reducer_of = (state_: IState, app: App) => {
             draft.data.kvs[parent].todo.unshift(k);
             draft.data.queue.unshift(k);
             app.setCache(draft.caches as ICaches, k, draft.data.kvs);
-            app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
+            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
           });
         }
         case "save": {
-          if (app.my_state.dirtyHistory) {
+          if (DIRTY_BITS.dirtyHistory) {
             HISTORY.push(state);
-            app.my_state.dirtyHistory = false;
+            DIRTY_BITS.dirtyHistory = false;
           }
-          if (app.my_state.dirtyDump) {
+          if (DIRTY_BITS.dirtyDump) {
             fetch("api/" + API_VERSION + "/post", {
               method: "POST",
               headers: {
@@ -1108,7 +1104,7 @@ const root_reducer_of = (state_: IState, app: App) => {
                 draft.saveSuccess = r.ok;
               });
             });
-            app.my_state.dirtyDump = false;
+            DIRTY_BITS.dirtyDump = false;
           }
           return state;
         }
@@ -1116,7 +1112,7 @@ const root_reducer_of = (state_: IState, app: App) => {
           const prev = HISTORY.undo();
           if (prev !== state) {
             state = prev;
-            app.my_state.dirtyDump = true;
+            DIRTY_BITS.dirtyDump = true;
           }
           return state;
         }
@@ -1124,21 +1120,21 @@ const root_reducer_of = (state_: IState, app: App) => {
           const next = HISTORY.redo();
           if (next !== state) {
             state = next;
-            app.my_state.dirtyDump = true;
+            DIRTY_BITS.dirtyDump = true;
           }
           return state;
         }
         case "flipShowTodoOnly": {
           return produce(state, draft => {
             draft.data.showTodoOnly = !draft.data.showTodoOnly;
-            app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
+            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
           });
         }
         case "flipShowDetail": {
           const k = action.k;
           return produce(state, draft => {
             draft.data.kvs[k].show_detail = !draft.data.kvs[k].show_detail;
-            app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
+            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
           });
         }
         case "start": {
@@ -1161,7 +1157,7 @@ const root_reducer_of = (state_: IState, app: App) => {
                 start: Number(new Date()) / 1000,
                 end: null,
               });
-              app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
+              DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
             }
           });
         }
@@ -1230,7 +1226,7 @@ const root_reducer_of = (state_: IState, app: App) => {
             if (pk) {
               moveUp(draft.data.kvs[pk].todo, k);
               moveUp(draft.data.queue, k);
-              app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
+              DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
             }
           });
         }
@@ -1246,7 +1242,7 @@ const root_reducer_of = (state_: IState, app: App) => {
             if (pk) {
               moveDown(draft.data.kvs[pk].todo, k);
               moveDown(draft.data.queue, k);
-              app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
+              DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
             }
           });
         }
@@ -1281,7 +1277,7 @@ const root_reducer_of = (state_: IState, app: App) => {
                     draft.caches[ppk].total_time_spent,
                   );
                 }
-                app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
+                DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
               }
             }
           });
@@ -1309,7 +1305,7 @@ const root_reducer_of = (state_: IState, app: App) => {
                   draft.caches[new_pk].total_time_spent,
                   total_time_spent_new_pk_orig + total_time_spent_k,
                 );
-                app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
+                DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
               }
             }
           });
@@ -1325,7 +1321,7 @@ const root_reducer_of = (state_: IState, app: App) => {
           return produce(state, draft => {
             if (draft.data.kvs[k].estimate !== estimate) {
               draft.data.kvs[k].estimate = estimate;
-              app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
+              DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
             }
           });
         }
@@ -1341,7 +1337,7 @@ const root_reducer_of = (state_: IState, app: App) => {
               if (dt !== 0) {
                 l.end = l.start + t2;
                 _addDt(draft, k, dt);
-                app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
+                DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
               }
             }
           });
@@ -1351,7 +1347,7 @@ const root_reducer_of = (state_: IState, app: App) => {
           const text = action.text;
           return produce(state, draft => {
             draft.data.kvs[k].text = text;
-            app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
+            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
           });
         }
         case "resizeTextArea": {
@@ -1364,11 +1360,11 @@ const root_reducer_of = (state_: IState, app: App) => {
                 const v = draft.data.kvs[k];
                 // if (v.style.width !== width) {
                 //   v.style.width = width;
-                //   app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
+                //   DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
                 // }
                 if (v.style.height !== height) {
                   v.style.height = height;
-                  app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
+                  DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
                 }
               });
         }
@@ -1378,7 +1374,7 @@ const root_reducer_of = (state_: IState, app: App) => {
             _rmFromTodo(draft, k);
             _addToDone(draft, k);
             _topQueue(draft, k);
-            app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
+            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
           });
         }
         case "todoToDont": {
@@ -1387,21 +1383,21 @@ const root_reducer_of = (state_: IState, app: App) => {
             _rmFromTodo(draft, k);
             _addToDont(draft, k);
             _topQueue(draft, k);
-            app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
+            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
           });
         }
         case "doneToTodo": {
           const k = action.k;
           return produce(state, draft => {
             _doneToTodo(draft, k);
-            app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
+            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
           });
         }
         case "dontToTodo": {
           const k = action.k;
           return produce(state, draft => {
             _dontToTodo(draft, k);
-            app.my_state.dirtyHistory = app.my_state.dirtyDump = true;
+            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
           });
         }
         case "focusTextArea": {
