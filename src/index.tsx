@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { connect, Provider } from "react-redux";
-import { Action, Store, createStore, Dispatch } from "redux";
+import { Action, createStore, Dispatch } from "redux";
 import produce, { Draft, setAutoFreeze } from "immer";
 
 import "./index.css";
@@ -72,9 +72,7 @@ interface IState {
   saveSuccess: boolean;
 }
 
-interface IAppProps {
-  data: IData;
-}
+interface IAppProps {}
 
 interface IMenuProps {
   saveSuccess: boolean;
@@ -139,7 +137,6 @@ interface ICache {
   newButton: JSX.Element;
   setLastRange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setText: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  resizeTextArea: (e: React.MouseEvent<HTMLTextAreaElement>) => void;
   textAreaOf: (
     text: string,
     status: TStatus,
@@ -162,6 +159,13 @@ interface INewAction extends Action {
 }
 interface ISaveAction extends Action {
   type: "save";
+}
+interface ILoadAction extends Action {
+  type: "load";
+}
+interface ISetStateAction extends Action {
+  type: "setState";
+  payload: IState;
 }
 interface IUndoAction extends Action {
   type: "undo";
@@ -276,6 +280,8 @@ type TActions =
   | IDeleteActin
   | INewAction
   | ISaveAction
+  | ILoadAction
+  | ISetStateAction
   | IUndoAction
   | IRedoActin
   | IFlipShowTodoOnlyAction
@@ -347,180 +353,630 @@ const DIRTY_BITS = {
   dirtyDump: false,
 };
 
-class App extends React.Component<IAppProps, IState> {
-  menuButtons: JSX.Element;
-  store: Store<IState, TActions>;
-
-  constructor(props: IAppProps) {
-    super(props);
-    const caches: ICaches = {};
-    for (const k of Object.keys(props.data.kvs)) {
-      this.setCache(caches, k, props.data.kvs);
-    }
-    const state = {
-      data: props.data,
-      caches,
-      saveSuccess: true,
+const setCache = (caches: ICaches, k: string, kvs: IKvs) => {
+  if (caches[k] === undefined) {
+    const sumChildren = (xs: string[]) => {
+      return xs.reduce((total, current) => {
+        setCache(caches, current, kvs);
+        return total + caches[current].total_time_spent;
+      }, 0);
     };
-    HISTORY.push(state);
-    this.store = createStore(root_reducer_of(state, this), state);
-
-    this.menuButtons = (
-      <div>
-        <StopButton k={state.data.root} />
-        {state.caches[state.data.root].newButton}
+    const _resizeTextArea = (e: React.MouseEvent<HTMLTextAreaElement>) => {
+      resizeTextArea(
+        k,
+        e.currentTarget.style.width,
+        e.currentTarget.style.height,
+      );
+    };
+    const _setText = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setText(k, e.currentTarget.value);
+    };
+    caches[k] = {
+      total_time_spent: kvs[k].ranges.reduce((total, current) => {
+        return current.end === null
+          ? total
+          : total + (current.end - current.start);
+      }, sumChildren(kvs[k].todo) + sumChildren(kvs[k].done) + sumChildren(kvs[k].dont)),
+      percentiles: [] as number[], // 0, 10, 33, 50, 67, 90, 100
+      newButton: (
         <button
           onClick={() => {
-            this.store.dispatch({ type: "save" });
-            this.store.dispatch({ type: "undo" });
-            this.store.dispatch({ type: "save" });
+            new_(k);
           }}
         >
-          {UNDO_MARK}
+          {NEW_MARK}
         </button>
-        <button
-          onClick={() => {
-            this.store.dispatch({ type: "save" });
-            this.store.dispatch({ type: "redo" });
-            this.store.dispatch({ type: "save" });
-          }}
-        >
-          {REDO_MARK}
-        </button>
-        <button
-          onClick={() => {
-            this.store.dispatch({ type: "flipShowTodoOnly" });
-            this.store.dispatch({ type: "save" });
-          }}
-        >
-          👀
-        </button>
-        <button
-          onClick={() => {
-            this.store.dispatch({ type: "smallestToTop" });
-            this.store.dispatch({ type: "save" });
-          }}
-        >
-          Small
-        </button>
-        <button
-          onClick={() => {
-            this.store.dispatch({ type: "closestToTop" });
-            this.store.dispatch({ type: "save" });
-          }}
-        >
-          Due
-        </button>
-      </div>
-    );
-  }
-  setCache = (caches: ICaches, k: string, kvs: IKvs) => {
-    if (caches[k] === undefined) {
-      const sumChildren = (xs: string[]) => {
-        return xs.reduce((total, current) => {
-          this.setCache(caches, current, kvs);
-          return total + caches[current].total_time_spent;
-        }, 0);
-      };
-      const resizeTextArea = (e: React.MouseEvent<HTMLTextAreaElement>) => {
-        this.resizeTextArea(
-          k,
-          e.currentTarget.style.width,
-          e.currentTarget.style.height,
+      ),
+      setLastRange: (e: React.ChangeEvent<HTMLInputElement>) => {
+        setLastRange(k, Number(e.currentTarget.value));
+      },
+      setText: _setText,
+      textAreaOf: (
+        text: string,
+        status: TStatus,
+        style: IStyle,
+        ref: null | React.RefObject<HTMLTextAreaElement>,
+      ) => {
+        return (
+          <textarea
+            value={text}
+            onChange={_setText}
+            onBlur={save}
+            onMouseUp={_resizeTextArea}
+            className={status}
+            style={style}
+            ref={ref}
+          />
         );
-      };
-      const setText = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        this.setText(k, e.currentTarget.value);
-      };
-      caches[k] = {
-        total_time_spent: kvs[k].ranges.reduce((total, current) => {
-          return current.end === null
-            ? total
-            : total + (current.end - current.start);
-        }, sumChildren(kvs[k].todo) + sumChildren(kvs[k].done) + sumChildren(kvs[k].dont)),
-        percentiles: [] as number[], // 0, 10, 33, 50, 67, 90, 100
-        newButton: (
+      },
+    };
+  }
+  return caches;
+};
+
+const root_reducer_of = () => {
+  const _stop = (draft: Draft<IState>) => {
+    if (draft.data.current_entry !== null) {
+      const e = draft.data.kvs[draft.data.current_entry];
+      const r = last(e.ranges);
+      r.end = Number(new Date()) / 1000;
+      const dt = r.end - r.start;
+      _addDt(draft, draft.data.current_entry, dt);
+      draft.data.current_entry = null;
+      DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
+    }
+  };
+
+  const _rmFromTodo = (draft: Draft<IState>, k: string) => {
+    if (draft.data.current_entry === k) {
+      _stop(draft);
+    }
+    const pk = draft.data.kvs[k].parent;
+    if (pk) {
+      deleteAtVal(draft.data.kvs[pk].todo, k);
+    }
+  };
+
+  const produce_top = (state: IState, k: string) =>
+    produce(state, draft => {
+      _top(draft, k);
+      DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
+    });
+
+  return (state: undefined | IState, action: TActions) => {
+    if (state === undefined) {
+      return emptyStateOf();
+    } else {
+      switch (action.type) {
+        case "eval_": {
+          const k = action.k;
+          return produce(state, draft => {
+            _eval_(draft, k);
+          });
+        }
+        case "delete_": {
+          const k = action.k;
+          return produce(state, draft => {
+            if (draft.data.kvs[k].todo.length === 0) {
+              _rmTodoEntry(draft, k);
+              deleteAtVal(draft.data.queue, k);
+              delete draft.data.kvs[k];
+              delete draft.caches[k];
+              if (draft.data.current_entry === k) {
+                draft.data.current_entry = null;
+              }
+              DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
+            }
+          });
+        }
+        case "new_": {
+          const parent = action.parent;
+          const k = new Date().toISOString();
+          return produce(state, draft => {
+            const v = newEntryValue(parent, k);
+            draft.data.kvs[k] = v;
+            draft.data.kvs[parent].todo.unshift(k);
+            draft.data.queue.unshift(k);
+            setCache(draft.caches as ICaches, k, draft.data.kvs);
+            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
+          });
+        }
+        case "save": {
+          if (DIRTY_BITS.dirtyHistory) {
+            HISTORY.push(state);
+            DIRTY_BITS.dirtyHistory = false;
+          }
+          if (DIRTY_BITS.dirtyDump) {
+            fetch("api/" + API_VERSION + "/post", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json; charset=utf-8",
+              },
+              body: JSON.stringify(state.data),
+            }).then(r => {
+              // todo: Use redux-thunk.
+              state = produce(state, (draft: Draft<IState>) => {
+                draft.saveSuccess = r.ok;
+              });
+            });
+            DIRTY_BITS.dirtyDump = false;
+          }
+          return state;
+        }
+        case "load": {
+          fetch("api/" + API_VERSION + "/get")
+            .then(r => r.json())
+            .then((data: IData) => {
+              const caches: ICaches = {};
+              for (const k of Object.keys(data.kvs)) {
+                setCache(caches, k, data.kvs);
+              }
+              // todo: Use redux-thunk.
+              setTimeout(
+                () =>
+                  STORE.dispatch({
+                    type: "setState",
+                    payload: {
+                      data,
+                      caches,
+                      saveSuccess: true,
+                    },
+                  }),
+                500,
+              );
+            });
+          return state;
+        }
+        case "setState": {
+          console.log(action);
+          HISTORY.push(action.payload);
+          return action.payload;
+        }
+        case "undo": {
+          const prev = HISTORY.undo();
+          if (prev !== state) {
+            state = prev;
+            DIRTY_BITS.dirtyDump = true;
+          }
+          return state;
+        }
+        case "redo": {
+          const next = HISTORY.redo();
+          if (next !== state) {
+            state = next;
+            DIRTY_BITS.dirtyDump = true;
+          }
+          return state;
+        }
+        case "flipShowTodoOnly": {
+          return produce(state, draft => {
+            draft.data.showTodoOnly = !draft.data.showTodoOnly;
+            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
+          });
+        }
+        case "flipShowDetail": {
+          const k = action.k;
+          return produce(state, draft => {
+            draft.data.kvs[k].show_detail = !draft.data.kvs[k].show_detail;
+            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
+          });
+        }
+        case "start": {
+          const k = action.k;
+          return produce(state, draft => {
+            if (k !== draft.data.current_entry) {
+              switch (draft.data.kvs[k].status) {
+                case "done":
+                  _doneToTodo(draft, k);
+                  break;
+                case "dont":
+                  _dontToTodo(draft, k);
+                  break;
+              }
+              _top(draft, k);
+              assert(draft.data.kvs[k].status === "todo", "Must not happen");
+              _stop(draft);
+              draft.data.current_entry = k;
+              draft.data.kvs[k].ranges.push({
+                start: Number(new Date()) / 1000,
+                end: null,
+              });
+              DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
+            }
+          });
+        }
+        case "focusStopButton": {
+          const k = action.k;
+          setTimeout(() => focus(stopButtonRefOf(k).current), 50);
+          return state;
+        }
+        case "top": {
+          return produce_top(state, action.k);
+        }
+        case "smallestToTop": {
+          let k_min = null;
+          let estimate_min = Infinity;
+          for (const k in state.data.kvs) {
+            const v = state.data.kvs[k];
+            if (
+              v.status === "todo" &&
+              v.todo.length <= 0 &&
+              0 < v.estimate &&
+              v.estimate < estimate_min
+            ) {
+              k_min = k;
+              estimate_min = v.estimate;
+            }
+          }
+          return k_min === null ? state : produce_top(state, k_min);
+        }
+        case "closestToTop": {
+          let k_min = null;
+          let due_min = ":due: 9999-12-31T23:59:59";
+          for (let k in state.data.kvs) {
+            let v = state.data.kvs[k];
+            if (v.status === "todo" && v.todo.length <= 0) {
+              while (true) {
+                let due = null;
+                for (const w of v.text.split("\n")) {
+                  if (w.startsWith(":due: ")) {
+                    due = w;
+                  }
+                }
+                if (due !== null) {
+                  if (due < due_min) {
+                    k_min = k;
+                    due_min = due;
+                  }
+                  break;
+                }
+                if (v.parent === null) {
+                  break;
+                }
+                k = v.parent;
+                v = state.data.kvs[k];
+              }
+            }
+          }
+          return k_min === null ? state : produce_top(state, k_min);
+        }
+        case "stop": {
+          return produce(state, _stop);
+        }
+        case "moveUp": {
+          const k = action.k;
+          return produce(state, draft => {
+            const pk = draft.data.kvs[k].parent;
+            if (pk) {
+              moveUp(draft.data.kvs[pk].todo, k);
+              moveUp(draft.data.queue, k);
+              DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
+            }
+          });
+        }
+        case "focusMoveUpButton": {
+          const k = action.k;
+          focus(moveUpButtonRefOf(k).current);
+          return state;
+        }
+        case "moveDown": {
+          const k = action.k;
+          return produce(state, draft => {
+            const pk = draft.data.kvs[k].parent;
+            if (pk) {
+              moveDown(draft.data.kvs[pk].todo, k);
+              moveDown(draft.data.queue, k);
+              DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
+            }
+          });
+        }
+        case "focusMoveDownButton": {
+          const k = action.k;
+          focus(moveDownButtonRefOf(k).current);
+          return state;
+        }
+        case "unindent": {
+          const k = action.k;
+          return produce(state, draft => {
+            const pk = draft.data.kvs[k].parent;
+            if (pk !== null) {
+              const ppk = draft.data.kvs[pk].parent;
+              if (ppk !== null) {
+                const _total_time_spent_pk_orig =
+                  draft.caches[pk].total_time_spent;
+                const _total_time_spent_ppk_orig =
+                  draft.caches[ppk].total_time_spent;
+                _rmTodoEntry(draft, k);
+                const entries = draft.data.kvs[ppk].todo;
+                const i = entries.indexOf(pk);
+                assert(i !== -1, "Must not happen.");
+                _addTodoEntry(draft, ppk, i, k);
+                assertIsApprox(
+                  _total_time_spent_pk_orig - draft.caches[pk].total_time_spent,
+                  draft.caches[k].total_time_spent,
+                );
+                if (_total_time_spent_ppk_orig !== null) {
+                  assertIsApprox(
+                    _total_time_spent_ppk_orig,
+                    draft.caches[ppk].total_time_spent,
+                  );
+                }
+                DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
+              }
+            }
+          });
+        }
+        case "focusUnindentButton": {
+          const k = action.k;
+          focus(unindentButtonRefOf(k).current);
+          return state;
+        }
+        case "indent": {
+          const k = action.k;
+          return produce(state, draft => {
+            const pk = draft.data.kvs[k].parent;
+            if (pk) {
+              const entries = draft.data.kvs[pk].todo;
+              if (last(entries) !== k) {
+                const i = entries.indexOf(k);
+                const new_pk = entries[i + 1];
+                const total_time_spent_new_pk_orig =
+                  draft.caches[new_pk].total_time_spent;
+                const total_time_spent_k = draft.caches[k].total_time_spent;
+                _rmTodoEntry(draft, k);
+                _addTodoEntry(draft, new_pk, 0, k);
+                assertIsApprox(
+                  draft.caches[new_pk].total_time_spent,
+                  total_time_spent_new_pk_orig + total_time_spent_k,
+                );
+                DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
+              }
+            }
+          });
+        }
+        case "focusIndentButton": {
+          const k = action.k;
+          focus(indentButtonRefOf(k).current);
+          return state;
+        }
+        case "setEstimate": {
+          const k = action.k;
+          const estimate = action.estimate;
+          return produce(state, draft => {
+            if (draft.data.kvs[k].estimate !== estimate) {
+              draft.data.kvs[k].estimate = estimate;
+              DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
+            }
+          });
+        }
+        case "setLastRange": {
+          const k = action.k;
+          const t = action.t;
+          return produce(state, draft => {
+            const l = lastRangeOf(draft.data.kvs[k].ranges);
+            if (l !== null && l.end) {
+              const t1 = l.end - l.start;
+              const t2 = t * 3600;
+              const dt = t2 - t1;
+              if (dt !== 0) {
+                l.end = l.start + t2;
+                _addDt(draft, k, dt);
+                DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
+              }
+            }
+          });
+        }
+        case "setText": {
+          const k = action.k;
+          const text = action.text;
+          return produce(state, draft => {
+            draft.data.kvs[k].text = text;
+            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
+          });
+        }
+        case "resizeTextArea": {
+          const k = action.k;
+          const width = action.width;
+          const height = action.height;
+          return width === null || height === null
+            ? state
+            : produce(state, draft => {
+                const v = draft.data.kvs[k];
+                // if (v.style.width !== width) {
+                //   v.style.width = width;
+                //   DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
+                // }
+                if (v.style.height !== height) {
+                  v.style.height = height;
+                  DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
+                }
+              });
+        }
+        case "todoToDone": {
+          const k = action.k;
+          return produce(state, draft => {
+            _rmFromTodo(draft, k);
+            _addToDone(draft, k);
+            _topQueue(draft, k);
+            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
+          });
+        }
+        case "todoToDont": {
+          const k = action.k;
+          return produce(state, draft => {
+            _rmFromTodo(draft, k);
+            _addToDont(draft, k);
+            _topQueue(draft, k);
+            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
+          });
+        }
+        case "doneToTodo": {
+          const k = action.k;
+          return produce(state, draft => {
+            _doneToTodo(draft, k);
+            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
+          });
+        }
+        case "dontToTodo": {
+          const k = action.k;
+          return produce(state, draft => {
+            _dontToTodo(draft, k);
+            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
+          });
+        }
+        case "focusTextArea": {
+          const k = action.k;
+          // todo: Use more reliable method to focus on the textarea.
+          setTimeout(() => focus(textAreaRefOf(k).current), 50);
+          return state;
+        }
+        default:
+          const _: never = action; // 1 or state cannot be used here
+          return state;
+      }
+    }
+  };
+};
+
+const newEntryValue = (parent: string, start_time: string) =>
+  _newEntryValue(parent, start_time);
+
+const _newEntryValue = (parent: null | string, start_time: string) => {
+  return {
+    done: [] as string[],
+    dont: [] as string[],
+    end_time: null,
+    estimate: NO_ESTIMATION,
+    parent,
+    ranges: [] as IRange[],
+    show_detail: false,
+    start_time,
+    status: "todo" as TStatus,
+    style: { width: "49ex", height: "3ex" },
+    text: "",
+    todo: [] as string[],
+  };
+};
+
+const emptyStateOf = () => {
+  const root = "root";
+  const kvs = {
+    root: _newEntryValue(null, root),
+  };
+  return {
+    data: {
+      current_entry: null,
+      root,
+      kvs,
+      queue: [],
+      showTodoOnly: false,
+    },
+    caches: setCache({}, root, kvs),
+    saveSuccess: true,
+  };
+};
+const STORE = createStore(root_reducer_of());
+
+const App = connect((state: IState) => ({
+  root: state.data.root,
+}))((props: { root: string }) => {
+  const Menu = connect((state: IState) => {
+    return { saveSuccess: state.saveSuccess };
+  })((props: IMenuProps) => {
+    // todo: Remove `getState()`s.
+    return (
+      <div className={"menu"}>
+        {props.saveSuccess ? null : <p>Failed to save.</p>}
+        <div>
+          <StopButton k={STORE.getState().data.root} />
+          {STORE.getState().caches[STORE.getState().data.root].newButton}
           <button
             onClick={() => {
-              this.new_(k);
+              STORE.dispatch({ type: "save" });
+              STORE.dispatch({ type: "undo" });
+              STORE.dispatch({ type: "save" });
             }}
           >
-            {NEW_MARK}
+            {UNDO_MARK}
           </button>
-        ),
-        setLastRange: (e: React.ChangeEvent<HTMLInputElement>) => {
-          this.setLastRange(k, Number(e.currentTarget.value));
-        },
-        setText,
-        resizeTextArea,
-        textAreaOf: (
-          text: string,
-          status: TStatus,
-          style: IStyle,
-          ref: null | React.RefObject<HTMLTextAreaElement>,
-        ) => {
-          return (
-            <textarea
-              value={text}
-              onChange={setText}
-              onBlur={this.save}
-              onMouseUp={resizeTextArea}
-              className={status}
-              style={style}
-              ref={ref}
-            />
-          );
-        },
-      };
-    }
-  };
-  new_ = (parent: string) => {
-    this.store.dispatch({ type: "new_", parent });
-    this.store.dispatch({ type: "save" });
-    this.store.dispatch({
-      type: "focusTextArea",
-      k: this.store.getState().data.kvs[parent].todo[0],
-    });
-  };
-  $new_ = (state: IState, parent: string) => {};
-  save = () => {
-    this.store.dispatch({ type: "save" });
-  };
-  setLastRange = (k: string, t: number) => {
-    this.store.dispatch({ type: "setLastRange", k, t });
-    this.store.dispatch({ type: "save" });
-  };
-  setText = (k: string, text: string) => {
-    this.store.dispatch({ type: "setText", k, text });
-  };
-  resizeTextArea = (k: string, width: null | string, height: null | string) => {
-    this.store.dispatch({ type: "resizeTextArea", k, width, height });
-    this.store.dispatch({ type: "save" });
-  };
-  render = () => {
-    const Menu = connect((state: IState) => {
-      return { saveSuccess: state.saveSuccess };
-    })((props: IMenuProps) => {
-      return (
-        <div className={"menu"}>
-          {props.saveSuccess ? null : <p>Failed to save.</p>}
-          {this.menuButtons}
+          <button
+            onClick={() => {
+              STORE.dispatch({ type: "save" });
+              STORE.dispatch({ type: "redo" });
+              STORE.dispatch({ type: "save" });
+            }}
+          >
+            {REDO_MARK}
+          </button>
+          <button
+            onClick={() => {
+              STORE.dispatch({ type: "flipShowTodoOnly" });
+              STORE.dispatch({ type: "save" });
+            }}
+          >
+            👀
+          </button>
+          <button
+            onClick={() => {
+              STORE.dispatch({ type: "smallestToTop" });
+              STORE.dispatch({ type: "save" });
+            }}
+          >
+            Small
+          </button>
+          <button
+            onClick={() => {
+              STORE.dispatch({ type: "closestToTop" });
+              STORE.dispatch({ type: "save" });
+            }}
+          >
+            Due
+          </button>
         </div>
-      );
-    });
-    return (
-      <Provider store={this.store}>
-        <div id="columns">
-          <Menu />
-          <QueueColumn />
-          <div id="tree">
-            <Node k={this.store.getState().data.root} />
-          </div>
-        </div>
-      </Provider>
+      </div>
     );
-  };
-}
+  });
+  return (
+    <div id="columns">
+      <Menu />
+      <QueueColumn />
+      <div id="tree">
+        <Node k={props.root} />
+      </div>
+    </div>
+  );
+});
+
+const save = () => {
+  STORE.dispatch({ type: "save" });
+};
+
+const setText = (k: string, text: string) => {
+  STORE.dispatch({ type: "setText", k, text });
+};
+
+const setLastRange = (k: string, t: number) => {
+  STORE.dispatch({ type: "setLastRange", k, t });
+  STORE.dispatch({ type: "save" });
+};
+
+const new_ = (parent: string) => {
+  STORE.dispatch({ type: "new_", parent });
+  STORE.dispatch({ type: "save" });
+  STORE.dispatch({
+    type: "focusTextArea",
+    k: STORE.getState().data.kvs[parent].todo[0],
+  });
+};
+
+const resizeTextArea = (
+  k: string,
+  width: null | string,
+  height: null | string,
+) => {
+  STORE.dispatch({ type: "resizeTextArea", k, width, height });
+  STORE.dispatch({ type: "save" });
+};
 
 const _eval_ = (draft: Draft<IState>, k: string) => {
   const candidates = Object.values(draft.data.kvs).filter(v => {
@@ -1000,418 +1456,6 @@ const assert = (v: boolean, msg: string) => {
   if (!v) {
     throw new Error(msg);
   }
-};
-
-const newEntryValue = (parent: string, start_time: string) => {
-  return {
-    done: [] as string[],
-    dont: [] as string[],
-    end_time: null,
-    estimate: NO_ESTIMATION,
-    parent,
-    ranges: [] as IRange[],
-    show_detail: false,
-    start_time,
-    status: "todo" as TStatus,
-    style: { width: "49ex", height: "3ex" },
-    text: "",
-    todo: [] as string[],
-  };
-};
-
-const root_reducer_of = (state_: IState, app: App) => {
-  const _stop = (draft: Draft<IState>) => {
-    if (draft.data.current_entry !== null) {
-      const e = draft.data.kvs[draft.data.current_entry];
-      const r = last(e.ranges);
-      r.end = Number(new Date()) / 1000;
-      const dt = r.end - r.start;
-      _addDt(draft, draft.data.current_entry, dt);
-      draft.data.current_entry = null;
-      DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
-    }
-  };
-
-  const _rmFromTodo = (draft: Draft<IState>, k: string) => {
-    if (draft.data.current_entry === k) {
-      _stop(draft);
-    }
-    const pk = draft.data.kvs[k].parent;
-    if (pk) {
-      deleteAtVal(draft.data.kvs[pk].todo, k);
-    }
-  };
-
-  const produce_top = (state: IState, k: string) =>
-    produce(state, draft => {
-      _top(draft, k);
-      DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
-    });
-
-  return (state: undefined | IState, action: TActions) => {
-    if (state === undefined) {
-      return state_;
-    } else {
-      switch (action.type) {
-        case "eval_": {
-          const k = action.k;
-          return produce(state, draft => {
-            _eval_(draft, k);
-          });
-        }
-        case "delete_": {
-          const k = action.k;
-          return produce(state, draft => {
-            if (draft.data.kvs[k].todo.length === 0) {
-              _rmTodoEntry(draft, k);
-              deleteAtVal(draft.data.queue, k);
-              delete draft.data.kvs[k];
-              delete draft.caches[k];
-              if (draft.data.current_entry === k) {
-                draft.data.current_entry = null;
-              }
-              DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
-            }
-          });
-        }
-        case "new_": {
-          const parent = action.parent;
-          const k = new Date().toISOString();
-          return produce(state, draft => {
-            const v = newEntryValue(parent, k);
-            draft.data.kvs[k] = v;
-            draft.data.kvs[parent].todo.unshift(k);
-            draft.data.queue.unshift(k);
-            app.setCache(draft.caches as ICaches, k, draft.data.kvs);
-            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
-          });
-        }
-        case "save": {
-          if (DIRTY_BITS.dirtyHistory) {
-            HISTORY.push(state);
-            DIRTY_BITS.dirtyHistory = false;
-          }
-          if (DIRTY_BITS.dirtyDump) {
-            fetch("api/" + API_VERSION + "/post", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json; charset=utf-8",
-              },
-              body: JSON.stringify(state.data),
-            }).then(r => {
-              // todo: Use redux-thunk.
-              state = produce(state, (draft: Draft<IState>) => {
-                draft.saveSuccess = r.ok;
-              });
-            });
-            DIRTY_BITS.dirtyDump = false;
-          }
-          return state;
-        }
-        case "undo": {
-          const prev = HISTORY.undo();
-          if (prev !== state) {
-            state = prev;
-            DIRTY_BITS.dirtyDump = true;
-          }
-          return state;
-        }
-        case "redo": {
-          const next = HISTORY.redo();
-          if (next !== state) {
-            state = next;
-            DIRTY_BITS.dirtyDump = true;
-          }
-          return state;
-        }
-        case "flipShowTodoOnly": {
-          return produce(state, draft => {
-            draft.data.showTodoOnly = !draft.data.showTodoOnly;
-            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
-          });
-        }
-        case "flipShowDetail": {
-          const k = action.k;
-          return produce(state, draft => {
-            draft.data.kvs[k].show_detail = !draft.data.kvs[k].show_detail;
-            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
-          });
-        }
-        case "start": {
-          const k = action.k;
-          return produce(state, draft => {
-            if (k !== draft.data.current_entry) {
-              switch (draft.data.kvs[k].status) {
-                case "done":
-                  _doneToTodo(draft, k);
-                  break;
-                case "dont":
-                  _dontToTodo(draft, k);
-                  break;
-              }
-              _top(draft, k);
-              assert(draft.data.kvs[k].status === "todo", "Must not happen");
-              _stop(draft);
-              draft.data.current_entry = k;
-              draft.data.kvs[k].ranges.push({
-                start: Number(new Date()) / 1000,
-                end: null,
-              });
-              DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
-            }
-          });
-        }
-        case "focusStopButton": {
-          const k = action.k;
-          setTimeout(() => focus(stopButtonRefOf(k).current), 50);
-          return state;
-        }
-        case "top": {
-          return produce_top(state, action.k);
-        }
-        case "smallestToTop": {
-          let k_min = null;
-          let estimate_min = Infinity;
-          for (const k in state.data.kvs) {
-            const v = state.data.kvs[k];
-            if (
-              v.status === "todo" &&
-              v.todo.length <= 0 &&
-              0 < v.estimate &&
-              v.estimate < estimate_min
-            ) {
-              k_min = k;
-              estimate_min = v.estimate;
-            }
-          }
-          return k_min === null ? state : produce_top(state, k_min);
-        }
-        case "closestToTop": {
-          let k_min = null;
-          let due_min = ":due: 9999-12-31T23:59:59";
-          for (let k in state.data.kvs) {
-            let v = state.data.kvs[k];
-            if (v.status === "todo" && v.todo.length <= 0) {
-              while (true) {
-                let due = null;
-                for (const w of v.text.split("\n")) {
-                  if (w.startsWith(":due: ")) {
-                    due = w;
-                  }
-                }
-                if (due !== null) {
-                  if (due < due_min) {
-                    k_min = k;
-                    due_min = due;
-                  }
-                  break;
-                }
-                if (v.parent === null) {
-                  break;
-                }
-                k = v.parent;
-                v = state.data.kvs[k];
-              }
-            }
-          }
-          return k_min === null ? state : produce_top(state, k_min);
-        }
-        case "stop": {
-          return produce(state, _stop);
-        }
-        case "moveUp": {
-          const k = action.k;
-          return produce(state, draft => {
-            const pk = draft.data.kvs[k].parent;
-            if (pk) {
-              moveUp(draft.data.kvs[pk].todo, k);
-              moveUp(draft.data.queue, k);
-              DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
-            }
-          });
-        }
-        case "focusMoveUpButton": {
-          const k = action.k;
-          focus(moveUpButtonRefOf(k).current);
-          return state;
-        }
-        case "moveDown": {
-          const k = action.k;
-          return produce(state, draft => {
-            const pk = draft.data.kvs[k].parent;
-            if (pk) {
-              moveDown(draft.data.kvs[pk].todo, k);
-              moveDown(draft.data.queue, k);
-              DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
-            }
-          });
-        }
-        case "focusMoveDownButton": {
-          const k = action.k;
-          focus(moveDownButtonRefOf(k).current);
-          return state;
-        }
-        case "unindent": {
-          const k = action.k;
-          return produce(state, draft => {
-            const pk = draft.data.kvs[k].parent;
-            if (pk !== null) {
-              const ppk = draft.data.kvs[pk].parent;
-              if (ppk !== null) {
-                const _total_time_spent_pk_orig =
-                  draft.caches[pk].total_time_spent;
-                const _total_time_spent_ppk_orig =
-                  draft.caches[ppk].total_time_spent;
-                _rmTodoEntry(draft, k);
-                const entries = draft.data.kvs[ppk].todo;
-                const i = entries.indexOf(pk);
-                assert(i !== -1, "Must not happen.");
-                _addTodoEntry(draft, ppk, i, k);
-                assertIsApprox(
-                  _total_time_spent_pk_orig - draft.caches[pk].total_time_spent,
-                  draft.caches[k].total_time_spent,
-                );
-                if (_total_time_spent_ppk_orig !== null) {
-                  assertIsApprox(
-                    _total_time_spent_ppk_orig,
-                    draft.caches[ppk].total_time_spent,
-                  );
-                }
-                DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
-              }
-            }
-          });
-        }
-        case "focusUnindentButton": {
-          const k = action.k;
-          focus(unindentButtonRefOf(k).current);
-          return state;
-        }
-        case "indent": {
-          const k = action.k;
-          return produce(state, draft => {
-            const pk = draft.data.kvs[k].parent;
-            if (pk) {
-              const entries = draft.data.kvs[pk].todo;
-              if (last(entries) !== k) {
-                const i = entries.indexOf(k);
-                const new_pk = entries[i + 1];
-                const total_time_spent_new_pk_orig =
-                  draft.caches[new_pk].total_time_spent;
-                const total_time_spent_k = draft.caches[k].total_time_spent;
-                _rmTodoEntry(draft, k);
-                _addTodoEntry(draft, new_pk, 0, k);
-                assertIsApprox(
-                  draft.caches[new_pk].total_time_spent,
-                  total_time_spent_new_pk_orig + total_time_spent_k,
-                );
-                DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
-              }
-            }
-          });
-        }
-        case "focusIndentButton": {
-          const k = action.k;
-          focus(indentButtonRefOf(k).current);
-          return state;
-        }
-        case "setEstimate": {
-          const k = action.k;
-          const estimate = action.estimate;
-          return produce(state, draft => {
-            if (draft.data.kvs[k].estimate !== estimate) {
-              draft.data.kvs[k].estimate = estimate;
-              DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
-            }
-          });
-        }
-        case "setLastRange": {
-          const k = action.k;
-          const t = action.t;
-          return produce(state, draft => {
-            const l = lastRangeOf(draft.data.kvs[k].ranges);
-            if (l !== null && l.end) {
-              const t1 = l.end - l.start;
-              const t2 = t * 3600;
-              const dt = t2 - t1;
-              if (dt !== 0) {
-                l.end = l.start + t2;
-                _addDt(draft, k, dt);
-                DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
-              }
-            }
-          });
-        }
-        case "setText": {
-          const k = action.k;
-          const text = action.text;
-          return produce(state, draft => {
-            draft.data.kvs[k].text = text;
-            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
-          });
-        }
-        case "resizeTextArea": {
-          const k = action.k;
-          const width = action.width;
-          const height = action.height;
-          return width === null || height === null
-            ? state
-            : produce(state, draft => {
-                const v = draft.data.kvs[k];
-                // if (v.style.width !== width) {
-                //   v.style.width = width;
-                //   DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
-                // }
-                if (v.style.height !== height) {
-                  v.style.height = height;
-                  DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
-                }
-              });
-        }
-        case "todoToDone": {
-          const k = action.k;
-          return produce(state, draft => {
-            _rmFromTodo(draft, k);
-            _addToDone(draft, k);
-            _topQueue(draft, k);
-            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
-          });
-        }
-        case "todoToDont": {
-          const k = action.k;
-          return produce(state, draft => {
-            _rmFromTodo(draft, k);
-            _addToDont(draft, k);
-            _topQueue(draft, k);
-            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
-          });
-        }
-        case "doneToTodo": {
-          const k = action.k;
-          return produce(state, draft => {
-            _doneToTodo(draft, k);
-            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
-          });
-        }
-        case "dontToTodo": {
-          const k = action.k;
-          return produce(state, draft => {
-            _dontToTodo(draft, k);
-            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
-          });
-        }
-        case "focusTextArea": {
-          const k = action.k;
-          // todo: Use more reliable method to focus on the textarea.
-          setTimeout(() => focus(textAreaRefOf(k).current), 50);
-          return state;
-        }
-        default:
-          const _: never = action; // 1 or state cannot be used here
-          return state;
-      }
-    }
-  };
 };
 
 const memoize1 = <A, R>(fn: (a: A) => R) => {
@@ -1900,11 +1944,15 @@ const LastRange = connect(
     ),
 );
 const main = () => {
-  fetch("api/" + API_VERSION + "/get")
-    .then(r => r.json())
-    .then((data: IData) => {
-      ReactDOM.render(<App data={data} />, document.getElementById("root"));
-    });
+  ReactDOM.render(
+    <Provider store={STORE}>
+      <App />
+    </Provider>,
+    document.getElementById("root"),
+  );
+  STORE.dispatch({
+    type: "load",
+  });
 };
 
 main();
