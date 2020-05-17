@@ -952,15 +952,6 @@ const setLastRange = (k: string, t: number) => {
   STORE.dispatch({ type: "save" });
 };
 
-const new_ = (parent: string) => {
-  STORE.dispatch({ type: "new_", parent });
-  STORE.dispatch({ type: "save" });
-  STORE.dispatch({
-    type: "focusTextArea",
-    k: STORE.getState().data.kvs[parent].todo[0],
-  });
-};
-
 const resizeTextArea = (
   k: string,
   width: null | string,
@@ -1535,7 +1526,12 @@ const dontToTodoButtonOf = memoize1((k: string) => (
 const newButtonOf = memoize1((k: string) => (
   <button
     onClick={() => {
-      new_(k);
+      STORE.dispatch({ type: "new_", parent: k });
+      STORE.dispatch({ type: "save" });
+      STORE.dispatch({
+        type: "focusTextArea",
+        k: STORE.getState().data.kvs[k].todo[0],
+      });
     }}
   >
     {NEW_MARK}
