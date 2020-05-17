@@ -1272,7 +1272,12 @@ const Entry = connect((state: IState, ownProps: IEntryOwnProps) => {
             : props.status === "done"
             ? doneToTodoButtonOf(props.k)
             : dontToTodoButtonOf(props.k)}
-          {cache.textAreaOf(props.text, props.status, props.style, null)}
+          {cache.textAreaOf(
+            props.text,
+            props.status,
+            props.style,
+            textAreaRefOf(props.k),
+          )}
           {props.running ? stopButtonOf(props.k) : startButtonOf(props.k)}
         </React.Fragment>
       ) : null}
