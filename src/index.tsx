@@ -50,6 +50,7 @@ interface IEntryProps {
   ranges: IRange[];
   running: boolean;
   cache: ICache;
+  noTodo: boolean;
 }
 
 interface IQueueNodeProps {
@@ -63,6 +64,7 @@ interface IQueueNodeProps {
   running: boolean;
   cache: ICache;
   shouldHide: boolean;
+  noTodo: boolean;
 }
 
 interface IState {
@@ -134,7 +136,6 @@ interface ICaches {
 interface ICache {
   total_time_spent: number;
   percentiles: number[];
-  newButton: JSX.Element;
   setLastRange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setText: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   textAreaOf: (
@@ -378,15 +379,6 @@ const setCache = (caches: ICaches, k: string, kvs: IKvs) => {
           : total + (current.end - current.start);
       }, sumChildren(kvs[k].todo) + sumChildren(kvs[k].done) + sumChildren(kvs[k].dont)),
       percentiles: [] as number[], // 0, 10, 33, 50, 67, 90, 100
-      newButton: (
-        <button
-          onClick={() => {
-            new_(k);
-          }}
-        >
-          {NEW_MARK}
-        </button>
-      ),
       setLastRange: (e: React.ChangeEvent<HTMLInputElement>) => {
         setLastRange(k, Number(e.currentTarget.value));
       },
@@ -888,8 +880,8 @@ const App = connect((state: IState) => ({
       <div className={"menu"}>
         {props.saveSuccess ? null : <p>Failed to save.</p>}
         <div>
-          <StopButton k={STORE.getState().data.root} />
-          {STORE.getState().caches[STORE.getState().data.root].newButton}
+          {stopButtonOf(STORE.getState().data.root)}
+          {newButtonOf(STORE.getState().data.root)}
           <button
             onClick={() => {
               STORE.dispatch({ type: "save" });
@@ -1203,6 +1195,7 @@ const QueueNode = connect((state: IState, ownProps: IEntryOwnProps) => {
     cache: state.caches[k],
     running: k === state.data.current_entry,
     shouldHide: state.data.showTodoOnly && v.status !== "todo",
+    noTodo: v.todo.length === 0,
   };
 })((props: IQueueNodeProps) => {
   const cache = props.cache;
@@ -1212,27 +1205,35 @@ const QueueNode = connect((state: IState, ownProps: IEntryOwnProps) => {
         id={`queue${props.k}`}
         className={props.running ? `${props.status} running` : props.status}
       >
-        {props.parent ? toTreeButtonOf(props.k) : null}
-        <DoneToTodoButton k={props.k} />
-        <DontToTodoButton k={props.k} />
-        {props.parent !== null && props.status === "todo"
-          ? cache.newButton
-          : null}
-        {props.parent === null
-          ? null
-          : cache.textAreaOf(props.text, props.status, props.style, null)}
-        {props.parent === null ? null : props.running ? (
-          <StopButton k={props.k} />
-        ) : (
-          <StartButton k={props.k} />
-        )}
+        {props.parent ? (
+          <React.Fragment>
+            {toTreeButtonOf(props.k)}
+            {props.status === "todo"
+              ? newButtonOf(props.k)
+              : props.status === "done"
+              ? doneToTodoButtonOf(props.k)
+              : dontToTodoButtonOf(props.k)}
+            {cache.textAreaOf(props.text, props.status, props.style, null)}
+            {props.running ? stopButtonOf(props.k) : startButtonOf(props.k)}
+          </React.Fragment>
+        ) : null}
         <EstimationInput k={props.k} />
         {digits1(cache.total_time_spent / 3600)}
-        <TopButton k={props.k} />
+        {props.parent && props.status === "todo" ? topButtonOf(props.k) : null}
         <EvalButton k={props.k} />
-        <TodoToDoneButton k={props.k} />
-        <TodoToDontButton k={props.k} />
+        {props.parent && props.noTodo && props.status === "todo" ? (
+          <React.Fragment>
+            {todoToDoneButtonOf(props.k)}
+            {todoToDontButtonOf(props.k)}
+          </React.Fragment>
+        ) : null}
         <ShowDetailButton k={props.k} />
+        {props.parent && props.show_detail && props.status === "todo" ? (
+          <React.Fragment>
+            {moveUpButtonOf(props.k)}
+            {moveDownButtonOf(props.k)}
+          </React.Fragment>
+        ) : null}
         <QueueDetails k={props.k} />
         {props.status === "todo"
           ? cache.percentiles.map(digits1).join(" ")
@@ -1255,6 +1256,7 @@ const Entry = connect((state: IState, ownProps: IEntryOwnProps) => {
     ranges: v.ranges,
     cache: state.caches[k],
     running: k === state.data.current_entry,
+    noTodo: v.todo.length === 0,
   };
 })((props: IEntryProps) => {
   const cache = props.cache;
@@ -1263,31 +1265,34 @@ const Entry = connect((state: IState, ownProps: IEntryOwnProps) => {
       id={`tree${props.k}`}
       className={props.running ? `${props.status} running` : props.status}
     >
-      <DoneToTodoButton k={props.k} />
-      <DontToTodoButton k={props.k} />
-      {props.parent !== null && props.status === "todo"
-        ? cache.newButton
-        : null}
-      {props.parent === null
-        ? null
-        : cache.textAreaOf(
-            props.text,
-            props.status,
-            props.style,
-            textAreaRefOf(props.k),
-          )}
-      {props.parent === null ? null : props.running ? (
-        <StopButton k={props.k} />
-      ) : (
-        <StartButton k={props.k} />
-      )}
+      {props.parent ? (
+        <React.Fragment>
+          {props.status === "todo"
+            ? newButtonOf(props.k)
+            : props.status === "done"
+            ? doneToTodoButtonOf(props.k)
+            : dontToTodoButtonOf(props.k)}
+          {cache.textAreaOf(props.text, props.status, props.style, null)}
+          {props.running ? stopButtonOf(props.k) : startButtonOf(props.k)}
+        </React.Fragment>
+      ) : null}
       <EstimationInput k={props.k} />
       {digits1(cache.total_time_spent / 3600)}
-      <TopButton k={props.k} />
+      {props.parent && props.status === "todo" ? topButtonOf(props.k) : null}
       <EvalButton k={props.k} />
-      <TodoToDoneButton k={props.k} />
-      <TodoToDontButton k={props.k} />
+      {props.parent && props.noTodo && props.status === "todo" ? (
+        <React.Fragment>
+          {todoToDoneButtonOf(props.k)}
+          {todoToDontButtonOf(props.k)}
+        </React.Fragment>
+      ) : null}
       <ShowDetailButton k={props.k} />
+      {props.parent && props.show_detail && props.status === "todo" ? (
+        <React.Fragment>
+          {moveUpButtonOf(props.k)}
+          {moveDownButtonOf(props.k)}
+        </React.Fragment>
+      ) : null}
       <TreeDetails k={props.k} />
       {props.status === "todo"
         ? cache.percentiles.map(digits1).join(" ")
@@ -1498,6 +1503,123 @@ const toTreeButtonOf = memoize1((k: string) => (
   </a>
 ));
 
+const doneToTodoButtonOf = memoize1((k: string) => (
+  <button
+    className="done"
+    onClick={() => {
+      STORE.dispatch({ type: "doneToTodo", k });
+      STORE.dispatch({ type: "save" });
+    }}
+  >
+    {DONE_MARK}
+  </button>
+));
+
+const dontToTodoButtonOf = memoize1((k: string) => (
+  <button
+    className="dont"
+    onClick={() => {
+      STORE.dispatch({ type: "dontToTodo", k });
+      STORE.dispatch({ type: "save" });
+    }}
+  >
+    {DONT_MARK}
+  </button>
+));
+
+const newButtonOf = memoize1((k: string) => (
+  <button
+    onClick={() => {
+      new_(k);
+    }}
+  >
+    {NEW_MARK}
+  </button>
+));
+
+const stopButtonOf = memoize1((k: string) => (
+  <button
+    onClick={() => {
+      STORE.dispatch({ type: "stop" });
+      STORE.dispatch({ type: "save" });
+    }}
+    ref={stopButtonRefOf(k)}
+  >
+    {STOP_MARK}
+  </button>
+));
+
+const startButtonOf = memoize1((k: string) => (
+  <button
+    onClick={() => {
+      STORE.dispatch({ type: "start", k });
+      STORE.dispatch({ type: "save" });
+      STORE.dispatch({ type: "focusStopButton", k });
+    }}
+  >
+    {START_MARK}
+  </button>
+));
+
+const topButtonOf = memoize1((k: string) => (
+  <button
+    onClick={() => {
+      STORE.dispatch({ type: "top", k });
+      STORE.dispatch({ type: "save" });
+    }}
+  >
+    {TOP_MARK}
+  </button>
+));
+
+const moveUpButtonOf = memoize1((k: string) => (
+  <button
+    onClick={() => {
+      STORE.dispatch({ type: "moveUp", k });
+      STORE.dispatch({ type: "save" });
+      STORE.dispatch({ type: "focusMoveUpButton", k });
+    }}
+    ref={moveUpButtonRefOf(k)}
+  >
+    {MOVE_UP_MARK}
+  </button>
+));
+
+const moveDownButtonOf = memoize1((k: string) => (
+  <button
+    onClick={() => {
+      STORE.dispatch({ type: "moveDown", k });
+      STORE.dispatch({ type: "save" });
+      STORE.dispatch({ type: "focusMoveDownButton", k });
+    }}
+    ref={moveDownButtonRefOf(k)}
+  >
+    {MOVE_DOWN_MARK}
+  </button>
+));
+
+const todoToDoneButtonOf = memoize1((k: string) => (
+  <button
+    onClick={() => {
+      STORE.dispatch({ type: "todoToDone", k });
+      STORE.dispatch({ type: "save" });
+    }}
+  >
+    {DONE_MARK}
+  </button>
+));
+
+const todoToDontButtonOf = memoize1((k: string) => (
+  <button
+    onClick={() => {
+      STORE.dispatch({ type: "todoToDont", k });
+      STORE.dispatch({ type: "save" });
+    }}
+  >
+    {DONT_MARK}
+  </button>
+));
+
 const connect_show_k = (
   fn_show: (v: IEntry) => any,
   mapDispatchToProps: (
@@ -1523,197 +1645,6 @@ const connect_show_k = (
   )((props: { onClick: () => void; show: boolean }) =>
     props.show ? fn(props.onClick) : null,
   );
-
-const TodoToDoneButton = connect_show_k(
-  (v: IEntry) => v.parent && v.status === "todo" && v.todo.length === 0,
-  (
-    dispatch: Dispatch<TActions>,
-    ownProps: {
-      k: string;
-    },
-  ) => ({
-    onClick: () => {
-      dispatch({ type: "todoToDone", k: ownProps.k });
-      dispatch({ type: "save" });
-    },
-  }),
-  (onClick: () => void) => <button onClick={onClick}>{DONE_MARK}</button>,
-);
-
-const TodoToDontButton = connect_show_k(
-  (v: IEntry) => v.parent && v.status === "todo" && v.todo.length === 0,
-  (
-    dispatch: Dispatch<TActions>,
-    ownProps: {
-      k: string;
-    },
-  ) => ({
-    onClick: () => {
-      dispatch({ type: "todoToDont", k: ownProps.k });
-      dispatch({ type: "save" });
-    },
-  }),
-  (onClick: () => void) => <button onClick={onClick}>{DONT_MARK}</button>,
-);
-
-const DoneToTodoButton = connect_show_k(
-  (v: IEntry) => v.parent !== null && v.status === "done",
-  (
-    dispatch: Dispatch<TActions>,
-    ownProps: {
-      k: string;
-    },
-  ) => ({
-    onClick: () => {
-      dispatch({ type: "doneToTodo", k: ownProps.k });
-      dispatch({ type: "save" });
-    },
-  }),
-  (onClick: () => void) => (
-    <button className="done" onClick={onClick}>
-      {DONE_MARK}
-    </button>
-  ),
-);
-
-const DontToTodoButton = connect_show_k(
-  (v: IEntry) => v.parent !== null && v.status === "dont",
-  (
-    dispatch: Dispatch<TActions>,
-    ownProps: {
-      k: string;
-    },
-  ) => ({
-    onClick: () => {
-      dispatch({ type: "dontToTodo", k: ownProps.k });
-      dispatch({ type: "save" });
-    },
-  }),
-  (onClick: () => void) => (
-    <button className="dont" onClick={onClick}>
-      {DONT_MARK}
-    </button>
-  ),
-);
-
-const StopButton = connect(
-  (
-    _: IState,
-    ownProps: {
-      k: string;
-    },
-  ) => ownProps,
-  (dispatch: Dispatch<TActions>) => ({
-    onClick: () => {
-      dispatch({ type: "stop" });
-      dispatch({ type: "save" });
-    },
-  }),
-)((props: { k: string; onClick: () => void }) => (
-  <button onClick={props.onClick} ref={stopButtonRefOf(props.k)}>
-    {STOP_MARK}
-  </button>
-));
-
-const StartButton = connect(
-  null,
-  (
-    dispatch: Dispatch<TActions>,
-    ownProps: {
-      k: string;
-    },
-  ) => ({
-    onClick: () => {
-      dispatch({ type: "start", k: ownProps.k });
-      dispatch({ type: "save" });
-      dispatch({ type: "focusStopButton", k: ownProps.k });
-    },
-  }),
-)((props: { onClick: () => void }) => (
-  <button onClick={props.onClick}>{START_MARK}</button>
-));
-
-const TopButton = connect_show_k(
-  (v: IEntry) => v.parent && v.status === "todo",
-  (
-    dispatch: Dispatch<TActions>,
-    ownProps: {
-      k: string;
-    },
-  ) => ({
-    onClick: () => {
-      dispatch({ type: "top", k: ownProps.k });
-      dispatch({ type: "save" });
-    },
-  }),
-  (onClick: () => void) => <button onClick={onClick}>{TOP_MARK}</button>,
-);
-
-const MoveUpButton = connect(
-  (
-    state: IState,
-    ownProps: {
-      k: string;
-    },
-  ) => {
-    const v = state.data.kvs[ownProps.k];
-    return {
-      show: Boolean(v.parent && v.show_detail && v.status === "todo"),
-      k: ownProps.k,
-    };
-  },
-  (
-    dispatch: Dispatch<TActions>,
-    ownProps: {
-      k: string;
-    },
-  ) => ({
-    onClick: () => {
-      dispatch({ type: "moveUp", k: ownProps.k });
-      dispatch({ type: "save" });
-      dispatch({ type: "focusMoveUpButton", k: ownProps.k });
-    },
-  }),
-)((props: { show: boolean; k: string; onClick: () => void }) =>
-  props.show ? (
-    <button onClick={props.onClick} ref={moveUpButtonRefOf(props.k)}>
-      {MOVE_UP_MARK}
-    </button>
-  ) : null,
-);
-
-const MoveDownButton = connect(
-  (
-    state: IState,
-    ownProps: {
-      k: string;
-    },
-  ) => {
-    const v = state.data.kvs[ownProps.k];
-    return {
-      show: Boolean(v.parent && v.show_detail && v.status === "todo"),
-      k: ownProps.k,
-    };
-  },
-  (
-    dispatch: Dispatch<TActions>,
-    ownProps: {
-      k: string;
-    },
-  ) => ({
-    onClick: () => {
-      dispatch({ type: "moveDown", k: ownProps.k });
-      dispatch({ type: "save" });
-      dispatch({ type: "focusMoveDownButton", k: ownProps.k });
-    },
-  }),
-)((props: { show: boolean; k: string; onClick: () => void }) =>
-  props.show ? (
-    <button onClick={props.onClick} ref={moveDownButtonRefOf(props.k)}>
-      {MOVE_DOWN_MARK}
-    </button>
-  ) : null,
-);
 
 const UnindentButton = connect(
   (
@@ -1887,8 +1818,6 @@ const TreeDetails = connect((state: IState, ownProps: { k: string }) => ({
 }))((props: { showDetail: boolean; k: string }) =>
   props.showDetail ? (
     <React.Fragment>
-      <MoveUpButton k={props.k} />
-      <MoveDownButton k={props.k} />
       <UnindentButton k={props.k} />
       <IndentButton k={props.k} />
       <LastRange k={props.k} />
@@ -1903,8 +1832,6 @@ const QueueDetails = connect((state: IState, ownProps: { k: string }) => ({
 }))((props: { showDetail: boolean; k: string }) =>
   props.showDetail ? (
     <React.Fragment>
-      <MoveUpButton k={props.k} />
-      <MoveDownButton k={props.k} />
       <LastRange k={props.k} />
       <DeleteButton k={props.k} />
     </React.Fragment>
@@ -1943,6 +1870,7 @@ const LastRange = connect(
       />
     ),
 );
+
 const main = () => {
   ReactDOM.render(
     <Provider store={STORE}>
