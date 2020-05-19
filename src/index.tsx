@@ -421,7 +421,6 @@ const root_reducer_of = () => {
           });
         }
         case "setState": {
-          console.log(action);
           HISTORY.push(action.payload);
           return action.payload;
         }
