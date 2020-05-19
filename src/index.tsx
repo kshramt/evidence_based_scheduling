@@ -1694,7 +1694,7 @@ const setTextOf = memoize1(
 const dispatchResizeAndDoSaveOf = memoize1((k: string) => () => {
   const el = textAreaRefOf(k).current;
   if (el) {
-    el.style.height = "auto";
+    el.style.height = "1ex";
     const h = String(el.scrollHeight) + "px";
     STORE.dispatch({
       type: "resizeTextArea",
