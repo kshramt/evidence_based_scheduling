@@ -1163,9 +1163,9 @@ const QueueNode = connect(
               : props.status === "done"
               ? doneToTodoButtonOf(props.k)
               : dontToTodoButtonOf(props.k)}
-            <TextArea k={props.k} />
+            {TextAreaOf(props.k)}
             {props.running ? stopButtonOf(props.k) : startButtonOf(props.k)}
-            <EstimationInput k={props.k} />
+            {EstimationInputOf(props.k)}
           </>
         ) : null}
         {digits1(cache.total_time_spent / 3600)}
@@ -1184,7 +1184,7 @@ const QueueNode = connect(
               <>
                 {moveUpButtonOf(props.k)}
                 {moveDownButtonOf(props.k)}
-                <LastRange k={props.k} />
+                {LastRangeOf(props.k)}
                 {props.showDeleteButton ? deleteButtonOf(props.k) : null}
               </>
             ) : null}
@@ -1234,9 +1234,9 @@ const Entry = connect(
             : props.status === "done"
             ? doneToTodoButtonOf(props.k)
             : dontToTodoButtonOf(props.k)}
-          <TextArea k={props.k} />
+          {TextAreaOf(props.k)}
           {props.running ? stopButtonOf(props.k) : startButtonOf(props.k)}
-          <EstimationInput k={props.k} />
+          {EstimationInputOf(props.k)}
         </>
       ) : null}
       {digits1(cache.total_time_spent / 3600)}
@@ -1257,7 +1257,7 @@ const Entry = connect(
               {moveDownButtonOf(props.k)}
               {unindentButtonOf(props.k)}
               {indentButtonOf(props.k)}
-              <LastRange k={props.k} />
+              {LastRangeOf(props.k)}
               {props.showDeleteButton ? deleteButtonOf(props.k) : null}
             </>
           ) : null}
@@ -1663,6 +1663,8 @@ const setEstimateOf = memoize1(
   },
 );
 
+const EstimationInputOf = memoize1((k: string) => <EstimationInput k={k} />);
+
 const EstimationInput = connect(
   (
     state: IState,
@@ -1701,6 +1703,8 @@ const setTextOf = memoize1(
 
 const dispatchDoSave = () => STORE.dispatch(doSave());
 
+const TextAreaOf = memoize1((k: string) => <TextArea k={k} />);
+
 const TextArea = connect(
   (
     state: IState,
@@ -1737,6 +1741,8 @@ const resizeTextAreaOf = memoize1(
     );
   },
 );
+
+const LastRangeOf = memoize1((k: string) => <LastRange k={k} />);
 
 const LastRange = connect(
   (
