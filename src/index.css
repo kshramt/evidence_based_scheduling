@@ -37,6 +37,8 @@ button{
 }
 textarea{
     vertical-align: text-bottom;
+    overflow: hidden;
+    resize: none;
 }
 
 div.menu{

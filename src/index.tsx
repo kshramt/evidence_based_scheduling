@@ -897,15 +897,6 @@ const setLastRange = (k: string, t: number) => {
   STORE.dispatch(doSave());
 };
 
-const resizeTextArea = (
-  k: string,
-  width: null | string,
-  height: null | string,
-) => {
-  STORE.dispatch({ type: "resizeTextArea", k, width, height });
-  STORE.dispatch(doSave());
-};
-
 const _eval_ = (draft: Draft<IState>, k: string) => {
   const candidates = Object.values(draft.data.kvs).filter(v => {
     return (
@@ -1701,7 +1692,19 @@ const setTextOf = memoize1(
   },
 );
 
-const dispatchDoSave = () => STORE.dispatch(doSave());
+const dispatchResizeAndDoSaveOf = memoize1((k: string) => () => {
+  const el = textAreaRefOf(k).current;
+  if (el) {
+    el.style.height = "auto";
+    STORE.dispatch({
+      type: "resizeTextArea",
+      k,
+      width: el.style.width,
+      height: String(el.scrollHeight) + "px",
+    });
+  }
+  STORE.dispatch(doSave());
+});
 
 const TextAreaOf = memoize1((k: string) => <TextArea k={k} />);
 
@@ -1720,27 +1723,18 @@ const TextArea = connect(
       style: v.style,
     };
   },
-)((props: { text: string; k: string; status: TStatus; style: IStyle }) => (
-  <textarea
-    value={props.text}
-    onChange={setTextOf(props.k)}
-    onBlur={dispatchDoSave}
-    onMouseUp={resizeTextAreaOf(props.k)}
-    className={props.status}
-    style={props.style}
-    ref={textAreaRefOf(props.k)}
-  />
-));
-
-const resizeTextAreaOf = memoize1(
-  (k: string) => (e: React.MouseEvent<HTMLTextAreaElement>) => {
-    resizeTextArea(
-      k,
-      e.currentTarget.style.width,
-      e.currentTarget.style.height,
-    );
-  },
-);
+)((props: { text: string; k: string; status: TStatus; style: IStyle }) => {
+  return (
+    <textarea
+      value={props.text}
+      onChange={setTextOf(props.k)}
+      onBlur={dispatchResizeAndDoSaveOf(props.k)}
+      className={props.status}
+      style={props.style}
+      ref={textAreaRefOf(props.k)}
+    />
+  );
+});
 
 const LastRangeOf = memoize1((k: string) => <LastRange k={k} />);
 
