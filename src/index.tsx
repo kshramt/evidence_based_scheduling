@@ -44,9 +44,7 @@ interface IEntryProps {
   k: string;
   status: TStatus;
   parent: null | string;
-  text: string;
   show_detail: boolean;
-  style: IStyle;
   ranges: IRange[];
   running: boolean;
   cache: ICache;
@@ -58,9 +56,7 @@ interface IQueueNodeProps {
   k: string;
   status: TStatus;
   parent: null | string;
-  text: string;
   show_detail: boolean;
-  style: IStyle;
   ranges: IRange[];
   running: boolean;
   cache: ICache;
@@ -124,12 +120,6 @@ interface ICaches {
 interface ICache {
   total_time_spent: number;
   percentiles: number[];
-  textAreaOf: (
-    text: string,
-    status: TStatus,
-    style: IStyle,
-    ref: null | React.RefObject<HTMLTextAreaElement>,
-  ) => JSX.Element;
 }
 
 interface IEvalAction extends Action {
@@ -362,24 +352,6 @@ const setCache = (caches: ICaches, k: string, kvs: IKvs) => {
           : total + (current.end - current.start);
       }, sumChildren(kvs[k].todo) + sumChildren(kvs[k].done) + sumChildren(kvs[k].dont)),
       percentiles: [] as number[], // 0, 10, 33, 50, 67, 90, 100
-      textAreaOf: (
-        text: string,
-        status: TStatus,
-        style: IStyle,
-        ref: null | React.RefObject<HTMLTextAreaElement>,
-      ) => {
-        return (
-          <textarea
-            value={text}
-            onChange={setTextOf(k)}
-            onBlur={save}
-            onMouseUp={_resizeTextArea}
-            className={status}
-            style={style}
-            ref={ref}
-          />
-        );
-      },
     };
   }
   return caches;
@@ -1171,9 +1143,7 @@ const QueueNode = connect(
       k,
       status: v.status,
       parent: v.parent,
-      text: v.text,
       show_detail: v.show_detail,
-      style: v.style,
       ranges: v.ranges,
       cache: state.caches[k],
       running: k === state.data.current_entry,
@@ -1199,7 +1169,7 @@ const QueueNode = connect(
               : props.status === "done"
               ? doneToTodoButtonOf(props.k)
               : dontToTodoButtonOf(props.k)}
-            {cache.textAreaOf(props.text, props.status, props.style, null)}
+            <TextArea k={props.k} />
             {props.running ? stopButtonOf(props.k) : startButtonOf(props.k)}
             <EstimationInput k={props.k} />
           </>
@@ -1247,9 +1217,7 @@ const Entry = connect(
       k,
       status: v.status,
       parent: v.parent,
-      text: v.text,
       show_detail: v.show_detail,
-      style: v.style,
       ranges: v.ranges,
       cache: state.caches[k],
       running: k === state.data.current_entry,
@@ -1272,12 +1240,7 @@ const Entry = connect(
             : props.status === "done"
             ? doneToTodoButtonOf(props.k)
             : dontToTodoButtonOf(props.k)}
-          {cache.textAreaOf(
-            props.text,
-            props.status,
-            props.style,
-            textAreaRefOf(props.k),
-          )}
+          <TextArea k={props.k} />
           {props.running ? stopButtonOf(props.k) : startButtonOf(props.k)}
           <EstimationInput k={props.k} />
         </>
@@ -1739,6 +1702,43 @@ const setLastRangeOf = memoize1(
 const setTextOf = memoize1(
   (k: string) => (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(k, e.currentTarget.value);
+  },
+);
+
+const TextArea = connect(
+  (
+    state: IState,
+    ownProps: {
+      k: string;
+    },
+  ) => {
+    const v = state.data.kvs[ownProps.k];
+    return {
+      text: v.text,
+      k: ownProps.k,
+      status: v.status,
+      style: v.style,
+    };
+  },
+)((props: { text: string; k: string; status: TStatus; style: IStyle }) => (
+  <textarea
+    value={props.text}
+    onChange={setTextOf(props.k)}
+    onBlur={save}
+    onMouseUp={resizeTextAreaOf(props.k)}
+    className={props.status}
+    style={props.style}
+    ref={textAreaRefOf(props.k)}
+  />
+));
+
+const resizeTextAreaOf = memoize1(
+  (k: string) => (e: React.MouseEvent<HTMLTextAreaElement>) => {
+    resizeTextArea(
+      k,
+      e.currentTarget.style.width,
+      e.currentTarget.style.height,
+    );
   },
 );
 
