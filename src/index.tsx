@@ -1,7 +1,8 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { connect, Provider } from "react-redux";
-import { Action, createStore, Dispatch } from "redux";
+import { Action, createStore, applyMiddleware } from "redux";
+import thunk, { ThunkDispatch, ThunkMiddleware } from "redux-thunk";
 import produce, { Draft, setAutoFreeze } from "immer";
 
 import "./index.css";
@@ -134,12 +135,6 @@ interface INewAction extends Action {
   type: "new_";
   parent: string;
 }
-interface ISaveAction extends Action {
-  type: "save";
-}
-interface ILoadAction extends Action {
-  type: "load";
-}
 interface ISetStateAction extends Action {
   type: "setState";
   payload: IState;
@@ -247,6 +242,10 @@ interface IDontToTodoAction extends Action {
   type: "dontToTodo";
   k: string;
 }
+interface ISetSaveSuccessAction extends Action {
+  type: "setSaveSuccess";
+  payload: boolean;
+}
 interface IFocusTextAreaAction extends Action {
   type: "focusTextArea";
   k: string;
@@ -256,8 +255,7 @@ type TActions =
   | IEvalAction
   | IDeleteActin
   | INewAction
-  | ISaveAction
-  | ILoadAction
+  | ISetSaveSuccessAction
   | ISetStateAction
   | IUndoAction
   | IRedoActin
@@ -338,13 +336,6 @@ const setCache = (caches: ICaches, k: string, kvs: IKvs) => {
         return total + caches[current].total_time_spent;
       }, 0);
     };
-    const _resizeTextArea = (e: React.MouseEvent<HTMLTextAreaElement>) => {
-      resizeTextArea(
-        k,
-        e.currentTarget.style.width,
-        e.currentTarget.style.height,
-      );
-    };
     caches[k] = {
       total_time_spent: kvs[k].ranges.reduce((total, current) => {
         return current.end === null
@@ -424,51 +415,10 @@ const root_reducer_of = () => {
             DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
           });
         }
-        case "save": {
-          if (DIRTY_BITS.dirtyHistory) {
-            HISTORY.push(state);
-            DIRTY_BITS.dirtyHistory = false;
-          }
-          if (DIRTY_BITS.dirtyDump) {
-            fetch("api/" + API_VERSION + "/post", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json; charset=utf-8",
-              },
-              body: JSON.stringify(state.data),
-            }).then(r => {
-              // todo: Use redux-thunk.
-              state = produce(state, (draft: Draft<IState>) => {
-                draft.saveSuccess = r.ok;
-              });
-            });
-            DIRTY_BITS.dirtyDump = false;
-          }
-          return state;
-        }
-        case "load": {
-          fetch("api/" + API_VERSION + "/get")
-            .then(r => r.json())
-            .then((data: IData) => {
-              const caches: ICaches = {};
-              for (const k of Object.keys(data.kvs)) {
-                setCache(caches, k, data.kvs);
-              }
-              // todo: Use redux-thunk.
-              setTimeout(
-                () =>
-                  STORE.dispatch({
-                    type: "setState",
-                    payload: {
-                      data,
-                      caches,
-                      saveSuccess: true,
-                    },
-                  }),
-                500,
-              );
-            });
-          return state;
+        case "setSaveSuccess": {
+          return produce(state, draft => {
+            draft.saveSuccess = action.payload;
+          });
         }
         case "setState": {
           console.log(action);
@@ -818,7 +768,10 @@ const emptyStateOf = () => {
     saveSuccess: true,
   };
 };
-const STORE = createStore(root_reducer_of());
+const STORE = createStore(
+  root_reducer_of(),
+  applyMiddleware(thunk as ThunkMiddleware<IState, TActions>),
+);
 
 const App = connect((state: IState) => ({
   root: state.data.root,
@@ -845,18 +798,18 @@ const Menu = connect((state: IState) => {
         {newButtonOf(props.root)}
         <button
           onClick={() => {
-            STORE.dispatch({ type: "save" });
+            STORE.dispatch(doSave());
             STORE.dispatch({ type: "undo" });
-            STORE.dispatch({ type: "save" });
+            STORE.dispatch(doSave());
           }}
         >
           {UNDO_MARK}
         </button>
         <button
           onClick={() => {
-            STORE.dispatch({ type: "save" });
+            STORE.dispatch(doSave());
             STORE.dispatch({ type: "redo" });
-            STORE.dispatch({ type: "save" });
+            STORE.dispatch(doSave());
           }}
         >
           {REDO_MARK}
@@ -864,7 +817,7 @@ const Menu = connect((state: IState) => {
         <button
           onClick={() => {
             STORE.dispatch({ type: "flipShowTodoOnly" });
-            STORE.dispatch({ type: "save" });
+            STORE.dispatch(doSave());
           }}
         >
           👀
@@ -872,7 +825,7 @@ const Menu = connect((state: IState) => {
         <button
           onClick={() => {
             STORE.dispatch({ type: "smallestToTop" });
-            STORE.dispatch({ type: "save" });
+            STORE.dispatch(doSave());
           }}
         >
           Small
@@ -880,7 +833,7 @@ const Menu = connect((state: IState) => {
         <button
           onClick={() => {
             STORE.dispatch({ type: "closestToTop" });
-            STORE.dispatch({ type: "save" });
+            STORE.dispatch(doSave());
           }}
         >
           Due
@@ -890,8 +843,49 @@ const Menu = connect((state: IState) => {
   );
 });
 
-const save = () => {
-  STORE.dispatch({ type: "save" });
+const doSave = () => (
+  dispatch: ThunkDispatch<IState, void, TActions>,
+  getState: () => IState,
+) => {
+  const state = getState();
+  if (DIRTY_BITS.dirtyHistory) {
+    HISTORY.push(state);
+    DIRTY_BITS.dirtyHistory = false;
+  }
+  if (DIRTY_BITS.dirtyDump) {
+    fetch("api/" + API_VERSION + "/post", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+      },
+      body: JSON.stringify(state.data),
+    }).then(r => {
+      dispatch({
+        type: "setSaveSuccess",
+        payload: r.ok,
+      });
+    });
+    DIRTY_BITS.dirtyDump = false;
+  }
+};
+
+const doLoad = () => (dispatch: ThunkDispatch<IState, void, TActions>) => {
+  fetch("api/" + API_VERSION + "/get")
+    .then(r => r.json())
+    .then((data: IData) => {
+      const caches: ICaches = {};
+      for (const k of Object.keys(data.kvs)) {
+        setCache(caches, k, data.kvs);
+      }
+      dispatch({
+        type: "setState",
+        payload: {
+          data,
+          caches,
+          saveSuccess: true,
+        },
+      });
+    });
 };
 
 const setText = (k: string, text: string) => {
@@ -900,7 +894,7 @@ const setText = (k: string, text: string) => {
 
 const setLastRange = (k: string, t: number) => {
   STORE.dispatch({ type: "setLastRange", k, t });
-  STORE.dispatch({ type: "save" });
+  STORE.dispatch(doSave());
 };
 
 const resizeTextArea = (
@@ -909,7 +903,7 @@ const resizeTextArea = (
   height: null | string,
 ) => {
   STORE.dispatch({ type: "resizeTextArea", k, width, height });
-  STORE.dispatch({ type: "save" });
+  STORE.dispatch(doSave());
 };
 
 const _eval_ = (draft: Draft<IState>, k: string) => {
@@ -1483,7 +1477,7 @@ const doneToTodoButtonOf = memoize1((k: string) => (
     className="done"
     onClick={() => {
       STORE.dispatch({ type: "doneToTodo", k });
-      STORE.dispatch({ type: "save" });
+      STORE.dispatch(doSave());
     }}
   >
     {DONE_MARK}
@@ -1495,7 +1489,7 @@ const dontToTodoButtonOf = memoize1((k: string) => (
     className="dont"
     onClick={() => {
       STORE.dispatch({ type: "dontToTodo", k });
-      STORE.dispatch({ type: "save" });
+      STORE.dispatch(doSave());
     }}
   >
     {DONT_MARK}
@@ -1506,7 +1500,7 @@ const newButtonOf = memoize1((k: string) => (
   <button
     onClick={() => {
       STORE.dispatch({ type: "new_", parent: k });
-      STORE.dispatch({ type: "save" });
+      STORE.dispatch(doSave());
       STORE.dispatch({
         type: "focusTextArea",
         k: STORE.getState().data.kvs[k].todo[0],
@@ -1521,7 +1515,7 @@ const stopButtonOf = memoize1((k: string) => (
   <button
     onClick={() => {
       STORE.dispatch({ type: "stop" });
-      STORE.dispatch({ type: "save" });
+      STORE.dispatch(doSave());
     }}
     ref={stopButtonRefOf(k)}
   >
@@ -1533,7 +1527,7 @@ const startButtonOf = memoize1((k: string) => (
   <button
     onClick={() => {
       STORE.dispatch({ type: "start", k });
-      STORE.dispatch({ type: "save" });
+      STORE.dispatch(doSave());
       STORE.dispatch({ type: "focusStopButton", k });
     }}
   >
@@ -1545,7 +1539,7 @@ const topButtonOf = memoize1((k: string) => (
   <button
     onClick={() => {
       STORE.dispatch({ type: "top", k });
-      STORE.dispatch({ type: "save" });
+      STORE.dispatch(doSave());
     }}
   >
     {TOP_MARK}
@@ -1556,7 +1550,7 @@ const moveUpButtonOf = memoize1((k: string) => (
   <button
     onClick={() => {
       STORE.dispatch({ type: "moveUp", k });
-      STORE.dispatch({ type: "save" });
+      STORE.dispatch(doSave());
       STORE.dispatch({ type: "focusMoveUpButton", k });
     }}
     ref={moveUpButtonRefOf(k)}
@@ -1569,7 +1563,7 @@ const moveDownButtonOf = memoize1((k: string) => (
   <button
     onClick={() => {
       STORE.dispatch({ type: "moveDown", k });
-      STORE.dispatch({ type: "save" });
+      STORE.dispatch(doSave());
       STORE.dispatch({ type: "focusMoveDownButton", k });
     }}
     ref={moveDownButtonRefOf(k)}
@@ -1582,7 +1576,7 @@ const todoToDoneButtonOf = memoize1((k: string) => (
   <button
     onClick={() => {
       STORE.dispatch({ type: "todoToDone", k });
-      STORE.dispatch({ type: "save" });
+      STORE.dispatch(doSave());
     }}
   >
     {DONE_MARK}
@@ -1593,7 +1587,7 @@ const todoToDontButtonOf = memoize1((k: string) => (
   <button
     onClick={() => {
       STORE.dispatch({ type: "todoToDont", k });
-      STORE.dispatch({ type: "save" });
+      STORE.dispatch(doSave());
     }}
   >
     {DONT_MARK}
@@ -1604,7 +1598,7 @@ const unindentButtonOf = memoize1((k: string) => (
   <button
     onClick={() => {
       STORE.dispatch({ type: "unindent", k });
-      STORE.dispatch({ type: "save" });
+      STORE.dispatch(doSave());
       STORE.dispatch({ type: "focusUnindentButton", k });
     }}
     ref={unindentButtonRefOf(k)}
@@ -1617,7 +1611,7 @@ const indentButtonOf = memoize1((k: string) => (
   <button
     onClick={() => {
       STORE.dispatch({ type: "indent", k });
-      STORE.dispatch({ type: "save" });
+      STORE.dispatch(doSave());
       STORE.dispatch({ type: "focusIndentButton", k });
     }}
     ref={indentButtonRefOf(k)}
@@ -1630,7 +1624,7 @@ const showDetailButtonOf = memoize1((k: string) => (
   <button
     onClick={() => {
       STORE.dispatch({ type: "flipShowDetail", k });
-      STORE.dispatch({ type: "save" });
+      STORE.dispatch(doSave());
     }}
   >
     {DETAIL_MARK}
@@ -1641,7 +1635,7 @@ const deleteButtonOf = memoize1((k: string) => (
   <button
     onClick={() => {
       STORE.dispatch({ type: "delete_", k });
-      STORE.dispatch({ type: "save" });
+      STORE.dispatch(doSave());
     }}
   >
     {DELETE_MARK}
@@ -1665,7 +1659,7 @@ const setEstimateOf = memoize1(
       k,
       estimate: Number(e.currentTarget.value),
     });
-    STORE.dispatch({ type: "save" });
+    STORE.dispatch(doSave());
   },
 );
 
@@ -1705,6 +1699,8 @@ const setTextOf = memoize1(
   },
 );
 
+const dispatchDoSave = () => STORE.dispatch(doSave());
+
 const TextArea = connect(
   (
     state: IState,
@@ -1724,7 +1720,7 @@ const TextArea = connect(
   <textarea
     value={props.text}
     onChange={setTextOf(props.k)}
-    onBlur={save}
+    onBlur={dispatchDoSave}
     onMouseUp={resizeTextAreaOf(props.k)}
     className={props.status}
     style={props.style}
@@ -1777,9 +1773,7 @@ const main = () => {
     </Provider>,
     document.getElementById("root"),
   );
-  STORE.dispatch({
-    type: "load",
-  });
+  STORE.dispatch(doLoad());
 };
 
 main();
