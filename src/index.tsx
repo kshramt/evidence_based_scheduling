@@ -887,10 +887,6 @@ const doLoad = () => (dispatch: ThunkDispatch<IState, void, TActions>) => {
     });
 };
 
-const setText = (k: string, text: string) => {
-  STORE.dispatch({ type: "setText", k, text });
-};
-
 const setLastRange = (k: string, t: number) => {
   STORE.dispatch({ type: "setLastRange", k, t });
   STORE.dispatch(doSave());
@@ -1685,9 +1681,12 @@ const setLastRangeOf = memoize1(
   },
 );
 
-const setTextOf = memoize1(
+const resizeAndSetTextOf = memoize1(
   (k: string) => (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setText(k, e.currentTarget.value);
+    e.currentTarget.style.height = "1ex";
+    e.currentTarget.style.height = String(e.currentTarget.scrollHeight) + "px";
+    // To improve performance, resizeTextArea is dispatched only on blur.
+    STORE.dispatch({ type: "setText", k, text: e.currentTarget.value });
   },
 );
 
@@ -1728,7 +1727,7 @@ const TextArea = connect(
   return (
     <textarea
       value={props.text}
-      onChange={setTextOf(props.k)}
+      onChange={resizeAndSetTextOf(props.k)}
       onBlur={dispatchResizeAndDoSaveOf(props.k)}
       className={props.status}
       style={props.style}
