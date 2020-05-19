@@ -51,8 +51,7 @@ interface IEntryProps {
   running: boolean;
   cache: ICache;
   noTodo: boolean;
-  noDone: boolean;
-  noDont: boolean;
+  showDeleteButton: boolean;
 }
 
 interface IQueueNodeProps {
@@ -67,8 +66,7 @@ interface IQueueNodeProps {
   cache: ICache;
   shouldHide: boolean;
   noTodo: boolean;
-  noDone: boolean;
-  noDont: boolean;
+  showDeleteButton: boolean;
 }
 
 interface IState {
@@ -1181,8 +1179,8 @@ const QueueNode = connect(
       running: k === state.data.current_entry,
       shouldHide: state.data.showTodoOnly && v.status !== "todo",
       noTodo: v.todo.length === 0,
-      noDone: v.done.length === 0,
-      noDont: v.dont.length === 0,
+      showDeleteButton:
+        v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0,
     };
   },
 )((props: IQueueNodeProps) => {
@@ -1203,9 +1201,9 @@ const QueueNode = connect(
               : dontToTodoButtonOf(props.k)}
             {cache.textAreaOf(props.text, props.status, props.style, null)}
             {props.running ? stopButtonOf(props.k) : startButtonOf(props.k)}
+            <EstimationInput k={props.k} />
           </>
         ) : null}
-        <EstimationInput k={props.k} />
         {digits1(cache.total_time_spent / 3600)}
         {props.parent && props.status === "todo" ? topButtonOf(props.k) : null}
         {props.status === "todo" ? evalButtonOf(props.k) : null}
@@ -1223,18 +1221,11 @@ const QueueNode = connect(
                 {moveUpButtonOf(props.k)}
                 {moveDownButtonOf(props.k)}
                 <LastRange k={props.k} />
+                {props.showDeleteButton ? deleteButtonOf(props.k) : null}
               </>
             ) : null}
           </>
         ) : null}
-        {props.parent &&
-        props.show_detail &&
-        props.status === "todo" &&
-        props.noTodo &&
-        props.noDone &&
-        props.noDont
-          ? deleteButtonOf(props.k)
-          : null}
         {props.status === "todo"
           ? cache.percentiles.map(digits1).join(" ")
           : null}
@@ -1263,8 +1254,8 @@ const Entry = connect(
       cache: state.caches[k],
       running: k === state.data.current_entry,
       noTodo: v.todo.length === 0,
-      noDone: v.done.length === 0,
-      noDont: v.dont.length === 0,
+      showDeleteButton:
+        v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0,
     };
   },
 )((props: IEntryProps) => {
@@ -1288,9 +1279,9 @@ const Entry = connect(
             textAreaRefOf(props.k),
           )}
           {props.running ? stopButtonOf(props.k) : startButtonOf(props.k)}
+          <EstimationInput k={props.k} />
         </>
       ) : null}
-      <EstimationInput k={props.k} />
       {digits1(cache.total_time_spent / 3600)}
       {props.parent && props.status === "todo" ? topButtonOf(props.k) : null}
       {props.status === "todo" ? evalButtonOf(props.k) : null}
@@ -1310,18 +1301,11 @@ const Entry = connect(
               {unindentButtonOf(props.k)}
               {indentButtonOf(props.k)}
               <LastRange k={props.k} />
+              {props.showDeleteButton ? deleteButtonOf(props.k) : null}
             </>
           ) : null}
         </>
       ) : null}
-      {props.parent &&
-      props.show_detail &&
-      props.status === "todo" &&
-      props.noTodo &&
-      props.noDone &&
-      props.noDont
-        ? deleteButtonOf(props.k)
-        : null}
       {props.status === "todo"
         ? cache.percentiles.map(digits1).join(" ")
         : null}
@@ -1711,6 +1695,17 @@ const evalButtonOf = memoize1((k: string) => (
   </button>
 ));
 
+const setEstimateOf = memoize1(
+  (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    STORE.dispatch({
+      type: "setEstimate",
+      k,
+      estimate: Number(e.currentTarget.value),
+    });
+    STORE.dispatch({ type: "save" });
+  },
+);
+
 const EstimationInput = connect(
   (
     state: IState,
@@ -1720,43 +1715,20 @@ const EstimationInput = connect(
   ) => {
     const v = state.data.kvs[ownProps.k];
     return {
-      show: v.parent !== null,
       estimate: v.estimate,
       className: v.status,
+      k: ownProps.k,
     };
   },
-  (
-    dispatch: Dispatch<TActions>,
-    ownProps: {
-      k: string;
-    },
-  ) => ({
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-      dispatch({
-        type: "setEstimate",
-        k: ownProps.k,
-        estimate: Number(e.currentTarget.value),
-      });
-      dispatch({ type: "save" });
-    },
-  }),
-)(
-  (props: {
-    show: boolean;
-    estimate: number;
-    className: string;
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  }) =>
-    props.show ? (
-      <input
-        type="number"
-        step="any"
-        value={props.estimate}
-        onChange={props.onChange}
-        className={props.className}
-      />
-    ) : null,
-);
+)((props: { estimate: number; className: string; k: string }) => (
+  <input
+    type="number"
+    step="any"
+    value={props.estimate}
+    onChange={setEstimateOf(props.k)}
+    className={props.className}
+  />
+));
 
 const setLastRangeOf = memoize1(
   (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
