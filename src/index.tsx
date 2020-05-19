@@ -1696,13 +1696,13 @@ const dispatchResizeAndDoSaveOf = memoize1((k: string) => () => {
   if (el) {
     el.style.height = "1ex";
     const h = String(el.scrollHeight) + "px";
+    el.style.height = h;
     STORE.dispatch({
       type: "resizeTextArea",
       k,
       width: el.style.width,
       height: h,
     });
-    el.style.height = h;
   }
   STORE.dispatch(doSave());
 });
