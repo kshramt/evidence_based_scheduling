@@ -842,7 +842,9 @@ const Menu = connect((state: IState) => {
   );
 });
 
-const doSave = () => (
+const doSave = () => doSaveRet
+
+const doSaveRet = (
   dispatch: ThunkDispatch<IState, void, TActions>,
   getState: () => IState,
 ) => {
