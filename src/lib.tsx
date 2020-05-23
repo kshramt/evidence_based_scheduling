@@ -1685,16 +1685,17 @@ const setLastRangeOf = memoize1(
 
 const resizeAndSetTextOf = memoize1(
   (k: string) => (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    e.target.style.height = "1ex";
-    e.target.style.height = String(e.target.scrollHeight) + "px";
+    const el = e.target;
+    el.style.height = "1ex";
+    el.style.height = String(el.scrollHeight) + "px";
     // To improve performance, resizeTextArea is dispatched only on blur.
-    STORE.dispatch({ type: "setText", k, text: e.target.value });
+    STORE.dispatch({ type: "setText", k, text: el.value });
   },
 );
 
-const dispatchResizeAndDoSaveOf = memoize1((k: string) => () => {
-  const el = textAreaRefOf(k).current;
-  if (el) {
+const dispatchResizeAndDoSaveOf = memoize1(
+  (k: string) => (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const el = e.target;
     el.style.height = "1ex";
     const h = String(el.scrollHeight) + "px";
     el.style.height = h;
@@ -1704,9 +1705,9 @@ const dispatchResizeAndDoSaveOf = memoize1((k: string) => () => {
       width: el.style.width,
       height: h,
     });
-  }
-  STORE.dispatch(doSave());
-});
+    STORE.dispatch(doSave());
+  },
+);
 
 const TextAreaOf = memoize1((k: string) => <TextArea k={k} />);
 
