@@ -39,6 +39,9 @@ textarea{
     vertical-align: text-bottom;
     overflow: hidden;
     resize: vertical;
+    border-color: rgb(235, 235, 235);
+    border-style: solid;
+    resize: none;
 }
 
 div.menu{
@@ -46,9 +49,6 @@ div.menu{
 }
 div.running{
     background-color: Moccasin;
-}
-textarea{
-    border-color: rgb(235, 235, 235);
 }
 @media screen and (prefers-color-scheme: dark) {
     html{
