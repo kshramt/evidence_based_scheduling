@@ -5,7 +5,8 @@
 !tsconfig.json
 !server.py
 !src/index.tsx
-!src/index.css
+!src/lib.tsx
+!src/lib.css
 !public/favicon.ico
 !public/index.html
 !public/manifest.json
