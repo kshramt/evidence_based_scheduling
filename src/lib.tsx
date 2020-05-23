@@ -842,7 +842,7 @@ const Menu = connect((state: IState) => {
   );
 });
 
-const doSave = () => doSaveRet
+const doSave = () => doSaveRet;
 
 const doSaveRet = (
   dispatch: ThunkDispatch<IState, void, TActions>,
@@ -1645,7 +1645,7 @@ const setEstimateOf = memoize1(
     STORE.dispatch({
       type: "setEstimate",
       k,
-      estimate: Number(e.currentTarget.value),
+      estimate: Number(e.target.value),
     });
     STORE.dispatch(doSave());
   },
@@ -1679,16 +1679,16 @@ const EstimationInput = connect(
 
 const setLastRangeOf = memoize1(
   (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLastRange(k, Number(e.currentTarget.value));
+    setLastRange(k, Number(e.target.value));
   },
 );
 
 const resizeAndSetTextOf = memoize1(
   (k: string) => (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    e.currentTarget.style.height = "1ex";
-    e.currentTarget.style.height = String(e.currentTarget.scrollHeight) + "px";
+    e.target.style.height = "1ex";
+    e.target.style.height = String(e.target.scrollHeight) + "px";
     // To improve performance, resizeTextArea is dispatched only on blur.
-    STORE.dispatch({ type: "setText", k, text: e.currentTarget.value });
+    STORE.dispatch({ type: "setText", k, text: e.target.value });
   },
 );
 
