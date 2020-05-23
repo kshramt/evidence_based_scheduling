@@ -1,4 +1,4 @@
-from node:11.9.0-alpine as js
+from node:13.14.0-alpine3.11 as js
 
 workdir /app
 
@@ -9,12 +9,12 @@ copy . .
 run npm run build
 
 
-from python:3.7.3-alpine3.9 as py
+from python:3.8.3-alpine3.11 as py
 
 workdir /app
 
 copy requirements.txt .
-run pip3 install --no-cache-dir -r requirements.txt \
+run pip install --no-cache-dir -r requirements.txt \
 && rm -fr requirements.txt
 
 copy --from=js /app/build build
