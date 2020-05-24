@@ -1,3 +1,7 @@
+html, body{
+    color: #000;
+    background-color: #fff;
+}
 html, body, #root, #columns{
     height: 100%;
     margin: 0;
@@ -52,6 +56,6 @@ div.running{
 }
 @media screen and (prefers-color-scheme: dark) {
     html{
-        filter: invert(1);
+        filter: invert(1) hue-rotate(180deg);
     }
 }
