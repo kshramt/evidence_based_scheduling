@@ -1683,33 +1683,88 @@ const setLastRangeOf = memoize1(
   },
 );
 
-const resizeAndSetTextOf = memoize1(
-  (k: string) => (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const el = e.target;
-    el.style.height = "1ex";
-    el.style.height = String(el.scrollHeight) + "px";
-    // To improve performance, resizeTextArea is dispatched only on blur.
-    STORE.dispatch({ type: "setText", k, text: el.value });
-  },
-);
+interface ITextAreaComponentProps {
+  text: string;
+  k: string;
+  status: TStatus;
+  style: IStyle;
+}
 
-const dispatchResizeAndDoSaveOf = memoize1(
-  (k: string) => (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+interface ITextAreaComponentState {
+  prevProps: ITextAreaComponentProps;
+  text: string;
+  style: IStyle;
+}
+
+class TextAreaComponent extends React.PureComponent<
+  ITextAreaComponentProps,
+  ITextAreaComponentState
+> {
+  state = {
+    prevProps: this.props,
+    text: this.props.text,
+    style: this.props.style,
+  };
+  render = () => {
+    return (
+      <textarea
+        value={this.state.text}
+        onChange={this.resizeAndSetText}
+        onBlur={this.dispatchResizeAndDoSave}
+        className={this.props.status}
+        style={this.state.style}
+        ref={textAreaRefOf(this.props.k)}
+      />
+    );
+  };
+  static getDerivedStateFromProps = (
+    props: ITextAreaComponentProps,
+    state: ITextAreaComponentState,
+  ) => {
+    const nextState = produce(state, draft => {
+      let changed = false;
+      if (props.text !== draft.prevProps.text) {
+        draft.text = props.text;
+        changed = true;
+      }
+      if (props.style.height !== draft.prevProps.style.height) {
+        draft.style.height = props.style.height;
+        changed = true;
+      }
+      if (changed) {
+        draft.prevProps = props;
+      }
+    });
+    return state === nextState ? null : nextState;
+  };
+  resizeAndSetText = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const el = e.target;
-    el.style.height = "1ex";
-    const h = String(el.scrollHeight) + "px";
-    el.style.height = h;
+    const h = getAndSetHeight(el);
+    const t = el.value;
+    this.setState((state: ITextAreaComponentState) =>
+      produce(state, draft => {
+        if (draft.text !== t) {
+          draft.text = t;
+        }
+        if (draft.style.height !== h) {
+          draft.style.height = h;
+        }
+      }),
+    );
+  };
+  dispatchResizeAndDoSave = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const el = e.target;
+    const h = getAndSetHeight(el);
     STORE.dispatch({
       type: "resizeTextArea",
-      k,
+      k: this.props.k,
       width: el.style.width,
       height: h,
     });
+    STORE.dispatch({ type: "setText", k: this.props.k, text: el.value });
     STORE.dispatch(doSave());
-  },
-);
-
-const TextAreaOf = memoize1((k: string) => <TextArea k={k} />);
+  };
+}
 
 const TextArea = connect(
   (
@@ -1726,18 +1781,16 @@ const TextArea = connect(
       style: v.style,
     };
   },
-)((props: { text: string; k: string; status: TStatus; style: IStyle }) => {
-  return (
-    <textarea
-      value={props.text}
-      onChange={resizeAndSetTextOf(props.k)}
-      onBlur={dispatchResizeAndDoSaveOf(props.k)}
-      className={props.status}
-      style={props.style}
-      ref={textAreaRefOf(props.k)}
-    />
-  );
-});
+)(TextAreaComponent);
+
+const TextAreaOf = memoize1((k: string) => <TextArea k={k} />);
+
+const getAndSetHeight = (el: HTMLTextAreaElement) => {
+  el.style.height = "1px";
+  const h = String(el.scrollHeight) + "px";
+  el.style.height = h;
+  return h;
+};
 
 const LastRangeOf = memoize1((k: string) => <LastRange k={k} />);
 
