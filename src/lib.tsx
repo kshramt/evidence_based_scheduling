@@ -1152,8 +1152,8 @@ const QueueNode = connect(
               ? doneToTodoButtonOf(props.k)
               : dontToTodoButtonOf(props.k)}
             {TextAreaOf(props.k)}
-            {props.running ? stopButtonOf(props.k) : startButtonOf(props.k)}
             {EstimationInputOf(props.k)}
+            {props.running ? stopButtonOf(props.k) : startButtonOf(props.k)}
           </>
         ) : null}
         {digits1(cache.total_time_spent / 3600)}
@@ -1223,8 +1223,8 @@ const Entry = connect(
             ? doneToTodoButtonOf(props.k)
             : dontToTodoButtonOf(props.k)}
           {TextAreaOf(props.k)}
-          {props.running ? stopButtonOf(props.k) : startButtonOf(props.k)}
           {EstimationInputOf(props.k)}
+          {props.running ? stopButtonOf(props.k) : startButtonOf(props.k)}
         </>
       ) : null}
       {digits1(cache.total_time_spent / 3600)}
