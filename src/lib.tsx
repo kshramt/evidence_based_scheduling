@@ -1166,12 +1166,16 @@ const QueueNode = connect(
               </>
             ) : null}
             {showDetailButtonOf(props.k)}
-            {props.show_detail && props.status === "todo" ? (
+            {props.show_detail ? (
               <>
-                {moveUpButtonOf(props.k)}
-                {moveDownButtonOf(props.k)}
                 {LastRangeOf(props.k)}
-                {props.showDeleteButton ? deleteButtonOf(props.k) : null}
+                {props.status === "todo" ? (
+                  <>
+                    {moveUpButtonOf(props.k)}
+                    {moveDownButtonOf(props.k)}
+                    {props.showDeleteButton ? deleteButtonOf(props.k) : null}
+                  </>
+                ) : null}
               </>
             ) : null}
           </>
@@ -1237,14 +1241,18 @@ const Entry = connect(
             </>
           ) : null}
           {showDetailButtonOf(props.k)}
-          {props.show_detail && props.status === "todo" ? (
+          {props.show_detail ? (
             <>
-              {moveUpButtonOf(props.k)}
-              {moveDownButtonOf(props.k)}
-              {unindentButtonOf(props.k)}
-              {indentButtonOf(props.k)}
               {LastRangeOf(props.k)}
-              {props.showDeleteButton ? deleteButtonOf(props.k) : null}
+              {props.status === "todo" ? (
+                <>
+                  {moveUpButtonOf(props.k)}
+                  {moveDownButtonOf(props.k)}
+                  {unindentButtonOf(props.k)}
+                  {indentButtonOf(props.k)}
+                  {props.showDeleteButton ? deleteButtonOf(props.k) : null}
+                </>
+              ) : null}
             </>
           ) : null}
         </>
