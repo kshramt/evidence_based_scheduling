@@ -3,11 +3,9 @@ import ReactDOM from "react-dom";
 import { connect, Provider } from "react-redux";
 import { Action, createStore, applyMiddleware } from "redux";
 import thunk, { ThunkDispatch, ThunkMiddleware } from "redux-thunk";
-import produce, { Draft, setAutoFreeze } from "immer";
+import produce, { Draft } from "immer";
 
 import "./lib.css";
-
-setAutoFreeze(false); // Refs in the cache should not be frozen.
 
 const API_VERSION = "v1";
 const NO_ESTIMATION = 0;
