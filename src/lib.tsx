@@ -528,7 +528,14 @@ const root_reducer_of = () => {
               }
             }
           }
-          return k_min === null ? state : produce_top(state, k_min);
+          return k_min === null
+            ? state
+            : produce_top(
+                state,
+                leafs(state.data.kvs[k_min], state.data.kvs)
+                  [Symbol.iterator]()
+                  .next().value.start_time,
+              );
         }
         case "stop": {
           return produce(state, _stop);
