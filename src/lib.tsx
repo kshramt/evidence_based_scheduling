@@ -842,6 +842,15 @@ const Menu = connect((state: IState) => {
         >
           Due
         </button>
+        <button
+          onClick={() => {
+            STORE.dispatch(doSave());
+            STORE.dispatch(doLoad());
+            STORE.dispatch(doSave());
+          }}
+        >
+          ⟳
+        </button>
       </div>
     </div>
   );
