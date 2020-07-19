@@ -26,7 +26,8 @@ div.menu{
     left: 1ex;
 }
 input{
-    width: 6ex;
+    width: 4ex;
+    vertical-align: text-bottom;
 }
 button{
     padding: 0;
@@ -54,6 +55,16 @@ div.menu{
 div.running{
     background-color: Moccasin;
 }
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
 @media screen and (prefers-color-scheme: dark) {
     html{
         filter: invert(1) hue-rotate(180deg);
