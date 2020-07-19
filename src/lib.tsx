@@ -370,7 +370,7 @@ const root_reducer_of = () => {
   };
 
   const produce_top = (state: IState, k: string) =>
-    produce(state, draft => {
+    produce(state, (draft) => {
       _top(draft, k);
       DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
     });
@@ -382,13 +382,13 @@ const root_reducer_of = () => {
       switch (action.type) {
         case "eval_": {
           const k = action.k;
-          return produce(state, draft => {
+          return produce(state, (draft) => {
             _eval_(draft, k);
           });
         }
         case "delete_": {
           const k = action.k;
-          return produce(state, draft => {
+          return produce(state, (draft) => {
             if (draft.data.kvs[k].todo.length === 0) {
               _rmTodoEntry(draft, k);
               deleteAtVal(draft.data.queue, k);
@@ -404,7 +404,7 @@ const root_reducer_of = () => {
         case "new_": {
           const parent = action.parent;
           const k = new Date().toISOString();
-          return produce(state, draft => {
+          return produce(state, (draft) => {
             const v = newEntryValue(parent, k);
             draft.data.kvs[k] = v;
             draft.data.kvs[parent].todo.unshift(k);
@@ -414,7 +414,7 @@ const root_reducer_of = () => {
           });
         }
         case "setSaveSuccess": {
-          return produce(state, draft => {
+          return produce(state, (draft) => {
             draft.saveSuccess = action.payload;
           });
         }
@@ -439,21 +439,21 @@ const root_reducer_of = () => {
           return state;
         }
         case "flipShowTodoOnly": {
-          return produce(state, draft => {
+          return produce(state, (draft) => {
             draft.data.showTodoOnly = !draft.data.showTodoOnly;
             DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
           });
         }
         case "flipShowDetail": {
           const k = action.k;
-          return produce(state, draft => {
+          return produce(state, (draft) => {
             draft.data.kvs[k].show_detail = !draft.data.kvs[k].show_detail;
             DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
           });
         }
         case "start": {
           const k = action.k;
-          return produce(state, draft => {
+          return produce(state, (draft) => {
             if (k !== draft.data.current_entry) {
               switch (draft.data.kvs[k].status) {
                 case "done":
@@ -542,7 +542,7 @@ const root_reducer_of = () => {
         }
         case "moveUp": {
           const k = action.k;
-          return produce(state, draft => {
+          return produce(state, (draft) => {
             const pk = draft.data.kvs[k].parent;
             if (pk) {
               moveUp(draft.data.kvs[pk].todo, k);
@@ -558,7 +558,7 @@ const root_reducer_of = () => {
         }
         case "moveDown": {
           const k = action.k;
-          return produce(state, draft => {
+          return produce(state, (draft) => {
             const pk = draft.data.kvs[k].parent;
             if (pk) {
               moveDown(draft.data.kvs[pk].todo, k);
@@ -574,7 +574,7 @@ const root_reducer_of = () => {
         }
         case "unindent": {
           const k = action.k;
-          return produce(state, draft => {
+          return produce(state, (draft) => {
             const pk = draft.data.kvs[k].parent;
             if (pk !== null) {
               const ppk = draft.data.kvs[pk].parent;
@@ -610,7 +610,7 @@ const root_reducer_of = () => {
         }
         case "indent": {
           const k = action.k;
-          return produce(state, draft => {
+          return produce(state, (draft) => {
             const pk = draft.data.kvs[k].parent;
             if (pk) {
               const entries = draft.data.kvs[pk].todo;
@@ -639,7 +639,7 @@ const root_reducer_of = () => {
         case "setEstimate": {
           const k = action.k;
           const estimate = action.estimate;
-          return produce(state, draft => {
+          return produce(state, (draft) => {
             if (draft.data.kvs[k].estimate !== estimate) {
               draft.data.kvs[k].estimate = estimate;
               DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
@@ -649,7 +649,7 @@ const root_reducer_of = () => {
         case "setLastRange": {
           const k = action.k;
           const t = action.t;
-          return produce(state, draft => {
+          return produce(state, (draft) => {
             const l = lastRangeOf(draft.data.kvs[k].ranges);
             if (l !== null && l.end) {
               const t1 = l.end - l.start;
@@ -666,7 +666,7 @@ const root_reducer_of = () => {
         case "setText": {
           const k = action.k;
           const text = action.text;
-          return produce(state, draft => {
+          return produce(state, (draft) => {
             draft.data.kvs[k].text = text;
             DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
           });
@@ -677,7 +677,7 @@ const root_reducer_of = () => {
           const height = action.height;
           return width === null || height === null
             ? state
-            : produce(state, draft => {
+            : produce(state, (draft) => {
                 const v = draft.data.kvs[k];
                 // if (v.style.width !== width) {
                 //   v.style.width = width;
@@ -691,7 +691,7 @@ const root_reducer_of = () => {
         }
         case "todoToDone": {
           const k = action.k;
-          return produce(state, draft => {
+          return produce(state, (draft) => {
             _rmFromTodo(draft, k);
             _addToDone(draft, k);
             _topQueue(draft, k);
@@ -700,7 +700,7 @@ const root_reducer_of = () => {
         }
         case "todoToDont": {
           const k = action.k;
-          return produce(state, draft => {
+          return produce(state, (draft) => {
             _rmFromTodo(draft, k);
             _addToDont(draft, k);
             _topQueue(draft, k);
@@ -709,14 +709,14 @@ const root_reducer_of = () => {
         }
         case "doneToTodo": {
           const k = action.k;
-          return produce(state, draft => {
+          return produce(state, (draft) => {
             _doneToTodo(draft, k);
             DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
           });
         }
         case "dontToTodo": {
           const k = action.k;
-          return produce(state, draft => {
+          return produce(state, (draft) => {
             _dontToTodo(draft, k);
             DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
           });
@@ -874,7 +874,7 @@ const doSaveRet = (
         "Content-Type": "application/json; charset=utf-8",
       },
       body: JSON.stringify(state.data),
-    }).then(r => {
+    }).then((r) => {
       dispatch({
         type: "setSaveSuccess",
         payload: r.ok,
@@ -886,7 +886,7 @@ const doSaveRet = (
 
 const doLoad = () => (dispatch: ThunkDispatch<IState, void, TActions>) => {
   fetch("api/" + API_VERSION + "/get")
-    .then(r => r.json())
+    .then((r) => r.json())
     .then((data: IData) => {
       const caches: ICaches = {};
       for (const k of Object.keys(data.kvs)) {
@@ -909,20 +909,20 @@ const setLastRange = (k: string, t: number) => {
 };
 
 const _eval_ = (draft: Draft<IState>, k: string) => {
-  const candidates = Object.values(draft.data.kvs).filter(v => {
+  const candidates = Object.values(draft.data.kvs).filter((v) => {
     return (
       (v.status === "done" || v.status === "dont") &&
       v.estimate !== NO_ESTIMATION
     );
   });
   const ratios = candidates.length
-    ? candidates.map(v => {
+    ? candidates.map((v) => {
         return draft.caches[v.start_time].total_time_spent / 3600 / v.estimate;
       })
     : [1];
   const now = Number(new Date()) / 1000;
   const weights = candidates.length
-    ? candidates.map(v => {
+    ? candidates.map((v) => {
         // 1/e per year
         return Math.exp(
           -(now - Date.parse(v.end_time as string) / 1000) / (86400 * 365.25),
@@ -930,10 +930,10 @@ const _eval_ = (draft: Draft<IState>, k: string) => {
       })
     : [1];
   const leaf_estimates = Array.from(leafs(draft.data.kvs[k], draft.data.kvs))
-    .filter(v => {
+    .filter((v) => {
       return v.estimate !== NO_ESTIMATION;
     })
-    .map(v => {
+    .map((v) => {
       return v.estimate;
     });
   const n_mc = 2000;
@@ -1075,7 +1075,7 @@ const QueueColumn = connect((state: IState) => {
     <div id="queue">
       {props.queue.length ? (
         <ol>
-          {props.queue.map(k => {
+          {props.queue.map((k) => {
             return <QueueNode k={k} key={k} />;
           })}
         </ol>
@@ -1087,7 +1087,7 @@ const QueueColumn = connect((state: IState) => {
 const List = React.memo((props: IListProps) => {
   return props.ks.length ? (
     <ol>
-      {props.ks.map(k => {
+      {props.ks.map((k) => {
         return (
           <li key={k}>
             <Node k={k} />
@@ -1179,20 +1179,18 @@ const QueueNode = connect(
               <>
                 {todoToDoneButtonOf(props.k)}
                 {todoToDontButtonOf(props.k)}
+                {LastRangeOf(props.k)}
               </>
             ) : null}
             {showDetailButtonOf(props.k)}
             {props.show_detail ? (
-              <>
-                {LastRangeOf(props.k)}
-                {props.status === "todo" ? (
-                  <>
-                    {moveUpButtonOf(props.k)}
-                    {moveDownButtonOf(props.k)}
-                    {props.showDeleteButton ? deleteButtonOf(props.k) : null}
-                  </>
-                ) : null}
-              </>
+              props.status === "todo" ? (
+                <>
+                  {moveUpButtonOf(props.k)}
+                  {moveDownButtonOf(props.k)}
+                  {props.showDeleteButton ? deleteButtonOf(props.k) : null}
+                </>
+              ) : null
             ) : null}
           </>
         ) : null}
@@ -1254,22 +1252,20 @@ const Entry = connect(
             <>
               {todoToDoneButtonOf(props.k)}
               {todoToDontButtonOf(props.k)}
+              {LastRangeOf(props.k)}
             </>
           ) : null}
           {showDetailButtonOf(props.k)}
           {props.show_detail ? (
-            <>
-              {LastRangeOf(props.k)}
-              {props.status === "todo" ? (
-                <>
-                  {moveUpButtonOf(props.k)}
-                  {moveDownButtonOf(props.k)}
-                  {unindentButtonOf(props.k)}
-                  {indentButtonOf(props.k)}
-                  {props.showDeleteButton ? deleteButtonOf(props.k) : null}
-                </>
-              ) : null}
-            </>
+            props.status === "todo" ? (
+              <>
+                {moveUpButtonOf(props.k)}
+                {moveDownButtonOf(props.k)}
+                {unindentButtonOf(props.k)}
+                {indentButtonOf(props.k)}
+                {props.showDeleteButton ? deleteButtonOf(props.k) : null}
+              </>
+            ) : null
           ) : null}
         </>
       ) : null}
@@ -1291,7 +1287,7 @@ const _estimate = (
   for (let i = 0; i < n_mc; i++) {
     ts.push(
       sum(
-        estimates.map(x => {
+        estimates.map((x) => {
           return rng.next().value * x;
         }),
       ),
@@ -1401,7 +1397,7 @@ function* leafs(v: IEntry, kvs: IKvs): Iterable<IEntry> {
 
 export function* multinomial<T>(xs: T[], ws: number[]) {
   const total = sum(ws);
-  const partitions = cumsum(ws.map(w => w / total)).map(v => {
+  const partitions = cumsum(ws.map((w) => w / total)).map((v) => {
     return Math.min(v, 1);
   });
   partitions[partitions.length - 1] = 1;
@@ -1743,7 +1739,7 @@ class TextAreaComponent extends React.PureComponent<
     props: ITextAreaComponentProps,
     state: ITextAreaComponentState,
   ) => {
-    const nextState = produce(state, draft => {
+    const nextState = produce(state, (draft) => {
       let changed = false;
       if (props.text !== draft.prevProps.text) {
         draft.text = props.text;
@@ -1764,7 +1760,7 @@ class TextAreaComponent extends React.PureComponent<
     const h = getAndSetHeight(el);
     const t = el.value;
     this.setState((state: ITextAreaComponentState) =>
-      produce(state, draft => {
+      produce(state, (draft) => {
         if (draft.text !== t) {
           draft.text = t;
         }
