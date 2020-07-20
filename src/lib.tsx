@@ -1179,9 +1179,9 @@ const QueueNode = connect(
               <>
                 {todoToDoneButtonOf(props.k)}
                 {todoToDontButtonOf(props.k)}
-                {LastRangeOf(props.k)}
               </>
             ) : null}
+            {LastRangeOf(props.k)}
             {showDetailButtonOf(props.k)}
             {props.show_detail ? (
               props.status === "todo" ? (
@@ -1252,9 +1252,9 @@ const Entry = connect(
             <>
               {todoToDoneButtonOf(props.k)}
               {todoToDontButtonOf(props.k)}
-              {LastRangeOf(props.k)}
             </>
           ) : null}
+          {LastRangeOf(props.k)}
           {showDetailButtonOf(props.k)}
           {props.show_detail ? (
             props.status === "todo" ? (
@@ -1827,15 +1827,17 @@ const LastRange = connect(
           ? (lastRange.end - lastRange.start) / 3600
           : null,
       k: ownProps.k,
+      className: v.status,
     };
   },
-)((props: { lastRangeValue: null | number; k: string }) =>
+)((props: { lastRangeValue: null | number; k: string; className: string }) =>
   props.lastRangeValue === null ? null : (
     <input
       type="number"
       step="any"
       value={props.lastRangeValue}
       onChange={setLastRangeOf(props.k)}
+      className={props.className}
     />
   ),
 );
