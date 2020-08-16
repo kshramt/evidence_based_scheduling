@@ -791,70 +791,40 @@ const App = connect((state: IState) => ({
   );
 });
 
-const Menu = connect((state: IState) => {
-  return { saveSuccess: state.saveSuccess, root: state.data.root };
-})((props: { saveSuccess: boolean; root: string }) => {
-  return (
-    <div className={"menu"}>
-      {props.saveSuccess ? null : <p>Failed to save.</p>}
-      <div>
-        {stopButtonOf(props.root)}
-        {newButtonOf(props.root)}
-        <button
-          onClick={() => {
-            STORE.dispatch(doSave());
-            STORE.dispatch({ type: "undo" });
-            STORE.dispatch(doSave());
-          }}
-        >
-          {UNDO_MARK}
-        </button>
-        <button
-          onClick={() => {
-            STORE.dispatch(doSave());
-            STORE.dispatch({ type: "redo" });
-            STORE.dispatch(doSave());
-          }}
-        >
-          {REDO_MARK}
-        </button>
-        <button
-          onClick={() => {
-            STORE.dispatch({ type: "flipShowTodoOnly" });
-            STORE.dispatch(doSave());
-          }}
-        >
-          👀
-        </button>
-        <button
-          onClick={() => {
-            STORE.dispatch({ type: "smallestToTop" });
-            STORE.dispatch(doSave());
-          }}
-        >
-          Small
-        </button>
-        <button
-          onClick={() => {
-            STORE.dispatch({ type: "closestToTop" });
-            STORE.dispatch(doSave());
-          }}
-        >
-          Due
-        </button>
-        <button
-          onClick={() => {
-            STORE.dispatch(doSave());
-            STORE.dispatch(doLoad());
-            STORE.dispatch(doSave());
-          }}
-        >
-          ⟳
-        </button>
+const Menu = connect(
+  (state: IState) => {
+    return { saveSuccess: state.saveSuccess, root: state.data.root };
+  },
+  (dispatch: ThunkDispatch<IState, void, TActions>) =>
+    _menuCallbacksOf(dispatch),
+)(
+  (props: {
+    saveSuccess: boolean;
+    root: string;
+    undo: () => void;
+    redo: () => void;
+    flipShowTodoOnly: () => void;
+    smallestToTop: () => void;
+    closestToTop: () => void;
+    load: () => void;
+  }) => {
+    return (
+      <div className={"menu"}>
+        {props.saveSuccess ? null : <p>Failed to save.</p>}
+        <div>
+          {stopButtonOf(props.root)}
+          {newButtonOf(props.root)}
+          <button onClick={props.undo}>{UNDO_MARK}</button>
+          <button onClick={props.redo}>{REDO_MARK}</button>
+          <button onClick={props.flipShowTodoOnly}>👀</button>
+          <button onClick={props.smallestToTop}>Small</button>
+          <button onClick={props.closestToTop}>Due</button>
+          <button onClick={props.load}>⟳</button>
+        </div>
       </div>
-    </div>
-  );
-});
+    );
+  },
+);
 
 const doSave = () => doSaveRet;
 
@@ -1840,6 +1810,38 @@ const LastRange = connect(
       className={props.className}
     />
   ),
+);
+
+const _menuCallbacksOf = memoize1(
+  (dispatch: ThunkDispatch<IState, void, TActions>) => ({
+    undo: () => {
+      dispatch(doSave());
+      dispatch({ type: "undo" });
+      dispatch(doSave());
+    },
+    redo: () => {
+      dispatch(doSave());
+      dispatch({ type: "redo" });
+      dispatch(doSave());
+    },
+    flipShowTodoOnly: () => {
+      dispatch({ type: "flipShowTodoOnly" });
+      dispatch(doSave());
+    },
+    smallestToTop: () => {
+      dispatch({ type: "smallestToTop" });
+      dispatch(doSave());
+    },
+    closestToTop: () => {
+      dispatch({ type: "closestToTop" });
+      dispatch(doSave());
+    },
+    load: () => {
+      dispatch(doSave());
+      dispatch(doLoad());
+      dispatch(doSave());
+    },
+  }),
 );
 
 export const main = () => {
