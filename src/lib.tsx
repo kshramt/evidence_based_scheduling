@@ -772,10 +772,6 @@ const emptyStateOf = () => {
     saveSuccess: true,
   };
 };
-const STORE = createStore(
-  root_reducer_of(),
-  applyMiddleware(thunk as ThunkMiddleware<IState, TActions>),
-);
 
 const App = connect((state: IState) => ({
   root: state.data.root,
@@ -807,13 +803,14 @@ const Menu = connect(
     smallestToTop: () => void;
     closestToTop: () => void;
     load: () => void;
+    dispatch: ThunkDispatch<IState, void, TActions>;
   }) => {
     return (
       <div className={"menu"}>
         {props.saveSuccess ? null : <p>Failed to save.</p>}
         <div>
-          {stopButtonOf(props.root)}
-          {newButtonOf(props.root)}
+          {stopButtonOf(props.dispatch, props.root)}
+          {newButtonOf(props.dispatch, props.root)}
           <button onClick={props.undo}>{UNDO_MARK}</button>
           <button onClick={props.redo}>{REDO_MARK}</button>
           <button onClick={props.flipShowTodoOnly}>👀</button>
@@ -873,9 +870,13 @@ const doLoad = () => (dispatch: ThunkDispatch<IState, void, TActions>) => {
     });
 };
 
-const setLastRange = (k: string, t: number) => {
-  STORE.dispatch({ type: "setLastRange", k, t });
-  STORE.dispatch(doSave());
+const setLastRange = (
+  dispatch: ThunkDispatch<IState, void, TActions>,
+  k: string,
+  t: number,
+) => {
+  dispatch({ type: "setLastRange", k, t });
+  dispatch(doSave());
 };
 
 const _eval_ = (draft: Draft<IState>, k: string) => {
@@ -1119,58 +1120,75 @@ const QueueNode = connect(
         v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0,
     };
   },
-)((props: IQueueNodeProps) => {
-  const cache = props.cache;
-  return props.shouldHide ? null : (
-    <li key={props.k}>
-      <div
-        id={`queue${props.k}`}
-        className={props.running ? `${props.status} running` : props.status}
-      >
-        {props.parent ? (
-          <>
-            {toTreeButtonOf(props.k)}
-            {props.status === "todo"
-              ? newButtonOf(props.k)
-              : props.status === "done"
-              ? doneToTodoButtonOf(props.k)
-              : dontToTodoButtonOf(props.k)}
-            {TextAreaOf(props.k)}
-            {EstimationInputOf(props.k)}
-            {props.running ? stopButtonOf(props.k) : startButtonOf(props.k)}
-          </>
-        ) : null}
-        {digits1(cache.total_time_spent / 3600)}
-        {props.parent && props.status === "todo" ? topButtonOf(props.k) : null}
-        {props.status === "todo" ? evalButtonOf(props.k) : null}
-        {props.parent ? (
-          <>
-            {props.noTodo && props.status === "todo" ? (
-              <>
-                {todoToDoneButtonOf(props.k)}
-                {todoToDontButtonOf(props.k)}
-              </>
-            ) : null}
-            {LastRangeOf(props.k)}
-            {showDetailButtonOf(props.k)}
-            {props.show_detail ? (
-              props.status === "todo" ? (
+  (dispatch: ThunkDispatch<IState, void, TActions>) => ({
+    dispatch,
+  }),
+)(
+  (
+    props: IQueueNodeProps & {
+      dispatch: ThunkDispatch<IState, void, TActions>;
+    },
+  ) => {
+    const cache = props.cache;
+    return props.shouldHide ? null : (
+      <li key={props.k}>
+        <div
+          id={`queue${props.k}`}
+          className={props.running ? `${props.status} running` : props.status}
+        >
+          {props.parent ? (
+            <>
+              {toTreeButtonOf(props.k)}
+              {props.status === "todo"
+                ? newButtonOf(props.dispatch, props.k)
+                : props.status === "done"
+                ? doneToTodoButtonOf(props.dispatch, props.k)
+                : dontToTodoButtonOf(props.dispatch, props.k)}
+              {TextAreaOf(props.k)}
+              {EstimationInputOf(props.k)}
+              {props.running
+                ? stopButtonOf(props.dispatch, props.k)
+                : startButtonOf(props.dispatch, props.k)}
+            </>
+          ) : null}
+          {digits1(cache.total_time_spent / 3600)}
+          {props.parent && props.status === "todo"
+            ? topButtonOf(props.dispatch, props.k)
+            : null}
+          {props.status === "todo"
+            ? evalButtonOf(props.dispatch, props.k)
+            : null}
+          {props.parent ? (
+            <>
+              {props.noTodo && props.status === "todo" ? (
                 <>
-                  {moveUpButtonOf(props.k)}
-                  {moveDownButtonOf(props.k)}
-                  {props.showDeleteButton ? deleteButtonOf(props.k) : null}
+                  {todoToDoneButtonOf(props.dispatch, props.k)}
+                  {todoToDontButtonOf(props.dispatch, props.k)}
                 </>
-              ) : null
-            ) : null}
-          </>
-        ) : null}
-        {props.status === "todo"
-          ? cache.percentiles.map(digits1).join(" ")
-          : null}
-      </div>
-    </li>
-  );
-});
+              ) : null}
+              {LastRangeOf(props.k)}
+              {showDetailButtonOf(props.dispatch, props.k)}
+              {props.show_detail ? (
+                props.status === "todo" ? (
+                  <>
+                    {moveUpButtonOf(props.dispatch, props.k)}
+                    {moveDownButtonOf(props.dispatch, props.k)}
+                    {props.showDeleteButton
+                      ? deleteButtonOf(props.dispatch, props.k)
+                      : null}
+                  </>
+                ) : null
+              ) : null}
+            </>
+          ) : null}
+          {props.status === "todo"
+            ? cache.percentiles.map(digits1).join(" ")
+            : null}
+        </div>
+      </li>
+    );
+  },
+);
 
 const Entry = connect(
   (
@@ -1194,57 +1212,72 @@ const Entry = connect(
         v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0,
     };
   },
-)((props: IEntryProps) => {
-  const cache = props.cache;
-  return (
-    <div
-      id={`tree${props.k}`}
-      className={props.running ? `${props.status} running` : props.status}
-    >
-      {props.parent ? (
-        <>
-          {props.status === "todo"
-            ? newButtonOf(props.k)
-            : props.status === "done"
-            ? doneToTodoButtonOf(props.k)
-            : dontToTodoButtonOf(props.k)}
-          {TextAreaOf(props.k)}
-          {EstimationInputOf(props.k)}
-          {props.running ? stopButtonOf(props.k) : startButtonOf(props.k)}
-        </>
-      ) : null}
-      {digits1(cache.total_time_spent / 3600)}
-      {props.parent && props.status === "todo" ? topButtonOf(props.k) : null}
-      {props.status === "todo" ? evalButtonOf(props.k) : null}
-      {props.parent ? (
-        <>
-          {props.noTodo && props.status === "todo" ? (
-            <>
-              {todoToDoneButtonOf(props.k)}
-              {todoToDontButtonOf(props.k)}
-            </>
-          ) : null}
-          {LastRangeOf(props.k)}
-          {showDetailButtonOf(props.k)}
-          {props.show_detail ? (
-            props.status === "todo" ? (
+  (dispatch: ThunkDispatch<IState, void, TActions>) => ({
+    dispatch,
+  }),
+)(
+  (
+    props: IEntryProps & {
+      dispatch: ThunkDispatch<IState, void, TActions>;
+    },
+  ) => {
+    const cache = props.cache;
+    return (
+      <div
+        id={`tree${props.k}`}
+        className={props.running ? `${props.status} running` : props.status}
+      >
+        {props.parent ? (
+          <>
+            {props.status === "todo"
+              ? newButtonOf(props.dispatch, props.k)
+              : props.status === "done"
+              ? doneToTodoButtonOf(props.dispatch, props.k)
+              : dontToTodoButtonOf(props.dispatch, props.k)}
+            {TextAreaOf(props.k)}
+            {EstimationInputOf(props.k)}
+            {props.running
+              ? stopButtonOf(props.dispatch, props.k)
+              : startButtonOf(props.dispatch, props.k)}
+          </>
+        ) : null}
+        {digits1(cache.total_time_spent / 3600)}
+        {props.parent && props.status === "todo"
+          ? topButtonOf(props.dispatch, props.k)
+          : null}
+        {props.status === "todo" ? evalButtonOf(props.dispatch, props.k) : null}
+        {props.parent ? (
+          <>
+            {props.noTodo && props.status === "todo" ? (
               <>
-                {moveUpButtonOf(props.k)}
-                {moveDownButtonOf(props.k)}
-                {unindentButtonOf(props.k)}
-                {indentButtonOf(props.k)}
-                {props.showDeleteButton ? deleteButtonOf(props.k) : null}
+                {todoToDoneButtonOf(props.dispatch, props.k)}
+                {todoToDontButtonOf(props.dispatch, props.k)}
               </>
-            ) : null
-          ) : null}
-        </>
-      ) : null}
-      {props.status === "todo"
-        ? cache.percentiles.map(digits1).join(" ")
-        : null}
-    </div>
-  );
-});
+            ) : null}
+            {LastRangeOf(props.k)}
+            {showDetailButtonOf(props.dispatch, props.k)}
+            {props.show_detail ? (
+              props.status === "todo" ? (
+                <>
+                  {moveUpButtonOf(props.dispatch, props.k)}
+                  {moveDownButtonOf(props.dispatch, props.k)}
+                  {unindentButtonOf(props.dispatch, props.k)}
+                  {indentButtonOf(props.dispatch, props.k)}
+                  {props.showDeleteButton
+                    ? deleteButtonOf(props.dispatch, props.k)
+                    : null}
+                </>
+              ) : null
+            ) : null}
+          </>
+        ) : null}
+        {props.status === "todo"
+          ? cache.percentiles.map(digits1).join(" ")
+          : null}
+      </div>
+    );
+  },
+);
 
 const _estimate = (
   estimates: number[],
@@ -1418,6 +1451,20 @@ const memoize1 = <A, R>(fn: (a: A) => R) => {
   };
 };
 
+const memoize2 = <A, B, R>(fn: (a: A, b: B) => R) => {
+  const cache = new Map<A, Map<B, R>>();
+  return (a: A, b: B) => {
+    if (!cache.has(a)) {
+      cache.set(a, new Map<B, R>());
+    }
+    const c = cache.get(a) as Map<B, R>;
+    if (!c.has(b)) {
+      c.set(b, fn(a, b));
+    }
+    return c.get(b) as R;
+  };
+};
+
 const stopButtonRefOf = memoize1((_: string) =>
   React.createRef<HTMLButtonElement>(),
 );
@@ -1448,194 +1495,234 @@ const toTreeButtonOf = memoize1((k: string) => (
   </a>
 ));
 
-const doneToTodoButtonOf = memoize1((k: string) => (
-  <button
-    className="done"
-    onClick={() => {
-      STORE.dispatch({ type: "doneToTodo", k });
-      STORE.dispatch(doSave());
-    }}
-  >
-    {DONE_MARK}
-  </button>
-));
+const doneToTodoButtonOf = memoize2(
+  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
+    <button
+      className="done"
+      onClick={() => {
+        dispatch({ type: "doneToTodo", k });
+        dispatch(doSave());
+      }}
+    >
+      {DONE_MARK}
+    </button>
+  ),
+);
 
-const dontToTodoButtonOf = memoize1((k: string) => (
-  <button
-    className="dont"
-    onClick={() => {
-      STORE.dispatch({ type: "dontToTodo", k });
-      STORE.dispatch(doSave());
-    }}
-  >
-    {DONT_MARK}
-  </button>
-));
+const dontToTodoButtonOf = memoize2(
+  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
+    <button
+      className="dont"
+      onClick={() => {
+        dispatch({ type: "dontToTodo", k });
+        dispatch(doSave());
+      }}
+    >
+      {DONT_MARK}
+    </button>
+  ),
+);
 
-const newButtonOf = memoize1((k: string) => (
-  <button
-    onClick={() => {
-      STORE.dispatch({ type: "new_", parent: k });
-      STORE.dispatch(doSave());
-      STORE.dispatch({
+const newButtonOf = memoize2(
+  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => {
+    const _focusTextAreaOfTheFirsttodo = (
+      dispatch: ThunkDispatch<IState, void, TActions>,
+      getState: () => IState,
+    ) => {
+      dispatch({
         type: "focusTextArea",
-        k: STORE.getState().data.kvs[k].todo[0],
+        k: getState().data.kvs[k].todo[0],
       });
-    }}
-  >
-    {NEW_MARK}
-  </button>
-));
+    };
+    return (
+      <button
+        onClick={() => {
+          dispatch({ type: "new_", parent: k });
+          dispatch(doSave());
+          dispatch(_focusTextAreaOfTheFirsttodo);
+        }}
+      >
+        {NEW_MARK}
+      </button>
+    );
+  },
+);
 
-const stopButtonOf = memoize1((k: string) => (
-  <button
-    onClick={() => {
-      STORE.dispatch({ type: "stop" });
-      STORE.dispatch(doSave());
-    }}
-    ref={stopButtonRefOf(k)}
-  >
-    {STOP_MARK}
-  </button>
-));
+const stopButtonOf = memoize2(
+  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
+    <button
+      onClick={() => {
+        dispatch({ type: "stop" });
+        dispatch(doSave());
+      }}
+      ref={stopButtonRefOf(k)}
+    >
+      {STOP_MARK}
+    </button>
+  ),
+);
 
-const startButtonOf = memoize1((k: string) => (
-  <button
-    onClick={() => {
-      STORE.dispatch({ type: "start", k });
-      STORE.dispatch(doSave());
-      STORE.dispatch({ type: "focusStopButton", k });
-    }}
-  >
-    {START_MARK}
-  </button>
-));
+const startButtonOf = memoize2(
+  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
+    <button
+      onClick={() => {
+        dispatch({ type: "start", k });
+        dispatch(doSave());
+        dispatch({ type: "focusStopButton", k });
+      }}
+    >
+      {START_MARK}
+    </button>
+  ),
+);
 
-const topButtonOf = memoize1((k: string) => (
-  <button
-    onClick={() => {
-      STORE.dispatch({ type: "top", k });
-      STORE.dispatch(doSave());
-    }}
-  >
-    {TOP_MARK}
-  </button>
-));
+const topButtonOf = memoize2(
+  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
+    <button
+      onClick={() => {
+        dispatch({ type: "top", k });
+        dispatch(doSave());
+      }}
+    >
+      {TOP_MARK}
+    </button>
+  ),
+);
 
-const moveUpButtonOf = memoize1((k: string) => (
-  <button
-    onClick={() => {
-      STORE.dispatch({ type: "moveUp", k });
-      STORE.dispatch(doSave());
-      STORE.dispatch({ type: "focusMoveUpButton", k });
-    }}
-    ref={moveUpButtonRefOf(k)}
-  >
-    {MOVE_UP_MARK}
-  </button>
-));
+const moveUpButtonOf = memoize2(
+  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
+    <button
+      onClick={() => {
+        dispatch({ type: "moveUp", k });
+        dispatch(doSave());
+        dispatch({ type: "focusMoveUpButton", k });
+      }}
+      ref={moveUpButtonRefOf(k)}
+    >
+      {MOVE_UP_MARK}
+    </button>
+  ),
+);
 
-const moveDownButtonOf = memoize1((k: string) => (
-  <button
-    onClick={() => {
-      STORE.dispatch({ type: "moveDown", k });
-      STORE.dispatch(doSave());
-      STORE.dispatch({ type: "focusMoveDownButton", k });
-    }}
-    ref={moveDownButtonRefOf(k)}
-  >
-    {MOVE_DOWN_MARK}
-  </button>
-));
+const moveDownButtonOf = memoize2(
+  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
+    <button
+      onClick={() => {
+        dispatch({ type: "moveDown", k });
+        dispatch(doSave());
+        dispatch({ type: "focusMoveDownButton", k });
+      }}
+      ref={moveDownButtonRefOf(k)}
+    >
+      {MOVE_DOWN_MARK}
+    </button>
+  ),
+);
 
-const todoToDoneButtonOf = memoize1((k: string) => (
-  <button
-    onClick={() => {
-      STORE.dispatch({ type: "todoToDone", k });
-      STORE.dispatch(doSave());
-    }}
-  >
-    {DONE_MARK}
-  </button>
-));
+const todoToDoneButtonOf = memoize2(
+  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
+    <button
+      onClick={() => {
+        dispatch({ type: "todoToDone", k });
+        dispatch(doSave());
+      }}
+    >
+      {DONE_MARK}
+    </button>
+  ),
+);
 
-const todoToDontButtonOf = memoize1((k: string) => (
-  <button
-    onClick={() => {
-      STORE.dispatch({ type: "todoToDont", k });
-      STORE.dispatch(doSave());
-    }}
-  >
-    {DONT_MARK}
-  </button>
-));
+const todoToDontButtonOf = memoize2(
+  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
+    <button
+      onClick={() => {
+        dispatch({ type: "todoToDont", k });
+        dispatch(doSave());
+      }}
+    >
+      {DONT_MARK}
+    </button>
+  ),
+);
 
-const unindentButtonOf = memoize1((k: string) => (
-  <button
-    onClick={() => {
-      STORE.dispatch({ type: "unindent", k });
-      STORE.dispatch(doSave());
-      STORE.dispatch({ type: "focusUnindentButton", k });
-    }}
-    ref={unindentButtonRefOf(k)}
-  >
-    {UNINDENT_MARK}
-  </button>
-));
+const unindentButtonOf = memoize2(
+  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
+    <button
+      onClick={() => {
+        dispatch({ type: "unindent", k });
+        dispatch(doSave());
+        dispatch({ type: "focusUnindentButton", k });
+      }}
+      ref={unindentButtonRefOf(k)}
+    >
+      {UNINDENT_MARK}
+    </button>
+  ),
+);
 
-const indentButtonOf = memoize1((k: string) => (
-  <button
-    onClick={() => {
-      STORE.dispatch({ type: "indent", k });
-      STORE.dispatch(doSave());
-      STORE.dispatch({ type: "focusIndentButton", k });
-    }}
-    ref={indentButtonRefOf(k)}
-  >
-    {INDENT_MARK}
-  </button>
-));
+const indentButtonOf = memoize2(
+  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
+    <button
+      onClick={() => {
+        dispatch({ type: "indent", k });
+        dispatch(doSave());
+        dispatch({ type: "focusIndentButton", k });
+      }}
+      ref={indentButtonRefOf(k)}
+    >
+      {INDENT_MARK}
+    </button>
+  ),
+);
 
-const showDetailButtonOf = memoize1((k: string) => (
-  <button
-    onClick={() => {
-      STORE.dispatch({ type: "flipShowDetail", k });
-      STORE.dispatch(doSave());
-    }}
-  >
-    {DETAIL_MARK}
-  </button>
-));
+const showDetailButtonOf = memoize2(
+  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
+    <button
+      onClick={() => {
+        dispatch({ type: "flipShowDetail", k });
+        dispatch(doSave());
+      }}
+    >
+      {DETAIL_MARK}
+    </button>
+  ),
+);
 
-const deleteButtonOf = memoize1((k: string) => (
-  <button
-    onClick={() => {
-      STORE.dispatch({ type: "delete_", k });
-      STORE.dispatch(doSave());
-    }}
-  >
-    {DELETE_MARK}
-  </button>
-));
+const deleteButtonOf = memoize2(
+  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
+    <button
+      onClick={() => {
+        dispatch({ type: "delete_", k });
+        dispatch(doSave());
+      }}
+    >
+      {DELETE_MARK}
+    </button>
+  ),
+);
 
-const evalButtonOf = memoize1((k: string) => (
-  <button
-    onClick={() => {
-      STORE.dispatch({ type: "eval_", k });
-    }}
-  >
-    {EVAL_MARK}
-  </button>
-));
+const evalButtonOf = memoize2(
+  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
+    <button
+      onClick={() => {
+        dispatch({ type: "eval_", k });
+      }}
+    >
+      {EVAL_MARK}
+    </button>
+  ),
+);
 
-const setEstimateOf = memoize1(
-  (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    STORE.dispatch({
+const setEstimateOf = memoize2(
+  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    dispatch({
       type: "setEstimate",
       k,
       estimate: Number(e.target.value),
     });
-    STORE.dispatch(doSave());
+    dispatch(doSave());
   },
 );
 
@@ -1655,19 +1742,31 @@ const EstimationInput = connect(
       k: ownProps.k,
     };
   },
-)((props: { estimate: number; className: string; k: string }) => (
-  <input
-    type="number"
-    step="any"
-    value={props.estimate}
-    onChange={setEstimateOf(props.k)}
-    className={props.className}
-  />
-));
+  (dispatch: ThunkDispatch<IState, void, TActions>) => ({
+    dispatch,
+  }),
+)(
+  (props: {
+    estimate: number;
+    className: string;
+    k: string;
+    dispatch: ThunkDispatch<IState, void, TActions>;
+  }) => (
+    <input
+      type="number"
+      step="any"
+      value={props.estimate}
+      onChange={setEstimateOf(props.dispatch, props.k)}
+      className={props.className}
+    />
+  ),
+);
 
-const setLastRangeOf = memoize1(
-  (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLastRange(k, Number(e.target.value));
+const setLastRangeOf = memoize2(
+  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    setLastRange(dispatch, k, Number(e.target.value));
   },
 );
 
@@ -1676,6 +1775,7 @@ interface ITextAreaComponentProps {
   k: string;
   status: TStatus;
   style: IStyle;
+  dispatch: ThunkDispatch<IState, void, TActions>;
 }
 
 interface ITextAreaComponentState {
@@ -1743,14 +1843,14 @@ class TextAreaComponent extends React.PureComponent<
   dispatchResizeAndDoSave = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const el = e.target;
     const h = getAndSetHeight(el);
-    STORE.dispatch({
+    this.props.dispatch({
       type: "resizeTextArea",
       k: this.props.k,
       width: el.style.width,
       height: h,
     });
-    STORE.dispatch({ type: "setText", k: this.props.k, text: el.value });
-    STORE.dispatch(doSave());
+    this.props.dispatch({ type: "setText", k: this.props.k, text: el.value });
+    this.props.dispatch(doSave());
   };
 }
 
@@ -1769,6 +1869,9 @@ const TextArea = connect(
       style: v.style,
     };
   },
+  (dispatch: ThunkDispatch<IState, void, TActions>) => ({
+    dispatch,
+  }),
 )(TextAreaComponent);
 
 const TextAreaOf = memoize1((k: string) => <TextArea k={k} />);
@@ -1800,16 +1903,25 @@ const LastRange = connect(
       className: v.status,
     };
   },
-)((props: { lastRangeValue: null | number; k: string; className: string }) =>
-  props.lastRangeValue === null ? null : (
-    <input
-      type="number"
-      step="any"
-      value={props.lastRangeValue}
-      onChange={setLastRangeOf(props.k)}
-      className={props.className}
-    />
-  ),
+  (dispatch: ThunkDispatch<IState, void, TActions>) => ({
+    dispatch,
+  }),
+)(
+  (props: {
+    lastRangeValue: null | number;
+    k: string;
+    className: string;
+    dispatch: ThunkDispatch<IState, void, TActions>;
+  }) =>
+    props.lastRangeValue === null ? null : (
+      <input
+        type="number"
+        step="any"
+        value={props.lastRangeValue}
+        onChange={setLastRangeOf(props.dispatch, props.k)}
+        className={props.className}
+      />
+    ),
 );
 
 const _menuCallbacksOf = memoize1(
@@ -1841,15 +1953,20 @@ const _menuCallbacksOf = memoize1(
       dispatch(doLoad());
       dispatch(doSave());
     },
+    dispatch,
   }),
 );
 
 export const main = () => {
+  const store = createStore(
+    root_reducer_of(),
+    applyMiddleware(thunk as ThunkMiddleware<IState, TActions>),
+  );
   ReactDOM.render(
-    <Provider store={STORE}>
+    <Provider store={store}>
       <App />
     </Provider>,
     document.getElementById("root"),
   );
-  STORE.dispatch(doLoad());
+  store.dispatch(doLoad());
 };
