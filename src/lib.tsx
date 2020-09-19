@@ -892,12 +892,23 @@ const _eval_ = (draft: Draft<IState>, k: string) => {
       })
     : [1];
   const now = Number(new Date()) / 1000;
+  const ks = _parentsOf(k, draft.data.kvs);
+  // todo: The sampling weight should be a function of both the leaves and the candidates.
   const weights = candidates.length
     ? candidates.map((v) => {
         // 1/e per year
-        return Math.exp(
+        const w_t = Math.exp(
           -(now - Date.parse(v.end_time as string) / 1000) / (86400 * 365.25),
         );
+        const parents = new Set(_parentsOf(v.start_time, draft.data.kvs));
+        let w_p = 1;
+        for (const k of ks) {
+          if (parents.has(k)) {
+            break;
+          }
+          w_p *= 0.1;
+        }
+        return w_t * w_p;
       })
     : [1];
   const leaf_estimates = Array.from(leafs(draft.data.kvs[k], draft.data.kvs))
@@ -918,6 +929,16 @@ const _eval_ = (draft: Draft<IState>, k: string) => {
     ts[Math.round((n_mc * 9) / 10)],
     ts[n_mc - 1],
   ];
+};
+
+const _parentsOf = (k: string, kvs: IKvs) => {
+  let ret = [];
+  let v = kvs[k];
+  while (v.parent) {
+    ret.push(v.start_time);
+    v = kvs[v.parent];
+  }
+  return ret;
 };
 
 const _rmTodoEntry = (draft: Draft<IState>, k: string) => {
