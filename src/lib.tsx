@@ -408,7 +408,7 @@ const root_reducer_of = () => {
             const v = newEntryValue(parent, k);
             draft.data.kvs[k] = v;
             draft.data.kvs[parent].todo.unshift(k);
-            draft.data.queue.unshift(k);
+            draft.data.queue.push(k);
             setCache(draft.caches as ICaches, k, draft.data.kvs);
             DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
           });
