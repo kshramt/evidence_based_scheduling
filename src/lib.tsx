@@ -296,7 +296,7 @@ class History<T> {
   value = () => this.buf[this.i];
 
   push = (v: T) => {
-    if ((-1 < this.i) && (this.buf[this.i] === v)) {
+    if (-1 < this.i && this.buf[this.i] === v) {
       return this;
     }
     this.i += 1;
