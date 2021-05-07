@@ -1941,15 +1941,11 @@ const LastRange = connect(
 const _menuCallbacksOf = memoize1(
   (dispatch: ThunkDispatch<IState, void, TActions>) => ({
     undo: () => {
-      dispatch(doPushHistory());
-      dispatch(doSave());
       dispatch({ type: "undo" });
       dispatch(doSave());
     },
     redo: () => {
-      dispatch(doSave());
       dispatch({ type: "redo" });
-      dispatch(doPushHistory());
       dispatch(doSave());
     },
     flipShowTodoOnly: () => {
