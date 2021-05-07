@@ -342,371 +342,369 @@ const setCache = (caches: ICaches, k: string, kvs: IKvs) => {
   return caches;
 };
 
-const root_reducer_of = () => {
-  const _stop = (draft: Draft<IState>) => {
-    if (draft.data.current_entry !== null) {
-      const e = draft.data.kvs[draft.data.current_entry];
-      const r = last(e.ranges);
-      r.end = Number(new Date()) / 1000;
-      const dt = r.end - r.start;
-      _addDt(draft, draft.data.current_entry, dt);
-      draft.data.current_entry = null;
-    }
-  };
+const _stop = (draft: Draft<IState>) => {
+  if (draft.data.current_entry !== null) {
+    const e = draft.data.kvs[draft.data.current_entry];
+    const r = last(e.ranges);
+    r.end = Number(new Date()) / 1000;
+    const dt = r.end - r.start;
+    _addDt(draft, draft.data.current_entry, dt);
+    draft.data.current_entry = null;
+  }
+};
 
-  const _rmFromTodo = (draft: Draft<IState>, k: string) => {
-    if (draft.data.current_entry === k) {
-      _stop(draft);
-    }
-    const pk = draft.data.kvs[k].parent;
-    if (pk) {
-      deleteAtVal(draft.data.kvs[pk].todo, k);
-    }
-  };
+const _rmFromTodo = (draft: Draft<IState>, k: string) => {
+  if (draft.data.current_entry === k) {
+    _stop(draft);
+  }
+  const pk = draft.data.kvs[k].parent;
+  if (pk) {
+    deleteAtVal(draft.data.kvs[pk].todo, k);
+  }
+};
 
-  const produce_top = (state: IState, k: string) =>
-    produce(state, (draft) => {
-      _top(draft, k);
-    });
+const produce_top = (state: IState, k: string) =>
+  produce(state, (draft) => {
+    _top(draft, k);
+  });
 
-  return (state: undefined | IState, action: TActions) => {
-    if (state === undefined) {
-      return emptyStateOf();
-    } else {
-      switch (action.type) {
-        case "eval_": {
-          const k = action.k;
-          return produce(state, (draft) => {
-            _eval_(draft, k);
-          });
-        }
-        case "delete_": {
-          const k = action.k;
-          return produce(state, (draft) => {
-            if (draft.data.kvs[k].todo.length === 0) {
-              _rmTodoEntry(draft, k);
-              deleteAtVal(draft.data.queue, k);
-              delete draft.data.kvs[k];
-              delete draft.caches[k];
-              if (draft.data.current_entry === k) {
-                draft.data.current_entry = null;
-              }
-            }
-          });
-        }
-        case "new_": {
-          const parent = action.parent;
-          const k = new Date().toISOString();
-          return produce(state, (draft) => {
-            const v = newEntryValue(parent, k);
-            draft.data.kvs[k] = v;
-            draft.data.kvs[parent].todo.unshift(k);
-            draft.data.queue.push(k);
-            setCache(draft.caches as ICaches, k, draft.data.kvs);
-          });
-        }
-        case "setSaveSuccess": {
-          return produce(state, (draft) => {
-            draft.saveSuccess = action.payload;
-          });
-        }
-        case "setState": {
-          HISTORY.push(action.payload);
-          return action.payload;
-        }
-        case "undo": {
-          const prev = HISTORY.undo();
-          if (prev !== state) {
-            state = prev;
-          }
-          return state;
-        }
-        case "redo": {
-          const next = HISTORY.redo();
-          if (next !== state) {
-            state = next;
-          }
-          return state;
-        }
-        case "flipShowTodoOnly": {
-          return produce(state, (draft) => {
-            draft.data.showTodoOnly = !draft.data.showTodoOnly;
-          });
-        }
-        case "flipShowDetail": {
-          const k = action.k;
-          return produce(state, (draft) => {
-            draft.data.kvs[k].show_detail = !draft.data.kvs[k].show_detail;
-          });
-        }
-        case "start": {
-          const k = action.k;
-          return produce(state, (draft) => {
-            if (k !== draft.data.current_entry) {
-              switch (draft.data.kvs[k].status) {
-                case "done":
-                  _doneToTodo(draft, k);
-                  break;
-                case "dont":
-                  _dontToTodo(draft, k);
-                  break;
-              }
-              _top(draft, k);
-              assert(draft.data.kvs[k].status === "todo", "Must not happen");
-              _stop(draft);
-              draft.data.current_entry = k;
-              draft.data.kvs[k].ranges.push({
-                start: Number(new Date()) / 1000,
-                end: null,
-              });
-            }
-          });
-        }
-        case "focusStopButton": {
-          const k = action.k;
-          setTimeout(() => focus(stopButtonRefOf(k).current), 50);
-          return state;
-        }
-        case "top": {
-          return produce_top(state, action.k);
-        }
-        case "smallestToTop": {
-          let k_min = null;
-          let estimate_min = Infinity;
-          for (const k in state.data.kvs) {
-            const v = state.data.kvs[k];
-            if (
-              v.status === "todo" &&
-              v.todo.length <= 0 &&
-              0 < v.estimate &&
-              v.estimate < estimate_min
-            ) {
-              k_min = k;
-              estimate_min = v.estimate;
-            }
-          }
-          return k_min === null ? state : produce_top(state, k_min);
-        }
-        case "closestToTop": {
-          let k_min = null;
-          let due_min = ":due: 9999-12-31T23:59:59";
-          for (let k in state.data.kvs) {
-            let v = state.data.kvs[k];
-            if (v.status === "todo" && v.todo.length <= 0) {
-              while (true) {
-                let due = null;
-                for (const w of v.text.split("\n")) {
-                  if (w.startsWith(":due: ")) {
-                    due = w;
-                  }
-                }
-                if (due !== null) {
-                  if (due < due_min) {
-                    k_min = k;
-                    due_min = due;
-                  }
-                  break;
-                }
-                if (v.parent === null) {
-                  break;
-                }
-                k = v.parent;
-                v = state.data.kvs[k];
-              }
-            }
-          }
-          return k_min === null
-            ? state
-            : produce_top(
-                state,
-                leafs(state.data.kvs[k_min], state.data.kvs)
-                  [Symbol.iterator]()
-                  .next().value.start_time,
-              );
-        }
-        case "stop": {
-          return produce(state, _stop);
-        }
-        case "moveUp": {
-          const k = action.k;
-          return produce(state, (draft) => {
-            const pk = draft.data.kvs[k].parent;
-            if (pk) {
-              moveUp(draft.data.kvs[pk].todo, k);
-              moveUp(draft.data.queue, k);
-            }
-          });
-        }
-        case "focusMoveUpButton": {
-          const k = action.k;
-          focus(moveUpButtonRefOf(k).current);
-          return state;
-        }
-        case "moveDown": {
-          const k = action.k;
-          return produce(state, (draft) => {
-            const pk = draft.data.kvs[k].parent;
-            if (pk) {
-              moveDown(draft.data.kvs[pk].todo, k);
-              moveDown(draft.data.queue, k);
-            }
-          });
-        }
-        case "focusMoveDownButton": {
-          const k = action.k;
-          focus(moveDownButtonRefOf(k).current);
-          return state;
-        }
-        case "unindent": {
-          const k = action.k;
-          return produce(state, (draft) => {
-            const pk = draft.data.kvs[k].parent;
-            if (pk !== null) {
-              const ppk = draft.data.kvs[pk].parent;
-              if (ppk !== null) {
-                const _total_time_spent_pk_orig =
-                  draft.caches[pk].total_time_spent;
-                const _total_time_spent_ppk_orig =
-                  draft.caches[ppk].total_time_spent;
-                _rmTodoEntry(draft, k);
-                const entries = draft.data.kvs[ppk].todo;
-                const i = entries.indexOf(pk);
-                assert(i !== -1, "Must not happen.");
-                _addTodoEntry(draft, ppk, i, k);
-                assertIsApprox(
-                  _total_time_spent_pk_orig - draft.caches[pk].total_time_spent,
-                  draft.caches[k].total_time_spent,
-                );
-                if (_total_time_spent_ppk_orig !== null) {
-                  assertIsApprox(
-                    _total_time_spent_ppk_orig,
-                    draft.caches[ppk].total_time_spent,
-                  );
-                }
-              }
-            }
-          });
-        }
-        case "focusUnindentButton": {
-          const k = action.k;
-          focus(unindentButtonRefOf(k).current);
-          return state;
-        }
-        case "indent": {
-          const k = action.k;
-          return produce(state, (draft) => {
-            const pk = draft.data.kvs[k].parent;
-            if (pk) {
-              const entries = draft.data.kvs[pk].todo;
-              if (last(entries) !== k) {
-                const i = entries.indexOf(k);
-                const new_pk = entries[i + 1];
-                const total_time_spent_new_pk_orig =
-                  draft.caches[new_pk].total_time_spent;
-                const total_time_spent_k = draft.caches[k].total_time_spent;
-                _rmTodoEntry(draft, k);
-                _addTodoEntry(draft, new_pk, 0, k);
-                assertIsApprox(
-                  draft.caches[new_pk].total_time_spent,
-                  total_time_spent_new_pk_orig + total_time_spent_k,
-                );
-              }
-            }
-          });
-        }
-        case "focusIndentButton": {
-          const k = action.k;
-          focus(indentButtonRefOf(k).current);
-          return state;
-        }
-        case "setEstimate": {
-          const k = action.k;
-          const estimate = action.estimate;
-          return produce(state, (draft) => {
-            if (draft.data.kvs[k].estimate !== estimate) {
-              draft.data.kvs[k].estimate = estimate;
-            }
-          });
-        }
-        case "setLastRange": {
-          const k = action.k;
-          const t = action.t;
-          return produce(state, (draft) => {
-            const l = lastRangeOf(draft.data.kvs[k].ranges);
-            if (l !== null && l.end) {
-              const t1 = l.end - l.start;
-              const t2 = t * 3600;
-              const dt = t2 - t1;
-              if (dt !== 0) {
-                l.end = l.start + t2;
-                _addDt(draft, k, dt);
-              }
-            }
-          });
-        }
-        case "setText": {
-          const k = action.k;
-          const text = action.text;
-          return produce(state, (draft) => {
-            draft.data.kvs[k].text = text;
-          });
-        }
-        case "resizeTextArea": {
-          const k = action.k;
-          const width = action.width;
-          const height = action.height;
-          return width === null || height === null
-            ? state
-            : produce(state, (draft) => {
-                const v = draft.data.kvs[k];
-                // if (v.style.width !== width) {
-                //   v.style.width = width;
-                // }
-                if (v.style.height !== height) {
-                  v.style.height = height;
-                }
-              });
-        }
-        case "todoToDone": {
-          const k = action.k;
-          return produce(state, (draft) => {
-            _rmFromTodo(draft, k);
-            _addToDone(draft, k);
-            _topQueue(draft, k);
-          });
-        }
-        case "todoToDont": {
-          const k = action.k;
-          return produce(state, (draft) => {
-            _rmFromTodo(draft, k);
-            _addToDont(draft, k);
-            _topQueue(draft, k);
-          });
-        }
-        case "doneToTodo": {
-          const k = action.k;
-          return produce(state, (draft) => {
-            _doneToTodo(draft, k);
-          });
-        }
-        case "dontToTodo": {
-          const k = action.k;
-          return produce(state, (draft) => {
-            _dontToTodo(draft, k);
-          });
-        }
-        case "focusTextArea": {
-          const k = action.k;
-          // todo: Use more reliable method to focus on the textarea.
-          setTimeout(() => focus(textAreaRefOf(k).current), 50);
-          return state;
-        }
-        default:
-          const _: never = action; // 1 or state cannot be used here
-          return state;
+const root_reducer = (state: undefined | IState, action: TActions) => {
+  if (state === undefined) {
+    return emptyStateOf();
+  } else {
+    switch (action.type) {
+      case "eval_": {
+        const k = action.k;
+        return produce(state, (draft) => {
+          _eval_(draft, k);
+        });
       }
+      case "delete_": {
+        const k = action.k;
+        return produce(state, (draft) => {
+          if (draft.data.kvs[k].todo.length === 0) {
+            _rmTodoEntry(draft, k);
+            deleteAtVal(draft.data.queue, k);
+            delete draft.data.kvs[k];
+            delete draft.caches[k];
+            if (draft.data.current_entry === k) {
+              draft.data.current_entry = null;
+            }
+          }
+        });
+      }
+      case "new_": {
+        const parent = action.parent;
+        const k = new Date().toISOString();
+        return produce(state, (draft) => {
+          const v = newEntryValue(parent, k);
+          draft.data.kvs[k] = v;
+          draft.data.kvs[parent].todo.unshift(k);
+          draft.data.queue.push(k);
+          setCache(draft.caches as ICaches, k, draft.data.kvs);
+        });
+      }
+      case "setSaveSuccess": {
+        return produce(state, (draft) => {
+          draft.saveSuccess = action.payload;
+        });
+      }
+      case "setState": {
+        HISTORY.push(action.payload);
+        return action.payload;
+      }
+      case "undo": {
+        const prev = HISTORY.undo();
+        if (prev !== state) {
+          state = prev;
+        }
+        return state;
+      }
+      case "redo": {
+        const next = HISTORY.redo();
+        if (next !== state) {
+          state = next;
+        }
+        return state;
+      }
+      case "flipShowTodoOnly": {
+        return produce(state, (draft) => {
+          draft.data.showTodoOnly = !draft.data.showTodoOnly;
+        });
+      }
+      case "flipShowDetail": {
+        const k = action.k;
+        return produce(state, (draft) => {
+          draft.data.kvs[k].show_detail = !draft.data.kvs[k].show_detail;
+        });
+      }
+      case "start": {
+        const k = action.k;
+        return produce(state, (draft) => {
+          if (k !== draft.data.current_entry) {
+            switch (draft.data.kvs[k].status) {
+              case "done":
+                _doneToTodo(draft, k);
+                break;
+              case "dont":
+                _dontToTodo(draft, k);
+                break;
+            }
+            _top(draft, k);
+            assert(draft.data.kvs[k].status === "todo", "Must not happen");
+            _stop(draft);
+            draft.data.current_entry = k;
+            draft.data.kvs[k].ranges.push({
+              start: Number(new Date()) / 1000,
+              end: null,
+            });
+          }
+        });
+      }
+      case "focusStopButton": {
+        const k = action.k;
+        setTimeout(() => focus(stopButtonRefOf(k).current), 50);
+        return state;
+      }
+      case "top": {
+        return produce_top(state, action.k);
+      }
+      case "smallestToTop": {
+        let k_min = null;
+        let estimate_min = Infinity;
+        for (const k in state.data.kvs) {
+          const v = state.data.kvs[k];
+          if (
+            v.status === "todo" &&
+            v.todo.length <= 0 &&
+            0 < v.estimate &&
+            v.estimate < estimate_min
+          ) {
+            k_min = k;
+            estimate_min = v.estimate;
+          }
+        }
+        return k_min === null ? state : produce_top(state, k_min);
+      }
+      case "closestToTop": {
+        let k_min = null;
+        let due_min = ":due: 9999-12-31T23:59:59";
+        for (let k in state.data.kvs) {
+          let v = state.data.kvs[k];
+          if (v.status === "todo" && v.todo.length <= 0) {
+            while (true) {
+              let due = null;
+              for (const w of v.text.split("\n")) {
+                if (w.startsWith(":due: ")) {
+                  due = w;
+                }
+              }
+              if (due !== null) {
+                if (due < due_min) {
+                  k_min = k;
+                  due_min = due;
+                }
+                break;
+              }
+              if (v.parent === null) {
+                break;
+              }
+              k = v.parent;
+              v = state.data.kvs[k];
+            }
+          }
+        }
+        return k_min === null
+          ? state
+          : produce_top(
+              state,
+              leafs(state.data.kvs[k_min], state.data.kvs)
+                [Symbol.iterator]()
+                .next().value.start_time,
+            );
+      }
+      case "stop": {
+        return produce(state, _stop);
+      }
+      case "moveUp": {
+        const k = action.k;
+        return produce(state, (draft) => {
+          const pk = draft.data.kvs[k].parent;
+          if (pk) {
+            moveUp(draft.data.kvs[pk].todo, k);
+            moveUp(draft.data.queue, k);
+          }
+        });
+      }
+      case "focusMoveUpButton": {
+        const k = action.k;
+        focus(moveUpButtonRefOf(k).current);
+        return state;
+      }
+      case "moveDown": {
+        const k = action.k;
+        return produce(state, (draft) => {
+          const pk = draft.data.kvs[k].parent;
+          if (pk) {
+            moveDown(draft.data.kvs[pk].todo, k);
+            moveDown(draft.data.queue, k);
+          }
+        });
+      }
+      case "focusMoveDownButton": {
+        const k = action.k;
+        focus(moveDownButtonRefOf(k).current);
+        return state;
+      }
+      case "unindent": {
+        const k = action.k;
+        return produce(state, (draft) => {
+          const pk = draft.data.kvs[k].parent;
+          if (pk !== null) {
+            const ppk = draft.data.kvs[pk].parent;
+            if (ppk !== null) {
+              const _total_time_spent_pk_orig =
+                draft.caches[pk].total_time_spent;
+              const _total_time_spent_ppk_orig =
+                draft.caches[ppk].total_time_spent;
+              _rmTodoEntry(draft, k);
+              const entries = draft.data.kvs[ppk].todo;
+              const i = entries.indexOf(pk);
+              assert(i !== -1, "Must not happen.");
+              _addTodoEntry(draft, ppk, i, k);
+              assertIsApprox(
+                _total_time_spent_pk_orig - draft.caches[pk].total_time_spent,
+                draft.caches[k].total_time_spent,
+              );
+              if (_total_time_spent_ppk_orig !== null) {
+                assertIsApprox(
+                  _total_time_spent_ppk_orig,
+                  draft.caches[ppk].total_time_spent,
+                );
+              }
+            }
+          }
+        });
+      }
+      case "focusUnindentButton": {
+        const k = action.k;
+        focus(unindentButtonRefOf(k).current);
+        return state;
+      }
+      case "indent": {
+        const k = action.k;
+        return produce(state, (draft) => {
+          const pk = draft.data.kvs[k].parent;
+          if (pk) {
+            const entries = draft.data.kvs[pk].todo;
+            if (last(entries) !== k) {
+              const i = entries.indexOf(k);
+              const new_pk = entries[i + 1];
+              const total_time_spent_new_pk_orig =
+                draft.caches[new_pk].total_time_spent;
+              const total_time_spent_k = draft.caches[k].total_time_spent;
+              _rmTodoEntry(draft, k);
+              _addTodoEntry(draft, new_pk, 0, k);
+              assertIsApprox(
+                draft.caches[new_pk].total_time_spent,
+                total_time_spent_new_pk_orig + total_time_spent_k,
+              );
+            }
+          }
+        });
+      }
+      case "focusIndentButton": {
+        const k = action.k;
+        focus(indentButtonRefOf(k).current);
+        return state;
+      }
+      case "setEstimate": {
+        const k = action.k;
+        const estimate = action.estimate;
+        return produce(state, (draft) => {
+          if (draft.data.kvs[k].estimate !== estimate) {
+            draft.data.kvs[k].estimate = estimate;
+          }
+        });
+      }
+      case "setLastRange": {
+        const k = action.k;
+        const t = action.t;
+        return produce(state, (draft) => {
+          const l = lastRangeOf(draft.data.kvs[k].ranges);
+          if (l !== null && l.end) {
+            const t1 = l.end - l.start;
+            const t2 = t * 3600;
+            const dt = t2 - t1;
+            if (dt !== 0) {
+              l.end = l.start + t2;
+              _addDt(draft, k, dt);
+            }
+          }
+        });
+      }
+      case "setText": {
+        const k = action.k;
+        const text = action.text;
+        return produce(state, (draft) => {
+          draft.data.kvs[k].text = text;
+        });
+      }
+      case "resizeTextArea": {
+        const k = action.k;
+        const width = action.width;
+        const height = action.height;
+        return width === null || height === null
+          ? state
+          : produce(state, (draft) => {
+              const v = draft.data.kvs[k];
+              // if (v.style.width !== width) {
+              //   v.style.width = width;
+              // }
+              if (v.style.height !== height) {
+                v.style.height = height;
+              }
+            });
+      }
+      case "todoToDone": {
+        const k = action.k;
+        return produce(state, (draft) => {
+          _rmFromTodo(draft, k);
+          _addToDone(draft, k);
+          _topQueue(draft, k);
+        });
+      }
+      case "todoToDont": {
+        const k = action.k;
+        return produce(state, (draft) => {
+          _rmFromTodo(draft, k);
+          _addToDont(draft, k);
+          _topQueue(draft, k);
+        });
+      }
+      case "doneToTodo": {
+        const k = action.k;
+        return produce(state, (draft) => {
+          _doneToTodo(draft, k);
+        });
+      }
+      case "dontToTodo": {
+        const k = action.k;
+        return produce(state, (draft) => {
+          _dontToTodo(draft, k);
+        });
+      }
+      case "focusTextArea": {
+        const k = action.k;
+        // todo: Use more reliable method to focus on the textarea.
+        setTimeout(() => focus(textAreaRefOf(k).current), 50);
+        return state;
+      }
+      default:
+        const _: never = action; // 1 or state cannot be used here
+        return state;
     }
-  };
+  }
 };
 
 const newEntryValue = (parent: string, start_time: string) =>
@@ -1979,7 +1977,7 @@ const _menuCallbacksOf = memoize1(
 
 export const main = () => {
   const store = createStore(
-    root_reducer_of(),
+    root_reducer,
     applyMiddleware(thunk as ThunkMiddleware<IState, TActions>),
   );
   ReactDOM.render(
