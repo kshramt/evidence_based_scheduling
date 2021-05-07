@@ -321,10 +321,6 @@ class History<T> {
 }
 
 const HISTORY = new History<IState>();
-const DIRTY_BITS = {
-  dirtyHistory: false,
-  dirtyDump: false,
-};
 
 const setCache = (caches: ICaches, k: string, kvs: IKvs) => {
   if (caches[k] === undefined) {
@@ -355,7 +351,6 @@ const root_reducer_of = () => {
       const dt = r.end - r.start;
       _addDt(draft, draft.data.current_entry, dt);
       draft.data.current_entry = null;
-      DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
     }
   };
 
@@ -372,7 +367,6 @@ const root_reducer_of = () => {
   const produce_top = (state: IState, k: string) =>
     produce(state, (draft) => {
       _top(draft, k);
-      DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
     });
 
   return (state: undefined | IState, action: TActions) => {
@@ -397,7 +391,6 @@ const root_reducer_of = () => {
               if (draft.data.current_entry === k) {
                 draft.data.current_entry = null;
               }
-              DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
             }
           });
         }
@@ -410,7 +403,6 @@ const root_reducer_of = () => {
             draft.data.kvs[parent].todo.unshift(k);
             draft.data.queue.push(k);
             setCache(draft.caches as ICaches, k, draft.data.kvs);
-            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
           });
         }
         case "setSaveSuccess": {
@@ -426,7 +418,6 @@ const root_reducer_of = () => {
           const prev = HISTORY.undo();
           if (prev !== state) {
             state = prev;
-            DIRTY_BITS.dirtyDump = true;
           }
           return state;
         }
@@ -434,21 +425,18 @@ const root_reducer_of = () => {
           const next = HISTORY.redo();
           if (next !== state) {
             state = next;
-            DIRTY_BITS.dirtyDump = true;
           }
           return state;
         }
         case "flipShowTodoOnly": {
           return produce(state, (draft) => {
             draft.data.showTodoOnly = !draft.data.showTodoOnly;
-            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
           });
         }
         case "flipShowDetail": {
           const k = action.k;
           return produce(state, (draft) => {
             draft.data.kvs[k].show_detail = !draft.data.kvs[k].show_detail;
-            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
           });
         }
         case "start": {
@@ -471,7 +459,6 @@ const root_reducer_of = () => {
                 start: Number(new Date()) / 1000,
                 end: null,
               });
-              DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
             }
           });
         }
@@ -547,7 +534,6 @@ const root_reducer_of = () => {
             if (pk) {
               moveUp(draft.data.kvs[pk].todo, k);
               moveUp(draft.data.queue, k);
-              DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
             }
           });
         }
@@ -563,7 +549,6 @@ const root_reducer_of = () => {
             if (pk) {
               moveDown(draft.data.kvs[pk].todo, k);
               moveDown(draft.data.queue, k);
-              DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
             }
           });
         }
@@ -598,7 +583,6 @@ const root_reducer_of = () => {
                     draft.caches[ppk].total_time_spent,
                   );
                 }
-                DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
               }
             }
           });
@@ -626,7 +610,6 @@ const root_reducer_of = () => {
                   draft.caches[new_pk].total_time_spent,
                   total_time_spent_new_pk_orig + total_time_spent_k,
                 );
-                DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
               }
             }
           });
@@ -642,7 +625,6 @@ const root_reducer_of = () => {
           return produce(state, (draft) => {
             if (draft.data.kvs[k].estimate !== estimate) {
               draft.data.kvs[k].estimate = estimate;
-              DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
             }
           });
         }
@@ -658,7 +640,6 @@ const root_reducer_of = () => {
               if (dt !== 0) {
                 l.end = l.start + t2;
                 _addDt(draft, k, dt);
-                DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
               }
             }
           });
@@ -668,7 +649,6 @@ const root_reducer_of = () => {
           const text = action.text;
           return produce(state, (draft) => {
             draft.data.kvs[k].text = text;
-            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
           });
         }
         case "resizeTextArea": {
@@ -681,11 +661,9 @@ const root_reducer_of = () => {
                 const v = draft.data.kvs[k];
                 // if (v.style.width !== width) {
                 //   v.style.width = width;
-                //   DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
                 // }
                 if (v.style.height !== height) {
                   v.style.height = height;
-                  DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
                 }
               });
         }
@@ -695,7 +673,6 @@ const root_reducer_of = () => {
             _rmFromTodo(draft, k);
             _addToDone(draft, k);
             _topQueue(draft, k);
-            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
           });
         }
         case "todoToDont": {
@@ -704,21 +681,18 @@ const root_reducer_of = () => {
             _rmFromTodo(draft, k);
             _addToDont(draft, k);
             _topQueue(draft, k);
-            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
           });
         }
         case "doneToTodo": {
           const k = action.k;
           return produce(state, (draft) => {
             _doneToTodo(draft, k);
-            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
           });
         }
         case "dontToTodo": {
           const k = action.k;
           return produce(state, (draft) => {
             _dontToTodo(draft, k);
-            DIRTY_BITS.dirtyHistory = DIRTY_BITS.dirtyDump = true;
           });
         }
         case "focusTextArea": {
@@ -823,32 +797,33 @@ const Menu = connect(
   },
 );
 
+const doPushHistory = () => doPushHistoryRet;
+
+const doPushHistoryRet = (
+  dispatch: ThunkDispatch<IState, void, TActions>,
+  getState: () => IState,
+) => {
+  HISTORY.push(getState());
+};
+
 const doSave = () => doSaveRet;
 
 const doSaveRet = (
   dispatch: ThunkDispatch<IState, void, TActions>,
   getState: () => IState,
 ) => {
-  const state = getState();
-  if (DIRTY_BITS.dirtyHistory) {
-    HISTORY.push(state);
-    DIRTY_BITS.dirtyHistory = false;
-  }
-  if (DIRTY_BITS.dirtyDump) {
-    fetch("api/" + API_VERSION + "/post", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-      },
-      body: JSON.stringify(state.data),
-    }).then((r) => {
-      dispatch({
-        type: "setSaveSuccess",
-        payload: r.ok,
-      });
+  fetch("api/" + API_VERSION + "/post", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+    },
+    body: JSON.stringify(getState().data),
+  }).then((r) => {
+    dispatch({
+      type: "setSaveSuccess",
+      payload: r.ok,
     });
-    DIRTY_BITS.dirtyDump = false;
-  }
+  });
 };
 
 const doLoad = () => (dispatch: ThunkDispatch<IState, void, TActions>) => {
@@ -876,6 +851,7 @@ const setLastRange = (
   t: number,
 ) => {
   dispatch({ type: "setLastRange", k, t });
+  dispatch(doPushHistory());
   dispatch(doSave());
 };
 
@@ -1522,6 +1498,7 @@ const doneToTodoButtonOf = memoize2(
       className="done"
       onClick={() => {
         dispatch({ type: "doneToTodo", k });
+        dispatch(doPushHistory());
         dispatch(doSave());
       }}
     >
@@ -1536,6 +1513,7 @@ const dontToTodoButtonOf = memoize2(
       className="dont"
       onClick={() => {
         dispatch({ type: "dontToTodo", k });
+        dispatch(doPushHistory());
         dispatch(doSave());
       }}
     >
@@ -1559,6 +1537,7 @@ const newButtonOf = memoize2(
       <button
         onClick={() => {
           dispatch({ type: "new_", parent: k });
+          dispatch(doPushHistory());
           dispatch(doSave());
           dispatch(_focusTextAreaOfTheFirsttodo);
         }}
@@ -1574,6 +1553,7 @@ const stopButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "stop" });
+        dispatch(doPushHistory());
         dispatch(doSave());
       }}
       ref={stopButtonRefOf(k)}
@@ -1588,6 +1568,7 @@ const startButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "start", k });
+        dispatch(doPushHistory());
         dispatch(doSave());
         dispatch({ type: "focusStopButton", k });
       }}
@@ -1602,6 +1583,7 @@ const topButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "top", k });
+        dispatch(doPushHistory());
         dispatch(doSave());
       }}
     >
@@ -1615,6 +1597,7 @@ const moveUpButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "moveUp", k });
+        dispatch(doPushHistory());
         dispatch(doSave());
         dispatch({ type: "focusMoveUpButton", k });
       }}
@@ -1630,6 +1613,7 @@ const moveDownButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "moveDown", k });
+        dispatch(doPushHistory());
         dispatch(doSave());
         dispatch({ type: "focusMoveDownButton", k });
       }}
@@ -1645,6 +1629,7 @@ const todoToDoneButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "todoToDone", k });
+        dispatch(doPushHistory());
         dispatch(doSave());
       }}
     >
@@ -1658,6 +1643,7 @@ const todoToDontButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "todoToDont", k });
+        dispatch(doPushHistory());
         dispatch(doSave());
       }}
     >
@@ -1671,6 +1657,7 @@ const unindentButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "unindent", k });
+        dispatch(doPushHistory());
         dispatch(doSave());
         dispatch({ type: "focusUnindentButton", k });
       }}
@@ -1686,6 +1673,7 @@ const indentButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "indent", k });
+        dispatch(doPushHistory());
         dispatch(doSave());
         dispatch({ type: "focusIndentButton", k });
       }}
@@ -1701,6 +1689,7 @@ const showDetailButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "flipShowDetail", k });
+        dispatch(doPushHistory());
         dispatch(doSave());
       }}
     >
@@ -1714,6 +1703,7 @@ const deleteButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "delete_", k });
+        dispatch(doPushHistory());
         dispatch(doSave());
       }}
     >
@@ -1743,6 +1733,7 @@ const setEstimateOf = memoize2(
       k,
       estimate: Number(e.target.value),
     });
+    dispatch(doPushHistory());
     dispatch(doSave());
   },
 );
@@ -1871,6 +1862,7 @@ class TextAreaComponent extends React.PureComponent<
       height: h,
     });
     this.props.dispatch({ type: "setText", k: this.props.k, text: el.value });
+    this.props.dispatch(doPushHistory());
     this.props.dispatch(doSave());
   };
 }
@@ -1948,30 +1940,37 @@ const LastRange = connect(
 const _menuCallbacksOf = memoize1(
   (dispatch: ThunkDispatch<IState, void, TActions>) => ({
     undo: () => {
+      dispatch(doPushHistory());
       dispatch(doSave());
       dispatch({ type: "undo" });
       dispatch(doSave());
     },
     redo: () => {
+      dispatch(doPushHistory());
       dispatch(doSave());
       dispatch({ type: "redo" });
       dispatch(doSave());
     },
     flipShowTodoOnly: () => {
       dispatch({ type: "flipShowTodoOnly" });
+      dispatch(doPushHistory());
       dispatch(doSave());
     },
     smallestToTop: () => {
       dispatch({ type: "smallestToTop" });
+      dispatch(doPushHistory());
       dispatch(doSave());
     },
     closestToTop: () => {
       dispatch({ type: "closestToTop" });
+      dispatch(doPushHistory());
       dispatch(doSave());
     },
     load: () => {
+      dispatch(doPushHistory());
       dispatch(doSave());
       dispatch(doLoad());
+      dispatch(doPushHistory());
       dispatch(doSave());
     },
     dispatch,
