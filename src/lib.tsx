@@ -1947,9 +1947,9 @@ const _menuCallbacksOf = memoize1(
       dispatch(doSave());
     },
     redo: () => {
-      dispatch(doPushHistory());
       dispatch(doSave());
       dispatch({ type: "redo" });
+      dispatch(doPushHistory());
       dispatch(doSave());
     },
     flipShowTodoOnly: () => {
