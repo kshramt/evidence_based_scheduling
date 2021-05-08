@@ -145,19 +145,12 @@ def get():
     try:
         with open(jp(DATA_DIR, DATA_BASENAME) + ".json") as fp:
             data = json.load(fp)
+        data = _remove_tail_none_v1(data)
+        data = _update_data_version(data)
+        data = _join_text_v1(data)
+        data = _parse_datetime_v1(data)
     except IOError:
-        t = _js_now_v1()
-        data = dict(
-            current_entry=None,
-            root=t,
-            kvs={t: _new_entry_v1(t)},
-            queue=[],
-            version=LATEST_VERSION,
-        )
-    data = _remove_tail_none_v1(data)
-    data = _update_data_version(data)
-    data = _join_text_v1(data)
-    data = _parse_datetime_v1(data)
+        data = None;
     res = flask.make_response(flask.json.jsonify(data))
     res.headers["Cache-Control"] = "no-store"
     return res

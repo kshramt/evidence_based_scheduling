@@ -373,7 +373,9 @@ const produce_top = (state: IState, k: string) =>
 
 const root_reducer = (state: undefined | IState, action: TActions) => {
   if (state === undefined) {
-    return emptyStateOf();
+    const s = emptyStateOf()
+    HISTORY.push(s);
+    return s;
   } else {
     switch (action.type) {
       case "eval_": {
@@ -742,6 +744,7 @@ const emptyStateOf = () => {
       kvs,
       queue: [],
       showTodoOnly: false,
+      version: 5,
     },
     caches: setCache({}, root, kvs),
     saveSuccess: true,
@@ -830,7 +833,10 @@ const doSaveRet = (
 const doLoad = () => (dispatch: ThunkDispatch<IState, void, TActions>) => {
   fetch("api/" + API_VERSION + "/get")
     .then((r) => r.json())
-    .then((data: IData) => {
+    .then((data: null | IData) => {
+      if(data === null){
+        return;
+      }
       const caches: ICaches = {};
       for (const k of Object.keys(data.kvs)) {
         setCache(caches, k, data.kvs);
