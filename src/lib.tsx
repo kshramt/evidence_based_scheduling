@@ -1,6 +1,12 @@
-import React from "react";
+import React, { useCallback } from "react";
 import ReactDOM from "react-dom";
-import { connect, Provider } from "react-redux";
+import {
+  Provider,
+  TypedUseSelectorHook,
+  connect,
+  useDispatch as _useDispatch,
+  useSelector as _useSelector,
+} from "react-redux";
 import { Action, createStore, applyMiddleware } from "redux";
 import thunk, { ThunkDispatch, ThunkMiddleware } from "redux-thunk";
 import produce, { Draft } from "immer";
@@ -373,7 +379,7 @@ const produce_top = (state: IState, k: string) =>
 
 const root_reducer = (state: undefined | IState, action: TActions) => {
   if (state === undefined) {
-    const s = emptyStateOf()
+    const s = emptyStateOf();
     HISTORY.push(s);
     return s;
   } else {
@@ -751,55 +757,70 @@ const emptyStateOf = () => {
   };
 };
 
-const App = connect((state: IState) => ({
-  root: state.data.root,
-}))((props: { root: string }) => {
+const App = () => {
+  const root = useSelector((state) => state.data.root);
   return (
     <div id="columns">
       <Menu />
       <QueueColumn />
       <div id="tree">
-        <Node k={props.root} />
+        <Node k={root} />
       </div>
     </div>
   );
-});
+};
 
-const Menu = connect(
-  (state: IState) => {
-    return { saveSuccess: state.saveSuccess, root: state.data.root };
-  },
-  (dispatch: ThunkDispatch<IState, void, TActions>) =>
-    _menuCallbacksOf(dispatch),
-)(
-  (props: {
-    saveSuccess: boolean;
-    root: string;
-    undo: () => void;
-    redo: () => void;
-    flipShowTodoOnly: () => void;
-    smallestToTop: () => void;
-    closestToTop: () => void;
-    load: () => void;
-    dispatch: ThunkDispatch<IState, void, TActions>;
-  }) => {
-    return (
-      <div className={"menu"}>
-        {props.saveSuccess ? null : <p>Failed to save.</p>}
-        <div>
-          {stopButtonOf(props.dispatch, props.root)}
-          {newButtonOf(props.dispatch, props.root)}
-          <button onClick={props.undo}>{UNDO_MARK}</button>
-          <button onClick={props.redo}>{REDO_MARK}</button>
-          <button onClick={props.flipShowTodoOnly}>👀</button>
-          <button onClick={props.smallestToTop}>Small</button>
-          <button onClick={props.closestToTop}>Due</button>
-          <button onClick={props.load}>⟳</button>
-        </div>
+const Menu = () => {
+  const saveSuccess = useSelector((state) => state.saveSuccess);
+  const root = useSelector((state) => state.data.root);
+  const dispatch = useDispatch();
+  const undo = useCallback(() => {
+    dispatch({ type: "undo" });
+    dispatch(doSave());
+  }, [dispatch]);
+  const redo = useCallback(() => {
+    dispatch({ type: "redo" });
+    dispatch(doSave());
+  }, [dispatch]);
+  const flipShowTodoOnly = useCallback(() => {
+    dispatch({ type: "flipShowTodoOnly" });
+    dispatch(doPushHistory());
+    dispatch(doSave());
+  }, [dispatch]);
+  const smallestToTop = useCallback(() => {
+    dispatch({ type: "smallestToTop" });
+    dispatch(doPushHistory());
+    dispatch(doSave());
+  }, [dispatch]);
+  const closestToTop = useCallback(() => {
+    dispatch({ type: "closestToTop" });
+    dispatch(doPushHistory());
+    dispatch(doSave());
+  }, [dispatch]);
+  const load = useCallback(() => {
+    dispatch(doPushHistory());
+    dispatch(doSave());
+    dispatch(doLoad());
+    dispatch(doPushHistory());
+    dispatch(doSave());
+  }, [dispatch]);
+
+  return (
+    <div className="menu">
+      {saveSuccess ? null : <p>Failed to save.</p>}
+      <div>
+        {stopButtonOf(dispatch, root)}
+        {newButtonOf(dispatch, root)}
+        <button onClick={undo}>{UNDO_MARK}</button>
+        <button onClick={redo}>{REDO_MARK}</button>
+        <button onClick={flipShowTodoOnly}>👀</button>
+        <button onClick={smallestToTop}>Small</button>
+        <button onClick={closestToTop}>Due</button>
+        <button onClick={load}>⟳</button>
       </div>
-    );
-  },
-);
+    </div>
+  );
+};
 
 const doPushHistory = () => doPushHistoryRet;
 
@@ -834,7 +855,7 @@ const doLoad = () => (dispatch: ThunkDispatch<IState, void, TActions>) => {
   fetch("api/" + API_VERSION + "/get")
     .then((r) => r.json())
     .then((data: null | IData) => {
-      if(data === null){
+      if (data === null) {
         return;
       }
       const caches: ICaches = {};
@@ -1043,21 +1064,20 @@ const _addToDont = (draft: Draft<IState>, k: string) => {
   }
 };
 
-const QueueColumn = connect((state: IState) => {
-  return { queue: state.data.queue };
-})((props: IQueueColumnProps) => {
+const QueueColumn = () => {
+  const queue = useSelector((state) => state.data.queue);
   return (
     <div id="queue">
-      {props.queue.length ? (
+      {queue.length ? (
         <ol>
-          {props.queue.map((k) => {
+          {queue.map((k) => {
             return <QueueNode k={k} key={k} />;
           })}
         </ol>
       ) : null}
     </div>
   );
-});
+};
 
 const List = React.memo((props: IListProps) => {
   return props.ks.length ? (
@@ -1073,215 +1093,158 @@ const List = React.memo((props: IListProps) => {
   ) : null;
 });
 
-const Node = connect(
-  (
-    state: IState,
-    ownProps: {
-      k: string;
-    },
-  ) => {
-    const k = ownProps.k;
-    const v = state.data.kvs[k];
-    return {
-      k,
-      todo: v.todo,
-      done: v.done,
-      dont: v.dont,
-      showTodoOnly: state.data.showTodoOnly,
-    };
-  },
-)((props: INodeProps) => {
+const Node = (props: { k: string }) => {
+  const todo = useSelector((state) => state.data.kvs[props.k].todo);
+  const done = useSelector((state) => state.data.kvs[props.k].done);
+  const dont = useSelector((state) => state.data.kvs[props.k].dont);
+  const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
+
   return (
     <>
       <Entry k={props.k} />
-      <List ks={props.todo} />
-      {props.showTodoOnly ? null : <List ks={props.done} />}
-      {props.showTodoOnly ? null : <List ks={props.dont} />}
+      <List ks={todo} />
+      {showTodoOnly ? null : <List ks={done} />}
+      {showTodoOnly ? null : <List ks={dont} />}
     </>
   );
-});
+};
 
-const QueueNode = connect(
-  (
-    state: IState,
-    ownProps: {
-      k: string;
-    },
-  ) => {
-    const k = ownProps.k;
-    const v = state.data.kvs[k];
-    return {
-      k,
-      status: v.status,
-      parent: v.parent,
-      show_detail: v.show_detail,
-      ranges: v.ranges,
-      cache: state.caches[k],
-      running: k === state.data.current_entry,
-      shouldHide: state.data.showTodoOnly && v.status !== "todo",
-      noTodo: v.todo.length === 0,
-      showDeleteButton:
-        v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0,
-    };
-  },
-  (dispatch: ThunkDispatch<IState, void, TActions>) => ({
-    dispatch,
-  }),
-)(
-  (
-    props: IQueueNodeProps & {
-      dispatch: ThunkDispatch<IState, void, TActions>;
-    },
-  ) => {
-    const cache = props.cache;
-    return props.shouldHide ? null : (
-      <li key={props.k}>
-        <div
-          id={`queue${props.k}`}
-          className={props.running ? `${props.status} running` : props.status}
-        >
-          {props.parent ? (
-            <>
-              {toTreeButtonOf(props.k)}
-              {props.status === "todo"
-                ? newButtonOf(props.dispatch, props.k)
-                : props.status === "done"
-                ? doneToTodoButtonOf(props.dispatch, props.k)
-                : dontToTodoButtonOf(props.dispatch, props.k)}
-              {TextAreaOf(props.k)}
-              {EstimationInputOf(props.k)}
-              {props.running
-                ? stopButtonOf(props.dispatch, props.k)
-                : startButtonOf(props.dispatch, props.k)}
-            </>
-          ) : null}
-          {digits1(cache.total_time_spent / 3600)}
-          {props.parent && props.status === "todo"
-            ? topButtonOf(props.dispatch, props.k)
-            : null}
-          {props.status === "todo"
-            ? evalButtonOf(props.dispatch, props.k)
-            : null}
-          {props.parent ? (
-            <>
-              {props.noTodo && props.status === "todo" ? (
-                <>
-                  {todoToDoneButtonOf(props.dispatch, props.k)}
-                  {todoToDontButtonOf(props.dispatch, props.k)}
-                </>
-              ) : null}
-              {LastRangeOf(props.k)}
-              {showDetailButtonOf(props.dispatch, props.k)}
-              {props.show_detail ? (
-                props.status === "todo" ? (
-                  <>
-                    {moveUpButtonOf(props.dispatch, props.k)}
-                    {moveDownButtonOf(props.dispatch, props.k)}
-                    {props.showDeleteButton
-                      ? deleteButtonOf(props.dispatch, props.k)
-                      : null}
-                  </>
-                ) : null
-              ) : null}
-            </>
-          ) : null}
-          {props.status === "todo"
-            ? cache.percentiles.map(digits1).join(" ")
-            : null}
-        </div>
-      </li>
-    );
-  },
-);
-
-const Entry = connect(
-  (
-    state: IState,
-    ownProps: {
-      k: string;
-    },
-  ) => {
-    const k = ownProps.k;
-    const v = state.data.kvs[k];
-    return {
-      k,
-      status: v.status,
-      parent: v.parent,
-      show_detail: v.show_detail,
-      ranges: v.ranges,
-      cache: state.caches[k],
-      running: k === state.data.current_entry,
-      noTodo: v.todo.length === 0,
-      showDeleteButton:
-        v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0,
-    };
-  },
-  (dispatch: ThunkDispatch<IState, void, TActions>) => ({
-    dispatch,
-  }),
-)(
-  (
-    props: IEntryProps & {
-      dispatch: ThunkDispatch<IState, void, TActions>;
-    },
-  ) => {
-    const cache = props.cache;
-    return (
+const QueueNode = (props: { k: string }) => {
+  const status = useSelector((state) => state.data.kvs[props.k].status);
+  const parent = useSelector((state) => state.data.kvs[props.k].parent);
+  const show_detail = useSelector(
+    (state) => state.data.kvs[props.k].show_detail,
+  );
+  const cache = useSelector((state) => state.caches[props.k]);
+  const running = useSelector((state) => props.k === state.data.current_entry);
+  const shouldHide = useSelector(
+    (state) =>
+      state.data.showTodoOnly && state.data.kvs[props.k].status !== "todo",
+  );
+  const noTodo = useSelector(
+    (state) => state.data.kvs[props.k].todo.length === 0,
+  );
+  const showDeleteButton = useSelector((state) => {
+    const v = state.data.kvs[props.k];
+    return v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0;
+  });
+  const dispatch = useDispatch();
+  return shouldHide ? null : (
+    <li key={props.k}>
       <div
-        id={`tree${props.k}`}
-        className={props.running ? `${props.status} running` : props.status}
+        id={`queue${props.k}`}
+        className={running ? `${status} running` : status}
       >
-        {props.parent ? (
+        {parent ? (
           <>
-            {props.status === "todo"
-              ? newButtonOf(props.dispatch, props.k)
-              : props.status === "done"
-              ? doneToTodoButtonOf(props.dispatch, props.k)
-              : dontToTodoButtonOf(props.dispatch, props.k)}
+            {toTreeButtonOf(props.k)}
+            {status === "todo"
+              ? newButtonOf(dispatch, props.k)
+              : status === "done"
+              ? doneToTodoButtonOf(dispatch, props.k)
+              : dontToTodoButtonOf(dispatch, props.k)}
             {TextAreaOf(props.k)}
             {EstimationInputOf(props.k)}
-            {props.running
-              ? stopButtonOf(props.dispatch, props.k)
-              : startButtonOf(props.dispatch, props.k)}
+            {running
+              ? stopButtonOf(dispatch, props.k)
+              : startButtonOf(dispatch, props.k)}
           </>
         ) : null}
         {digits1(cache.total_time_spent / 3600)}
-        {props.parent && props.status === "todo"
-          ? topButtonOf(props.dispatch, props.k)
-          : null}
-        {props.status === "todo" ? evalButtonOf(props.dispatch, props.k) : null}
-        {props.parent ? (
+        {parent && status === "todo" ? topButtonOf(dispatch, props.k) : null}
+        {status === "todo" ? evalButtonOf(dispatch, props.k) : null}
+        {parent ? (
           <>
-            {props.noTodo && props.status === "todo" ? (
+            {noTodo && status === "todo" ? (
               <>
-                {todoToDoneButtonOf(props.dispatch, props.k)}
-                {todoToDontButtonOf(props.dispatch, props.k)}
+                {todoToDoneButtonOf(dispatch, props.k)}
+                {todoToDontButtonOf(dispatch, props.k)}
               </>
             ) : null}
             {LastRangeOf(props.k)}
-            {showDetailButtonOf(props.dispatch, props.k)}
-            {props.show_detail ? (
-              props.status === "todo" ? (
+            {showDetailButtonOf(dispatch, props.k)}
+            {show_detail ? (
+              status === "todo" ? (
                 <>
-                  {moveUpButtonOf(props.dispatch, props.k)}
-                  {moveDownButtonOf(props.dispatch, props.k)}
-                  {unindentButtonOf(props.dispatch, props.k)}
-                  {indentButtonOf(props.dispatch, props.k)}
-                  {props.showDeleteButton
-                    ? deleteButtonOf(props.dispatch, props.k)
-                    : null}
+                  {moveUpButtonOf(dispatch, props.k)}
+                  {moveDownButtonOf(dispatch, props.k)}
+                  {showDeleteButton ? deleteButtonOf(dispatch, props.k) : null}
                 </>
               ) : null
             ) : null}
           </>
         ) : null}
-        {props.status === "todo"
-          ? cache.percentiles.map(digits1).join(" ")
-          : null}
+        {status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
       </div>
-    );
-  },
-);
+    </li>
+  );
+};
+
+const Entry = (props: { k: string }) => {
+  const status = useSelector((state) => state.data.kvs[props.k].status);
+  const parent = useSelector((state) => state.data.kvs[props.k].parent);
+  const show_detail = useSelector(
+    (state) => state.data.kvs[props.k].show_detail,
+  );
+  const cache = useSelector((state) => state.caches[props.k]);
+  const running = useSelector((state) => props.k === state.data.current_entry);
+  const noTodo = useSelector(
+    (state) => state.data.kvs[props.k].todo.length === 0,
+  );
+  const showDeleteButton = useSelector((state) => {
+    const v = state.data.kvs[props.k];
+    return v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0;
+  });
+  const dispatch = useDispatch();
+  return (
+    <div
+      id={`tree${props.k}`}
+      className={running ? `${status} running` : status}
+    >
+      {parent ? (
+        <>
+          {status === "todo"
+            ? newButtonOf(dispatch, props.k)
+            : status === "done"
+            ? doneToTodoButtonOf(dispatch, props.k)
+            : dontToTodoButtonOf(dispatch, props.k)}
+          {TextAreaOf(props.k)}
+          {EstimationInputOf(props.k)}
+          {running
+            ? stopButtonOf(dispatch, props.k)
+            : startButtonOf(dispatch, props.k)}
+        </>
+      ) : null}
+      {digits1(cache.total_time_spent / 3600)}
+      {parent && status === "todo" ? topButtonOf(dispatch, props.k) : null}
+      {status === "todo" ? evalButtonOf(dispatch, props.k) : null}
+      {parent ? (
+        <>
+          {noTodo && status === "todo" ? (
+            <>
+              {todoToDoneButtonOf(dispatch, props.k)}
+              {todoToDontButtonOf(dispatch, props.k)}
+            </>
+          ) : null}
+          {LastRangeOf(props.k)}
+          {showDetailButtonOf(dispatch, props.k)}
+          {show_detail ? (
+            status === "todo" ? (
+              <>
+                {moveUpButtonOf(dispatch, props.k)}
+                {moveDownButtonOf(dispatch, props.k)}
+                {unindentButtonOf(dispatch, props.k)}
+                {indentButtonOf(dispatch, props.k)}
+                {showDeleteButton ? deleteButtonOf(dispatch, props.k) : null}
+              </>
+            ) : null
+          ) : null}
+        </>
+      ) : null}
+      {status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
+    </div>
+  );
+};
 
 const _estimate = (
   estimates: number[],
@@ -1747,39 +1710,20 @@ const setEstimateOf = memoize2(
 
 const EstimationInputOf = memoize1((k: string) => <EstimationInput k={k} />);
 
-const EstimationInput = connect(
-  (
-    state: IState,
-    ownProps: {
-      k: string;
-    },
-  ) => {
-    const v = state.data.kvs[ownProps.k];
-    return {
-      estimate: v.estimate,
-      className: v.status,
-      k: ownProps.k,
-    };
-  },
-  (dispatch: ThunkDispatch<IState, void, TActions>) => ({
-    dispatch,
-  }),
-)(
-  (props: {
-    estimate: number;
-    className: string;
-    k: string;
-    dispatch: ThunkDispatch<IState, void, TActions>;
-  }) => (
+const EstimationInput = (props: { k: string }) => {
+  const estimate = useSelector((state) => state.data.kvs[props.k].estimate);
+  const className = useSelector((state) => state.data.kvs[props.k].status);
+  const dispatch = useDispatch();
+  return (
     <input
       type="number"
       step="any"
-      value={props.estimate}
-      onChange={setEstimateOf(props.dispatch, props.k)}
-      className={props.className}
+      value={estimate}
+      onChange={setEstimateOf(dispatch, props.k)}
+      className={className}
     />
-  ),
-);
+  );
+};
 
 const setLastRangeOf = memoize2(
   (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
@@ -1905,86 +1849,38 @@ const getAndSetHeight = (el: HTMLTextAreaElement) => {
 
 const LastRangeOf = memoize1((k: string) => <LastRange k={k} />);
 
-const LastRange = connect(
-  (
-    state: IState,
-    ownProps: {
-      k: string;
-    },
-  ) => {
-    const v = state.data.kvs[ownProps.k];
+const LastRange = (props: { k: string }) => {
+  const className = useSelector((state) => state.data.kvs[props.k].status);
+  const lastRangeValue = useSelector((state) => {
+    const v = state.data.kvs[props.k];
     const lastRange = lastRangeOf(v.ranges);
-    return {
-      lastRangeValue:
-        lastRange !== null && lastRange.end !== null && v.parent !== null
-          ? (lastRange.end - lastRange.start) / 3600
-          : null,
-      k: ownProps.k,
-      className: v.status,
-    };
-  },
-  (dispatch: ThunkDispatch<IState, void, TActions>) => ({
-    dispatch,
-  }),
-)(
-  (props: {
-    lastRangeValue: null | number;
-    k: string;
-    className: string;
-    dispatch: ThunkDispatch<IState, void, TActions>;
-  }) =>
-    props.lastRangeValue === null ? null : (
-      <input
-        type="number"
-        step="any"
-        value={props.lastRangeValue}
-        onChange={setLastRangeOf(props.dispatch, props.k)}
-        className={props.className}
-      />
-    ),
+    return lastRange !== null && lastRange.end !== null && v.parent !== null
+      ? (lastRange.end - lastRange.start) / 3600
+      : null;
+  });
+  const dispatch = useDispatch();
+  return lastRangeValue === null ? null : (
+    <input
+      type="number"
+      step="any"
+      value={lastRangeValue}
+      onChange={setLastRangeOf(dispatch, props.k)}
+      className={className}
+    />
+  );
+};
+
+const store = createStore(
+  root_reducer,
+  applyMiddleware(thunk as ThunkMiddleware<IState, TActions>),
 );
 
-const _menuCallbacksOf = memoize1(
-  (dispatch: ThunkDispatch<IState, void, TActions>) => ({
-    undo: () => {
-      dispatch({ type: "undo" });
-      dispatch(doSave());
-    },
-    redo: () => {
-      dispatch({ type: "redo" });
-      dispatch(doSave());
-    },
-    flipShowTodoOnly: () => {
-      dispatch({ type: "flipShowTodoOnly" });
-      dispatch(doPushHistory());
-      dispatch(doSave());
-    },
-    smallestToTop: () => {
-      dispatch({ type: "smallestToTop" });
-      dispatch(doPushHistory());
-      dispatch(doSave());
-    },
-    closestToTop: () => {
-      dispatch({ type: "closestToTop" });
-      dispatch(doPushHistory());
-      dispatch(doSave());
-    },
-    load: () => {
-      dispatch(doPushHistory());
-      dispatch(doSave());
-      dispatch(doLoad());
-      dispatch(doPushHistory());
-      dispatch(doSave());
-    },
-    dispatch,
-  }),
-);
+const useDispatch = () => _useDispatch<typeof store.dispatch>();
+const useSelector: TypedUseSelectorHook<ReturnType<
+  typeof store.getState
+>> = _useSelector;
 
 export const main = () => {
-  const store = createStore(
-    root_reducer,
-    applyMiddleware(thunk as ThunkMiddleware<IState, TActions>),
-  );
   ReactDOM.render(
     <Provider store={store}>
       <App />
