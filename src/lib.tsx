@@ -1698,7 +1698,7 @@ const saveStateMiddleware: Middleware<{}, IState> = (store) => (dispatch) => (
     },
     body: JSON.stringify(store.getState().data),
   }).then((r) => {
-    dispatch({
+    store.dispatch({
       type: "setSaveSuccess",
       payload: r.ok,
     });
