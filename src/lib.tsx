@@ -1,9 +1,8 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import ReactDOM from "react-dom";
 import {
   Provider,
   TypedUseSelectorHook,
-  connect,
   useDispatch as _useDispatch,
   useSelector as _useSelector,
 } from "react-redux";
@@ -1104,7 +1103,7 @@ const QueueNode = (props: { k: string }) => {
               : status === "done"
               ? doneToTodoButtonOf(dispatch, props.k)
               : dontToTodoButtonOf(dispatch, props.k)}
-            {TextAreaOf(props.k)}
+            <TextArea k={props.k} />
             {EstimationInputOf(props.k)}
             {running
               ? stopButtonOf(dispatch, props.k)
@@ -1169,7 +1168,7 @@ const Entry = (props: { k: string }) => {
             : status === "done"
             ? doneToTodoButtonOf(dispatch, props.k)
             : dontToTodoButtonOf(dispatch, props.k)}
-          {TextAreaOf(props.k)}
+          <TextArea k={props.k} />
           {EstimationInputOf(props.k)}
           {running
             ? stopButtonOf(dispatch, props.k)
@@ -1673,7 +1672,7 @@ const EstimationInputOf = memoize1((k: string) => <EstimationInput k={k} />);
 
 const EstimationInput = (props: { k: string }) => {
   const estimate = useSelector((state) => state.data.kvs[props.k].estimate);
-  const className = useSelector((state) => state.data.kvs[props.k].status);
+  const status = useSelector((state) => state.data.kvs[props.k].status);
   const dispatch = useDispatch();
   return (
     <input
@@ -1681,7 +1680,7 @@ const EstimationInput = (props: { k: string }) => {
       step="any"
       value={estimate}
       onChange={setEstimateOf(dispatch, props.k)}
-      className={className}
+      className={status}
     />
   );
 };
@@ -1694,112 +1693,72 @@ const setLastRangeOf = memoize2(
   },
 );
 
-interface ITextAreaComponentProps {
-  text: string;
-  k: string;
-  status: TStatus;
-  style: IStyle;
-  dispatch: ThunkDispatch<IState, void, TActions>;
-}
+const TextArea = (props: { k: string }) => {
+  const state_text = useSelector((state) => state.data.kvs[props.k].text);
+  const state_style = useSelector((state) => state.data.kvs[props.k].style);
+  const status = useSelector((state) => state.data.kvs[props.k].status);
+  const dispatch = useDispatch();
+  const [text, setText] = useState(state_text);
+  const [style, setStyle] = useState(state_style);
+  const [text_prev, setText_prev] = useState(state_text);
+  const [style_prev, setStyle_prev] = useState(state_style);
 
-interface ITextAreaComponentState {
-  prevProps: ITextAreaComponentProps;
-  text: string;
-  style: IStyle;
-}
-
-class TextAreaComponent extends React.PureComponent<
-  ITextAreaComponentProps,
-  ITextAreaComponentState
-> {
-  state = {
-    prevProps: this.props,
-    text: this.props.text,
-    style: this.props.style,
-  };
-  render = () => {
-    return (
-      <textarea
-        value={this.state.text}
-        onChange={this.resizeAndSetText}
-        onBlur={this.dispatchResizeAndDoSave}
-        className={this.props.status}
-        style={this.state.style}
-        ref={textAreaRefOf(this.props.k)}
-      />
-    );
-  };
-  static getDerivedStateFromProps = (
-    props: ITextAreaComponentProps,
-    state: ITextAreaComponentState,
-  ) => {
-    const nextState = produce(state, (draft) => {
-      let changed = false;
-      if (props.text !== draft.prevProps.text) {
-        draft.text = props.text;
-        changed = true;
+  const resizeAndSetText = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const el = e.target;
+      const h = getAndSetHeight(el);
+      const t = el.value;
+      if (text !== t) {
+        setText(t);
       }
-      if (props.style.height !== draft.prevProps.style.height) {
-        draft.style.height = props.style.height;
-        changed = true;
+      if (h !== style.height) {
+        setStyle(
+          produce(style, (draft) => {
+            draft.height = h;
+          }),
+        );
       }
-      if (changed) {
-        draft.prevProps = props;
-      }
-    });
-    return state === nextState ? null : nextState;
-  };
-  resizeAndSetText = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const el = e.target;
-    const h = getAndSetHeight(el);
-    const t = el.value;
-    this.setState((state: ITextAreaComponentState) =>
-      produce(state, (draft) => {
-        if (draft.text !== t) {
-          draft.text = t;
-        }
-        if (draft.style.height !== h) {
-          draft.style.height = h;
-        }
-      }),
-    );
-  };
-  dispatchResizeAndDoSave = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const el = e.target;
-    const h = getAndSetHeight(el);
-    this.props.dispatch({
-      type: "resizeTextArea",
-      k: this.props.k,
-      width: el.style.width,
-      height: h,
-    });
-    this.props.dispatch({ type: "setText", k: this.props.k, text: el.value });
-    this.props.dispatch(doPushHistory());
-    this.props.dispatch(doSave());
-  };
-}
-
-const TextArea = connect(
-  (
-    state: IState,
-    ownProps: {
-      k: string;
     },
-  ) => {
-    const v = state.data.kvs[ownProps.k];
-    return {
-      text: v.text,
-      k: ownProps.k,
-      status: v.status,
-      style: v.style,
-    };
-  },
-  (dispatch: ThunkDispatch<IState, void, TActions>) => ({
-    dispatch,
-  }),
-)(TextAreaComponent);
+    [text, setText, style, setStyle],
+  );
 
-const TextAreaOf = memoize1((k: string) => <TextArea k={k} />);
+  const dispatchResizeAndDoSave = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const el = e.target;
+      const h = getAndSetHeight(el);
+      dispatch({
+        type: "resizeTextArea",
+        k: props.k,
+        width: el.style.width,
+        height: h,
+      });
+      dispatch({ type: "setText", k: props.k, text: el.value });
+      dispatch(doPushHistory());
+      dispatch(doSave());
+    },
+    [dispatch, props.k],
+  );
+
+  if (state_text !== text_prev) {
+    setText(state_text);
+    setText_prev(state_text);
+  }
+  if (state_style !== style_prev) {
+    setStyle(state_style);
+    setStyle_prev(state_style);
+  }
+
+  return (
+    <textarea
+      value={text}
+      onChange={resizeAndSetText}
+      onBlur={dispatchResizeAndDoSave}
+      className={status}
+      style={style}
+      ref={textAreaRefOf(props.k)}
+    />
+  );
+};
 
 const getAndSetHeight = (el: HTMLTextAreaElement) => {
   el.style.height = "1px";
@@ -1811,7 +1770,7 @@ const getAndSetHeight = (el: HTMLTextAreaElement) => {
 const LastRangeOf = memoize1((k: string) => <LastRange k={k} />);
 
 const LastRange = (props: { k: string }) => {
-  const className = useSelector((state) => state.data.kvs[props.k].status);
+  const status = useSelector((state) => state.data.kvs[props.k].status);
   const lastRangeValue = useSelector((state) => {
     const v = state.data.kvs[props.k];
     const lastRange = lastRangeOf(v.ranges);
@@ -1826,7 +1785,7 @@ const LastRange = (props: { k: string }) => {
       step="any"
       value={lastRangeValue}
       onChange={setLastRangeOf(dispatch, props.k)}
-      className={className}
+      className={status}
     />
   );
 };
