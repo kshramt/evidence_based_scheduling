@@ -1698,7 +1698,8 @@ const saveStateMiddleware: Middleware<{}, IState> = (store) => (dispatch) => (
     },
     body: JSON.stringify(store.getState().data),
   }).then((r) => {
-    store.dispatch({
+    // If you use `store.dispatch` here, the save operation will be repeted infinitely.
+    dispatch({
       type: "setSaveSuccess",
       payload: r.ok,
     });
