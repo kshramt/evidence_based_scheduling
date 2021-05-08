@@ -6,7 +6,7 @@ import {
   useDispatch as _useDispatch,
   useSelector as _useSelector,
 } from "react-redux";
-import { Action, createStore, applyMiddleware } from "redux";
+import { Action, Middleware, createStore, applyMiddleware } from "redux";
 import thunk, { ThunkDispatch, ThunkMiddleware } from "redux-thunk";
 import produce, { Draft } from "immer";
 
@@ -155,14 +155,10 @@ interface ISetLastRangeAction extends Action {
   k: string;
   t: number;
 }
-interface ISetTextAction extends Action {
-  type: "setText";
+interface ISetTextAndResizeTextAreaAction extends Action {
+  type: "setTextAndResizeTextArea";
   k: string;
   text: string;
-}
-interface IResizeTextAreaAction extends Action {
-  type: "resizeTextArea";
-  k: string;
   width: null | string;
   height: null | string;
 }
@@ -206,8 +202,7 @@ type TActions =
   | IIndentAction
   | ISetEstimateAction
   | ISetLastRangeAction
-  | ISetTextAction
-  | IResizeTextAreaAction
+  | ISetTextAndResizeTextAreaAction
   | ITodoToDoneAction
   | ITodoToDontAction
   | IDoneToTodoAction
@@ -535,28 +530,23 @@ const root_reducer = (state: undefined | IState, action: TActions) => {
           }
         });
       }
-      case "setText": {
+      case "setTextAndResizeTextArea": {
         const k = action.k;
         const text = action.text;
-        return produce(state, (draft) => {
-          draft.data.kvs[k].text = text;
-        });
-      }
-      case "resizeTextArea": {
-        const k = action.k;
         const width = action.width;
         const height = action.height;
-        return width === null || height === null
-          ? state
-          : produce(state, (draft) => {
-              const v = draft.data.kvs[k];
-              // if (v.style.width !== width) {
-              //   v.style.width = width;
-              // }
-              if (v.style.height !== height) {
-                v.style.height = height;
-              }
-            });
+        return produce(state, (draft) => {
+          const v = draft.data.kvs[k];
+          v.text = text;
+          if (width !== null && height !== null) {
+            // if (v.style.width !== width) {
+            //   v.style.width = width;
+            // }
+            if (v.style.height !== height) {
+              v.style.height = height;
+            }
+          }
+        });
       }
       case "todoToDone": {
         const k = action.k;
@@ -652,27 +642,21 @@ const Menu = () => {
   const dispatch = useDispatch();
   const undo = useCallback(() => {
     dispatch({ type: "undo" });
-    dispatch(doSave());
   }, [dispatch]);
   const redo = useCallback(() => {
     dispatch({ type: "redo" });
-    dispatch(doSave());
   }, [dispatch]);
   const flipShowTodoOnly = useCallback(() => {
     dispatch({ type: "flipShowTodoOnly" });
-    dispatch(doSave());
   }, [dispatch]);
   const smallestToTop = useCallback(() => {
     dispatch({ type: "smallestToTop" });
-    dispatch(doSave());
   }, [dispatch]);
   const closestToTop = useCallback(() => {
     dispatch({ type: "closestToTop" });
-    dispatch(doSave());
   }, [dispatch]);
   const load = useCallback(() => {
     dispatch(doLoad());
-    dispatch(doSave());
   }, [dispatch]);
 
   return (
@@ -690,26 +674,6 @@ const Menu = () => {
       </div>
     </div>
   );
-};
-
-const doSave = () => doSaveRet;
-
-const doSaveRet = (
-  dispatch: ThunkDispatch<IState, void, TActions>,
-  getState: () => IState,
-) => {
-  fetch("api/" + API_VERSION + "/post", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-    },
-    body: JSON.stringify(getState().data),
-  }).then((r) => {
-    dispatch({
-      type: "setSaveSuccess",
-      payload: r.ok,
-    });
-  });
 };
 
 const doLoad = () => (dispatch: ThunkDispatch<IState, void, TActions>) => {
@@ -764,7 +728,6 @@ const setLastRange = (
   t: number,
 ) => {
   dispatch({ type: "setLastRange", k, t });
-  dispatch(doSave());
 };
 
 const _eval_ = (draft: Draft<IState>, k: string) => {
@@ -1352,7 +1315,6 @@ const doneToTodoButtonOf = memoize2(
       className="done"
       onClick={() => {
         dispatch({ type: "doneToTodo", k });
-        dispatch(doSave());
       }}
     >
       {DONE_MARK}
@@ -1366,7 +1328,6 @@ const dontToTodoButtonOf = memoize2(
       className="dont"
       onClick={() => {
         dispatch({ type: "dontToTodo", k });
-        dispatch(doSave());
       }}
     >
       {DONT_MARK}
@@ -1386,7 +1347,6 @@ const newButtonOf = memoize2(
       <button
         onClick={() => {
           dispatch({ type: "new_", parent: k });
-          dispatch(doSave());
           dispatch(_focusTextAreaOfTheFirsttodo);
         }}
       >
@@ -1401,7 +1361,6 @@ const stopButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "stop" });
-        dispatch(doSave());
       }}
       ref={stopButtonRefOf(k)}
     >
@@ -1415,7 +1374,6 @@ const startButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "start", k });
-        dispatch(doSave());
         dispatch(doFocusStopButton(k));
       }}
     >
@@ -1429,7 +1387,6 @@ const topButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "top", k });
-        dispatch(doSave());
       }}
     >
       {TOP_MARK}
@@ -1442,7 +1399,6 @@ const moveUpButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "moveUp", k });
-        dispatch(doSave());
         dispatch(doFocusMoveUpButton(k));
       }}
       ref={moveUpButtonRefOf(k)}
@@ -1457,7 +1413,6 @@ const moveDownButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "moveDown", k });
-        dispatch(doSave());
         dispatch(doFocusMoveDownButton(k));
       }}
       ref={moveDownButtonRefOf(k)}
@@ -1472,7 +1427,6 @@ const todoToDoneButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "todoToDone", k });
-        dispatch(doSave());
       }}
     >
       {DONE_MARK}
@@ -1485,7 +1439,6 @@ const todoToDontButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "todoToDont", k });
-        dispatch(doSave());
       }}
     >
       {DONT_MARK}
@@ -1498,7 +1451,6 @@ const unindentButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "unindent", k });
-        dispatch(doSave());
         dispatch(doFocusUnindentButton(k));
       }}
       ref={unindentButtonRefOf(k)}
@@ -1513,7 +1465,6 @@ const indentButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "indent", k });
-        dispatch(doSave());
         dispatch(doFocusIndentButton(k));
       }}
       ref={indentButtonRefOf(k)}
@@ -1528,7 +1479,6 @@ const showDetailButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "flipShowDetail", k });
-        dispatch(doSave());
       }}
     >
       {DETAIL_MARK}
@@ -1541,7 +1491,6 @@ const deleteButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "delete_", k });
-        dispatch(doSave());
       }}
     >
       {DELETE_MARK}
@@ -1570,7 +1519,6 @@ const setEstimateOf = memoize2(
       k,
       estimate: Number(e.target.value),
     });
-    dispatch(doSave());
   },
 );
 
@@ -1628,18 +1576,17 @@ const TextArea = (props: { k: string }) => {
     [text, setText, style, setStyle],
   );
 
-  const dispatchResizeAndDoSave = useCallback(
+  const dispatchResizeAndSetText = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       const el = e.target;
       const h = getAndSetHeight(el);
       dispatch({
-        type: "resizeTextArea",
+        type: "setTextAndResizeTextArea",
         k: props.k,
+        text: el.value,
         width: el.style.width,
         height: h,
       });
-      dispatch({ type: "setText", k: props.k, text: el.value });
-      dispatch(doSave());
     },
     [dispatch, props.k],
   );
@@ -1657,7 +1604,7 @@ const TextArea = (props: { k: string }) => {
     <textarea
       value={text}
       onChange={resizeAndSetText}
-      onBlur={dispatchResizeAndDoSave}
+      onBlur={dispatchResizeAndSetText}
       className={status}
       style={style}
       ref={textAreaRefOf(props.k)}
@@ -1740,11 +1687,33 @@ const undoable = (
   };
 };
 
+const saveStateMiddleware: Middleware<{}, IState> = (store) => (dispatch) => (
+  action,
+) => {
+  const ret = dispatch(action);
+  fetch("api/" + API_VERSION + "/post", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+    },
+    body: JSON.stringify(store.getState().data),
+  }).then((r) => {
+    dispatch({
+      type: "setSaveSuccess",
+      payload: r.ok,
+    });
+  });
+  return ret;
+};
+
 const store = createStore(
   undoable(root_reducer, {
     type: "flipShowTodoOnly",
   }),
-  applyMiddleware(thunk as ThunkMiddleware<IState, TActions>),
+  applyMiddleware(
+    thunk as ThunkMiddleware<IState, TActions>,
+    saveStateMiddleware,
+  ),
 );
 
 const useDispatch = () => _useDispatch<typeof store.dispatch>();
