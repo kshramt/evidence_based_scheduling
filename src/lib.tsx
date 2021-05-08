@@ -122,10 +122,6 @@ interface IStartAction extends Action {
   type: "start";
   k: string;
 }
-interface IFocusStopButtonAction extends Action {
-  type: "focusStopButton";
-  k: string;
-}
 interface ITopAction extends Action {
   type: "top";
   k: string;
@@ -143,32 +139,16 @@ interface IMoveUpAction extends Action {
   type: "moveUp";
   k: string;
 }
-interface IFocusMoveUpButtonAction extends Action {
-  type: "focusMoveUpButton";
-  k: string;
-}
 interface IMoveDownAction extends Action {
   type: "moveDown";
-  k: string;
-}
-interface IFocusMoveDownButtonAction extends Action {
-  type: "focusMoveDownButton";
   k: string;
 }
 interface IUnindentAction extends Action {
   type: "unindent";
   k: string;
 }
-interface IFocusUnindentButtonAction extends Action {
-  type: "focusUnindentButton";
-  k: string;
-}
 interface IIndentAction extends Action {
   type: "indent";
-  k: string;
-}
-interface IFocusIndentButtonAction extends Action {
-  type: "focusIndentButton";
   k: string;
 }
 interface ISetEstimateAction extends Action {
@@ -212,10 +192,6 @@ interface ISetSaveSuccessAction extends Action {
   type: "setSaveSuccess";
   payload: boolean;
 }
-interface IFocusTextAreaAction extends Action {
-  type: "focusTextArea";
-  k: string;
-}
 
 type TActions =
   | IEvalAction
@@ -228,19 +204,14 @@ type TActions =
   | IFlipShowTodoOnlyAction
   | IFlipShowDetailAction
   | IStartAction
-  | IFocusStopButtonAction
   | ITopAction
   | ISmallestToTopAction
   | IClosestToTopAction
   | IStopAction
   | IMoveUpAction
-  | IFocusMoveUpButtonAction
   | IMoveDownAction
-  | IFocusMoveDownButtonAction
   | IUnindentAction
-  | IFocusUnindentButtonAction
   | IIndentAction
-  | IFocusIndentButtonAction
   | ISetEstimateAction
   | ISetLastRangeAction
   | ISetTextAction
@@ -248,8 +219,7 @@ type TActions =
   | ITodoToDoneAction
   | ITodoToDontAction
   | IDoneToTodoAction
-  | IDontToTodoAction
-  | IFocusTextAreaAction;
+  | IDontToTodoAction;
 
 class History<T> {
   capacity: number;
@@ -434,11 +404,6 @@ const root_reducer = (state: undefined | IState, action: TActions) => {
           }
         });
       }
-      case "focusStopButton": {
-        const k = action.k;
-        setTimeout(() => focus(stopButtonRefOf(k).current), 50);
-        return state;
-      }
       case "top": {
         return produce_top(state, action.k);
       }
@@ -509,11 +474,6 @@ const root_reducer = (state: undefined | IState, action: TActions) => {
           }
         });
       }
-      case "focusMoveUpButton": {
-        const k = action.k;
-        focus(moveUpButtonRefOf(k).current);
-        return state;
-      }
       case "moveDown": {
         const k = action.k;
         return produce(state, (draft) => {
@@ -523,11 +483,6 @@ const root_reducer = (state: undefined | IState, action: TActions) => {
             moveDown(draft.data.queue, k);
           }
         });
-      }
-      case "focusMoveDownButton": {
-        const k = action.k;
-        focus(moveDownButtonRefOf(k).current);
-        return state;
       }
       case "unindent": {
         const k = action.k;
@@ -559,11 +514,6 @@ const root_reducer = (state: undefined | IState, action: TActions) => {
           }
         });
       }
-      case "focusUnindentButton": {
-        const k = action.k;
-        focus(unindentButtonRefOf(k).current);
-        return state;
-      }
       case "indent": {
         const k = action.k;
         return produce(state, (draft) => {
@@ -585,11 +535,6 @@ const root_reducer = (state: undefined | IState, action: TActions) => {
             }
           }
         });
-      }
-      case "focusIndentButton": {
-        const k = action.k;
-        focus(indentButtonRefOf(k).current);
-        return state;
       }
       case "setEstimate": {
         const k = action.k;
@@ -666,12 +611,6 @@ const root_reducer = (state: undefined | IState, action: TActions) => {
         return produce(state, (draft) => {
           _dontToTodo(draft, k);
         });
-      }
-      case "focusTextArea": {
-        const k = action.k;
-        // todo: Use more reliable method to focus on the textarea.
-        setTimeout(() => focus(textAreaRefOf(k).current), 50);
-        return state;
       }
       default:
         const _: never = action; // 1 or state cannot be used here
@@ -831,6 +770,30 @@ const doLoad = () => (dispatch: ThunkDispatch<IState, void, TActions>) => {
         },
       });
     });
+};
+
+const doFocusStopButton = (k: string) => () => {
+  setTimeout(() => focus(stopButtonRefOf(k).current), 50);
+};
+
+const doFocusMoveUpButton = (k: string) => () => {
+  setTimeout(() => focus(moveUpButtonRefOf(k).current), 50);
+};
+
+const doFocusMoveDownButton = (k: string) => () => {
+  setTimeout(() => focus(moveDownButtonRefOf(k).current), 50);
+};
+
+const doFocusUnindentButton = (k: string) => () => {
+  setTimeout(() => focus(unindentButtonRefOf(k).current), 50);
+};
+
+const doFocusIndentButton = (k: string) => () => {
+  setTimeout(() => focus(indentButtonRefOf(k).current), 50);
+};
+
+const doFocusTextArea = (k: string) => () => {
+  setTimeout(() => focus(textAreaRefOf(k).current), 50);
 };
 
 const setLastRange = (
@@ -1458,10 +1421,7 @@ const newButtonOf = memoize2(
       dispatch: ThunkDispatch<IState, void, TActions>,
       getState: () => IState,
     ) => {
-      dispatch({
-        type: "focusTextArea",
-        k: getState().data.kvs[k].todo[0],
-      });
+      dispatch(doFocusTextArea(getState().data.kvs[k].todo[0]));
     };
     return (
       <button
@@ -1500,7 +1460,7 @@ const startButtonOf = memoize2(
         dispatch({ type: "start", k });
         dispatch(doPushHistory());
         dispatch(doSave());
-        dispatch({ type: "focusStopButton", k });
+        dispatch(doFocusStopButton(k));
       }}
     >
       {START_MARK}
@@ -1529,7 +1489,7 @@ const moveUpButtonOf = memoize2(
         dispatch({ type: "moveUp", k });
         dispatch(doPushHistory());
         dispatch(doSave());
-        dispatch({ type: "focusMoveUpButton", k });
+        dispatch(doFocusMoveUpButton(k));
       }}
       ref={moveUpButtonRefOf(k)}
     >
@@ -1545,7 +1505,7 @@ const moveDownButtonOf = memoize2(
         dispatch({ type: "moveDown", k });
         dispatch(doPushHistory());
         dispatch(doSave());
-        dispatch({ type: "focusMoveDownButton", k });
+        dispatch(doFocusMoveDownButton(k));
       }}
       ref={moveDownButtonRefOf(k)}
     >
@@ -1589,7 +1549,7 @@ const unindentButtonOf = memoize2(
         dispatch({ type: "unindent", k });
         dispatch(doPushHistory());
         dispatch(doSave());
-        dispatch({ type: "focusUnindentButton", k });
+        dispatch(doFocusUnindentButton(k));
       }}
       ref={unindentButtonRefOf(k)}
     >
@@ -1605,7 +1565,7 @@ const indentButtonOf = memoize2(
         dispatch({ type: "indent", k });
         dispatch(doPushHistory());
         dispatch(doSave());
-        dispatch({ type: "focusIndentButton", k });
+        dispatch(doFocusIndentButton(k));
       }}
       ref={indentButtonRefOf(k)}
     >
