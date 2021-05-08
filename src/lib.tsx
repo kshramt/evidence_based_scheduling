@@ -37,48 +37,11 @@ interface IListProps {
   ks: string[];
 }
 
-interface INodeProps {
-  k: string;
-  todo: string[];
-  done: string[];
-  dont: string[];
-  showTodoOnly: boolean;
-}
-
-interface IEntryProps {
-  k: string;
-  status: TStatus;
-  parent: null | string;
-  show_detail: boolean;
-  ranges: IRange[];
-  running: boolean;
-  cache: ICache;
-  noTodo: boolean;
-  showDeleteButton: boolean;
-}
-
-interface IQueueNodeProps {
-  k: string;
-  status: TStatus;
-  parent: null | string;
-  show_detail: boolean;
-  ranges: IRange[];
-  running: boolean;
-  cache: ICache;
-  shouldHide: boolean;
-  noTodo: boolean;
-  showDeleteButton: boolean;
-}
-
 interface IState {
   data: IData;
   caches: ICaches;
 
   saveSuccess: boolean;
-}
-
-interface IQueueColumnProps {
-  queue: string[];
 }
 
 interface IData {
