@@ -798,8 +798,6 @@ const Menu = () => {
     dispatch(doSave());
   }, [dispatch]);
   const load = useCallback(() => {
-    dispatch(doPushHistory());
-    dispatch(doSave());
     dispatch(doLoad());
     dispatch(doPushHistory());
     dispatch(doSave());
