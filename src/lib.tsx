@@ -105,12 +105,6 @@ interface ISetStateAction extends Action {
   type: "setState";
   payload: IState;
 }
-interface IUndoAction extends Action {
-  type: "undo";
-}
-interface IRedoActin extends Action {
-  type: "redo";
-}
 interface IFlipShowTodoOnlyAction extends Action {
   type: "flipShowTodoOnly";
 }
@@ -199,8 +193,6 @@ type TActions =
   | INewAction
   | ISetSaveSuccessAction
   | ISetStateAction
-  | IUndoAction
-  | IRedoActin
   | IFlipShowTodoOnlyAction
   | IFlipShowDetailAction
   | IStartAction
@@ -225,16 +217,16 @@ class History<T> {
   capacity: number;
   i: number;
   buf: T[];
-  constructor() {
-    this.capacity = 0;
-    this.i = -1;
-    this.buf = [];
+  constructor(init: T) {
+    this.capacity = 1;
+    this.i = 0;
+    this.buf = [init];
   }
 
   value = () => this.buf[this.i];
 
   push = (v: T) => {
-    if (-1 < this.i && this.buf[this.i] === v) {
+    if (this.buf[this.i] === v) {
       return this;
     }
     this.i += 1;
@@ -260,8 +252,6 @@ class History<T> {
     return this.value();
   };
 }
-
-const HISTORY = new History<IState>();
 
 const setCache = (caches: ICaches, k: string, kvs: IKvs) => {
   if (caches[k] === undefined) {
@@ -312,7 +302,6 @@ const produce_top = (state: IState, k: string) =>
 const root_reducer = (state: undefined | IState, action: TActions) => {
   if (state === undefined) {
     const s = emptyStateOf();
-    HISTORY.push(s);
     return s;
   } else {
     switch (action.type) {
@@ -353,22 +342,7 @@ const root_reducer = (state: undefined | IState, action: TActions) => {
         });
       }
       case "setState": {
-        HISTORY.push(action.payload);
         return action.payload;
-      }
-      case "undo": {
-        const prev = HISTORY.undo();
-        if (prev !== state) {
-          state = prev;
-        }
-        return state;
-      }
-      case "redo": {
-        const next = HISTORY.redo();
-        if (next !== state) {
-          state = next;
-        }
-        return state;
       }
       case "flipShowTodoOnly": {
         return produce(state, (draft) => {
@@ -612,9 +586,10 @@ const root_reducer = (state: undefined | IState, action: TActions) => {
           _dontToTodo(draft, k);
         });
       }
-      default:
+      default: {
         const _: never = action; // 1 or state cannot be used here
         return state;
+      }
     }
   }
 };
@@ -685,22 +660,18 @@ const Menu = () => {
   }, [dispatch]);
   const flipShowTodoOnly = useCallback(() => {
     dispatch({ type: "flipShowTodoOnly" });
-    dispatch(doPushHistory());
     dispatch(doSave());
   }, [dispatch]);
   const smallestToTop = useCallback(() => {
     dispatch({ type: "smallestToTop" });
-    dispatch(doPushHistory());
     dispatch(doSave());
   }, [dispatch]);
   const closestToTop = useCallback(() => {
     dispatch({ type: "closestToTop" });
-    dispatch(doPushHistory());
     dispatch(doSave());
   }, [dispatch]);
   const load = useCallback(() => {
     dispatch(doLoad());
-    dispatch(doPushHistory());
     dispatch(doSave());
   }, [dispatch]);
 
@@ -719,15 +690,6 @@ const Menu = () => {
       </div>
     </div>
   );
-};
-
-const doPushHistory = () => doPushHistoryRet;
-
-const doPushHistoryRet = (
-  dispatch: ThunkDispatch<IState, void, TActions>,
-  getState: () => IState,
-) => {
-  HISTORY.push(getState());
 };
 
 const doSave = () => doSaveRet;
@@ -802,7 +764,6 @@ const setLastRange = (
   t: number,
 ) => {
   dispatch({ type: "setLastRange", k, t });
-  dispatch(doPushHistory());
   dispatch(doSave());
 };
 
@@ -1391,7 +1352,6 @@ const doneToTodoButtonOf = memoize2(
       className="done"
       onClick={() => {
         dispatch({ type: "doneToTodo", k });
-        dispatch(doPushHistory());
         dispatch(doSave());
       }}
     >
@@ -1406,7 +1366,6 @@ const dontToTodoButtonOf = memoize2(
       className="dont"
       onClick={() => {
         dispatch({ type: "dontToTodo", k });
-        dispatch(doPushHistory());
         dispatch(doSave());
       }}
     >
@@ -1427,7 +1386,6 @@ const newButtonOf = memoize2(
       <button
         onClick={() => {
           dispatch({ type: "new_", parent: k });
-          dispatch(doPushHistory());
           dispatch(doSave());
           dispatch(_focusTextAreaOfTheFirsttodo);
         }}
@@ -1443,7 +1401,6 @@ const stopButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "stop" });
-        dispatch(doPushHistory());
         dispatch(doSave());
       }}
       ref={stopButtonRefOf(k)}
@@ -1458,7 +1415,6 @@ const startButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "start", k });
-        dispatch(doPushHistory());
         dispatch(doSave());
         dispatch(doFocusStopButton(k));
       }}
@@ -1473,7 +1429,6 @@ const topButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "top", k });
-        dispatch(doPushHistory());
         dispatch(doSave());
       }}
     >
@@ -1487,7 +1442,6 @@ const moveUpButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "moveUp", k });
-        dispatch(doPushHistory());
         dispatch(doSave());
         dispatch(doFocusMoveUpButton(k));
       }}
@@ -1503,7 +1457,6 @@ const moveDownButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "moveDown", k });
-        dispatch(doPushHistory());
         dispatch(doSave());
         dispatch(doFocusMoveDownButton(k));
       }}
@@ -1519,7 +1472,6 @@ const todoToDoneButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "todoToDone", k });
-        dispatch(doPushHistory());
         dispatch(doSave());
       }}
     >
@@ -1533,7 +1485,6 @@ const todoToDontButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "todoToDont", k });
-        dispatch(doPushHistory());
         dispatch(doSave());
       }}
     >
@@ -1547,7 +1498,6 @@ const unindentButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "unindent", k });
-        dispatch(doPushHistory());
         dispatch(doSave());
         dispatch(doFocusUnindentButton(k));
       }}
@@ -1563,7 +1513,6 @@ const indentButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "indent", k });
-        dispatch(doPushHistory());
         dispatch(doSave());
         dispatch(doFocusIndentButton(k));
       }}
@@ -1579,7 +1528,6 @@ const showDetailButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "flipShowDetail", k });
-        dispatch(doPushHistory());
         dispatch(doSave());
       }}
     >
@@ -1593,7 +1541,6 @@ const deleteButtonOf = memoize2(
     <button
       onClick={() => {
         dispatch({ type: "delete_", k });
-        dispatch(doPushHistory());
         dispatch(doSave());
       }}
     >
@@ -1623,7 +1570,6 @@ const setEstimateOf = memoize2(
       k,
       estimate: Number(e.target.value),
     });
-    dispatch(doPushHistory());
     dispatch(doSave());
   },
 );
@@ -1693,7 +1639,6 @@ const TextArea = (props: { k: string }) => {
         height: h,
       });
       dispatch({ type: "setText", k: props.k, text: el.value });
-      dispatch(doPushHistory());
       dispatch(doSave());
     },
     [dispatch, props.k],
@@ -1750,8 +1695,55 @@ const LastRange = (props: { k: string }) => {
   );
 };
 
+interface IUndoAction extends Action {
+  type: "undo";
+}
+
+interface IRedoAction extends Action {
+  type: "redo";
+}
+
+const undoable = (
+  reducer: (state: undefined | IState, action: TActions) => IState,
+  noop: TActions,
+) => {
+  const init = reducer(undefined, noop);
+  const history = new History<IState>(init);
+  return (
+    state: undefined | IState,
+    action: IUndoAction | IRedoAction | TActions,
+  ) => {
+    if (state === undefined) {
+      return init;
+    }
+    switch (action.type) {
+      case "undo": {
+        const prev = history.undo();
+        if (prev !== state) {
+          state = prev;
+        }
+        return state;
+      }
+      case "redo": {
+        const next = history.redo();
+        if (next !== state) {
+          state = next;
+        }
+        return state;
+      }
+      default: {
+        const next = reducer(state, action);
+        history.push(next);
+        return next;
+      }
+    }
+  };
+};
+
 const store = createStore(
-  root_reducer,
+  undoable(root_reducer, {
+    type: "flipShowTodoOnly",
+  }),
   applyMiddleware(thunk as ThunkMiddleware<IState, TActions>),
 );
 
