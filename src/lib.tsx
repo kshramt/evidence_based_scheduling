@@ -328,7 +328,7 @@ const root_reducer = (state: undefined | IState, action: TActions) => {
           draft.data.kvs[k] = v;
           draft.data.kvs[parent].todo.unshift(k);
           draft.data.queue.push(k);
-          setCache(draft.caches as ICaches, k, draft.data.kvs);
+          setCache(draft.caches, k, draft.data.kvs);
         });
       }
       case "setSaveSuccess": {
