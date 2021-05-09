@@ -1250,8 +1250,10 @@ const assertIsApprox = (actual: number, expected: number) => {
 };
 
 const assert = (v: boolean, msg: string) => {
-  if (!v) {
-    throw new Error(msg);
+  if ("production" !== process.env.NODE_ENV) {
+    if (!v) {
+      throw new Error(msg);
+    }
   }
 };
 
