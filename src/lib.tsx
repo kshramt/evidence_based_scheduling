@@ -6,8 +6,14 @@ import {
   useDispatch as _useDispatch,
   useSelector as _useSelector,
 } from "react-redux";
-import { Action, Middleware, createStore, applyMiddleware } from "redux";
-import thunk, { ThunkDispatch, ThunkMiddleware } from "redux-thunk";
+import { Middleware } from "redux";
+import { ThunkDispatch } from "redux-thunk";
+import {
+  configureStore,
+  createAction,
+  createAsyncThunk,
+  createReducer,
+} from "@reduxjs/toolkit";
 import produce, { Draft } from "immer";
 
 import "./lib.css";
@@ -30,53 +36,65 @@ const DONE_MARK = "✓";
 const DONT_MARK = "🗑";
 const DETAIL_MARK = "⋮";
 
+type AnyPayloadAction =
+  | {
+      readonly type: string;
+    }
+  | {
+      readonly type: string;
+      readonly payload: any;
+    };
+
+type AppDispatch = ThunkDispatch<IState, void, AnyPayloadAction>;
+
 type TStatus = "done" | "dont" | "todo";
 
 interface IListProps {
-  ks: string[];
+  readonly ks: string[];
 }
 
 interface IState {
-  data: IData;
-  caches: ICaches;
+  readonly data: IData;
+  readonly caches: ICaches;
 
-  saveSuccess: boolean;
+  readonly saveSuccess: boolean;
 }
 
 interface IData {
-  current_entry: null | string;
-  root: string;
-  kvs: IKvs;
-  queue: string[];
-  showTodoOnly: boolean;
+  readonly current_entry: null | string;
+  readonly root: string;
+  readonly kvs: IKvs;
+  readonly queue: string[];
+  readonly showTodoOnly: boolean;
+  readonly version: number;
 }
 
 interface IKvs {
-  [k: string]: IEntry;
+  readonly [k: string]: IEntry;
 }
 
 interface IEntry {
-  done: string[];
-  dont: string[];
-  end_time: null | string;
-  estimate: number;
-  parent: null | string;
-  ranges: IRange[];
-  show_detail: boolean;
-  start_time: string;
-  status: TStatus;
-  style: IStyle;
-  text: string;
-  todo: string[];
+  readonly done: string[];
+  readonly dont: string[];
+  readonly end_time: null | string;
+  readonly estimate: number;
+  readonly parent: null | string;
+  readonly ranges: IRange[];
+  readonly show_detail: boolean;
+  readonly start_time: string;
+  readonly status: TStatus;
+  readonly style: IStyle;
+  readonly text: string;
+  readonly todo: string[];
 }
 
 interface IStyle {
-  height: string;
-  width: string;
+  readonly height: string;
+  readonly width: string;
 }
 
 interface IRange {
-  start: number;
+  readonly start: number;
   end: null | number;
 }
 
@@ -85,128 +103,21 @@ interface ICaches {
 }
 
 interface ICache {
-  total_time_spent: number;
-  percentiles: number[];
+  readonly total_time_spent: number;
+  readonly percentiles: number[];
 }
 
-interface IEvalAction extends Action {
-  type: "eval_";
-  k: string;
-}
-interface IDeleteActin extends Action {
-  type: "delete_";
-  k: string;
-}
-interface INewAction extends Action {
-  type: "new_";
-  parent: string;
-}
-interface ISetStateAction extends Action {
-  type: "setState";
-  payload: IState;
-}
-interface IFlipShowTodoOnlyAction extends Action {
-  type: "flipShowTodoOnly";
-}
-interface IFlipShowDetailAction extends Action {
-  type: "flipShowDetail";
-  k: string;
-}
-interface IStartAction extends Action {
-  type: "start";
-  k: string;
-}
-interface ITopAction extends Action {
-  type: "top";
-  k: string;
-}
-interface ISmallestToTopAction extends Action {
-  type: "smallestToTop";
-}
-interface IClosestToTopAction extends Action {
-  type: "closestToTop";
-}
-interface IStopAction extends Action {
-  type: "stop";
-}
-interface IMoveUpAction extends Action {
-  type: "moveUp";
-  k: string;
-}
-interface IMoveDownAction extends Action {
-  type: "moveDown";
-  k: string;
-}
-interface IUnindentAction extends Action {
-  type: "unindent";
-  k: string;
-}
-interface IIndentAction extends Action {
-  type: "indent";
-  k: string;
-}
-interface ISetEstimateAction extends Action {
-  type: "setEstimate";
-  k: string;
-  estimate: number;
-}
-interface ISetLastRangeAction extends Action {
-  type: "setLastRange";
-  k: string;
-  t: number;
-}
-interface ISetTextAndResizeTextAreaAction extends Action {
-  type: "setTextAndResizeTextArea";
-  k: string;
-  text: string;
-  width: null | string;
-  height: null | string;
-}
-interface ITodoToDoneAction extends Action {
-  type: "todoToDone";
-  k: string;
-}
-interface ITodoToDontAction extends Action {
-  type: "todoToDont";
-  k: string;
-}
-interface IDoneToTodoAction extends Action {
-  type: "doneToTodo";
-  k: string;
-}
-interface IDontToTodoAction extends Action {
-  type: "dontToTodo";
-  k: string;
-}
-interface ISetSaveSuccessAction extends Action {
-  type: "setSaveSuccess";
-  payload: boolean;
-}
+const history_type_set = new Set<string>();
+const register_history_type = <T extends {}>(x: T) => {
+  history_type_set.add(x.toString());
+  return x;
+};
 
-type TActions =
-  | IEvalAction
-  | IDeleteActin
-  | INewAction
-  | ISetSaveSuccessAction
-  | ISetStateAction
-  | IFlipShowTodoOnlyAction
-  | IFlipShowDetailAction
-  | IStartAction
-  | ITopAction
-  | ISmallestToTopAction
-  | IClosestToTopAction
-  | IStopAction
-  | IMoveUpAction
-  | IMoveDownAction
-  | IUnindentAction
-  | IIndentAction
-  | ISetEstimateAction
-  | ISetLastRangeAction
-  | ISetTextAndResizeTextAreaAction
-  | ITodoToDoneAction
-  | ITodoToDontAction
-  | IDoneToTodoAction
-  | IDontToTodoAction;
+const save_type_set = new Set<string>();
+const register_save_type = <T extends {}>(x: T) => {
+  save_type_set.add(x.toString());
+  return x;
+};
 
 class History<T> {
   capacity: number;
@@ -289,305 +200,26 @@ const _rmFromTodo = (draft: Draft<IState>, k: string) => {
   }
 };
 
-const produce_top = (state: IState, k: string) =>
-  produce(state, (draft) => {
-    _top(draft, k);
-  });
-
-const root_reducer = (state: undefined | IState, action: TActions) => {
-  if (state === undefined) {
-    const s = emptyStateOf();
-    return s;
-  } else {
-    switch (action.type) {
-      case "eval_": {
-        const k = action.k;
-        return produce(state, (draft) => {
-          _eval_(draft, k);
-        });
-      }
-      case "delete_": {
-        const k = action.k;
-        return produce(state, (draft) => {
-          if (draft.data.kvs[k].todo.length === 0) {
-            _rmTodoEntry(draft, k);
-            deleteAtVal(draft.data.queue, k);
-            delete draft.data.kvs[k];
-            delete draft.caches[k];
-            if (draft.data.current_entry === k) {
-              draft.data.current_entry = null;
-            }
-          }
-        });
-      }
-      case "new_": {
-        const parent = action.parent;
-        const k = new Date().toISOString();
-        return produce(state, (draft) => {
-          const v = newEntryValue(parent, k);
-          draft.data.kvs[k] = v;
-          draft.data.kvs[parent].todo.unshift(k);
-          draft.data.queue.push(k);
-          setCache(draft.caches, k, draft.data.kvs);
-        });
-      }
-      case "setSaveSuccess": {
-        return produce(state, (draft) => {
-          draft.saveSuccess = action.payload;
-        });
-      }
-      case "setState": {
-        return action.payload;
-      }
-      case "flipShowTodoOnly": {
-        return produce(state, (draft) => {
-          draft.data.showTodoOnly = !draft.data.showTodoOnly;
-        });
-      }
-      case "flipShowDetail": {
-        const k = action.k;
-        return produce(state, (draft) => {
-          draft.data.kvs[k].show_detail = !draft.data.kvs[k].show_detail;
-        });
-      }
-      case "start": {
-        const k = action.k;
-        return produce(state, (draft) => {
-          if (k !== draft.data.current_entry) {
-            switch (draft.data.kvs[k].status) {
-              case "done":
-                _doneToTodo(draft, k);
-                break;
-              case "dont":
-                _dontToTodo(draft, k);
-                break;
-            }
-            _top(draft, k);
-            assert(draft.data.kvs[k].status === "todo", "Must not happen");
-            _stop(draft);
-            draft.data.current_entry = k;
-            draft.data.kvs[k].ranges.push({
-              start: Number(new Date()) / 1000,
-              end: null,
-            });
-          }
-        });
-      }
-      case "top": {
-        return produce_top(state, action.k);
-      }
-      case "smallestToTop": {
-        let k_min = null;
-        let estimate_min = Infinity;
-        for (const k in state.data.kvs) {
-          const v = state.data.kvs[k];
-          if (
-            v.status === "todo" &&
-            v.todo.length <= 0 &&
-            0 < v.estimate &&
-            v.estimate < estimate_min
-          ) {
-            k_min = k;
-            estimate_min = v.estimate;
-          }
-        }
-        return k_min === null ? state : produce_top(state, k_min);
-      }
-      case "closestToTop": {
-        let k_min = null;
-        let due_min = ":due: 9999-12-31T23:59:59";
-        for (let k in state.data.kvs) {
-          let v = state.data.kvs[k];
-          if (v.status === "todo" && v.todo.length <= 0) {
-            while (true) {
-              let due = null;
-              for (const w of v.text.split("\n")) {
-                if (w.startsWith(":due: ")) {
-                  due = w;
-                }
-              }
-              if (due !== null) {
-                if (due < due_min) {
-                  k_min = k;
-                  due_min = due;
-                }
-                break;
-              }
-              if (v.parent === null) {
-                break;
-              }
-              k = v.parent;
-              v = state.data.kvs[k];
-            }
-          }
-        }
-        return k_min === null
-          ? state
-          : produce_top(
-              state,
-              leafs(state.data.kvs[k_min], state.data.kvs)
-                [Symbol.iterator]()
-                .next().value.start_time,
-            );
-      }
-      case "stop": {
-        return produce(state, _stop);
-      }
-      case "moveUp": {
-        const k = action.k;
-        return produce(state, (draft) => {
-          const pk = draft.data.kvs[k].parent;
-          if (pk) {
-            moveUp(draft.data.kvs[pk].todo, k);
-            moveUp(draft.data.queue, k);
-          }
-        });
-      }
-      case "moveDown": {
-        const k = action.k;
-        return produce(state, (draft) => {
-          const pk = draft.data.kvs[k].parent;
-          if (pk) {
-            moveDown(draft.data.kvs[pk].todo, k);
-            moveDown(draft.data.queue, k);
-          }
-        });
-      }
-      case "unindent": {
-        const k = action.k;
-        return produce(state, (draft) => {
-          const pk = draft.data.kvs[k].parent;
-          if (pk !== null) {
-            const ppk = draft.data.kvs[pk].parent;
-            if (ppk !== null) {
-              const _total_time_spent_pk_orig =
-                draft.caches[pk].total_time_spent;
-              const _total_time_spent_ppk_orig =
-                draft.caches[ppk].total_time_spent;
-              _rmTodoEntry(draft, k);
-              const entries = draft.data.kvs[ppk].todo;
-              const i = entries.indexOf(pk);
-              assert(i !== -1, "Must not happen.");
-              _addTodoEntry(draft, ppk, i, k);
-              assertIsApprox(
-                _total_time_spent_pk_orig - draft.caches[pk].total_time_spent,
-                draft.caches[k].total_time_spent,
-              );
-              if (_total_time_spent_ppk_orig !== null) {
-                assertIsApprox(
-                  _total_time_spent_ppk_orig,
-                  draft.caches[ppk].total_time_spent,
-                );
-              }
-            }
-          }
-        });
-      }
-      case "indent": {
-        const k = action.k;
-        return produce(state, (draft) => {
-          const pk = draft.data.kvs[k].parent;
-          if (pk) {
-            const entries = draft.data.kvs[pk].todo;
-            if (last(entries) !== k) {
-              const i = entries.indexOf(k);
-              const new_pk = entries[i + 1];
-              const total_time_spent_new_pk_orig =
-                draft.caches[new_pk].total_time_spent;
-              const total_time_spent_k = draft.caches[k].total_time_spent;
-              _rmTodoEntry(draft, k);
-              _addTodoEntry(draft, new_pk, 0, k);
-              assertIsApprox(
-                draft.caches[new_pk].total_time_spent,
-                total_time_spent_new_pk_orig + total_time_spent_k,
-              );
-            }
-          }
-        });
-      }
-      case "setEstimate": {
-        const k = action.k;
-        const estimate = action.estimate;
-        return produce(state, (draft) => {
-          if (draft.data.kvs[k].estimate !== estimate) {
-            draft.data.kvs[k].estimate = estimate;
-          }
-        });
-      }
-      case "setLastRange": {
-        const k = action.k;
-        const t = action.t;
-        return produce(state, (draft) => {
-          const l = lastRangeOf(draft.data.kvs[k].ranges);
-          if (l !== null && l.end) {
-            const t1 = l.end - l.start;
-            const t2 = t * 3600;
-            const dt = t2 - t1;
-            if (dt !== 0) {
-              l.end = l.start + t2;
-              _addDt(draft, k, dt);
-            }
-          }
-        });
-      }
-      case "setTextAndResizeTextArea": {
-        const k = action.k;
-        const text = action.text;
-        const width = action.width;
-        const height = action.height;
-        return produce(state, (draft) => {
-          const v = draft.data.kvs[k];
-          v.text = text;
-          if (width !== null && height !== null) {
-            // if (v.style.width !== width) {
-            //   v.style.width = width;
-            // }
-            if (v.style.height !== height) {
-              v.style.height = height;
-            }
-          }
-        });
-      }
-      case "todoToDone": {
-        const k = action.k;
-        return produce(state, (draft) => {
-          _rmFromTodo(draft, k);
-          _addToDone(draft, k);
-          _topQueue(draft, k);
-        });
-      }
-      case "todoToDont": {
-        const k = action.k;
-        return produce(state, (draft) => {
-          _rmFromTodo(draft, k);
-          _addToDont(draft, k);
-          _topQueue(draft, k);
-        });
-      }
-      case "doneToTodo": {
-        const k = action.k;
-        return produce(state, (draft) => {
-          _doneToTodo(draft, k);
-        });
-      }
-      case "dontToTodo": {
-        const k = action.k;
-        return produce(state, (draft) => {
-          _dontToTodo(draft, k);
-        });
-      }
-      default: {
-        const _: never = action; // 1 or state cannot be used here
-        return state;
-      }
-    }
-  }
+const emptyStateOf = (): IState => {
+  const root = "root";
+  const kvs = {
+    root: newEntryValueOf(null, root),
+  };
+  return {
+    data: {
+      current_entry: null,
+      root,
+      kvs,
+      queue: [],
+      showTodoOnly: false,
+      version: 5,
+    },
+    caches: setCache({}, root, kvs),
+    saveSuccess: true,
+  };
 };
 
-const newEntryValue = (parent: string, start_time: string) =>
-  _newEntryValue(parent, start_time);
-
-const _newEntryValue = (parent: null | string, start_time: string) => {
+const newEntryValueOf = (parent: null | string, start_time: string) => {
   return {
     done: [] as string[],
     dont: [] as string[],
@@ -604,24 +236,347 @@ const _newEntryValue = (parent: null | string, start_time: string) => {
   };
 };
 
-const emptyStateOf = () => {
-  const root = "root";
-  const kvs = {
-    root: _newEntryValue(null, root),
-  };
+const doLoad = createAsyncThunk("doLoad", async () => {
+  const resp = await fetch("api/" + API_VERSION + "/get");
+  const data: null | IData = await resp.json();
+  if (data === null) {
+    return null;
+  }
+  const caches: ICaches = {};
+  for (const k of Object.keys(data.kvs)) {
+    setCache(caches, k, data.kvs);
+  }
   return {
-    data: {
-      current_entry: null,
-      root,
-      kvs,
-      queue: [],
-      showTodoOnly: false,
-      version: 5,
-    },
-    caches: setCache({}, root, kvs),
+    data,
+    caches,
     saveSuccess: true,
   };
-};
+});
+
+const eval_ = register_history_type(createAction<string>("eval_"));
+const delete_ = register_save_type(
+  register_history_type(createAction<string>("delete_")),
+);
+const new_ = register_save_type(
+  register_history_type(createAction<string>("new_")),
+);
+const setSaveSuccess = createAction<boolean>("setSaveSuccess");
+const flipShowTodoOnly = register_save_type(
+  register_history_type(createAction("flipShowTodoOnly")),
+);
+const flipShowDetail = register_save_type(
+  register_history_type(createAction<string>("flipShowDetail")),
+);
+const start = register_save_type(
+  register_history_type(createAction<string>("start")),
+);
+const top = register_save_type(
+  register_history_type(createAction<string>("top")),
+);
+const smallestToTop = register_save_type(
+  register_history_type(createAction("smallestToTop")),
+);
+const closestToTop = register_save_type(
+  register_history_type(createAction("closestToTop")),
+);
+const stop = register_save_type(register_history_type(createAction("stop")));
+const moveUp_ = register_save_type(
+  register_history_type(createAction<string>("moveUp_")),
+);
+const moveDown_ = register_save_type(
+  register_history_type(createAction<string>("moveDown_")),
+);
+const unindent = register_save_type(
+  register_history_type(createAction<string>("unindent")),
+);
+const indent = register_save_type(
+  register_history_type(createAction<string>("indent")),
+);
+const setEstimate = register_save_type(
+  register_history_type(
+    createAction<{
+      k: string;
+      estimate: number;
+    }>("setEstimate"),
+  ),
+);
+const setLastRange_ = register_save_type(
+  register_history_type(
+    createAction<{
+      k: string;
+      t: number;
+    }>("setLastRange_"),
+  ),
+);
+const setTextAndResizeTextArea = register_save_type(
+  register_history_type(
+    createAction<{
+      k: string;
+      text: string;
+      width: null | string;
+      height: null | string;
+    }>("setTextAndResizeTextArea"),
+  ),
+);
+const todoToDone = register_save_type(
+  register_history_type(createAction<string>("todoToDone")),
+);
+const todoToDont = register_save_type(
+  register_history_type(createAction<string>("todoToDont")),
+);
+const doneToTodo = register_save_type(
+  register_history_type(createAction<string>("doneToTodo")),
+);
+const dontToTodo = register_save_type(
+  register_history_type(createAction<string>("dontToTodo")),
+);
+
+const rootReducer = createReducer(emptyStateOf(), (builder) => {
+  const ac = builder.addCase;
+  ac(eval_, (state, action) => {
+    const k = action.payload;
+    _eval_(state, k);
+  });
+  ac(delete_, (state, action) => {
+    const k = action.payload;
+    if (state.data.kvs[k].todo.length === 0) {
+      _rmTodoEntry(state, k);
+      deleteAtVal(state.data.queue, k);
+      delete state.data.kvs[k];
+      delete state.caches[k];
+      if (state.data.current_entry === k) {
+        state.data.current_entry = null;
+      }
+    }
+  });
+  ac(new_, (state, action) => {
+    const parent = action.payload;
+    const k = new Date().toISOString();
+    const v = newEntryValueOf(parent, k);
+    state.data.kvs[k] = v;
+    state.data.kvs[parent].todo.unshift(k);
+    state.data.queue.push(k);
+    setCache(state.caches, k, state.data.kvs);
+  });
+  ac(setSaveSuccess, (state, action) => {
+    state.saveSuccess = action.payload;
+  });
+  // todo: Handle doLoad.rejected.
+  ac(doLoad.fulfilled, (state, action) => {
+    if (action.payload !== null) {
+      state = action.payload;
+    }
+    return state;
+  });
+  ac(flipShowTodoOnly, (state, action) => {
+    state.data.showTodoOnly = !state.data.showTodoOnly;
+  });
+  ac(flipShowDetail, (state, action) => {
+    const k = action.payload;
+    state.data.kvs[k].show_detail = !state.data.kvs[k].show_detail;
+  });
+  ac(start, (state, action) => {
+    const k = action.payload;
+    if (k !== state.data.current_entry) {
+      switch (state.data.kvs[k].status) {
+        case "done":
+          _doneToTodo(state, k);
+          break;
+        case "dont":
+          _dontToTodo(state, k);
+          break;
+      }
+      _top(state, k);
+      assert(state.data.kvs[k].status === "todo", "Must not happen");
+      _stop(state);
+      state.data.current_entry = k;
+      state.data.kvs[k].ranges.push({
+        start: Number(new Date()) / 1000,
+        end: null,
+      });
+    }
+  });
+  ac(top, (state, action) => {
+    _top(state, action.payload);
+  });
+  ac(smallestToTop, (state, action) => {
+    let k_min = null;
+    let estimate_min = Infinity;
+    for (const k in state.data.kvs) {
+      const v = state.data.kvs[k];
+      if (
+        v.status === "todo" &&
+        v.todo.length <= 0 &&
+        0 < v.estimate &&
+        v.estimate < estimate_min
+      ) {
+        k_min = k;
+        estimate_min = v.estimate;
+      }
+    }
+    if (k_min !== null) {
+      _top(state, k_min);
+    }
+  });
+  ac(closestToTop, (state, action) => {
+    let k_min = null;
+    let due_min = ":due: 9999-12-31T23:59:59";
+    for (let k in state.data.kvs) {
+      let v = state.data.kvs[k];
+      if (v.status === "todo" && v.todo.length <= 0) {
+        while (true) {
+          let due = null;
+          for (const w of v.text.split("\n")) {
+            if (w.startsWith(":due: ")) {
+              due = w;
+            }
+          }
+          if (due !== null) {
+            if (due < due_min) {
+              k_min = k;
+              due_min = due;
+            }
+            break;
+          }
+          if (v.parent === null) {
+            break;
+          }
+          k = v.parent;
+          v = state.data.kvs[k];
+        }
+      }
+    }
+    if (k_min !== null) {
+      _top(
+        state,
+        leafs(state.data.kvs[k_min], state.data.kvs)[Symbol.iterator]().next()
+          .value.start_time,
+      );
+    }
+  });
+  ac(stop, (state, action) => {
+    _stop(state);
+  });
+  ac(moveUp_, (state, action) => {
+    const k = action.payload;
+    const pk = state.data.kvs[k].parent;
+    if (pk) {
+      moveUp(state.data.kvs[pk].todo, k);
+      moveUp(state.data.queue, k);
+    }
+  });
+  ac(moveDown_, (state, action) => {
+    const k = action.payload;
+    const pk = state.data.kvs[k].parent;
+    if (pk) {
+      moveDown(state.data.kvs[pk].todo, k);
+      moveDown(state.data.queue, k);
+    }
+  });
+  ac(unindent, (state, action) => {
+    const k = action.payload;
+    const pk = state.data.kvs[k].parent;
+    if (pk !== null) {
+      const ppk = state.data.kvs[pk].parent;
+      if (ppk !== null) {
+        const _total_time_spent_pk_orig = state.caches[pk].total_time_spent;
+        const _total_time_spent_ppk_orig = state.caches[ppk].total_time_spent;
+        _rmTodoEntry(state, k);
+        const entries = state.data.kvs[ppk].todo;
+        const i = entries.indexOf(pk);
+        assert(i !== -1, "Must not happen.");
+        _addTodoEntry(state, ppk, i, k);
+        assertIsApprox(
+          _total_time_spent_pk_orig - state.caches[pk].total_time_spent,
+          state.caches[k].total_time_spent,
+        );
+        if (_total_time_spent_ppk_orig !== null) {
+          assertIsApprox(
+            _total_time_spent_ppk_orig,
+            state.caches[ppk].total_time_spent,
+          );
+        }
+      }
+    }
+  });
+  ac(indent, (state, action) => {
+    const k = action.payload;
+    const pk = state.data.kvs[k].parent;
+    if (pk) {
+      const entries = state.data.kvs[pk].todo;
+      if (last(entries) !== k) {
+        const i = entries.indexOf(k);
+        const new_pk = entries[i + 1];
+        const total_time_spent_new_pk_orig =
+          state.caches[new_pk].total_time_spent;
+        const total_time_spent_k = state.caches[k].total_time_spent;
+        _rmTodoEntry(state, k);
+        _addTodoEntry(state, new_pk, 0, k);
+        assertIsApprox(
+          state.caches[new_pk].total_time_spent,
+          total_time_spent_new_pk_orig + total_time_spent_k,
+        );
+      }
+    }
+  });
+  ac(setEstimate, (state, action) => {
+    const k = action.payload.k;
+    const estimate = action.payload.estimate;
+    if (state.data.kvs[k].estimate !== estimate) {
+      state.data.kvs[k].estimate = estimate;
+    }
+  });
+  ac(setLastRange_, (state, action) => {
+    const k = action.payload.k;
+    const t = action.payload.t;
+    const l = lastRangeOf(state.data.kvs[k].ranges);
+    if (l !== null && l.end) {
+      const t1 = l.end - l.start;
+      const t2 = t * 3600;
+      const dt = t2 - t1;
+      if (dt !== 0) {
+        l.end = l.start + t2;
+        _addDt(state, k, dt);
+      }
+    }
+  });
+  ac(setTextAndResizeTextArea, (state, action) => {
+    const k = action.payload.k;
+    const text = action.payload.text;
+    const width = action.payload.width;
+    const height = action.payload.height;
+    const v = state.data.kvs[k];
+    v.text = text;
+    if (width !== null && height !== null) {
+      // if (v.style.width !== width) {
+      //   v.style.width = width;
+      // }
+      if (v.style.height !== height) {
+        v.style.height = height;
+      }
+    }
+  });
+  ac(todoToDone, (state, action) => {
+    const k = action.payload;
+    _rmFromTodo(state, k);
+    _addToDone(state, k);
+    _topQueue(state, k);
+  });
+  ac(todoToDont, (state, action) => {
+    const k = action.payload;
+    _rmFromTodo(state, k);
+    _addToDont(state, k);
+    _topQueue(state, k);
+  });
+  ac(doneToTodo, (state, action) => {
+    const k = action.payload;
+    _doneToTodo(state, k);
+  });
+  ac(dontToTodo, (state, action) => {
+    const k = action.payload;
+    _dontToTodo(state, k);
+  });
+});
 
 const App = () => {
   const root = useSelector((state) => state.data.root);
@@ -640,22 +595,22 @@ const Menu = () => {
   const saveSuccess = useSelector((state) => state.saveSuccess);
   const root = useSelector((state) => state.data.root);
   const dispatch = useDispatch();
-  const undo = useCallback(() => {
+  const _undo = useCallback(() => {
     dispatch({ type: "undo" });
   }, [dispatch]);
-  const redo = useCallback(() => {
+  const _redo = useCallback(() => {
     dispatch({ type: "redo" });
   }, [dispatch]);
-  const flipShowTodoOnly = useCallback(() => {
-    dispatch({ type: "flipShowTodoOnly" });
+  const _flipShowTodoOnly = useCallback(() => {
+    dispatch(flipShowTodoOnly());
   }, [dispatch]);
-  const smallestToTop = useCallback(() => {
-    dispatch({ type: "smallestToTop" });
+  const _smallestToTop = useCallback(() => {
+    dispatch(smallestToTop());
   }, [dispatch]);
-  const closestToTop = useCallback(() => {
-    dispatch({ type: "closestToTop" });
+  const _closestToTop = useCallback(() => {
+    dispatch(closestToTop());
   }, [dispatch]);
-  const load = useCallback(() => {
+  const _load = useCallback(() => {
     dispatch(doLoad());
   }, [dispatch]);
 
@@ -665,37 +620,15 @@ const Menu = () => {
       <div>
         {stopButtonOf(dispatch, root)}
         {newButtonOf(dispatch, root)}
-        <button onClick={undo}>{UNDO_MARK}</button>
-        <button onClick={redo}>{REDO_MARK}</button>
-        <button onClick={flipShowTodoOnly}>👀</button>
-        <button onClick={smallestToTop}>Small</button>
-        <button onClick={closestToTop}>Due</button>
-        <button onClick={load}>⟳</button>
+        <button onClick={_undo}>{UNDO_MARK}</button>
+        <button onClick={_redo}>{REDO_MARK}</button>
+        <button onClick={_flipShowTodoOnly}>👀</button>
+        <button onClick={_smallestToTop}>Small</button>
+        <button onClick={_closestToTop}>Due</button>
+        <button onClick={_load}>⟳</button>
       </div>
     </div>
   );
-};
-
-const doLoad = () => (dispatch: ThunkDispatch<IState, void, TActions>) => {
-  fetch("api/" + API_VERSION + "/get")
-    .then((r) => r.json())
-    .then((data: null | IData) => {
-      if (data === null) {
-        return;
-      }
-      const caches: ICaches = {};
-      for (const k of Object.keys(data.kvs)) {
-        setCache(caches, k, data.kvs);
-      }
-      dispatch({
-        type: "setState",
-        payload: {
-          data,
-          caches,
-          saveSuccess: true,
-        },
-      });
-    });
 };
 
 const doFocusStopButton = (k: string) => () => {
@@ -722,12 +655,14 @@ const doFocusTextArea = (k: string) => () => {
   setTimeout(() => focus(textAreaRefOf(k).current), 50);
 };
 
-const setLastRange = (
-  dispatch: ThunkDispatch<IState, void, TActions>,
-  k: string,
-  t: number,
-) => {
-  dispatch({ type: "setLastRange", k, t });
+const setLastRange = (dispatch: AppDispatch, k: string, t: number) => {
+  dispatch({
+    type: "setLastRange",
+    payload: {
+      k,
+      t,
+    },
+  });
 };
 
 const _eval_ = (draft: Draft<IState>, k: string) => {
@@ -1311,215 +1246,187 @@ const toTreeButtonOf = memoize1((k: string) => (
   </a>
 ));
 
-const doneToTodoButtonOf = memoize2(
-  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
-    <button
-      className="done"
-      onClick={() => {
-        dispatch({ type: "doneToTodo", k });
-      }}
-    >
-      {DONE_MARK}
-    </button>
-  ),
-);
+const doneToTodoButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+  <button
+    className="done"
+    onClick={() => {
+      dispatch({ type: "doneToTodo", payload: k });
+    }}
+  >
+    {DONE_MARK}
+  </button>
+));
 
-const dontToTodoButtonOf = memoize2(
-  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
-    <button
-      className="dont"
-      onClick={() => {
-        dispatch({ type: "dontToTodo", k });
-      }}
-    >
-      {DONT_MARK}
-    </button>
-  ),
-);
+const dontToTodoButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+  <button
+    className="dont"
+    onClick={() => {
+      dispatch({ type: "dontToTodo", payload: k });
+    }}
+  >
+    {DONT_MARK}
+  </button>
+));
 
-const newButtonOf = memoize2(
-  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => {
-    const _focusTextAreaOfTheFirsttodo = (
-      dispatch: ThunkDispatch<IState, void, TActions>,
-      getState: () => IState,
-    ) => {
-      dispatch(doFocusTextArea(getState().data.kvs[k].todo[0]));
-    };
-    return (
-      <button
-        onClick={() => {
-          dispatch({ type: "new_", parent: k });
-          dispatch(_focusTextAreaOfTheFirsttodo);
-        }}
-      >
-        {NEW_MARK}
-      </button>
-    );
-  },
-);
-
-const stopButtonOf = memoize2(
-  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
+const newButtonOf = memoize2((dispatch: AppDispatch, k: string) => {
+  const _focusTextAreaOfTheFirsttodo = (
+    dispatch: AppDispatch,
+    getState: () => IState,
+  ) => {
+    dispatch(doFocusTextArea(getState().data.kvs[k].todo[0]));
+  };
+  return (
     <button
       onClick={() => {
-        dispatch({ type: "stop" });
+        dispatch({ type: "new_", payload: k });
+        dispatch(_focusTextAreaOfTheFirsttodo);
       }}
-      ref={stopButtonRefOf(k)}
     >
-      {STOP_MARK}
+      {NEW_MARK}
     </button>
-  ),
-);
+  );
+});
 
-const startButtonOf = memoize2(
-  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
-    <button
-      onClick={() => {
-        dispatch({ type: "start", k });
-        dispatch(doFocusStopButton(k));
-      }}
-    >
-      {START_MARK}
-    </button>
-  ),
-);
+const stopButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+  <button
+    onClick={() => {
+      dispatch({ type: "stop" });
+    }}
+    ref={stopButtonRefOf(k)}
+  >
+    {STOP_MARK}
+  </button>
+));
 
-const topButtonOf = memoize2(
-  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
-    <button
-      onClick={() => {
-        dispatch({ type: "top", k });
-      }}
-    >
-      {TOP_MARK}
-    </button>
-  ),
-);
+const startButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+  <button
+    onClick={() => {
+      dispatch({ type: "start", payload: k });
+      dispatch(doFocusStopButton(k));
+    }}
+  >
+    {START_MARK}
+  </button>
+));
 
-const moveUpButtonOf = memoize2(
-  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
-    <button
-      onClick={() => {
-        dispatch({ type: "moveUp", k });
-        dispatch(doFocusMoveUpButton(k));
-      }}
-      ref={moveUpButtonRefOf(k)}
-    >
-      {MOVE_UP_MARK}
-    </button>
-  ),
-);
+const topButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+  <button
+    onClick={() => {
+      dispatch({ type: "top", payload: k });
+    }}
+  >
+    {TOP_MARK}
+  </button>
+));
 
-const moveDownButtonOf = memoize2(
-  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
-    <button
-      onClick={() => {
-        dispatch({ type: "moveDown", k });
-        dispatch(doFocusMoveDownButton(k));
-      }}
-      ref={moveDownButtonRefOf(k)}
-    >
-      {MOVE_DOWN_MARK}
-    </button>
-  ),
-);
+const moveUpButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+  <button
+    onClick={() => {
+      dispatch({ type: "moveUp", payload: k });
+      dispatch(doFocusMoveUpButton(k));
+    }}
+    ref={moveUpButtonRefOf(k)}
+  >
+    {MOVE_UP_MARK}
+  </button>
+));
 
-const todoToDoneButtonOf = memoize2(
-  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
-    <button
-      onClick={() => {
-        dispatch({ type: "todoToDone", k });
-      }}
-    >
-      {DONE_MARK}
-    </button>
-  ),
-);
+const moveDownButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+  <button
+    onClick={() => {
+      dispatch({ type: "moveDown", payload: k });
+      dispatch(doFocusMoveDownButton(k));
+    }}
+    ref={moveDownButtonRefOf(k)}
+  >
+    {MOVE_DOWN_MARK}
+  </button>
+));
 
-const todoToDontButtonOf = memoize2(
-  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
-    <button
-      onClick={() => {
-        dispatch({ type: "todoToDont", k });
-      }}
-    >
-      {DONT_MARK}
-    </button>
-  ),
-);
+const todoToDoneButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+  <button
+    onClick={() => {
+      dispatch({ type: "todoToDone", payload: k });
+    }}
+  >
+    {DONE_MARK}
+  </button>
+));
 
-const unindentButtonOf = memoize2(
-  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
-    <button
-      onClick={() => {
-        dispatch({ type: "unindent", k });
-        dispatch(doFocusUnindentButton(k));
-      }}
-      ref={unindentButtonRefOf(k)}
-    >
-      {UNINDENT_MARK}
-    </button>
-  ),
-);
+const todoToDontButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+  <button
+    onClick={() => {
+      dispatch({ type: "todoToDont", payload: k });
+    }}
+  >
+    {DONT_MARK}
+  </button>
+));
 
-const indentButtonOf = memoize2(
-  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
-    <button
-      onClick={() => {
-        dispatch({ type: "indent", k });
-        dispatch(doFocusIndentButton(k));
-      }}
-      ref={indentButtonRefOf(k)}
-    >
-      {INDENT_MARK}
-    </button>
-  ),
-);
+const unindentButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+  <button
+    onClick={() => {
+      dispatch({ type: "unindent", payload: k });
+      dispatch(doFocusUnindentButton(k));
+    }}
+    ref={unindentButtonRefOf(k)}
+  >
+    {UNINDENT_MARK}
+  </button>
+));
 
-const showDetailButtonOf = memoize2(
-  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
-    <button
-      onClick={() => {
-        dispatch({ type: "flipShowDetail", k });
-      }}
-    >
-      {DETAIL_MARK}
-    </button>
-  ),
-);
+const indentButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+  <button
+    onClick={() => {
+      dispatch({ type: "indent", payload: k });
+      dispatch(doFocusIndentButton(k));
+    }}
+    ref={indentButtonRefOf(k)}
+  >
+    {INDENT_MARK}
+  </button>
+));
 
-const deleteButtonOf = memoize2(
-  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
-    <button
-      onClick={() => {
-        dispatch({ type: "delete_", k });
-      }}
-    >
-      {DELETE_MARK}
-    </button>
-  ),
-);
+const showDetailButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+  <button
+    onClick={() => {
+      dispatch({ type: "flipShowDetail", payload: k });
+    }}
+  >
+    {DETAIL_MARK}
+  </button>
+));
 
-const evalButtonOf = memoize2(
-  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
-    <button
-      onClick={() => {
-        dispatch({ type: "eval_", k });
-      }}
-    >
-      {EVAL_MARK}
-    </button>
-  ),
-);
+const deleteButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+  <button
+    onClick={() => {
+      dispatch({ type: "delete_", payload: k });
+    }}
+  >
+    {DELETE_MARK}
+  </button>
+));
+
+const evalButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+  <button
+    onClick={() => {
+      dispatch({ type: "eval_", payload: k });
+    }}
+  >
+    {EVAL_MARK}
+  </button>
+));
 
 const setEstimateOf = memoize2(
-  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
+  (dispatch: AppDispatch, k: string) => (
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     dispatch({
       type: "setEstimate",
-      k,
-      estimate: Number(e.target.value),
+      payload: {
+        k,
+        estimate: Number(e.target.value),
+      },
     });
   },
 );
@@ -1542,7 +1449,7 @@ const EstimationInput = (props: { k: string }) => {
 };
 
 const setLastRangeOf = memoize2(
-  (dispatch: ThunkDispatch<IState, void, TActions>, k: string) => (
+  (dispatch: AppDispatch, k: string) => (
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     setLastRange(dispatch, k, Number(e.target.value));
@@ -1584,10 +1491,12 @@ const TextArea = (props: { k: string }) => {
       const h = getAndSetHeight(el);
       dispatch({
         type: "setTextAndResizeTextArea",
-        k: props.k,
-        text: el.value,
-        width: el.style.width,
-        height: h,
+        payload: {
+          k: props.k,
+          text: el.value,
+          width: el.style.width,
+          height: h,
+        },
       });
     },
     [dispatch, props.k],
@@ -1644,24 +1553,14 @@ const LastRange = (props: { k: string }) => {
   );
 };
 
-interface IUndoAction extends Action {
-  type: "undo";
-}
-
-interface IRedoAction extends Action {
-  type: "redo";
-}
-
 const undoable = (
-  reducer: (state: undefined | IState, action: TActions) => IState,
-  noop: TActions,
+  reducer: (state: undefined | IState, action: AnyPayloadAction) => IState,
+  noop: AnyPayloadAction,
+  pred: (type_: string) => boolean,
 ) => {
   const init = reducer(undefined, noop);
   const history = new History<IState>(init);
-  return (
-    state: undefined | IState,
-    action: IUndoAction | IRedoAction | TActions,
-  ) => {
+  return (state: undefined | IState, action: AnyPayloadAction) => {
     if (state === undefined) {
       return init;
     }
@@ -1682,47 +1581,61 @@ const undoable = (
       }
       default: {
         const next = reducer(state, action);
-        history.push(next);
+        if (pred(action.type)) {
+          history.push(next);
+        }
         return next;
       }
     }
   };
 };
+register_save_type("undo");
+register_save_type("redo");
 
-const saveStateMiddleware: Middleware<{}, IState> = (store) => (dispatch) => (
-  action,
-) => {
-  const ret = dispatch(action);
-  fetch("api/" + API_VERSION + "/post", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-    },
-    body: JSON.stringify(store.getState().data),
-  }).then((r) => {
-    // If you use `store.dispatch` here, the save operation will be repeted infinitely.
-    dispatch({
-      type: "setSaveSuccess",
-      payload: r.ok,
-    });
-  });
-  return ret;
+const saveStateMiddlewareOf = (pred: (type_: string) => boolean) => {
+  const saveStateMiddleware: Middleware<{}, IState> = (store) => (
+    next_dispatch,
+  ) => (action) => {
+    const ret = next_dispatch(action);
+    if (pred(action.type)) {
+      fetch("api/" + API_VERSION + "/post", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+        },
+        body: JSON.stringify(store.getState().data),
+      }).then((r) => {
+        store.dispatch(setSaveSuccess(r.ok));
+      });
+    }
+    return ret;
+  };
+  return saveStateMiddleware;
 };
-
-const store = createStore(
-  undoable(root_reducer, {
-    type: "flipShowTodoOnly",
-  }),
-  applyMiddleware(
-    thunk as ThunkMiddleware<IState, TActions>,
-    saveStateMiddleware,
-  ),
+const saveStateMiddleware = saveStateMiddlewareOf((type_: string) =>
+  history_type_set.has(type_),
 );
 
+const store = configureStore({
+  reducer: undoable(
+    rootReducer,
+    {
+      type: "flipShowTodoOnly",
+    },
+    (type_: string) => history_type_set.has(type_),
+  ),
+  middleware: (getDefaultMiddleware) => {
+    return getDefaultMiddleware({
+      serializableCheck: false,
+      immutableCheck: false,
+    }).concat(saveStateMiddleware);
+  },
+});
+
 const useDispatch = () => _useDispatch<typeof store.dispatch>();
-const useSelector: TypedUseSelectorHook<ReturnType<
-  typeof store.getState
->> = _useSelector;
+const useSelector: TypedUseSelectorHook<
+  ReturnType<typeof store.getState>
+> = _useSelector;
 
 export const main = () => {
   ReactDOM.render(
