@@ -387,7 +387,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
           break;
       }
       _top(state, k);
-      assert(state.data.kvs[k].status === "todo", "Must not happen");
+      assert(() => [state.data.kvs[k].status === "todo", "Must not happen"]);
       _stop(state);
       state.data.current_entry = k;
       state.data.kvs[k].ranges.push({
@@ -484,17 +484,17 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
         _rmTodoEntry(state, k);
         const entries = state.data.kvs[ppk].todo;
         const i = entries.indexOf(pk);
-        assert(i !== -1, "Must not happen.");
+        assert(() => [i !== -1, "Must not happen."]);
         _addTodoEntry(state, ppk, i, k);
-        assertIsApprox(
+        assertIsApprox(() => [
           _total_time_spent_pk_orig - state.caches[pk].total_time_spent,
           state.caches[k].total_time_spent,
-        );
+        ]);
         if (_total_time_spent_ppk_orig !== null) {
-          assertIsApprox(
+          assertIsApprox(() => [
             _total_time_spent_ppk_orig,
             state.caches[ppk].total_time_spent,
-          );
+          ]);
         }
       }
     }
@@ -512,10 +512,10 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
         const total_time_spent_k = state.caches[k].total_time_spent;
         _rmTodoEntry(state, k);
         _addTodoEntry(state, new_pk, 0, k);
-        assertIsApprox(
+        assertIsApprox(() => [
           state.caches[new_pk].total_time_spent,
           total_time_spent_new_pk_orig + total_time_spent_k,
-        );
+        ]);
       }
     }
   });
@@ -1168,7 +1168,7 @@ export function* multinomial<T>(xs: T[], ws: number[]) {
     }
   }
   // todo: For the stricter generators introduced in TypeScript version 3.6.
-  assert(false, "Must not happen.");
+  assert(() => [false, "Must not happen."]);
   return 0;
 }
 
@@ -1180,12 +1180,16 @@ const isApprox = (x: number, y: number) => {
   );
 };
 
-const assertIsApprox = (actual: number, expected: number) => {
-  assert(isApprox(actual, expected), actual + " ≉ " + expected);
+const assertIsApprox = (fn: () => [number, number]) => {
+  assert(() => {
+    const [actual, expected] = fn();
+    return [isApprox(actual, expected), actual + " ≉ " + expected];
+  });
 };
 
-const assert = (v: boolean, msg: string) => {
+const assert = (fn: () => [boolean, string]) => {
   if ("production" !== process.env.NODE_ENV) {
+    const [v, msg] = fn();
     if (!v) {
       throw new Error(msg);
     }
