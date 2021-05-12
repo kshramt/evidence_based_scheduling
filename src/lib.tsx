@@ -13,6 +13,7 @@ import {
   createAction,
   createAsyncThunk,
   createReducer,
+  createSelector,
 } from "@reduxjs/toolkit";
 import produce, { Draft } from "immer";
 
@@ -584,9 +585,7 @@ const App = () => {
     <div id="columns">
       <Menu />
       <QueueColumn />
-      <div id="tree">
-        <Node k={root} />
-      </div>
+      <div id="tree">{NodeOf(root)}</div>
     </div>
   );
 };
@@ -846,17 +845,35 @@ const _addToDont = (draft: Draft<IState>, k: string) => {
   }
 };
 
+const memoize1 = <A, R>(fn: (a: A) => R) => {
+  const cache = new Map<A, R>();
+  return (a: A) => {
+    if (!cache.has(a)) {
+      cache.set(a, fn(a));
+    }
+    return cache.get(a) as R;
+  };
+};
+
+const memoize2 = <A, B, R>(fn: (a: A, b: B) => R) => {
+  const cache = new Map<A, Map<B, R>>();
+  return (a: A, b: B) => {
+    if (!cache.has(a)) {
+      cache.set(a, new Map<B, R>());
+    }
+    const c = cache.get(a) as Map<B, R>;
+    if (!c.has(b)) {
+      c.set(b, fn(a, b));
+    }
+    return c.get(b) as R;
+  };
+};
+
 const QueueColumn = () => {
   const queue = useSelector((state) => state.data.queue);
   return (
     <div id="queue">
-      {queue.length ? (
-        <ol>
-          {queue.map((k) => {
-            return <QueueNode k={k} key={k} />;
-          })}
-        </ol>
-      ) : null}
+      {queue.length ? <ol>{queue.map(QueueNodeOf)}</ol> : null}
     </div>
   );
 };
@@ -865,11 +882,7 @@ const List = React.memo((props: IListProps) => {
   return props.ks.length ? (
     <ol>
       {props.ks.map((k) => {
-        return (
-          <li key={k}>
-            <Node k={k} />
-          </li>
-        );
+        return <li key={k}>{NodeOf(k)}</li>;
       })}
     </ol>
   ) : null;
@@ -889,6 +902,9 @@ const Node = (props: { k: string }) => {
       {showTodoOnly ? null : <List ks={dont} />}
     </>
   );
+};
+const NodeOf = (k: string) => {
+  return <Node k={k} />;
 };
 
 const QueueNode = (props: { k: string }) => {
@@ -912,7 +928,7 @@ const QueueNode = (props: { k: string }) => {
   });
   const dispatch = useDispatch();
   return shouldHide ? null : (
-    <li key={props.k}>
+    <li>
       <div
         id={`queue${props.k}`}
         className={running ? `${status} running` : status}
@@ -961,6 +977,9 @@ const QueueNode = (props: { k: string }) => {
     </li>
   );
 };
+const QueueNodeOf = memoize1((k: string) => {
+  return <QueueNode k={k} key={k} />;
+});
 
 const Entry = (props: { k: string }) => {
   const status = useSelector((state) => state.data.kvs[props.k].status);
@@ -1194,30 +1213,6 @@ const assert = (fn: () => [boolean, string]) => {
       throw new Error(msg);
     }
   }
-};
-
-const memoize1 = <A, R>(fn: (a: A) => R) => {
-  const cache = new Map<A, R>();
-  return (a: A) => {
-    if (!cache.has(a)) {
-      cache.set(a, fn(a));
-    }
-    return cache.get(a) as R;
-  };
-};
-
-const memoize2 = <A, B, R>(fn: (a: A, b: B) => R) => {
-  const cache = new Map<A, Map<B, R>>();
-  return (a: A, b: B) => {
-    if (!cache.has(a)) {
-      cache.set(a, new Map<B, R>());
-    }
-    const c = cache.get(a) as Map<B, R>;
-    if (!c.has(b)) {
-      c.set(b, fn(a, b));
-    }
-    return c.get(b) as R;
-  };
 };
 
 const stopButtonRefOf = memoize1((_: string) =>
