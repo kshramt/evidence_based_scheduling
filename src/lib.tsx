@@ -46,8 +46,6 @@ type AnyPayloadAction =
       readonly payload: any;
     };
 
-type AppDispatch = ThunkDispatch<IState, void, AnyPayloadAction>;
-
 type TStatus = "done" | "dont" | "todo";
 
 interface IListProps {
@@ -1631,10 +1629,10 @@ const store = configureStore({
   },
 });
 
-const useDispatch = () => _useDispatch<typeof store.dispatch>();
-const useSelector: TypedUseSelectorHook<
-  ReturnType<typeof store.getState>
-> = _useSelector;
+type RootState = ReturnType<typeof store.getState>;
+type AppDispatch = typeof store.dispatch;
+const useDispatch = () => _useDispatch<AppDispatch>();
+const useSelector: TypedUseSelectorHook<RootState> = _useSelector;
 
 export const main = () => {
   ReactDOM.render(
