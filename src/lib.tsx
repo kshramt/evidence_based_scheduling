@@ -1319,7 +1319,7 @@ const topButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const moveUpButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "moveUp", payload: k });
+      dispatch({ type: "moveUp_", payload: k });
       dispatch(doFocusMoveUpButton(k));
     }}
     ref={moveUpButtonRefOf(k)}
@@ -1331,7 +1331,7 @@ const moveUpButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const moveDownButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "moveDown", payload: k });
+      dispatch({ type: "moveDown_", payload: k });
       dispatch(doFocusMoveDownButton(k));
     }}
     ref={moveDownButtonRefOf(k)}
