@@ -654,7 +654,7 @@ const doFocusTextArea = (k: string) => () => {
 
 const setLastRange = (dispatch: AppDispatch, k: string, t: number) => {
   dispatch({
-    type: "setLastRange",
+    type: "setLastRange_",
     payload: {
       k,
       t,
