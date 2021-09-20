@@ -7,7 +7,6 @@ import {
   useSelector as _useSelector,
 } from "react-redux";
 import { Middleware } from "redux";
-import { ThunkDispatch } from "redux-thunk";
 import {
   configureStore,
   createAction,
@@ -49,7 +48,7 @@ type AnyPayloadAction =
 type TStatus = "done" | "dont" | "todo";
 
 interface IListProps {
-  readonly ks: string[];
+  readonly node_id_list: string[];
 }
 
 interface IState {
@@ -57,6 +56,7 @@ interface IState {
   readonly caches: ICaches;
 
   readonly saveSuccess: boolean;
+  readonly experimental_focus: string;
 }
 
 interface IData {
@@ -215,6 +215,7 @@ const emptyStateOf = (): IState => {
     },
     caches: setCache({}, root, kvs),
     saveSuccess: true,
+    experimental_focus: root,
   };
 };
 
@@ -249,6 +250,7 @@ const doLoad = createAsyncThunk("doLoad", async () => {
     data,
     caches,
     saveSuccess: true,
+    experimental_focus: data.root,
   };
 });
 
@@ -328,6 +330,9 @@ const doneToTodo = register_save_type(
 );
 const dontToTodo = register_save_type(
   register_history_type(createAction<string>("dontToTodo")),
+);
+const set_experimental_focus = register_save_type(
+  register_history_type(createAction<string>("set_experimental_focus")),
 );
 
 const rootReducer = createReducer(emptyStateOf(), (builder) => {
@@ -575,15 +580,18 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     const k = action.payload;
     _dontToTodo(state, k);
   });
+  ac(set_experimental_focus, (state, action) => {
+    state.experimental_focus = action.payload;
+  });
 });
 
 const App = () => {
-  const root = useSelector((state) => state.data.root);
+  const experimental_focus = useSelector((state) => state.experimental_focus);
   return (
     <div id="columns">
       <Menu />
       <QueueColumn />
-      <div id="tree">{NodeOf(root)}</div>
+      <div id="tree">{Node1HopOf(experimental_focus)}</div>
     </div>
   );
 };
@@ -653,13 +661,12 @@ const doFocusTextArea = (k: string) => () => {
 };
 
 const setLastRange = (dispatch: AppDispatch, k: string, t: number) => {
-  dispatch({
-    type: "setLastRange",
-    payload: {
+  dispatch(
+    setLastRange_({
       k,
       t,
-    },
-  });
+    }),
+  );
 };
 
 const _eval_ = (draft: Draft<IState>, k: string) => {
@@ -876,33 +883,70 @@ const QueueColumn = () => {
   );
 };
 
-const List = React.memo((props: IListProps) => {
-  return props.ks.length ? (
+const List1Hop = (props: IListProps) => {
+  return props.node_id_list.length ? (
     <ol>
-      {props.ks.map((k) => {
-        return <li key={k}>{NodeOf(k)}</li>;
+      {props.node_id_list.map((node_id) => {
+        return (
+          <li key={node_id}>
+            <Entry node_id={node_id} />
+          </li>
+        );
+      })}
+    </ol>
+  ) : null;
+};
+
+const List = React.memo((props: IListProps) => {
+  return props.node_id_list.length ? (
+    <ol>
+      {props.node_id_list.map((node_id) => {
+        return <li key={node_id}>{NodeOf(node_id)}</li>;
       })}
     </ol>
   ) : null;
 });
 
-const Node = (props: { k: string }) => {
-  const todo = useSelector((state) => state.data.kvs[props.k].todo);
-  const done = useSelector((state) => state.data.kvs[props.k].done);
-  const dont = useSelector((state) => state.data.kvs[props.k].dont);
+const Node1Hop = (props: { node_id: string }) => {
+  const parent = useSelector((state) => state.data.kvs[props.node_id].parent);
+  const todo = useSelector((state) => state.data.kvs[props.node_id].todo);
+  const done = useSelector((state) => state.data.kvs[props.node_id].done);
+  const dont = useSelector((state) => state.data.kvs[props.node_id].dont);
   const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
 
   return (
     <>
-      <Entry k={props.k} />
-      <List ks={todo} />
-      {showTodoOnly ? null : <List ks={done} />}
-      {showTodoOnly ? null : <List ks={dont} />}
+      {parent ? <Entry node_id={parent} /> : null}
+      <hr />
+      <Entry node_id={props.node_id} />
+      <hr />
+      <List1Hop node_id_list={todo} />
+      {showTodoOnly ? null : <List1Hop node_id_list={done} />}
+      {showTodoOnly ? null : <List1Hop node_id_list={dont} />}
     </>
   );
 };
-const NodeOf = (k: string) => {
-  return <Node k={k} />;
+const Node1HopOf = (node_id: string) => {
+  return <Node1Hop node_id={node_id} />;
+};
+
+const Node = (props: { node_id: string }) => {
+  const todo = useSelector((state) => state.data.kvs[props.node_id].todo);
+  const done = useSelector((state) => state.data.kvs[props.node_id].done);
+  const dont = useSelector((state) => state.data.kvs[props.node_id].dont);
+  const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
+
+  return (
+    <>
+      <Entry node_id={props.node_id} />
+      <List node_id_list={todo} />
+      {showTodoOnly ? null : <List node_id_list={done} />}
+      {showTodoOnly ? null : <List node_id_list={dont} />}
+    </>
+  );
+};
+const NodeOf = (node_id: string) => {
+  return <Node node_id={node_id} />;
 };
 
 const QueueNode = (props: { k: string }) => {
@@ -979,62 +1023,68 @@ const QueueNodeOf = memoize1((k: string) => {
   return <QueueNode k={k} key={k} />;
 });
 
-const Entry = (props: { k: string }) => {
-  const status = useSelector((state) => state.data.kvs[props.k].status);
-  const parent = useSelector((state) => state.data.kvs[props.k].parent);
+const Entry = (props: { node_id: string }) => {
+  const status = useSelector((state) => state.data.kvs[props.node_id].status);
+  const parent = useSelector((state) => state.data.kvs[props.node_id].parent);
   const show_detail = useSelector(
-    (state) => state.data.kvs[props.k].show_detail,
+    (state) => state.data.kvs[props.node_id].show_detail,
   );
-  const cache = useSelector((state) => state.caches[props.k]);
-  const running = useSelector((state) => props.k === state.data.current_entry);
+  const cache = useSelector((state) => state.caches[props.node_id]);
+  const running = useSelector(
+    (state) => props.node_id === state.data.current_entry,
+  );
   const noTodo = useSelector(
-    (state) => state.data.kvs[props.k].todo.length === 0,
+    (state) => state.data.kvs[props.node_id].todo.length === 0,
   );
   const showDeleteButton = useSelector((state) => {
-    const v = state.data.kvs[props.k];
+    const v = state.data.kvs[props.node_id];
     return v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0;
   });
   const dispatch = useDispatch();
   return (
     <div
-      id={`tree${props.k}`}
+      id={`tree${props.node_id}`}
       className={running ? `${status} running` : status}
     >
       {parent ? (
         <>
           {status === "todo"
-            ? newButtonOf(dispatch, props.k)
+            ? newButtonOf(dispatch, props.node_id)
             : status === "done"
-            ? doneToTodoButtonOf(dispatch, props.k)
-            : dontToTodoButtonOf(dispatch, props.k)}
-          <TextArea k={props.k} />
-          {EstimationInputOf(props.k)}
+            ? doneToTodoButtonOf(dispatch, props.node_id)
+            : dontToTodoButtonOf(dispatch, props.node_id)}
+          <TextArea k={props.node_id} />
+          {EstimationInputOf(props.node_id)}
           {running
-            ? stopButtonOf(dispatch, props.k)
-            : startButtonOf(dispatch, props.k)}
+            ? stopButtonOf(dispatch, props.node_id)
+            : startButtonOf(dispatch, props.node_id)}
         </>
       ) : null}
       {digits1(cache.total_time_spent / 3600)}
-      {parent && status === "todo" ? topButtonOf(dispatch, props.k) : null}
-      {status === "todo" ? evalButtonOf(dispatch, props.k) : null}
+      {parent && status === "todo"
+        ? topButtonOf(dispatch, props.node_id)
+        : null}
+      {status === "todo" ? evalButtonOf(dispatch, props.node_id) : null}
       {parent ? (
         <>
           {noTodo && status === "todo" ? (
             <>
-              {todoToDoneButtonOf(dispatch, props.k)}
-              {todoToDontButtonOf(dispatch, props.k)}
+              {todoToDoneButtonOf(dispatch, props.node_id)}
+              {todoToDontButtonOf(dispatch, props.node_id)}
             </>
           ) : null}
-          {LastRangeOf(props.k)}
-          {showDetailButtonOf(dispatch, props.k)}
+          {LastRangeOf(props.node_id)}
+          {showDetailButtonOf(dispatch, props.node_id)}
           {show_detail ? (
             status === "todo" ? (
               <>
-                {moveUpButtonOf(dispatch, props.k)}
-                {moveDownButtonOf(dispatch, props.k)}
-                {unindentButtonOf(dispatch, props.k)}
-                {indentButtonOf(dispatch, props.k)}
-                {showDeleteButton ? deleteButtonOf(dispatch, props.k) : null}
+                {moveUpButtonOf(dispatch, props.node_id)}
+                {moveDownButtonOf(dispatch, props.node_id)}
+                {unindentButtonOf(dispatch, props.node_id)}
+                {indentButtonOf(dispatch, props.node_id)}
+                {showDeleteButton
+                  ? deleteButtonOf(dispatch, props.node_id)
+                  : null}
               </>
             ) : null
           ) : null}
@@ -1237,17 +1287,25 @@ const textAreaRefOf = memoize1((_: string) =>
   React.createRef<HTMLTextAreaElement>(),
 );
 
-const toTreeButtonOf = memoize1((k: string) => (
-  <a href={`#tree${k}`}>
-    <button>→</button>
-  </a>
-));
+const toTreeButtonOf = memoize1((node_id: string) => {
+  const dispatch = useDispatch();
+  return (
+    <a
+      href={`#tree${node_id}`}
+      onClick={() => {
+        dispatch(set_experimental_focus(node_id));
+      }}
+    >
+      <button>→</button>
+    </a>
+  );
+});
 
 const doneToTodoButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     className="done"
     onClick={() => {
-      dispatch({ type: "doneToTodo", payload: k });
+      dispatch(doneToTodo(k));
     }}
   >
     {DONE_MARK}
@@ -1258,7 +1316,7 @@ const dontToTodoButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     className="dont"
     onClick={() => {
-      dispatch({ type: "dontToTodo", payload: k });
+      dispatch(dontToTodo(k));
     }}
   >
     {DONT_MARK}
@@ -1275,7 +1333,7 @@ const newButtonOf = memoize2((dispatch: AppDispatch, k: string) => {
   return (
     <button
       onClick={() => {
-        dispatch({ type: "new_", payload: k });
+        dispatch(new_(k));
         dispatch(_focusTextAreaOfTheFirsttodo);
       }}
     >
@@ -1287,7 +1345,7 @@ const newButtonOf = memoize2((dispatch: AppDispatch, k: string) => {
 const stopButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "stop" });
+      dispatch(stop());
     }}
     ref={stopButtonRefOf(k)}
   >
@@ -1298,7 +1356,7 @@ const stopButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const startButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "start", payload: k });
+      dispatch(start(k));
       dispatch(doFocusStopButton(k));
     }}
   >
@@ -1309,7 +1367,7 @@ const startButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const topButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "top", payload: k });
+      dispatch(top(k));
     }}
   >
     {TOP_MARK}
@@ -1319,7 +1377,7 @@ const topButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const moveUpButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "moveUp", payload: k });
+      dispatch(moveUp_(k));
       dispatch(doFocusMoveUpButton(k));
     }}
     ref={moveUpButtonRefOf(k)}
@@ -1331,7 +1389,7 @@ const moveUpButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const moveDownButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "moveDown", payload: k });
+      dispatch(moveDown_(k));
       dispatch(doFocusMoveDownButton(k));
     }}
     ref={moveDownButtonRefOf(k)}
@@ -1343,7 +1401,7 @@ const moveDownButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const todoToDoneButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "todoToDone", payload: k });
+      dispatch(todoToDone(k));
     }}
   >
     {DONE_MARK}
@@ -1353,7 +1411,7 @@ const todoToDoneButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const todoToDontButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "todoToDont", payload: k });
+      dispatch(todoToDont(k));
     }}
   >
     {DONT_MARK}
@@ -1363,7 +1421,7 @@ const todoToDontButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const unindentButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "unindent", payload: k });
+      dispatch(unindent(k));
       dispatch(doFocusUnindentButton(k));
     }}
     ref={unindentButtonRefOf(k)}
@@ -1375,7 +1433,7 @@ const unindentButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const indentButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "indent", payload: k });
+      dispatch(indent(k));
       dispatch(doFocusIndentButton(k));
     }}
     ref={indentButtonRefOf(k)}
@@ -1387,7 +1445,7 @@ const indentButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const showDetailButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "flipShowDetail", payload: k });
+      dispatch(flipShowDetail(k));
     }}
   >
     {DETAIL_MARK}
@@ -1397,7 +1455,7 @@ const showDetailButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const deleteButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "delete_", payload: k });
+      dispatch(delete_(k));
     }}
   >
     {DELETE_MARK}
@@ -1407,7 +1465,7 @@ const deleteButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const evalButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "eval_", payload: k });
+      dispatch(eval_(k));
     }}
   >
     {EVAL_MARK}
@@ -1415,17 +1473,15 @@ const evalButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 ));
 
 const setEstimateOf = memoize2(
-  (dispatch: AppDispatch, k: string) => (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    dispatch({
-      type: "setEstimate",
-      payload: {
-        k,
-        estimate: Number(e.target.value),
-      },
-    });
-  },
+  (dispatch: AppDispatch, k: string) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      dispatch(
+        setEstimate({
+          k,
+          estimate: Number(e.target.value),
+        }),
+      );
+    },
 );
 
 const EstimationInputOf = memoize1((k: string) => <EstimationInput k={k} />);
@@ -1446,11 +1502,10 @@ const EstimationInput = (props: { k: string }) => {
 };
 
 const setLastRangeOf = memoize2(
-  (dispatch: AppDispatch, k: string) => (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    setLastRange(dispatch, k, Number(e.target.value));
-  },
+  (dispatch: AppDispatch, k: string) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setLastRange(dispatch, k, Number(e.target.value));
+    },
 );
 
 const TextArea = (props: { k: string }) => {
@@ -1486,15 +1541,14 @@ const TextArea = (props: { k: string }) => {
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       const el = e.target;
       const h = getAndSetHeight(el);
-      dispatch({
-        type: "setTextAndResizeTextArea",
-        payload: {
+      dispatch(
+        setTextAndResizeTextArea({
           k: props.k,
           text: el.value,
           width: el.style.width,
           height: h,
-        },
-      });
+        }),
+      );
     },
     [dispatch, props.k],
   );
@@ -1590,23 +1644,22 @@ register_save_type("undo");
 register_save_type("redo");
 
 const saveStateMiddlewareOf = (pred: (type_: string) => boolean) => {
-  const saveStateMiddleware: Middleware<{}, IState> = (store) => (
-    next_dispatch,
-  ) => (action) => {
-    const ret = next_dispatch(action);
-    if (pred(action.type)) {
-      fetch("api/" + API_VERSION + "/post", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-        },
-        body: JSON.stringify(store.getState().data),
-      }).then((r) => {
-        store.dispatch(setSaveSuccess(r.ok));
-      });
-    }
-    return ret;
-  };
+  const saveStateMiddleware: Middleware<{}, IState> =
+    (store) => (next_dispatch) => (action) => {
+      const ret = next_dispatch(action);
+      if (pred(action.type)) {
+        fetch("api/" + API_VERSION + "/post", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+          },
+          body: JSON.stringify(store.getState().data),
+        }).then((r) => {
+          store.dispatch(setSaveSuccess(r.ok));
+        });
+      }
+      return ret;
+    };
   return saveStateMiddleware;
 };
 const saveStateMiddleware = saveStateMiddlewareOf((type_: string) =>

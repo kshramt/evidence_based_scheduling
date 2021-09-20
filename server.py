@@ -1,9 +1,9 @@
 import datetime
 import json
 import os
+import urllib
 
 import flask
-
 
 LATEST_VERSION = 5
 
@@ -26,8 +26,13 @@ def jp(path, *more):
     'a'
     >>> jp("a", "/b", "c")
     'a/b/c'
+    >>> jp("gs://b", "c//d")
+    'gs://b/c/d'
     """
-    return os.path.normpath(os.path.sep.join((path, os.path.sep.join(more))))
+    puri = urllib.parse.urlparse(os.path.sep.join((path, os.path.sep.join(more))))
+    return urllib.parse.ParseResult(
+        **{**puri._asdict(), **dict(path=os.path.normpath(puri.path))}
+    ).geturl()
 
 
 DATA_DIR = os.environ.get("EBS_DATA_DIR", "data")
@@ -150,7 +155,7 @@ def get():
         data = _join_text_v1(data)
         data = _parse_datetime_v1(data)
     except IOError:
-        data = None;
+        data = None
     res = flask.make_response(flask.json.jsonify(data))
     res.headers["Cache-Control"] = "no-store"
     return res
