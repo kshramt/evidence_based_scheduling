@@ -1676,7 +1676,7 @@ const saveStateMiddlewareOf = (pred: (type_: string) => boolean) => {
   return saveStateMiddleware;
 };
 const saveStateMiddleware = saveStateMiddlewareOf((type_: string) =>
-  history_type_set.has(type_),
+  save_type_set.has(type_),
 );
 
 const store = configureStore({
