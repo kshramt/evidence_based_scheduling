@@ -56,7 +56,6 @@ interface IState {
   readonly caches: ICaches;
 
   readonly saveSuccess: boolean;
-  readonly experimental_focus: string;
 }
 
 interface IData {
@@ -65,6 +64,7 @@ interface IData {
   readonly kvs: IKvs;
   readonly queue: string[];
   readonly showTodoOnly: boolean;
+  readonly selected_node_id: string;
   readonly version: number;
 }
 
@@ -211,11 +211,11 @@ const emptyStateOf = (): IState => {
       kvs,
       queue: [],
       showTodoOnly: false,
+      selected_node_id: root,
       version: 5,
     },
     caches: setCache({}, root, kvs),
     saveSuccess: true,
-    experimental_focus: root,
   };
 };
 
@@ -250,7 +250,6 @@ const doLoad = createAsyncThunk("doLoad", async () => {
     data,
     caches,
     saveSuccess: true,
-    experimental_focus: data.root,
   };
 });
 
@@ -331,8 +330,8 @@ const doneToTodo = register_save_type(
 const dontToTodo = register_save_type(
   register_history_type(createAction<string>("dontToTodo")),
 );
-const set_experimental_focus = register_save_type(
-  register_history_type(createAction<string>("set_experimental_focus")),
+const set_selected_node_id = register_save_type(
+  register_history_type(createAction<string>("set_selected_node_id")),
 );
 
 const rootReducer = createReducer(emptyStateOf(), (builder) => {
@@ -580,18 +579,18 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     const k = action.payload;
     _dontToTodo(state, k);
   });
-  ac(set_experimental_focus, (state, action) => {
-    state.experimental_focus = action.payload;
+  ac(set_selected_node_id, (state, action) => {
+    state.data.selected_node_id = action.payload;
   });
 });
 
 const App = () => {
-  const experimental_focus = useSelector((state) => state.experimental_focus);
+  const selected_node_id = useSelector((state) => state.data.selected_node_id);
   return (
     <div id="columns">
       <Menu />
       <QueueColumn />
-      <div id="tree">{Node1HopOf(experimental_focus)}</div>
+      <div id="tree">{Node1HopOf(selected_node_id)}</div>
     </div>
   );
 };
@@ -1293,7 +1292,7 @@ const toTreeButtonOf = memoize1((node_id: string) => {
     <a
       href={`#tree${node_id}`}
       onClick={() => {
-        dispatch(set_experimental_focus(node_id));
+        dispatch(set_selected_node_id(node_id));
       }}
     >
       <button>→</button>

@@ -5,8 +5,6 @@ import urllib
 
 import flask
 
-LATEST_VERSION = 5
-
 
 class Err(Exception):
     pass
@@ -54,16 +52,24 @@ def _update_data_version(data):
     elif data["version"] == 4:
         return _update_data_version(_v5_of_v4(data))
     elif data["version"] == 5:
+        return _update_data_version(_v6_of_v5(data))
+    elif data["version"] == 6:
         return data
     else:
         raise Err(f"Unsupported data version: {data.get('version', 'None')}")
+
+
+def _v6_of_v5(data):
+    data["selected_node_id"] = data["root"]
+    data["version"] = 6
+    return data
 
 
 def _v5_of_v4(data):
     for k, v in data["kvs"].items():
         v["style"] = dict(width=v["width"], height=v["height"])
         del v["width"], v["height"]
-    data["version"] = LATEST_VERSION
+    data["version"] = 5
     return data
 
 
