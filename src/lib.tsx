@@ -38,12 +38,12 @@ const DETAIL_MARK = "⋮";
 
 type AnyPayloadAction =
   | {
-      readonly type: string;
-    }
+    readonly type: string;
+  }
   | {
-      readonly type: string;
-      readonly payload: any;
-    };
+    readonly type: string;
+    readonly payload: any;
+  };
 
 type TStatus = "done" | "dont" | "todo";
 
@@ -580,7 +580,9 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     _dontToTodo(state, k);
   });
   ac(set_selected_node_id, (state, action) => {
-    state.data.selected_node_id = action.payload;
+    if(state.data.selected_node_id !== action.payload){
+      state.data.selected_node_id = action.payload;
+    }
   });
 });
 
@@ -677,28 +679,28 @@ const _eval_ = (draft: Draft<IState>, k: string) => {
   });
   const ratios = candidates.length
     ? candidates.map((v) => {
-        return draft.caches[v.start_time].total_time_spent / 3600 / v.estimate;
-      })
+      return draft.caches[v.start_time].total_time_spent / 3600 / v.estimate;
+    })
     : [1];
   const now = Number(new Date()) / 1000;
   const ks = _parentsOf(k, draft.data.kvs);
   // todo: The sampling weight should be a function of both the leaves and the candidates.
   const weights = candidates.length
     ? candidates.map((v) => {
-        // 1/e per year
-        const w_t = Math.exp(
-          -(now - Date.parse(v.end_time as string) / 1000) / (86400 * 365.25),
-        );
-        const parents = new Set(_parentsOf(v.start_time, draft.data.kvs));
-        let w_p = 1;
-        for (const k of ks) {
-          if (parents.has(k)) {
-            break;
-          }
-          w_p *= 0.1;
+      // 1/e per year
+      const w_t = Math.exp(
+        -(now - Date.parse(v.end_time as string) / 1000) / (86400 * 365.25),
+      );
+      const parents = new Set(_parentsOf(v.start_time, draft.data.kvs));
+      let w_p = 1;
+      for (const k of ks) {
+        if (parents.has(k)) {
+          break;
         }
-        return w_t * w_p;
-      })
+        w_p *= 0.1;
+      }
+      return w_t * w_p;
+    })
     : [1];
   const leaf_estimates = Array.from(leafs(draft.data.kvs[k], draft.data.kvs))
     .filter((v) => {
@@ -948,66 +950,72 @@ const NodeOf = (node_id: string) => {
   return <Node node_id={node_id} />;
 };
 
-const QueueNode = (props: { k: string }) => {
-  const status = useSelector((state) => state.data.kvs[props.k].status);
-  const parent = useSelector((state) => state.data.kvs[props.k].parent);
+const QueueNode = (props: { node_id: string }) => {
+  const status = useSelector((state) => state.data.kvs[props.node_id].status);
+  const parent = useSelector((state) => state.data.kvs[props.node_id].parent);
   const show_detail = useSelector(
-    (state) => state.data.kvs[props.k].show_detail,
+    (state) => state.data.kvs[props.node_id].show_detail,
   );
-  const cache = useSelector((state) => state.caches[props.k]);
-  const running = useSelector((state) => props.k === state.data.current_entry);
+  const cache = useSelector((state) => state.caches[props.node_id]);
+  const running = useSelector((state) => props.node_id === state.data.current_entry);
   const shouldHide = useSelector(
     (state) =>
-      state.data.showTodoOnly && state.data.kvs[props.k].status !== "todo",
+      state.data.showTodoOnly && state.data.kvs[props.node_id].status !== "todo",
   );
   const noTodo = useSelector(
-    (state) => state.data.kvs[props.k].todo.length === 0,
+    (state) => state.data.kvs[props.node_id].todo.length === 0,
   );
   const showDeleteButton = useSelector((state) => {
-    const v = state.data.kvs[props.k];
+    const v = state.data.kvs[props.node_id];
     return v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0;
   });
   const dispatch = useDispatch();
   return shouldHide ? null : (
     <li>
       <div
-        id={`queue${props.k}`}
+        id={`queue${props.node_id}`}
         className={running ? `${status} running` : status}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          dispatch(set_selected_node_id(props.node_id));
+        }
+      }}
+      style={({ display: "inline-block" })}
       >
         {parent ? (
           <>
-            {toTreeButtonOf(props.k)}
+            {toTreeButtonOf(props.node_id)}
             {status === "todo"
-              ? newButtonOf(dispatch, props.k)
+              ? newButtonOf(dispatch, props.node_id)
               : status === "done"
-              ? doneToTodoButtonOf(dispatch, props.k)
-              : dontToTodoButtonOf(dispatch, props.k)}
-            <TextArea k={props.k} />
-            {EstimationInputOf(props.k)}
+                ? doneToTodoButtonOf(dispatch, props.node_id)
+                : dontToTodoButtonOf(dispatch, props.node_id)}
+            <TextArea k={props.node_id} />
+            {EstimationInputOf(props.node_id)}
             {running
-              ? stopButtonOf(dispatch, props.k)
-              : startButtonOf(dispatch, props.k)}
+              ? stopButtonOf(dispatch, props.node_id)
+              : startButtonOf(dispatch, props.node_id)}
           </>
         ) : null}
         {digits1(cache.total_time_spent / 3600)}
-        {parent && status === "todo" ? topButtonOf(dispatch, props.k) : null}
-        {status === "todo" ? evalButtonOf(dispatch, props.k) : null}
+        {parent && status === "todo" ? topButtonOf(dispatch, props.node_id) : null}
+        {status === "todo" ? evalButtonOf(dispatch, props.node_id) : null}
         {parent ? (
           <>
             {noTodo && status === "todo" ? (
               <>
-                {todoToDoneButtonOf(dispatch, props.k)}
-                {todoToDontButtonOf(dispatch, props.k)}
+                {todoToDoneButtonOf(dispatch, props.node_id)}
+                {todoToDontButtonOf(dispatch, props.node_id)}
               </>
             ) : null}
-            {LastRangeOf(props.k)}
-            {showDetailButtonOf(dispatch, props.k)}
+            {LastRangeOf(props.node_id)}
+            {showDetailButtonOf(dispatch, props.node_id)}
             {show_detail ? (
               status === "todo" ? (
                 <>
-                  {moveUpButtonOf(dispatch, props.k)}
-                  {moveDownButtonOf(dispatch, props.k)}
-                  {showDeleteButton ? deleteButtonOf(dispatch, props.k) : null}
+                  {moveUpButtonOf(dispatch, props.node_id)}
+                  {moveDownButtonOf(dispatch, props.node_id)}
+                  {showDeleteButton ? deleteButtonOf(dispatch, props.node_id) : null}
                 </>
               ) : null
             ) : null}
@@ -1019,7 +1027,7 @@ const QueueNode = (props: { k: string }) => {
   );
 };
 const QueueNodeOf = memoize1((k: string) => {
-  return <QueueNode k={k} key={k} />;
+  return <QueueNode node_id={k} key={k} />;
 });
 
 const Entry = (props: { node_id: string }) => {
@@ -1044,14 +1052,20 @@ const Entry = (props: { node_id: string }) => {
     <div
       id={`tree${props.node_id}`}
       className={running ? `${status} running` : status}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          dispatch(set_selected_node_id(props.node_id));
+        }
+      }}
+      style={({ display: "inline-block" })}
     >
       {parent ? (
         <>
           {status === "todo"
             ? newButtonOf(dispatch, props.node_id)
             : status === "done"
-            ? doneToTodoButtonOf(dispatch, props.node_id)
-            : dontToTodoButtonOf(dispatch, props.node_id)}
+              ? doneToTodoButtonOf(dispatch, props.node_id)
+              : dontToTodoButtonOf(dispatch, props.node_id)}
           <TextArea k={props.node_id} />
           {EstimationInputOf(props.node_id)}
           {running
