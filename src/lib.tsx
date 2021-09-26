@@ -590,12 +590,12 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
 });
 
 const App = () => {
-  const selected_node_id = useSelector((state) => state.data.selected_node_id);
+  const root = useSelector((state) => state.data.root);
   return (
     <div id="columns">
       <Menu />
       <QueueColumn />
-      <div id="tree">{Node1HopOf(selected_node_id)}</div>
+      <div id="tree">{TreeNodeOf(root)}</div>
     </div>
   );
 };
@@ -887,32 +887,17 @@ const QueueColumn = () => {
   );
 };
 
-const List1Hop = (props: IListProps) => {
+const TreeNodeList = React.memo((props: IListProps) => {
   return props.node_id_list.length ? (
     <ol>
       {props.node_id_list.map((node_id) => {
-        return (
-          <li key={node_id}>
-            <Entry node_id={node_id} />
-          </li>
-        );
-      })}
-    </ol>
-  ) : null;
-};
-
-const List = React.memo((props: IListProps) => {
-  return props.node_id_list.length ? (
-    <ol>
-      {props.node_id_list.map((node_id) => {
-        return <li key={node_id}>{NodeOf(node_id)}</li>;
+        return <li key={node_id}>{TreeNodeOf(node_id)}</li>;
       })}
     </ol>
   ) : null;
 });
 
-const Node1Hop = (props: { node_id: string }) => {
-  const parent = useSelector((state) => state.data.kvs[props.node_id].parent);
+const TreeNode = (props: { node_id: string }) => {
   const todo = useSelector((state) => state.data.kvs[props.node_id].todo);
   const done = useSelector((state) => state.data.kvs[props.node_id].done);
   const dont = useSelector((state) => state.data.kvs[props.node_id].dont);
@@ -920,124 +905,32 @@ const Node1Hop = (props: { node_id: string }) => {
 
   return (
     <>
-      {parent ? <Entry node_id={parent} /> : null}
-      <hr />
-      <Entry node_id={props.node_id} />
-      <hr />
-      <List1Hop node_id_list={todo} />
-      {showTodoOnly ? null : <List1Hop node_id_list={done} />}
-      {showTodoOnly ? null : <List1Hop node_id_list={dont} />}
+      <div id={`tree${props.node_id}`}>{EntryOf(props.node_id)}</div>
+      <TreeNodeList node_id_list={todo} />
+      {showTodoOnly ? null : <TreeNodeList node_id_list={done} />}
+      {showTodoOnly ? null : <TreeNodeList node_id_list={dont} />}
     </>
   );
 };
-const Node1HopOf = (node_id: string) => {
-  return <Node1Hop node_id={node_id} />;
-};
-
-const Node = (props: { node_id: string }) => {
-  const todo = useSelector((state) => state.data.kvs[props.node_id].todo);
-  const done = useSelector((state) => state.data.kvs[props.node_id].done);
-  const dont = useSelector((state) => state.data.kvs[props.node_id].dont);
-  const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
-
-  return (
-    <>
-      <Entry node_id={props.node_id} />
-      <List node_id_list={todo} />
-      {showTodoOnly ? null : <List node_id_list={done} />}
-      {showTodoOnly ? null : <List node_id_list={dont} />}
-    </>
-  );
-};
-const NodeOf = (node_id: string) => {
-  return <Node node_id={node_id} />;
+const TreeNodeOf = (node_id: string) => {
+  return <TreeNode node_id={node_id} />;
 };
 
 const QueueNode = (props: { node_id: string }) => {
-  const status = useSelector((state) => state.data.kvs[props.node_id].status);
-  const parent = useSelector((state) => state.data.kvs[props.node_id].parent);
-  const show_detail = useSelector(
-    (state) => state.data.kvs[props.node_id].show_detail,
-  );
-  const cache = useSelector((state) => state.caches[props.node_id]);
-  const running = useSelector(
-    (state) => props.node_id === state.data.current_entry,
-  );
   const shouldHide = useSelector(
     (state) =>
       state.data.showTodoOnly &&
       state.data.kvs[props.node_id].status !== "todo",
   );
-  const noTodo = useSelector(
-    (state) => state.data.kvs[props.node_id].todo.length === 0,
-  );
-  const showDeleteButton = useSelector((state) => {
-    const v = state.data.kvs[props.node_id];
-    return v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0;
-  });
-  const dispatch = useDispatch();
   return shouldHide ? null : (
-    <li>
-      <div
-        id={`queue${props.node_id}`}
-        className={running ? `${status} running` : status}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            dispatch(set_selected_node_id(props.node_id));
-          }
-        }}
-        style={{ display: "inline-block" }}
-      >
-        {parent ? (
-          <>
-            {toTreeButtonOf(props.node_id)}
-            {status === "todo"
-              ? newButtonOf(dispatch, props.node_id)
-              : status === "done"
-              ? doneToTodoButtonOf(dispatch, props.node_id)
-              : dontToTodoButtonOf(dispatch, props.node_id)}
-            <TextArea k={props.node_id} />
-            {EstimationInputOf(props.node_id)}
-            {running
-              ? stopButtonOf(dispatch, props.node_id)
-              : startButtonOf(dispatch, props.node_id)}
-          </>
-        ) : null}
-        {digits1(cache.total_time_spent / 3600)}
-        {parent && status === "todo"
-          ? topButtonOf(dispatch, props.node_id)
-          : null}
-        {status === "todo" ? evalButtonOf(dispatch, props.node_id) : null}
-        {parent ? (
-          <>
-            {noTodo && status === "todo" ? (
-              <>
-                {todoToDoneButtonOf(dispatch, props.node_id)}
-                {todoToDontButtonOf(dispatch, props.node_id)}
-              </>
-            ) : null}
-            {LastRangeOf(props.node_id)}
-            {showDetailButtonOf(dispatch, props.node_id)}
-            {show_detail ? (
-              status === "todo" ? (
-                <>
-                  {moveUpButtonOf(dispatch, props.node_id)}
-                  {moveDownButtonOf(dispatch, props.node_id)}
-                  {showDeleteButton
-                    ? deleteButtonOf(dispatch, props.node_id)
-                    : null}
-                </>
-              ) : null
-            ) : null}
-          </>
-        ) : null}
-        {status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
-      </div>
+    <li id={`queue${props.node_id}`}>
+      {toTreeButtonOf(props.node_id)}
+      {EntryOf(props.node_id)}
     </li>
   );
 };
-const QueueNodeOf = memoize1((k: string) => {
-  return <QueueNode node_id={k} key={k} />;
+const QueueNodeOf = memoize1((node_id: string) => {
+  return <QueueNode node_id={node_id} key={node_id} />;
 });
 
 const Entry = (props: { node_id: string }) => {
@@ -1057,10 +950,10 @@ const Entry = (props: { node_id: string }) => {
     const v = state.data.kvs[props.node_id];
     return v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0;
   });
+
   const dispatch = useDispatch();
   return (
     <div
-      id={`tree${props.node_id}`}
       className={running ? `${status} running` : status}
       onClick={(e) => {
         if (e.target === e.currentTarget) {
@@ -1117,6 +1010,9 @@ const Entry = (props: { node_id: string }) => {
     </div>
   );
 };
+const EntryOf = memoize1((node_id: string) => {
+  return <Entry node_id={node_id} key={node_id} />;
+});
 
 const _estimate = (
   estimates: number[],
