@@ -76,7 +76,7 @@ interface IEntry {
   readonly dont: string[];
   readonly end_time: null | string;
   readonly estimate: number;
-  readonly parent: null | string;
+  readonly parents: string[];
   readonly ranges: IRange[];
   readonly show_children: boolean;
   readonly show_detail: boolean;
@@ -189,20 +189,19 @@ const _stop = (draft: Draft<IState>) => {
   }
 };
 
-const _rmFromTodo = (draft: Draft<IState>, k: string) => {
-  if (draft.data.current_entry === k) {
+const _rmFromTodo = (draft: Draft<IState>, node_id: string) => {
+  if (draft.data.current_entry === node_id) {
     _stop(draft);
   }
-  const pk = draft.data.kvs[k].parent;
-  if (pk) {
-    deleteAtVal(draft.data.kvs[pk].todo, k);
+  for (const parent of draft.data.kvs[node_id].parents) {
+    deleteAtVal(draft.data.kvs[parent].todo, node_id);
   }
 };
 
 const emptyStateOf = (): IState => {
   const root = "root";
   const kvs = {
-    root: newEntryValueOf(null, root),
+    root: newEntryValueOf([], root),
   };
   return {
     data: {
@@ -218,13 +217,13 @@ const emptyStateOf = (): IState => {
   };
 };
 
-const newEntryValueOf = (parent: null | string, start_time: string) => {
+const newEntryValueOf = (parents: string[], start_time: string) => {
   return {
     done: [] as string[],
     dont: [] as string[],
     end_time: null,
     estimate: NO_ESTIMATION,
-    parent,
+    parents,
     ranges: [] as IRange[],
     show_children: false,
     show_detail: false,
@@ -361,7 +360,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       state.data.kvs[parent].show_children = true;
     }
     const knode_id = new Date().toISOString();
-    const v = newEntryValueOf(parent, knode_id);
+    const v = newEntryValueOf([parent], knode_id);
     state.data.kvs[knode_id] = v;
     state.data.kvs[parent].todo.unshift(knode_id);
     state.data.queue.push(knode_id);
@@ -447,10 +446,10 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
             }
             break;
           }
-          if (v.parent === null) {
+          if (!v.parents.length) {
             break;
           }
-          k = v.parent;
+          k = v.parents[0];
           v = state.data.kvs[k];
         }
       }
@@ -468,26 +467,24 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   });
   ac(moveUp_, (state, action) => {
     const k = action.payload;
-    const pk = state.data.kvs[k].parent;
-    if (pk) {
-      moveUp(state.data.kvs[pk].todo, k);
-      moveUp(state.data.queue, k);
+    for(const parent of state.data.kvs[k].parents){
+      moveUp(state.data.kvs[parent].todo, k)
     }
+    moveUp(state.data.queue, k);
   });
   ac(moveDown_, (state, action) => {
     const k = action.payload;
-    const pk = state.data.kvs[k].parent;
-    if (pk) {
-      moveDown(state.data.kvs[pk].todo, k);
-      moveDown(state.data.queue, k);
+    for(const parent of state.data.kvs[k].parents){
+      moveDown(state.data.kvs[parent].todo, k)
     }
+    moveDown(state.data.queue, k);
   });
   ac(unindent, (state, action) => {
     const k = action.payload;
-    const pk = state.data.kvs[k].parent;
-    if (pk !== null) {
-      const ppk = state.data.kvs[pk].parent;
-      if (ppk !== null) {
+    if (state.data.kvs[k].parents.length) {
+      const pk = state.data.kvs[k].parents[0];
+      if (state.data.kvs[pk].parents.length) {
+        const ppk = state.data.kvs[pk].parents[0];
         const _total_time_spent_pk_orig = state.caches[pk].total_time_spent;
         const _total_time_spent_ppk_orig = state.caches[ppk].total_time_spent;
         _rmTodoEntry(state, k);
@@ -510,8 +507,8 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   });
   ac(indent, (state, action) => {
     const k = action.payload;
-    const pk = state.data.kvs[k].parent;
-    if (pk) {
+    if (state.data.kvs[k].parents.length) {
+      const pk = state.data.kvs[k].parents[0];
       const entries = state.data.kvs[pk].todo;
       if (last(entries) !== k) {
         const i = entries.indexOf(k);
@@ -591,12 +588,8 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   });
   ac(show_path_to_selected_node, (state, action) => {
     let node_id = action.payload;
-    while (true) {
-      const parent = state.data.kvs[node_id].parent;
-      if (parent === null) {
-        break;
-      }
-      node_id = parent;
+    while(state.data.kvs[node_id].parents.length){
+      node_id = state.data.kvs[node_id].parents[0]
       if (!state.data.kvs[node_id].show_children) {
         state.data.kvs[node_id].show_children = true;
       }
@@ -743,16 +736,16 @@ const _eval_ = (draft: Draft<IState>, k: string) => {
 const _parentsOf = (k: string, kvs: IKvs) => {
   let ret = [];
   let v = kvs[k];
-  while (v.parent) {
+  while (v.parents.length) {
     ret.push(v.start_time);
-    v = kvs[v.parent];
+    v = kvs[v.parents[0]];
   }
   return ret;
 };
 
 const _rmTodoEntry = (draft: Draft<IState>, k: string) => {
-  const pk = draft.data.kvs[k].parent;
-  if (pk) {
+  if (draft.data.kvs[k].parents.length) {
+    const pk = draft.data.kvs[k].parents[0];
     deleteAtVal(draft.data.kvs[pk].todo, k);
     _addDt(draft, pk, -draft.caches[k].total_time_spent);
   }
@@ -765,7 +758,7 @@ const _addTodoEntry = (
   k: string,
 ) => {
   if (pk) {
-    draft.data.kvs[k].parent = pk;
+    draft.data.kvs[k].parents[0] = pk;
     draft.data.kvs[pk].todo.splice(i, 0, k);
     _addDt(draft, pk, draft.caches[k].total_time_spent);
   }
@@ -776,20 +769,17 @@ const _top = (draft: Draft<IState>, k: string) => {
   _topQueue(draft, k);
 };
 
-const _topTree = (draft: Draft<IState>, k: string) => {
-  let ck = k;
-  let pk = draft.data.kvs[ck].parent;
-  while (pk !== null) {
-    toFront(draft.data.kvs[pk].todo, ck);
-    ck = pk;
-    pk = draft.data.kvs[ck].parent;
+const _topTree = (draft: Draft<IState>, node_id: string) => {
+  for (const parent of draft.data.kvs[node_id].parents) {
+    toFront(draft.data.kvs[parent].todo, node_id);
+    _topTree(draft, parent);
   }
 };
 
 const _addDt = (draft: Draft<IState>, k: null | string, dt: number) => {
   while (k) {
     draft.caches[k].total_time_spent += dt;
-    k = draft.data.kvs[k].parent;
+    k = draft.data.kvs[k].parents.length ? draft.data.kvs[k].parents[0] : null;
   }
 };
 
@@ -800,8 +790,8 @@ const _topQueue = (draft: Draft<IState>, k: string) => {
 const _doneToTodo = (draft: Draft<IState>, k: string) => {
   _rmFromDone(draft, k);
   _addToTodo(draft, k);
-  const pk = draft.data.kvs[k].parent;
-  if (pk != null) {
+  if (draft.data.kvs[k].parents.length) {
+    const pk = draft.data.kvs[k].parents[0];
     switch (draft.data.kvs[pk].status) {
       case "done":
         _doneToTodo(draft, pk);
@@ -816,8 +806,8 @@ const _doneToTodo = (draft: Draft<IState>, k: string) => {
 const _dontToTodo = (draft: Draft<IState>, k: string) => {
   _rmFromDont(draft, k);
   _addToTodo(draft, k);
-  const pk = draft.data.kvs[k].parent;
-  if (pk != null) {
+  if (draft.data.kvs[k].parents.length) {
+    const pk = draft.data.kvs[k].parents[0];
     switch (draft.data.kvs[pk].status) {
       case "done":
         _doneToTodo(draft, pk);
@@ -830,42 +820,37 @@ const _dontToTodo = (draft: Draft<IState>, k: string) => {
 };
 
 const _rmFromDone = (draft: Draft<IState>, k: string) => {
-  const pk = draft.data.kvs[k].parent;
-  if (pk) {
-    deleteAtVal(draft.data.kvs[pk].done, k);
+  for (const parent of draft.data.kvs[k].parents) {
+    deleteAtVal(draft.data.kvs[parent].done, k);
   }
 };
 
 const _rmFromDont = (draft: Draft<IState>, k: string) => {
-  const pk = draft.data.kvs[k].parent;
-  if (pk) {
-    deleteAtVal(draft.data.kvs[pk].dont, k);
+  for (const parent of draft.data.kvs[k].parents) {
+    deleteAtVal(draft.data.kvs[parent].dont, k);
   }
 };
 
 const _addToTodo = (draft: Draft<IState>, k: string) => {
   draft.data.kvs[k].status = "todo";
-  const pk = draft.data.kvs[k].parent;
-  if (pk) {
-    draft.data.kvs[pk].todo.unshift(k);
+  for (const parent of draft.data.kvs[k].parents) {
+    draft.data.kvs[parent].todo.unshift(k);
   }
 };
 
 const _addToDone = (draft: Draft<IState>, k: string) => {
   draft.data.kvs[k].status = "done";
   draft.data.kvs[k].end_time = new Date().toISOString();
-  const pk = draft.data.kvs[k].parent;
-  if (pk) {
-    draft.data.kvs[pk].done.unshift(k);
+  for (const parent of draft.data.kvs[k].parents) {
+    draft.data.kvs[parent].done.unshift(k);
   }
 };
 
 const _addToDont = (draft: Draft<IState>, k: string) => {
   draft.data.kvs[k].status = "dont";
   draft.data.kvs[k].end_time = new Date().toISOString();
-  const pk = draft.data.kvs[k].parent;
-  if (pk) {
-    draft.data.kvs[pk].dont.unshift(k);
+  for (const parent of draft.data.kvs[k].parents) {
+    draft.data.kvs[parent].dont.unshift(k);
   }
 };
 
@@ -961,7 +946,7 @@ const QueueNodeOf = memoize1((node_id: string) => {
 
 const Entry = (props: { node_id: string }) => {
   const status = useSelector((state) => state.data.kvs[props.node_id].status);
-  const parent = useSelector((state) => state.data.kvs[props.node_id].parent);
+  const has_parent = useSelector((state) => !!state.data.kvs[props.node_id].parents.length);
   const show_detail = useSelector(
     (state) => state.data.kvs[props.node_id].show_detail,
   );
@@ -998,7 +983,7 @@ const Entry = (props: { node_id: string }) => {
       }}
       style={{ display: "inline-block" }}
     >
-      {parent ? (
+      {has_parent ? (
         <>
           {status === "todo"
             ? newButtonOf(dispatch, props.node_id)
@@ -1013,11 +998,11 @@ const Entry = (props: { node_id: string }) => {
         </>
       ) : null}
       {digits1(cache.total_time_spent / 3600)}
-      {parent && status === "todo"
+      {has_parent && status === "todo"
         ? topButtonOf(dispatch, props.node_id)
         : null}
       {status === "todo" ? evalButtonOf(dispatch, props.node_id) : null}
-      {parent ? (
+      {has_parent ? (
         <>
           {noTodo && status === "todo" ? (
             <>
@@ -1541,7 +1526,7 @@ const LastRange = (props: { k: string }) => {
   const lastRangeValue = useSelector((state) => {
     const v = state.data.kvs[props.k];
     const lastRange = lastRangeOf(v.ranges);
-    return lastRange !== null && lastRange.end !== null && v.parent !== null
+    return lastRange !== null && lastRange.end !== null && v.parents.length
       ? (lastRange.end - lastRange.start) / 3600
       : null;
   });

@@ -65,6 +65,12 @@ def _v7_of_v6(data):
     del data["selected_node_id"]
     for k, v in data["kvs"].items():
         v["show_children"] = False
+
+        if v["parent"] is None:
+            v["parents"] = []
+        else:
+            v["parents"] = [v["parent"]]
+        del v["parent"]
     data["version"] = 7
     return data
 
