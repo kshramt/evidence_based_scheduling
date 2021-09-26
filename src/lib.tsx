@@ -402,6 +402,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
         start: Number(new Date()) / 1000,
         end: null,
       });
+      _show_path_to_selected_node(state, k);
     }
   });
   ac(top, (state, action) => {
@@ -467,15 +468,15 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   });
   ac(moveUp_, (state, action) => {
     const k = action.payload;
-    for(const parent of state.data.kvs[k].parents){
-      moveUp(state.data.kvs[parent].todo, k)
+    for (const parent of state.data.kvs[k].parents) {
+      moveUp(state.data.kvs[parent].todo, k);
     }
     moveUp(state.data.queue, k);
   });
   ac(moveDown_, (state, action) => {
     const k = action.payload;
-    for(const parent of state.data.kvs[k].parents){
-      moveDown(state.data.kvs[parent].todo, k)
+    for (const parent of state.data.kvs[k].parents) {
+      moveDown(state.data.kvs[parent].todo, k);
     }
     moveDown(state.data.queue, k);
   });
@@ -587,13 +588,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       !state.data.kvs[action.payload].show_children;
   });
   ac(show_path_to_selected_node, (state, action) => {
-    let node_id = action.payload;
-    while(state.data.kvs[node_id].parents.length){
-      node_id = state.data.kvs[node_id].parents[0]
-      if (!state.data.kvs[node_id].show_children) {
-        state.data.kvs[node_id].show_children = true;
-      }
-    }
+    _show_path_to_selected_node(state, action.payload);
   });
 });
 
@@ -854,6 +849,15 @@ const _addToDont = (draft: Draft<IState>, k: string) => {
   }
 };
 
+const _show_path_to_selected_node = (draft: Draft<IState>, node_id: string) => {
+  while (draft.data.kvs[node_id].parents.length) {
+    node_id = draft.data.kvs[node_id].parents[0];
+    if (!draft.data.kvs[node_id].show_children) {
+      draft.data.kvs[node_id].show_children = true;
+    }
+  }
+};
+
 const memoize1 = <A, R>(fn: (a: A) => R) => {
   const cache = new Map<A, R>();
   return (a: A) => {
@@ -946,7 +950,9 @@ const QueueNodeOf = memoize1((node_id: string) => {
 
 const Entry = (props: { node_id: string }) => {
   const status = useSelector((state) => state.data.kvs[props.node_id].status);
-  const has_parent = useSelector((state) => !!state.data.kvs[props.node_id].parents.length);
+  const has_parent = useSelector(
+    (state) => !!state.data.kvs[props.node_id].parents.length,
+  );
   const show_detail = useSelector(
     (state) => state.data.kvs[props.node_id].show_detail,
   );
