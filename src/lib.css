@@ -55,6 +55,9 @@ div.menu{
 div.running{
     background-color: Moccasin;
 }
+div.non-leaf{
+    background-color: rgb(230, 255, 230);
+}
 
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {

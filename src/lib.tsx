@@ -64,7 +64,6 @@ interface IData {
   readonly kvs: IKvs;
   readonly queue: string[];
   readonly showTodoOnly: boolean;
-  readonly selected_node_id: string;
   readonly version: number;
 }
 
@@ -79,6 +78,7 @@ interface IEntry {
   readonly estimate: number;
   readonly parent: null | string;
   readonly ranges: IRange[];
+  readonly show_children: boolean;
   readonly show_detail: boolean;
   readonly start_time: string;
   readonly status: TStatus;
@@ -211,7 +211,6 @@ const emptyStateOf = (): IState => {
       kvs,
       queue: [],
       showTodoOnly: false,
-      selected_node_id: root,
       version: 5,
     },
     caches: setCache({}, root, kvs),
@@ -227,6 +226,7 @@ const newEntryValueOf = (parent: null | string, start_time: string) => {
     estimate: NO_ESTIMATION,
     parent,
     ranges: [] as IRange[],
+    show_children: false,
     show_detail: false,
     start_time,
     status: "todo" as TStatus,
@@ -330,8 +330,11 @@ const doneToTodo = register_save_type(
 const dontToTodo = register_save_type(
   register_history_type(createAction<string>("dontToTodo")),
 );
-const set_selected_node_id = register_save_type(
-  register_history_type(createAction<string>("set_selected_node_id")),
+const swap_show_children = register_save_type(
+  register_history_type(createAction<string>("swap_show_children")),
+);
+const show_path_to_selected_node = register_save_type(
+  register_history_type(createAction<string>("show_path_to_selected_node")),
 );
 
 const rootReducer = createReducer(emptyStateOf(), (builder) => {
@@ -350,19 +353,19 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       if (state.data.current_entry === k) {
         state.data.current_entry = null;
       }
-      if (state.data.selected_node_id === k) {
-        state.data.selected_node_id = state.data.root;
-      }
     }
   });
   ac(new_, (state, action) => {
     const parent = action.payload;
-    const k = new Date().toISOString();
-    const v = newEntryValueOf(parent, k);
-    state.data.kvs[k] = v;
-    state.data.kvs[parent].todo.unshift(k);
-    state.data.queue.push(k);
-    setCache(state.caches, k, state.data.kvs);
+    if (!state.data.kvs[parent].show_children) {
+      state.data.kvs[parent].show_children = true;
+    }
+    const knode_id = new Date().toISOString();
+    const v = newEntryValueOf(parent, knode_id);
+    state.data.kvs[knode_id] = v;
+    state.data.kvs[parent].todo.unshift(knode_id);
+    state.data.queue.push(knode_id);
+    setCache(state.caches, knode_id, state.data.kvs);
   });
   ac(setSaveSuccess, (state, action) => {
     state.saveSuccess = action.payload;
@@ -582,9 +585,21 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     const k = action.payload;
     _dontToTodo(state, k);
   });
-  ac(set_selected_node_id, (state, action) => {
-    if (state.data.selected_node_id !== action.payload) {
-      state.data.selected_node_id = action.payload;
+  ac(swap_show_children, (state, action) => {
+    state.data.kvs[action.payload].show_children =
+      !state.data.kvs[action.payload].show_children;
+  });
+  ac(show_path_to_selected_node, (state, action) => {
+    let node_id = action.payload;
+    while (true) {
+      const parent = state.data.kvs[node_id].parent;
+      if (parent === null) {
+        break;
+      }
+      node_id = parent;
+      if (!state.data.kvs[node_id].show_children) {
+        state.data.kvs[node_id].show_children = true;
+      }
     }
   });
 });
@@ -901,14 +916,25 @@ const TreeNode = (props: { node_id: string }) => {
   const todo = useSelector((state) => state.data.kvs[props.node_id].todo);
   const done = useSelector((state) => state.data.kvs[props.node_id].done);
   const dont = useSelector((state) => state.data.kvs[props.node_id].dont);
+  const show_children = useSelector(
+    (state) => state.data.kvs[props.node_id].show_children,
+  );
   const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
 
   return (
     <>
       <div id={`tree${props.node_id}`}>{EntryOf(props.node_id)}</div>
-      <TreeNodeList node_id_list={todo} />
-      {showTodoOnly ? null : <TreeNodeList node_id_list={done} />}
-      {showTodoOnly ? null : <TreeNodeList node_id_list={dont} />}
+      {show_children ? (
+        <>
+          <TreeNodeList node_id_list={todo} />
+          {showTodoOnly ? null : (
+            <>
+              <TreeNodeList node_id_list={done} />
+              <TreeNodeList node_id_list={dont} />
+            </>
+          )}
+        </>
+      ) : null}
     </>
   );
 };
@@ -946,18 +972,28 @@ const Entry = (props: { node_id: string }) => {
   const noTodo = useSelector(
     (state) => state.data.kvs[props.node_id].todo.length === 0,
   );
-  const showDeleteButton = useSelector((state) => {
+  const has_children = useSelector((state) => {
     const v = state.data.kvs[props.node_id];
-    return v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0;
+    return 0 < v.todo.length || 0 < v.done.length || 0 < v.dont.length;
+  });
+  const show_children = useSelector((state) => {
+    return state.data.kvs[props.node_id].show_children;
   });
 
   const dispatch = useDispatch();
   return (
     <div
-      className={running ? `${status} running` : status}
-      onClick={(e) => {
+      className={
+        status +
+        (running
+          ? " running"
+          : has_children && !show_children
+          ? " non-leaf"
+          : "")
+      }
+      onDoubleClick={(e) => {
         if (e.target === e.currentTarget) {
-          dispatch(set_selected_node_id(props.node_id));
+          dispatch(swap_show_children(props.node_id));
         }
       }}
       style={{ display: "inline-block" }}
@@ -998,9 +1034,7 @@ const Entry = (props: { node_id: string }) => {
                 {moveDownButtonOf(dispatch, props.node_id)}
                 {unindentButtonOf(dispatch, props.node_id)}
                 {indentButtonOf(dispatch, props.node_id)}
-                {showDeleteButton
-                  ? deleteButtonOf(dispatch, props.node_id)
-                  : null}
+                {has_children ? null : deleteButtonOf(dispatch, props.node_id)}
               </>
             ) : null
           ) : null}
@@ -1212,7 +1246,7 @@ const toTreeButtonOf = memoize1((node_id: string) => {
     <a
       href={`#tree${node_id}`}
       onClick={() => {
-        dispatch(set_selected_node_id(node_id));
+        dispatch(show_path_to_selected_node(node_id));
       }}
     >
       <button>→</button>

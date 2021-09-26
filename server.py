@@ -54,9 +54,19 @@ def _update_data_version(data):
     elif data["version"] == 5:
         return _update_data_version(_v6_of_v5(data))
     elif data["version"] == 6:
+        return _update_data_version(_v7_of_v6(data))
+    elif data["version"] == 7:
         return data
     else:
         raise Err(f"Unsupported data version: {data.get('version', 'None')}")
+
+
+def _v7_of_v6(data):
+    del data["selected_node_id"]
+    for k, v in data["kvs"].items():
+        v["show_children"] = False
+    data["version"] = 7
+    return data
 
 
 def _v6_of_v5(data):
