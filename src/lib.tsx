@@ -15,6 +15,7 @@ import {
   createSelector,
 } from "@reduxjs/toolkit";
 import produce, { Draft } from "immer";
+import * as Chakra from "@chakra-ui/react";
 
 import "./lib.css";
 
@@ -592,14 +593,23 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   });
 });
 
+const MENU_HEIGHT = "2.5rem";
+const BODY_HEIGHT = `calc(100vh - ${MENU_HEIGHT})`;
+
 const App = () => {
   const root = useSelector((state) => state.data.root);
   return (
-    <div id="columns">
+    <Chakra.VStack spacing="0">
       <Menu />
-      <QueueColumn />
-      <div id="tree">{TreeNodeOf(root)}</div>
-    </div>
+      <Chakra.HStack paddingTop={MENU_HEIGHT}>
+        <Chakra.Box overflowY="scroll" height={BODY_HEIGHT}>
+          <QueueColumn />
+        </Chakra.Box>
+        <Chakra.Box overflowY="scroll" height={BODY_HEIGHT}>
+          {TreeNodeOf(root)}
+        </Chakra.Box>
+      </Chakra.HStack>
+    </Chakra.VStack>
   );
 };
 
@@ -627,19 +637,37 @@ const Menu = () => {
   }, [dispatch]);
 
   return (
-    <div className="menu">
-      {saveSuccess ? null : <p>Failed to save.</p>}
-      <div>
-        {stopButtonOf(dispatch, root)}
-        {newButtonOf(dispatch, root)}
+    <Chakra.HStack
+      spacing="1rem"
+      height={MENU_HEIGHT}
+      width="full"
+      paddingLeft="1rem"
+      position="fixed"
+      top="0"
+      bgColor="gray.50"
+      zIndex="999999"
+    >
+      <Chakra.Box>{stopButtonOf(dispatch, root)}</Chakra.Box>
+      <Chakra.Box>{newButtonOf(dispatch, root)}</Chakra.Box>
+      <Chakra.Box>
         <button onClick={_undo}>{UNDO_MARK}</button>
+      </Chakra.Box>
+      <Chakra.Box>
         <button onClick={_redo}>{REDO_MARK}</button>
+      </Chakra.Box>
+      <Chakra.Box>
         <button onClick={_flipShowTodoOnly}>👀</button>
+      </Chakra.Box>
+      <Chakra.Box>
         <button onClick={_smallestToTop}>Small</button>
+      </Chakra.Box>
+      <Chakra.Box>
         <button onClick={_closestToTop}>Due</button>
+      </Chakra.Box>
+      <Chakra.Box>
         <button onClick={_load}>⟳</button>
-      </div>
-    </div>
+      </Chakra.Box>
+    </Chakra.HStack>
   );
 };
 
@@ -884,20 +912,20 @@ const memoize2 = <A, B, R>(fn: (a: A, b: B) => R) => {
 
 const QueueColumn = () => {
   const queue = useSelector((state) => state.data.queue);
-  return (
-    <div id="queue">
-      {queue.length ? <ol>{queue.map(QueueNodeOf)}</ol> : null}
-    </div>
-  );
+  return queue.length ? (
+    <Chakra.OrderedList>{queue.map(QueueNodeOf)}</Chakra.OrderedList>
+  ) : null;
 };
 
 const TreeNodeList = React.memo((props: IListProps) => {
   return props.node_id_list.length ? (
-    <ol>
+    <Chakra.OrderedList>
       {props.node_id_list.map((node_id) => {
-        return <li key={node_id}>{TreeNodeOf(node_id)}</li>;
+        return (
+          <Chakra.ListItem key={node_id}>{TreeNodeOf(node_id)}</Chakra.ListItem>
+        );
       })}
-    </ol>
+    </Chakra.OrderedList>
   ) : null;
 });
 
@@ -912,7 +940,9 @@ const TreeNode = (props: { node_id: string }) => {
 
   return (
     <>
-      <div id={`tree${props.node_id}`}>{EntryOf(props.node_id)}</div>
+      <Chakra.Box id={`tree${props.node_id}`}>
+        {EntryOf(props.node_id)}
+      </Chakra.Box>
       {show_children ? (
         <>
           <TreeNodeList node_id_list={todo} />
@@ -1588,6 +1618,7 @@ register_save_type("undo");
 register_save_type("redo");
 
 const saveStateMiddlewareOf = (pred: (type_: string) => boolean) => {
+  const toast = Chakra.createStandaloneToast();
   const saveStateMiddleware: Middleware<{}, IState> =
     (store) => (next_dispatch) => (action) => {
       const ret = next_dispatch(action);
@@ -1599,6 +1630,14 @@ const saveStateMiddlewareOf = (pred: (type_: string) => boolean) => {
           },
           body: JSON.stringify(store.getState().data),
         }).then((r) => {
+          if (!r.ok) {
+            toast({
+              title: "Failed to save.",
+              status: "error",
+              duration: 15000,
+              isClosable: true,
+            });
+          }
           store.dispatch(setSaveSuccess(r.ok));
         });
       }
@@ -1634,7 +1673,9 @@ const useSelector: TypedUseSelectorHook<RootState> = _useSelector;
 export const main = () => {
   ReactDOM.render(
     <Provider store={store}>
-      <App />
+      <Chakra.ChakraProvider>
+        <App />
+      </Chakra.ChakraProvider>
     </Provider>,
     document.getElementById("root"),
   );
