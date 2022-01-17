@@ -606,7 +606,7 @@ const App = () => {
           <QueueColumn />
         </Chakra.Box>
         <Chakra.Box overflowY="scroll" height={BODY_HEIGHT}>
-          {TreeNodeOf(root)}
+          <TreeNode node_id={root} />
         </Chakra.Box>
       </Chakra.HStack>
     </Chakra.VStack>
@@ -912,24 +912,32 @@ const memoize2 = <A, B, R>(fn: (a: A, b: B) => R) => {
 
 const QueueColumn = () => {
   const queue = useSelector((state) => state.data.queue);
+  const fn = React.useCallback(
+    (node_id) => <QueueNode node_id={node_id} key={node_id} />,
+    [],
+  );
   return queue.length ? (
-    <Chakra.OrderedList>{queue.map(QueueNodeOf)}</Chakra.OrderedList>
+    <Chakra.OrderedList spacing="0.5rem" listStylePosition="inside">
+      {queue.map(fn)}
+    </Chakra.OrderedList>
   ) : null;
 };
 
 const TreeNodeList = React.memo((props: IListProps) => {
   return props.node_id_list.length ? (
-    <Chakra.OrderedList>
+    <Chakra.OrderedList spacing="0.5rem" paddingLeft="1rem">
       {props.node_id_list.map((node_id) => {
         return (
-          <Chakra.ListItem key={node_id}>{TreeNodeOf(node_id)}</Chakra.ListItem>
+          <Chakra.ListItem key={node_id}>
+            <TreeNode node_id={node_id} />
+          </Chakra.ListItem>
         );
       })}
     </Chakra.OrderedList>
   ) : null;
 });
 
-const TreeNode = (props: { node_id: string }) => {
+const TreeNode = React.memo((props: { node_id: string }) => {
   const todo = useSelector((state) => state.data.kvs[props.node_id].todo);
   const done = useSelector((state) => state.data.kvs[props.node_id].done);
   const dont = useSelector((state) => state.data.kvs[props.node_id].dont);
@@ -956,26 +964,20 @@ const TreeNode = (props: { node_id: string }) => {
       ) : null}
     </>
   );
-};
-const TreeNodeOf = (node_id: string) => {
-  return <TreeNode node_id={node_id} />;
-};
+});
 
-const QueueNode = (props: { node_id: string }) => {
+const QueueNode = React.memo((props: { node_id: string }) => {
   const shouldHide = useSelector(
     (state) =>
       state.data.showTodoOnly &&
       state.data.kvs[props.node_id].status !== "todo",
   );
   return shouldHide ? null : (
-    <li id={`queue${props.node_id}`}>
+    <Chakra.ListItem id={`queue${props.node_id}`}>
       {toTreeButtonOf(props.node_id)}
       {EntryOf(props.node_id)}
-    </li>
+    </Chakra.ListItem>
   );
-};
-const QueueNodeOf = memoize1((node_id: string) => {
-  return <QueueNode node_id={node_id} key={node_id} />;
 });
 
 const Entry = (props: { node_id: string }) => {
@@ -1542,7 +1544,7 @@ const TextArea = (props: { k: string }) => {
       onChange={resizeAndSetText}
       onBlur={dispatchResizeAndSetText}
       className={status}
-      style={style}
+      style={{ border: "solid 1px gray", ...style }}
       ref={textAreaRefOf(props.k)}
     />
   );
