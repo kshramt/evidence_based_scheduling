@@ -7,7 +7,6 @@ import {
   useSelector as _useSelector,
 } from "react-redux";
 import { Middleware } from "redux";
-import { ThunkDispatch } from "redux-thunk";
 import {
   configureStore,
   createAction,
@@ -16,6 +15,7 @@ import {
   createSelector,
 } from "@reduxjs/toolkit";
 import produce, { Draft } from "immer";
+import * as Chakra from "@chakra-ui/react";
 
 import "./lib.css";
 
@@ -49,7 +49,7 @@ type AnyPayloadAction =
 type TStatus = "done" | "dont" | "todo";
 
 interface IListProps {
-  readonly ks: string[];
+  readonly node_id_list: string[];
 }
 
 interface IState {
@@ -77,8 +77,9 @@ interface IEntry {
   readonly dont: string[];
   readonly end_time: null | string;
   readonly estimate: number;
-  readonly parent: null | string;
+  readonly parents: string[];
   readonly ranges: IRange[];
+  readonly show_children: boolean;
   readonly show_detail: boolean;
   readonly start_time: string;
   readonly status: TStatus;
@@ -189,20 +190,19 @@ const _stop = (draft: Draft<IState>) => {
   }
 };
 
-const _rmFromTodo = (draft: Draft<IState>, k: string) => {
-  if (draft.data.current_entry === k) {
+const _rmFromTodo = (draft: Draft<IState>, node_id: string) => {
+  if (draft.data.current_entry === node_id) {
     _stop(draft);
   }
-  const pk = draft.data.kvs[k].parent;
-  if (pk) {
-    deleteAtVal(draft.data.kvs[pk].todo, k);
+  for (const parent of draft.data.kvs[node_id].parents) {
+    deleteAtVal(draft.data.kvs[parent].todo, node_id);
   }
 };
 
 const emptyStateOf = (): IState => {
   const root = "root";
   const kvs = {
-    root: newEntryValueOf(null, root),
+    root: newEntryValueOf([], root),
   };
   return {
     data: {
@@ -218,14 +218,15 @@ const emptyStateOf = (): IState => {
   };
 };
 
-const newEntryValueOf = (parent: null | string, start_time: string) => {
+const newEntryValueOf = (parents: string[], start_time: string) => {
   return {
     done: [] as string[],
     dont: [] as string[],
     end_time: null,
     estimate: NO_ESTIMATION,
-    parent,
+    parents,
     ranges: [] as IRange[],
+    show_children: false,
     show_detail: false,
     start_time,
     status: "todo" as TStatus,
@@ -329,6 +330,12 @@ const doneToTodo = register_save_type(
 const dontToTodo = register_save_type(
   register_history_type(createAction<string>("dontToTodo")),
 );
+const swap_show_children = register_save_type(
+  register_history_type(createAction<string>("swap_show_children")),
+);
+const show_path_to_selected_node = register_save_type(
+  register_history_type(createAction<string>("show_path_to_selected_node")),
+);
 
 const rootReducer = createReducer(emptyStateOf(), (builder) => {
   const ac = builder.addCase;
@@ -350,12 +357,15 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   });
   ac(new_, (state, action) => {
     const parent = action.payload;
-    const k = new Date().toISOString();
-    const v = newEntryValueOf(parent, k);
-    state.data.kvs[k] = v;
-    state.data.kvs[parent].todo.unshift(k);
-    state.data.queue.push(k);
-    setCache(state.caches, k, state.data.kvs);
+    if (!state.data.kvs[parent].show_children) {
+      state.data.kvs[parent].show_children = true;
+    }
+    const knode_id = new Date().toISOString();
+    const v = newEntryValueOf([parent], knode_id);
+    state.data.kvs[knode_id] = v;
+    state.data.kvs[parent].todo.unshift(knode_id);
+    state.data.queue.push(knode_id);
+    setCache(state.caches, knode_id, state.data.kvs);
   });
   ac(setSaveSuccess, (state, action) => {
     state.saveSuccess = action.payload;
@@ -393,6 +403,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
         start: Number(new Date()) / 1000,
         end: null,
       });
+      _show_path_to_selected_node(state, k);
     }
   });
   ac(top, (state, action) => {
@@ -437,10 +448,10 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
             }
             break;
           }
-          if (v.parent === null) {
+          if (!v.parents.length) {
             break;
           }
-          k = v.parent;
+          k = v.parents[0];
           v = state.data.kvs[k];
         }
       }
@@ -458,26 +469,24 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   });
   ac(moveUp_, (state, action) => {
     const k = action.payload;
-    const pk = state.data.kvs[k].parent;
-    if (pk) {
-      moveUp(state.data.kvs[pk].todo, k);
-      moveUp(state.data.queue, k);
+    for (const parent of state.data.kvs[k].parents) {
+      moveUp(state.data.kvs[parent].todo, k);
     }
+    moveUp(state.data.queue, k);
   });
   ac(moveDown_, (state, action) => {
     const k = action.payload;
-    const pk = state.data.kvs[k].parent;
-    if (pk) {
-      moveDown(state.data.kvs[pk].todo, k);
-      moveDown(state.data.queue, k);
+    for (const parent of state.data.kvs[k].parents) {
+      moveDown(state.data.kvs[parent].todo, k);
     }
+    moveDown(state.data.queue, k);
   });
   ac(unindent, (state, action) => {
     const k = action.payload;
-    const pk = state.data.kvs[k].parent;
-    if (pk !== null) {
-      const ppk = state.data.kvs[pk].parent;
-      if (ppk !== null) {
+    if (state.data.kvs[k].parents.length) {
+      const pk = state.data.kvs[k].parents[0];
+      if (state.data.kvs[pk].parents.length) {
+        const ppk = state.data.kvs[pk].parents[0];
         const _total_time_spent_pk_orig = state.caches[pk].total_time_spent;
         const _total_time_spent_ppk_orig = state.caches[ppk].total_time_spent;
         _rmTodoEntry(state, k);
@@ -500,8 +509,8 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   });
   ac(indent, (state, action) => {
     const k = action.payload;
-    const pk = state.data.kvs[k].parent;
-    if (pk) {
+    if (state.data.kvs[k].parents.length) {
+      const pk = state.data.kvs[k].parents[0];
       const entries = state.data.kvs[pk].todo;
       if (last(entries) !== k) {
         const i = entries.indexOf(k);
@@ -575,16 +584,32 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     const k = action.payload;
     _dontToTodo(state, k);
   });
+  ac(swap_show_children, (state, action) => {
+    state.data.kvs[action.payload].show_children =
+      !state.data.kvs[action.payload].show_children;
+  });
+  ac(show_path_to_selected_node, (state, action) => {
+    _show_path_to_selected_node(state, action.payload);
+  });
 });
+
+const MENU_HEIGHT = "2.5rem";
+const BODY_HEIGHT = `calc(100vh - ${MENU_HEIGHT})`;
 
 const App = () => {
   const root = useSelector((state) => state.data.root);
   return (
-    <div id="columns">
+    <Chakra.VStack spacing="0">
       <Menu />
-      <QueueColumn />
-      <div id="tree">{NodeOf(root)}</div>
-    </div>
+      <Chakra.HStack paddingTop={MENU_HEIGHT}>
+        <Chakra.Box overflowY="scroll" height={BODY_HEIGHT}>
+          <QueueColumn />
+        </Chakra.Box>
+        <Chakra.Box overflowY="scroll" height={BODY_HEIGHT}>
+          <TreeNode node_id={root} />
+        </Chakra.Box>
+      </Chakra.HStack>
+    </Chakra.VStack>
   );
 };
 
@@ -612,19 +637,37 @@ const Menu = () => {
   }, [dispatch]);
 
   return (
-    <div className="menu">
-      {saveSuccess ? null : <p>Failed to save.</p>}
-      <div>
-        {stopButtonOf(dispatch, root)}
-        {newButtonOf(dispatch, root)}
+    <Chakra.HStack
+      spacing="1rem"
+      height={MENU_HEIGHT}
+      width="full"
+      paddingLeft="1rem"
+      position="fixed"
+      top="0"
+      bgColor="gray.50"
+      zIndex="999999"
+    >
+      <Chakra.Box>{stopButtonOf(dispatch, root)}</Chakra.Box>
+      <Chakra.Box>{newButtonOf(dispatch, root)}</Chakra.Box>
+      <Chakra.Box>
         <button onClick={_undo}>{UNDO_MARK}</button>
+      </Chakra.Box>
+      <Chakra.Box>
         <button onClick={_redo}>{REDO_MARK}</button>
+      </Chakra.Box>
+      <Chakra.Box>
         <button onClick={_flipShowTodoOnly}>👀</button>
+      </Chakra.Box>
+      <Chakra.Box>
         <button onClick={_smallestToTop}>Small</button>
+      </Chakra.Box>
+      <Chakra.Box>
         <button onClick={_closestToTop}>Due</button>
+      </Chakra.Box>
+      <Chakra.Box>
         <button onClick={_load}>⟳</button>
-      </div>
-    </div>
+      </Chakra.Box>
+    </Chakra.HStack>
   );
 };
 
@@ -653,13 +696,12 @@ const doFocusTextArea = (k: string) => () => {
 };
 
 const setLastRange = (dispatch: AppDispatch, k: string, t: number) => {
-  dispatch({
-    type: "setLastRange",
-    payload: {
+  dispatch(
+    setLastRange_({
       k,
       t,
-    },
-  });
+    }),
+  );
 };
 
 const _eval_ = (draft: Draft<IState>, k: string) => {
@@ -717,16 +759,16 @@ const _eval_ = (draft: Draft<IState>, k: string) => {
 const _parentsOf = (k: string, kvs: IKvs) => {
   let ret = [];
   let v = kvs[k];
-  while (v.parent) {
+  while (v.parents.length) {
     ret.push(v.start_time);
-    v = kvs[v.parent];
+    v = kvs[v.parents[0]];
   }
   return ret;
 };
 
 const _rmTodoEntry = (draft: Draft<IState>, k: string) => {
-  const pk = draft.data.kvs[k].parent;
-  if (pk) {
+  if (draft.data.kvs[k].parents.length) {
+    const pk = draft.data.kvs[k].parents[0];
     deleteAtVal(draft.data.kvs[pk].todo, k);
     _addDt(draft, pk, -draft.caches[k].total_time_spent);
   }
@@ -739,7 +781,7 @@ const _addTodoEntry = (
   k: string,
 ) => {
   if (pk) {
-    draft.data.kvs[k].parent = pk;
+    draft.data.kvs[k].parents[0] = pk;
     draft.data.kvs[pk].todo.splice(i, 0, k);
     _addDt(draft, pk, draft.caches[k].total_time_spent);
   }
@@ -750,20 +792,17 @@ const _top = (draft: Draft<IState>, k: string) => {
   _topQueue(draft, k);
 };
 
-const _topTree = (draft: Draft<IState>, k: string) => {
-  let ck = k;
-  let pk = draft.data.kvs[ck].parent;
-  while (pk !== null) {
-    toFront(draft.data.kvs[pk].todo, ck);
-    ck = pk;
-    pk = draft.data.kvs[ck].parent;
+const _topTree = (draft: Draft<IState>, node_id: string) => {
+  for (const parent of draft.data.kvs[node_id].parents) {
+    toFront(draft.data.kvs[parent].todo, node_id);
+    _topTree(draft, parent);
   }
 };
 
 const _addDt = (draft: Draft<IState>, k: null | string, dt: number) => {
   while (k) {
     draft.caches[k].total_time_spent += dt;
-    k = draft.data.kvs[k].parent;
+    k = draft.data.kvs[k].parents.length ? draft.data.kvs[k].parents[0] : null;
   }
 };
 
@@ -774,8 +813,8 @@ const _topQueue = (draft: Draft<IState>, k: string) => {
 const _doneToTodo = (draft: Draft<IState>, k: string) => {
   _rmFromDone(draft, k);
   _addToTodo(draft, k);
-  const pk = draft.data.kvs[k].parent;
-  if (pk != null) {
+  if (draft.data.kvs[k].parents.length) {
+    const pk = draft.data.kvs[k].parents[0];
     switch (draft.data.kvs[pk].status) {
       case "done":
         _doneToTodo(draft, pk);
@@ -790,8 +829,8 @@ const _doneToTodo = (draft: Draft<IState>, k: string) => {
 const _dontToTodo = (draft: Draft<IState>, k: string) => {
   _rmFromDont(draft, k);
   _addToTodo(draft, k);
-  const pk = draft.data.kvs[k].parent;
-  if (pk != null) {
+  if (draft.data.kvs[k].parents.length) {
+    const pk = draft.data.kvs[k].parents[0];
     switch (draft.data.kvs[pk].status) {
       case "done":
         _doneToTodo(draft, pk);
@@ -804,42 +843,46 @@ const _dontToTodo = (draft: Draft<IState>, k: string) => {
 };
 
 const _rmFromDone = (draft: Draft<IState>, k: string) => {
-  const pk = draft.data.kvs[k].parent;
-  if (pk) {
-    deleteAtVal(draft.data.kvs[pk].done, k);
+  for (const parent of draft.data.kvs[k].parents) {
+    deleteAtVal(draft.data.kvs[parent].done, k);
   }
 };
 
 const _rmFromDont = (draft: Draft<IState>, k: string) => {
-  const pk = draft.data.kvs[k].parent;
-  if (pk) {
-    deleteAtVal(draft.data.kvs[pk].dont, k);
+  for (const parent of draft.data.kvs[k].parents) {
+    deleteAtVal(draft.data.kvs[parent].dont, k);
   }
 };
 
 const _addToTodo = (draft: Draft<IState>, k: string) => {
   draft.data.kvs[k].status = "todo";
-  const pk = draft.data.kvs[k].parent;
-  if (pk) {
-    draft.data.kvs[pk].todo.unshift(k);
+  for (const parent of draft.data.kvs[k].parents) {
+    draft.data.kvs[parent].todo.unshift(k);
   }
 };
 
 const _addToDone = (draft: Draft<IState>, k: string) => {
   draft.data.kvs[k].status = "done";
   draft.data.kvs[k].end_time = new Date().toISOString();
-  const pk = draft.data.kvs[k].parent;
-  if (pk) {
-    draft.data.kvs[pk].done.unshift(k);
+  for (const parent of draft.data.kvs[k].parents) {
+    draft.data.kvs[parent].done.unshift(k);
   }
 };
 
 const _addToDont = (draft: Draft<IState>, k: string) => {
   draft.data.kvs[k].status = "dont";
   draft.data.kvs[k].end_time = new Date().toISOString();
-  const pk = draft.data.kvs[k].parent;
-  if (pk) {
-    draft.data.kvs[pk].dont.unshift(k);
+  for (const parent of draft.data.kvs[k].parents) {
+    draft.data.kvs[parent].dont.unshift(k);
+  }
+};
+
+const _show_path_to_selected_node = (draft: Draft<IState>, node_id: string) => {
+  while (draft.data.kvs[node_id].parents.length) {
+    node_id = draft.data.kvs[node_id].parents[0];
+    if (!draft.data.kvs[node_id].show_children) {
+      draft.data.kvs[node_id].show_children = true;
+    }
   }
 };
 
@@ -869,172 +912,152 @@ const memoize2 = <A, B, R>(fn: (a: A, b: B) => R) => {
 
 const QueueColumn = () => {
   const queue = useSelector((state) => state.data.queue);
-  return (
-    <div id="queue">
-      {queue.length ? <ol>{queue.map(QueueNodeOf)}</ol> : null}
-    </div>
+  const fn = React.useCallback(
+    (node_id) => <QueueNode node_id={node_id} key={node_id} />,
+    [],
   );
+  return queue.length ? (
+    <Chakra.OrderedList spacing="0.5rem" listStylePosition="inside">
+      {queue.map(fn)}
+    </Chakra.OrderedList>
+  ) : null;
 };
 
-const List = React.memo((props: IListProps) => {
-  return props.ks.length ? (
-    <ol>
-      {props.ks.map((k) => {
-        return <li key={k}>{NodeOf(k)}</li>;
+const TreeNodeList = React.memo((props: IListProps) => {
+  return props.node_id_list.length ? (
+    <Chakra.OrderedList spacing="0.5rem" paddingLeft="1rem">
+      {props.node_id_list.map((node_id) => {
+        return (
+          <Chakra.ListItem key={node_id}>
+            <TreeNode node_id={node_id} />
+          </Chakra.ListItem>
+        );
       })}
-    </ol>
+    </Chakra.OrderedList>
   ) : null;
 });
 
-const Node = (props: { k: string }) => {
-  const todo = useSelector((state) => state.data.kvs[props.k].todo);
-  const done = useSelector((state) => state.data.kvs[props.k].done);
-  const dont = useSelector((state) => state.data.kvs[props.k].dont);
+const TreeNode = React.memo((props: { node_id: string }) => {
+  const todo = useSelector((state) => state.data.kvs[props.node_id].todo);
+  const done = useSelector((state) => state.data.kvs[props.node_id].done);
+  const dont = useSelector((state) => state.data.kvs[props.node_id].dont);
+  const show_children = useSelector(
+    (state) => state.data.kvs[props.node_id].show_children,
+  );
   const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
 
   return (
     <>
-      <Entry k={props.k} />
-      <List ks={todo} />
-      {showTodoOnly ? null : <List ks={done} />}
-      {showTodoOnly ? null : <List ks={dont} />}
+      <Chakra.Box id={`tree${props.node_id}`}>
+        {EntryOf(props.node_id)}
+      </Chakra.Box>
+      {show_children ? (
+        <>
+          <TreeNodeList node_id_list={todo} />
+          {showTodoOnly ? null : (
+            <>
+              <TreeNodeList node_id_list={done} />
+              <TreeNodeList node_id_list={dont} />
+            </>
+          )}
+        </>
+      ) : null}
     </>
   );
-};
-const NodeOf = (k: string) => {
-  return <Node k={k} />;
-};
-
-const QueueNode = (props: { k: string }) => {
-  const status = useSelector((state) => state.data.kvs[props.k].status);
-  const parent = useSelector((state) => state.data.kvs[props.k].parent);
-  const show_detail = useSelector(
-    (state) => state.data.kvs[props.k].show_detail,
-  );
-  const cache = useSelector((state) => state.caches[props.k]);
-  const running = useSelector((state) => props.k === state.data.current_entry);
-  const shouldHide = useSelector(
-    (state) =>
-      state.data.showTodoOnly && state.data.kvs[props.k].status !== "todo",
-  );
-  const noTodo = useSelector(
-    (state) => state.data.kvs[props.k].todo.length === 0,
-  );
-  const showDeleteButton = useSelector((state) => {
-    const v = state.data.kvs[props.k];
-    return v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0;
-  });
-  const dispatch = useDispatch();
-  return shouldHide ? null : (
-    <li>
-      <div
-        id={`queue${props.k}`}
-        className={running ? `${status} running` : status}
-      >
-        {parent ? (
-          <>
-            {toTreeButtonOf(props.k)}
-            {status === "todo"
-              ? newButtonOf(dispatch, props.k)
-              : status === "done"
-              ? doneToTodoButtonOf(dispatch, props.k)
-              : dontToTodoButtonOf(dispatch, props.k)}
-            <TextArea k={props.k} />
-            {EstimationInputOf(props.k)}
-            {running
-              ? stopButtonOf(dispatch, props.k)
-              : startButtonOf(dispatch, props.k)}
-          </>
-        ) : null}
-        {digits1(cache.total_time_spent / 3600)}
-        {parent && status === "todo" ? topButtonOf(dispatch, props.k) : null}
-        {status === "todo" ? evalButtonOf(dispatch, props.k) : null}
-        {parent ? (
-          <>
-            {noTodo && status === "todo" ? (
-              <>
-                {todoToDoneButtonOf(dispatch, props.k)}
-                {todoToDontButtonOf(dispatch, props.k)}
-              </>
-            ) : null}
-            {LastRangeOf(props.k)}
-            {showDetailButtonOf(dispatch, props.k)}
-            {show_detail ? (
-              status === "todo" ? (
-                <>
-                  {moveUpButtonOf(dispatch, props.k)}
-                  {moveDownButtonOf(dispatch, props.k)}
-                  {showDeleteButton ? deleteButtonOf(dispatch, props.k) : null}
-                </>
-              ) : null
-            ) : null}
-          </>
-        ) : null}
-        {status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
-      </div>
-    </li>
-  );
-};
-const QueueNodeOf = memoize1((k: string) => {
-  return <QueueNode k={k} key={k} />;
 });
 
-const Entry = (props: { k: string }) => {
-  const status = useSelector((state) => state.data.kvs[props.k].status);
-  const parent = useSelector((state) => state.data.kvs[props.k].parent);
+const QueueNode = React.memo((props: { node_id: string }) => {
+  const shouldHide = useSelector(
+    (state) =>
+      state.data.showTodoOnly &&
+      state.data.kvs[props.node_id].status !== "todo",
+  );
+  return shouldHide ? null : (
+    <Chakra.ListItem id={`queue${props.node_id}`}>
+      {toTreeButtonOf(props.node_id)}
+      {EntryOf(props.node_id)}
+    </Chakra.ListItem>
+  );
+});
+
+const Entry = (props: { node_id: string }) => {
+  const status = useSelector((state) => state.data.kvs[props.node_id].status);
+  const has_parent = useSelector(
+    (state) => !!state.data.kvs[props.node_id].parents.length,
+  );
   const show_detail = useSelector(
-    (state) => state.data.kvs[props.k].show_detail,
+    (state) => state.data.kvs[props.node_id].show_detail,
   );
-  const cache = useSelector((state) => state.caches[props.k]);
-  const running = useSelector((state) => props.k === state.data.current_entry);
+  const cache = useSelector((state) => state.caches[props.node_id]);
+  const running = useSelector(
+    (state) => props.node_id === state.data.current_entry,
+  );
   const noTodo = useSelector(
-    (state) => state.data.kvs[props.k].todo.length === 0,
+    (state) => state.data.kvs[props.node_id].todo.length === 0,
   );
-  const showDeleteButton = useSelector((state) => {
-    const v = state.data.kvs[props.k];
-    return v.todo.length === 0 && v.done.length === 0 && v.dont.length === 0;
+  const has_children = useSelector((state) => {
+    const v = state.data.kvs[props.node_id];
+    return 0 < v.todo.length || 0 < v.done.length || 0 < v.dont.length;
   });
+  const show_children = useSelector((state) => {
+    return state.data.kvs[props.node_id].show_children;
+  });
+
   const dispatch = useDispatch();
   return (
     <div
-      id={`tree${props.k}`}
-      className={running ? `${status} running` : status}
+      className={
+        status +
+        (running
+          ? " running"
+          : has_children && !show_children
+          ? " non-leaf"
+          : "")
+      }
+      onDoubleClick={(e) => {
+        if (e.target === e.currentTarget) {
+          dispatch(swap_show_children(props.node_id));
+        }
+      }}
+      style={{ display: "inline-block" }}
     >
-      {parent ? (
+      {has_parent ? (
         <>
           {status === "todo"
-            ? newButtonOf(dispatch, props.k)
+            ? newButtonOf(dispatch, props.node_id)
             : status === "done"
-            ? doneToTodoButtonOf(dispatch, props.k)
-            : dontToTodoButtonOf(dispatch, props.k)}
-          <TextArea k={props.k} />
-          {EstimationInputOf(props.k)}
+            ? doneToTodoButtonOf(dispatch, props.node_id)
+            : dontToTodoButtonOf(dispatch, props.node_id)}
+          <TextArea k={props.node_id} />
+          {EstimationInputOf(props.node_id)}
           {running
-            ? stopButtonOf(dispatch, props.k)
-            : startButtonOf(dispatch, props.k)}
+            ? stopButtonOf(dispatch, props.node_id)
+            : startButtonOf(dispatch, props.node_id)}
         </>
       ) : null}
       {digits1(cache.total_time_spent / 3600)}
-      {parent && status === "todo" ? topButtonOf(dispatch, props.k) : null}
-      {status === "todo" ? evalButtonOf(dispatch, props.k) : null}
-      {parent ? (
+      {has_parent && status === "todo"
+        ? topButtonOf(dispatch, props.node_id)
+        : null}
+      {status === "todo" ? evalButtonOf(dispatch, props.node_id) : null}
+      {has_parent ? (
         <>
           {noTodo && status === "todo" ? (
             <>
-              {todoToDoneButtonOf(dispatch, props.k)}
-              {todoToDontButtonOf(dispatch, props.k)}
+              {todoToDoneButtonOf(dispatch, props.node_id)}
+              {todoToDontButtonOf(dispatch, props.node_id)}
             </>
           ) : null}
-          {LastRangeOf(props.k)}
-          {showDetailButtonOf(dispatch, props.k)}
+          {LastRangeOf(props.node_id)}
+          {showDetailButtonOf(dispatch, props.node_id)}
           {show_detail ? (
             status === "todo" ? (
               <>
-                {moveUpButtonOf(dispatch, props.k)}
-                {moveDownButtonOf(dispatch, props.k)}
-                {unindentButtonOf(dispatch, props.k)}
-                {indentButtonOf(dispatch, props.k)}
-                {showDeleteButton ? deleteButtonOf(dispatch, props.k) : null}
+                {moveUpButtonOf(dispatch, props.node_id)}
+                {moveDownButtonOf(dispatch, props.node_id)}
+                {unindentButtonOf(dispatch, props.node_id)}
+                {indentButtonOf(dispatch, props.node_id)}
+                {has_children ? null : deleteButtonOf(dispatch, props.node_id)}
               </>
             ) : null
           ) : null}
@@ -1044,6 +1067,9 @@ const Entry = (props: { k: string }) => {
     </div>
   );
 };
+const EntryOf = memoize1((node_id: string) => {
+  return <Entry node_id={node_id} key={node_id} />;
+});
 
 const _estimate = (
   estimates: number[],
@@ -1237,17 +1263,25 @@ const textAreaRefOf = memoize1((_: string) =>
   React.createRef<HTMLTextAreaElement>(),
 );
 
-const toTreeButtonOf = memoize1((k: string) => (
-  <a href={`#tree${k}`}>
-    <button>→</button>
-  </a>
-));
+const toTreeButtonOf = memoize1((node_id: string) => {
+  const dispatch = useDispatch();
+  return (
+    <a
+      href={`#tree${node_id}`}
+      onClick={() => {
+        dispatch(show_path_to_selected_node(node_id));
+      }}
+    >
+      <button>→</button>
+    </a>
+  );
+});
 
 const doneToTodoButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     className="done"
     onClick={() => {
-      dispatch({ type: "doneToTodo", payload: k });
+      dispatch(doneToTodo(k));
     }}
   >
     {DONE_MARK}
@@ -1258,7 +1292,7 @@ const dontToTodoButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     className="dont"
     onClick={() => {
-      dispatch({ type: "dontToTodo", payload: k });
+      dispatch(dontToTodo(k));
     }}
   >
     {DONT_MARK}
@@ -1275,7 +1309,7 @@ const newButtonOf = memoize2((dispatch: AppDispatch, k: string) => {
   return (
     <button
       onClick={() => {
-        dispatch({ type: "new_", payload: k });
+        dispatch(new_(k));
         dispatch(_focusTextAreaOfTheFirsttodo);
       }}
     >
@@ -1287,7 +1321,7 @@ const newButtonOf = memoize2((dispatch: AppDispatch, k: string) => {
 const stopButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "stop" });
+      dispatch(stop());
     }}
     ref={stopButtonRefOf(k)}
   >
@@ -1298,7 +1332,7 @@ const stopButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const startButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "start", payload: k });
+      dispatch(start(k));
       dispatch(doFocusStopButton(k));
     }}
   >
@@ -1309,7 +1343,7 @@ const startButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const topButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "top", payload: k });
+      dispatch(top(k));
     }}
   >
     {TOP_MARK}
@@ -1319,7 +1353,7 @@ const topButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const moveUpButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "moveUp", payload: k });
+      dispatch(moveUp_(k));
       dispatch(doFocusMoveUpButton(k));
     }}
     ref={moveUpButtonRefOf(k)}
@@ -1331,7 +1365,7 @@ const moveUpButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const moveDownButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "moveDown", payload: k });
+      dispatch(moveDown_(k));
       dispatch(doFocusMoveDownButton(k));
     }}
     ref={moveDownButtonRefOf(k)}
@@ -1343,7 +1377,7 @@ const moveDownButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const todoToDoneButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "todoToDone", payload: k });
+      dispatch(todoToDone(k));
     }}
   >
     {DONE_MARK}
@@ -1353,7 +1387,7 @@ const todoToDoneButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const todoToDontButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "todoToDont", payload: k });
+      dispatch(todoToDont(k));
     }}
   >
     {DONT_MARK}
@@ -1363,7 +1397,7 @@ const todoToDontButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const unindentButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "unindent", payload: k });
+      dispatch(unindent(k));
       dispatch(doFocusUnindentButton(k));
     }}
     ref={unindentButtonRefOf(k)}
@@ -1375,7 +1409,7 @@ const unindentButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const indentButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "indent", payload: k });
+      dispatch(indent(k));
       dispatch(doFocusIndentButton(k));
     }}
     ref={indentButtonRefOf(k)}
@@ -1387,7 +1421,7 @@ const indentButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const showDetailButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "flipShowDetail", payload: k });
+      dispatch(flipShowDetail(k));
     }}
   >
     {DETAIL_MARK}
@@ -1397,7 +1431,7 @@ const showDetailButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const deleteButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "delete_", payload: k });
+      dispatch(delete_(k));
     }}
   >
     {DELETE_MARK}
@@ -1407,7 +1441,7 @@ const deleteButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 const evalButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   <button
     onClick={() => {
-      dispatch({ type: "eval_", payload: k });
+      dispatch(eval_(k));
     }}
   >
     {EVAL_MARK}
@@ -1415,17 +1449,15 @@ const evalButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 ));
 
 const setEstimateOf = memoize2(
-  (dispatch: AppDispatch, k: string) => (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    dispatch({
-      type: "setEstimate",
-      payload: {
-        k,
-        estimate: Number(e.target.value),
-      },
-    });
-  },
+  (dispatch: AppDispatch, k: string) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      dispatch(
+        setEstimate({
+          k,
+          estimate: Number(e.target.value),
+        }),
+      );
+    },
 );
 
 const EstimationInputOf = memoize1((k: string) => <EstimationInput k={k} />);
@@ -1446,11 +1478,10 @@ const EstimationInput = (props: { k: string }) => {
 };
 
 const setLastRangeOf = memoize2(
-  (dispatch: AppDispatch, k: string) => (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    setLastRange(dispatch, k, Number(e.target.value));
-  },
+  (dispatch: AppDispatch, k: string) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setLastRange(dispatch, k, Number(e.target.value));
+    },
 );
 
 const TextArea = (props: { k: string }) => {
@@ -1486,15 +1517,14 @@ const TextArea = (props: { k: string }) => {
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       const el = e.target;
       const h = getAndSetHeight(el);
-      dispatch({
-        type: "setTextAndResizeTextArea",
-        payload: {
+      dispatch(
+        setTextAndResizeTextArea({
           k: props.k,
           text: el.value,
           width: el.style.width,
           height: h,
-        },
-      });
+        }),
+      );
     },
     [dispatch, props.k],
   );
@@ -1514,7 +1544,7 @@ const TextArea = (props: { k: string }) => {
       onChange={resizeAndSetText}
       onBlur={dispatchResizeAndSetText}
       className={status}
-      style={style}
+      style={{ border: "solid 1px gray", ...style }}
       ref={textAreaRefOf(props.k)}
     />
   );
@@ -1534,7 +1564,7 @@ const LastRange = (props: { k: string }) => {
   const lastRangeValue = useSelector((state) => {
     const v = state.data.kvs[props.k];
     const lastRange = lastRangeOf(v.ranges);
-    return lastRange !== null && lastRange.end !== null && v.parent !== null
+    return lastRange !== null && lastRange.end !== null && v.parents.length
       ? (lastRange.end - lastRange.start) / 3600
       : null;
   });
@@ -1590,27 +1620,35 @@ register_save_type("undo");
 register_save_type("redo");
 
 const saveStateMiddlewareOf = (pred: (type_: string) => boolean) => {
-  const saveStateMiddleware: Middleware<{}, IState> = (store) => (
-    next_dispatch,
-  ) => (action) => {
-    const ret = next_dispatch(action);
-    if (pred(action.type)) {
-      fetch("api/" + API_VERSION + "/post", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-        },
-        body: JSON.stringify(store.getState().data),
-      }).then((r) => {
-        store.dispatch(setSaveSuccess(r.ok));
-      });
-    }
-    return ret;
-  };
+  const toast = Chakra.createStandaloneToast();
+  const saveStateMiddleware: Middleware<{}, IState> =
+    (store) => (next_dispatch) => (action) => {
+      const ret = next_dispatch(action);
+      if (pred(action.type)) {
+        fetch("api/" + API_VERSION + "/post", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+          },
+          body: JSON.stringify(store.getState().data),
+        }).then((r) => {
+          if (!r.ok) {
+            toast({
+              title: "Failed to save.",
+              status: "error",
+              duration: 15000,
+              isClosable: true,
+            });
+          }
+          store.dispatch(setSaveSuccess(r.ok));
+        });
+      }
+      return ret;
+    };
   return saveStateMiddleware;
 };
 const saveStateMiddleware = saveStateMiddlewareOf((type_: string) =>
-  history_type_set.has(type_),
+  save_type_set.has(type_),
 );
 
 const store = configureStore({
@@ -1637,7 +1675,9 @@ const useSelector: TypedUseSelectorHook<RootState> = _useSelector;
 export const main = () => {
   ReactDOM.render(
     <Provider store={store}>
-      <App />
+      <Chakra.ChakraProvider>
+        <App />
+      </Chakra.ChakraProvider>
     </Provider>,
     document.getElementById("root"),
   );

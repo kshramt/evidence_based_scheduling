@@ -1,11 +1,9 @@
 import datetime
 import json
 import os
+import urllib
 
 import flask
-
-
-LATEST_VERSION = 5
 
 
 class Err(Exception):
@@ -26,8 +24,13 @@ def jp(path, *more):
     'a'
     >>> jp("a", "/b", "c")
     'a/b/c'
+    >>> jp("gs://b", "c//d")
+    'gs://b/c/d'
     """
-    return os.path.normpath(os.path.sep.join((path, os.path.sep.join(more))))
+    puri = urllib.parse.urlparse(os.path.sep.join((path, os.path.sep.join(more))))
+    return urllib.parse.ParseResult(
+        **{**puri._asdict(), **dict(path=os.path.normpath(puri.path))}
+    ).geturl()
 
 
 DATA_DIR = os.environ.get("EBS_DATA_DIR", "data")
@@ -49,16 +52,40 @@ def _update_data_version(data):
     elif data["version"] == 4:
         return _update_data_version(_v5_of_v4(data))
     elif data["version"] == 5:
+        return _update_data_version(_v6_of_v5(data))
+    elif data["version"] == 6:
+        return _update_data_version(_v7_of_v6(data))
+    elif data["version"] == 7:
         return data
     else:
         raise Err(f"Unsupported data version: {data.get('version', 'None')}")
+
+
+def _v7_of_v6(data):
+    del data["selected_node_id"]
+    for k, v in data["kvs"].items():
+        v["show_children"] = False
+
+        if v["parent"] is None:
+            v["parents"] = []
+        else:
+            v["parents"] = [v["parent"]]
+        del v["parent"]
+    data["version"] = 7
+    return data
+
+
+def _v6_of_v5(data):
+    data["selected_node_id"] = data["root"]
+    data["version"] = 6
+    return data
 
 
 def _v5_of_v4(data):
     for k, v in data["kvs"].items():
         v["style"] = dict(width=v["width"], height=v["height"])
         del v["width"], v["height"]
-    data["version"] = LATEST_VERSION
+    data["version"] = 5
     return data
 
 
@@ -150,7 +177,7 @@ def get():
         data = _join_text_v1(data)
         data = _parse_datetime_v1(data)
     except IOError:
-        data = None;
+        data = None
     res = flask.make_response(flask.json.jsonify(data))
     res.headers["Cache-Control"] = "no-store"
     return res
