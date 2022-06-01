@@ -37,6 +37,8 @@ const DONE_MARK = "✓";
 const DONT_MARK = "🗑";
 const DETAIL_MARK = "⋮";
 
+let _VISIT_COUNTER = 0;
+
 type AnyPayloadAction =
   | {
       readonly type: string;
@@ -103,8 +105,9 @@ interface ICaches {
 }
 
 interface ICache {
-  readonly total_time_spent: number;
-  readonly percentiles: number[];
+  total_time: number;
+  percentiles: number[];
+  visited: number;
 }
 
 const history_type_set = new Set<string>();
@@ -164,16 +167,22 @@ const setCache = (caches: ICaches, k: string, kvs: IKvs) => {
     const sumChildren = (xs: string[]) => {
       return xs.reduce((total, current) => {
         setCache(caches, current, kvs);
-        return total + caches[current].total_time_spent;
+        return total + caches[current].total_time;
       }, 0);
     };
+    const node_time = kvs[k].ranges.reduce((total, current) => {
+      return current.end === null
+        ? total
+        : total + (current.end - current.start);
+    }, 0);
     caches[k] = {
-      total_time_spent: kvs[k].ranges.reduce((total, current) => {
-        return current.end === null
-          ? total
-          : total + (current.end - current.start);
-      }, sumChildren(kvs[k].todo) + sumChildren(kvs[k].done) + sumChildren(kvs[k].dont)),
+      total_time:
+        node_time +
+        sumChildren(kvs[k].todo) +
+        sumChildren(kvs[k].done) +
+        sumChildren(kvs[k].dont),
       percentiles: [] as number[], // 0, 10, 33, 50, 67, 90, 100
+      visited: _VISIT_COUNTER - 1,
     };
   }
   return caches;
@@ -487,21 +496,21 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       const pk = state.data.kvs[k].parents[0];
       if (state.data.kvs[pk].parents.length) {
         const ppk = state.data.kvs[pk].parents[0];
-        const _total_time_spent_pk_orig = state.caches[pk].total_time_spent;
-        const _total_time_spent_ppk_orig = state.caches[ppk].total_time_spent;
+        const _total_time_spent_pk_orig = state.caches[pk].total_time;
+        const _total_time_spent_ppk_orig = state.caches[ppk].total_time;
         _rmTodoEntry(state, k);
         const entries = state.data.kvs[ppk].todo;
         const i = entries.indexOf(pk);
         assert(() => [i !== -1, "Must not happen."]);
         _addTodoEntry(state, ppk, i, k);
         assertIsApprox(() => [
-          _total_time_spent_pk_orig - state.caches[pk].total_time_spent,
-          state.caches[k].total_time_spent,
+          _total_time_spent_pk_orig - state.caches[pk].total_time,
+          state.caches[k].total_time,
         ]);
         if (_total_time_spent_ppk_orig !== null) {
           assertIsApprox(() => [
             _total_time_spent_ppk_orig,
-            state.caches[ppk].total_time_spent,
+            state.caches[ppk].total_time,
           ]);
         }
       }
@@ -515,13 +524,12 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       if (last(entries) !== k) {
         const i = entries.indexOf(k);
         const new_pk = entries[i + 1];
-        const total_time_spent_new_pk_orig =
-          state.caches[new_pk].total_time_spent;
-        const total_time_spent_k = state.caches[k].total_time_spent;
+        const total_time_spent_new_pk_orig = state.caches[new_pk].total_time;
+        const total_time_spent_k = state.caches[k].total_time;
         _rmTodoEntry(state, k);
         _addTodoEntry(state, new_pk, 0, k);
         assertIsApprox(() => [
-          state.caches[new_pk].total_time_spent,
+          state.caches[new_pk].total_time,
           total_time_spent_new_pk_orig + total_time_spent_k,
         ]);
       }
@@ -713,7 +721,12 @@ const _eval_ = (draft: Draft<IState>, k: string) => {
   });
   const ratios = candidates.length
     ? candidates.map((v) => {
-        return draft.caches[v.start_time].total_time_spent / 3600 / v.estimate;
+        return (
+          set_total_time(v.start_time, draft.data.kvs, draft.caches) /
+          3600 /
+          v.estimate
+        );
+        // return draft.caches[v.start_time].total_time_spent / 3600 / v.estimate;
       })
     : [1];
   const now = Number(new Date()) / 1000;
@@ -756,6 +769,42 @@ const _eval_ = (draft: Draft<IState>, k: string) => {
   ];
 };
 
+const set_total_time = (k: string, kvs: IKvs, caches: ICaches) => {
+  return caches[k].total_time = total_time_of(k,kvs,caches);
+}
+
+const total_time_of = (k: string, kvs: IKvs, caches: ICaches) => {
+  return _total_time_of(k, kvs, caches, (_VISIT_COUNTER += 1));
+};
+
+const _total_time_of = (
+  k: string,
+  kvs: IKvs,
+  caches: ICaches,
+  vid: number,
+): number => {
+  if (caches[k].visited === vid) {
+    return 0;
+  }
+  caches[k].visited = vid;
+  const v = kvs[k];
+  const r = (total: number, current: string) => {
+    return total + _total_time_of(current, kvs, caches, vid);
+  };
+  return (
+    node_time_of(k, kvs) +
+    v.todo.reduce(r, 0) +
+    v.done.reduce(r, 0) +
+    v.dont.reduce(r, 0)
+  );
+};
+
+const node_time_of = (k: string, kvs: IKvs) => {
+  return kvs[k].ranges.reduce((total, current) => {
+    return current.end === null ? total : total + (current.end - current.start);
+  }, 0);
+};
+
 const _parentsOf = (k: string, kvs: IKvs) => {
   let ret = [];
   let v = kvs[k];
@@ -770,7 +819,7 @@ const _rmTodoEntry = (draft: Draft<IState>, k: string) => {
   if (draft.data.kvs[k].parents.length) {
     const pk = draft.data.kvs[k].parents[0];
     deleteAtVal(draft.data.kvs[pk].todo, k);
-    _addDt(draft, pk, -draft.caches[k].total_time_spent);
+    _addDt(draft, pk, -draft.caches[k].total_time);
   }
 };
 
@@ -783,7 +832,7 @@ const _addTodoEntry = (
   if (pk) {
     draft.data.kvs[k].parents[0] = pk;
     draft.data.kvs[pk].todo.splice(i, 0, k);
-    _addDt(draft, pk, draft.caches[k].total_time_spent);
+    _addDt(draft, pk, draft.caches[k].total_time);
   }
 };
 
@@ -801,7 +850,7 @@ const _topTree = (draft: Draft<IState>, node_id: string) => {
 
 const _addDt = (draft: Draft<IState>, k: null | string, dt: number) => {
   while (k) {
-    draft.caches[k].total_time_spent += dt;
+    draft.caches[k].total_time += dt;
     k = draft.data.kvs[k].parents.length ? draft.data.kvs[k].parents[0] : null;
   }
 };
@@ -1035,7 +1084,7 @@ const Entry = (props: { node_id: string }) => {
             : startButtonOf(dispatch, props.node_id)}
         </>
       ) : null}
-      {digits1(cache.total_time_spent / 3600)}
+      {cache.total_time < 0 ? "-" : digits1(cache.total_time / 3600)}
       {has_parent && status === "todo"
         ? topButtonOf(dispatch, props.node_id)
         : null}
