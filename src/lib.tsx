@@ -37,6 +37,8 @@ const DONE_MARK = "✓";
 const DONT_MARK = "🗑";
 const DETAIL_MARK = "⋮";
 
+let _VISIT_COUNTER = 0;
+
 type AnyPayloadAction =
   | {
       readonly type: string;
@@ -103,8 +105,9 @@ interface ICaches {
 }
 
 interface ICache {
-  readonly total_time_spent: number;
-  readonly percentiles: number[];
+  total_time: number;
+  percentiles: number[];
+  visited: number;
 }
 
 const history_type_set = new Set<string>();
@@ -159,21 +162,12 @@ class History<T> {
   };
 }
 
-const setCache = (caches: ICaches, k: string, kvs: IKvs) => {
+const setCache = (caches: ICaches, k: string) => {
   if (caches[k] === undefined) {
-    const sumChildren = (xs: string[]) => {
-      return xs.reduce((total, current) => {
-        setCache(caches, current, kvs);
-        return total + caches[current].total_time_spent;
-      }, 0);
-    };
     caches[k] = {
-      total_time_spent: kvs[k].ranges.reduce((total, current) => {
-        return current.end === null
-          ? total
-          : total + (current.end - current.start);
-      }, sumChildren(kvs[k].todo) + sumChildren(kvs[k].done) + sumChildren(kvs[k].dont)),
+      total_time: -1,
       percentiles: [] as number[], // 0, 10, 33, 50, 67, 90, 100
+      visited: _VISIT_COUNTER - 1,
     };
   }
   return caches;
@@ -184,8 +178,7 @@ const _stop = (draft: Draft<IState>) => {
     const e = draft.data.kvs[draft.data.current_entry];
     const r = last(e.ranges);
     r.end = Number(new Date()) / 1000;
-    const dt = r.end - r.start;
-    _addDt(draft, draft.data.current_entry, dt);
+    _set_total_time(draft.data.current_entry, draft.data.kvs, draft.caches);
     draft.data.current_entry = null;
   }
 };
@@ -213,7 +206,7 @@ const emptyStateOf = (): IState => {
       showTodoOnly: false,
       version: 5,
     },
-    caches: setCache({}, root, kvs),
+    caches: setCache({}, root),
     saveSuccess: true,
   };
 };
@@ -244,7 +237,7 @@ const doLoad = createAsyncThunk("doLoad", async () => {
   }
   const caches: ICaches = {};
   for (const k of Object.keys(data.kvs)) {
-    setCache(caches, k, data.kvs);
+    setCache(caches, k);
   }
   return {
     data,
@@ -278,6 +271,9 @@ const smallestToTop = register_save_type(
 );
 const closestToTop = register_save_type(
   register_history_type(createAction("closestToTop")),
+);
+const set_total_time = register_history_type(
+  createAction<string>("set_total_time"),
 );
 const stop = register_save_type(register_history_type(createAction("stop")));
 const moveUp_ = register_save_type(
@@ -360,12 +356,12 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     if (!state.data.kvs[parent].show_children) {
       state.data.kvs[parent].show_children = true;
     }
-    const knode_id = new Date().toISOString();
-    const v = newEntryValueOf([parent], knode_id);
-    state.data.kvs[knode_id] = v;
-    state.data.kvs[parent].todo.unshift(knode_id);
-    state.data.queue.push(knode_id);
-    setCache(state.caches, knode_id, state.data.kvs);
+    const node_id = new Date().toISOString();
+    const v = newEntryValueOf([parent], node_id);
+    state.data.kvs[node_id] = v;
+    state.data.kvs[parent].todo.unshift(node_id);
+    state.data.queue.push(node_id);
+    setCache(state.caches, node_id);
   });
   ac(setSaveSuccess, (state, action) => {
     state.saveSuccess = action.payload;
@@ -464,6 +460,9 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       );
     }
   });
+  ac(set_total_time, (state, action) => {
+    _set_total_time(action.payload, state.data.kvs, state.caches);
+  });
   ac(stop, (state, action) => {
     _stop(state);
   });
@@ -487,23 +486,11 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       const pk = state.data.kvs[k].parents[0];
       if (state.data.kvs[pk].parents.length) {
         const ppk = state.data.kvs[pk].parents[0];
-        const _total_time_spent_pk_orig = state.caches[pk].total_time_spent;
-        const _total_time_spent_ppk_orig = state.caches[ppk].total_time_spent;
         _rmTodoEntry(state, k);
         const entries = state.data.kvs[ppk].todo;
         const i = entries.indexOf(pk);
         assert(() => [i !== -1, "Must not happen."]);
         _addTodoEntry(state, ppk, i, k);
-        assertIsApprox(() => [
-          _total_time_spent_pk_orig - state.caches[pk].total_time_spent,
-          state.caches[k].total_time_spent,
-        ]);
-        if (_total_time_spent_ppk_orig !== null) {
-          assertIsApprox(() => [
-            _total_time_spent_ppk_orig,
-            state.caches[ppk].total_time_spent,
-          ]);
-        }
       }
     }
   });
@@ -515,15 +502,8 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       if (last(entries) !== k) {
         const i = entries.indexOf(k);
         const new_pk = entries[i + 1];
-        const total_time_spent_new_pk_orig =
-          state.caches[new_pk].total_time_spent;
-        const total_time_spent_k = state.caches[k].total_time_spent;
         _rmTodoEntry(state, k);
         _addTodoEntry(state, new_pk, 0, k);
-        assertIsApprox(() => [
-          state.caches[new_pk].total_time_spent,
-          total_time_spent_new_pk_orig + total_time_spent_k,
-        ]);
       }
     }
   });
@@ -544,7 +524,6 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       const dt = t2 - t1;
       if (dt !== 0) {
         l.end = l.start + t2;
-        _addDt(state, k, dt);
       }
     }
   });
@@ -705,6 +684,7 @@ const setLastRange = (dispatch: AppDispatch, k: string, t: number) => {
 };
 
 const _eval_ = (draft: Draft<IState>, k: string) => {
+  _set_total_time(k, draft.data.kvs, draft.caches);
   const candidates = Object.values(draft.data.kvs).filter((v) => {
     return (
       (v.status === "done" || v.status === "dont") &&
@@ -713,7 +693,12 @@ const _eval_ = (draft: Draft<IState>, k: string) => {
   });
   const ratios = candidates.length
     ? candidates.map((v) => {
-        return draft.caches[v.start_time].total_time_spent / 3600 / v.estimate;
+        return (
+          _set_total_time(v.start_time, draft.data.kvs, draft.caches) /
+          3600 /
+          v.estimate
+        );
+        // return draft.caches[v.start_time].total_time / 3600 / v.estimate;
       })
     : [1];
   const now = Number(new Date()) / 1000;
@@ -756,6 +741,42 @@ const _eval_ = (draft: Draft<IState>, k: string) => {
   ];
 };
 
+const _set_total_time = (k: string, kvs: IKvs, caches: ICaches) => {
+  return (caches[k].total_time = total_time_of(k, kvs, caches));
+};
+
+const total_time_of = (k: string, kvs: IKvs, caches: ICaches) => {
+  return _total_time_of(k, kvs, caches, (_VISIT_COUNTER += 1));
+};
+
+const _total_time_of = (
+  k: string,
+  kvs: IKvs,
+  caches: ICaches,
+  vid: number,
+): number => {
+  if (caches[k].visited === vid) {
+    return 0;
+  }
+  caches[k].visited = vid;
+  const v = kvs[k];
+  const r = (total: number, current: string) => {
+    return total + _total_time_of(current, kvs, caches, vid);
+  };
+  return (
+    node_time_of(k, kvs) +
+    v.todo.reduce(r, 0) +
+    v.done.reduce(r, 0) +
+    v.dont.reduce(r, 0)
+  );
+};
+
+const node_time_of = (k: string, kvs: IKvs) => {
+  return kvs[k].ranges.reduce((total, current) => {
+    return current.end === null ? total : total + (current.end - current.start);
+  }, 0);
+};
+
 const _parentsOf = (k: string, kvs: IKvs) => {
   let ret = [];
   let v = kvs[k];
@@ -770,7 +791,6 @@ const _rmTodoEntry = (draft: Draft<IState>, k: string) => {
   if (draft.data.kvs[k].parents.length) {
     const pk = draft.data.kvs[k].parents[0];
     deleteAtVal(draft.data.kvs[pk].todo, k);
-    _addDt(draft, pk, -draft.caches[k].total_time_spent);
   }
 };
 
@@ -783,7 +803,6 @@ const _addTodoEntry = (
   if (pk) {
     draft.data.kvs[k].parents[0] = pk;
     draft.data.kvs[pk].todo.splice(i, 0, k);
-    _addDt(draft, pk, draft.caches[k].total_time_spent);
   }
 };
 
@@ -796,13 +815,6 @@ const _topTree = (draft: Draft<IState>, node_id: string) => {
   for (const parent of draft.data.kvs[node_id].parents) {
     toFront(draft.data.kvs[parent].todo, node_id);
     _topTree(draft, parent);
-  }
-};
-
-const _addDt = (draft: Draft<IState>, k: null | string, dt: number) => {
-  while (k) {
-    draft.caches[k].total_time_spent += dt;
-    k = draft.data.kvs[k].parents.length ? draft.data.kvs[k].parents[0] : null;
   }
 };
 
@@ -1002,8 +1014,11 @@ const Entry = (props: { node_id: string }) => {
   const show_children = useSelector((state) => {
     return state.data.kvs[props.node_id].show_children;
   });
-
   const dispatch = useDispatch();
+  const on_click_total_time = useCallback(() => {
+    dispatch(set_total_time(props.node_id));
+  }, [dispatch, props.node_id]);
+
   return (
     <div
       className={
@@ -1035,7 +1050,9 @@ const Entry = (props: { node_id: string }) => {
             : startButtonOf(dispatch, props.node_id)}
         </>
       ) : null}
-      {digits1(cache.total_time_spent / 3600)}
+      <span onClick={on_click_total_time}>
+        {cache.total_time < 0 ? "-" : digits1(cache.total_time / 3600)}
+      </span>
       {has_parent && status === "todo"
         ? topButtonOf(dispatch, props.node_id)
         : null}
@@ -1214,21 +1231,6 @@ export function* multinomial<T>(xs: T[], ws: number[]) {
   assert(() => [false, "Must not happen."]);
   return 0;
 }
-
-const isApprox = (x: number, y: number) => {
-  const atol = 1e-7;
-  const rtol = 1e-4;
-  return (
-    Math.abs(y - x) <= Math.max(atol, rtol * Math.max(Math.abs(x), Math.abs(y)))
-  );
-};
-
-const assertIsApprox = (fn: () => [number, number]) => {
-  assert(() => {
-    const [actual, expected] = fn();
-    return [isApprox(actual, expected), actual + " ≉ " + expected];
-  });
-};
 
 const assert = (fn: () => [boolean, string]) => {
   if ("production" !== process.env.NODE_ENV) {
