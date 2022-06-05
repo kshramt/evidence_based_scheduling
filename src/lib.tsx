@@ -202,7 +202,7 @@ const _rmFromTodo = (draft: Draft<IState>, node_id: string) => {
 const emptyStateOf = (): IState => {
   const root = "root";
   const kvs = {
-    root: newEntryValueOf([], root),
+    root: newEntryValueOf([]),
   };
   return {
     data: {
@@ -219,7 +219,7 @@ const emptyStateOf = (): IState => {
   };
 };
 
-const newEntryValueOf = (parents: string[], start_time: string) => {
+const newEntryValueOf = (parents: string[]) => {
   return {
     done: [] as string[],
     dont: [] as string[],
@@ -229,7 +229,7 @@ const newEntryValueOf = (parents: string[], start_time: string) => {
     ranges: [] as IRange[],
     show_children: false,
     show_detail: false,
-    start_time,
+    start_time: new Date().toISOString(),
     status: "todo" as TStatus,
     style: { width: "49ex", height: "3ex" },
     text: "",
@@ -363,7 +363,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       state.data.kvs[parent].show_children = true;
     }
     const node_id = new Date().toISOString();
-    const v = newEntryValueOf([parent], node_id);
+    const v = newEntryValueOf([parent]);
     state.data.kvs[node_id] = v;
     state.data.kvs[parent].todo.push(node_id);
     state.data.queue.push(node_id);
@@ -460,8 +460,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     if (k_min !== null) {
       _top(
         state,
-        leafs(state.data.kvs[k_min], state.data.kvs)[Symbol.iterator]().next()
-          .value.start_time,
+        leafs(k_min, state.data.kvs)[Symbol.iterator]().next().value[0],
       );
     }
   });
@@ -703,18 +702,20 @@ const setLastRange = (dispatch: AppDispatch, k: string, t: number) => {
 
 const _eval_ = (draft: Draft<IState>, k: string) => {
   _set_total_time(k, draft.data.kvs, draft.caches);
-  const candidates = Object.values(draft.data.kvs).filter((v) => {
+  const candidates = Object.keys(draft.data.kvs).filter((k) => {
+    const v = draft.data.kvs[k];
     return (
       (v.status === "done" || v.status === "dont") &&
       v.estimate !== NO_ESTIMATION
     );
   });
   const ratios = candidates.length
-    ? candidates.map((v) => {
+    ? candidates.map((node_id) => {
+        const node = draft.data.kvs[node_id];
         return (
-          _set_total_time(v.start_time, draft.data.kvs, draft.caches) /
+          _set_total_time(node_id, draft.data.kvs, draft.caches) /
           3600 /
-          v.estimate
+          node.estimate
         );
         // return draft.caches[v.start_time].total_time / 3600 / v.estimate;
       })
@@ -723,12 +724,14 @@ const _eval_ = (draft: Draft<IState>, k: string) => {
   const ks = _parentsOf(k, draft.data.kvs);
   // todo: The sampling weight should be a function of both the leaves and the candidates.
   const weights = candidates.length
-    ? candidates.map((v) => {
+    ? candidates.map((node_id) => {
+        const node = draft.data.kvs[node_id];
         // 1/e per year
         const w_t = Math.exp(
-          -(now - Date.parse(v.end_time as string) / 1000) / (86400 * 365.25),
+          -(now - Date.parse(node.end_time as string) / 1000) /
+            (86400 * 365.25),
         );
-        const parents = new Set(_parentsOf(v.start_time, draft.data.kvs));
+        const parents = new Set(_parentsOf(node_id, draft.data.kvs));
         let w_p = 1;
         for (const k of ks) {
           if (parents.has(k)) {
@@ -739,7 +742,8 @@ const _eval_ = (draft: Draft<IState>, k: string) => {
         return w_t * w_p;
       })
     : [1];
-  const leaf_estimates = Array.from(leafs(draft.data.kvs[k], draft.data.kvs))
+  const leaf_estimates = Array.from(leafs(k, draft.data.kvs))
+    .map(([_, v]) => v)
     .filter((v) => {
       return v.estimate !== NO_ESTIMATION;
     })
@@ -798,10 +802,9 @@ const node_time_of = (k: string, kvs: IKvs) => {
 
 const _parentsOf = (k: string, kvs: IKvs) => {
   let ret = [];
-  let v = kvs[k];
-  while (v.parents.length) {
-    ret.push(v.start_time);
-    v = kvs[v.parents[0]];
+  while (kvs[k].parents.length) {
+    ret.push(k);
+    k = kvs[k].parents[0];
   }
   return ret;
 };
@@ -1225,14 +1228,15 @@ export const sum = (xs: number[]) => {
   }, 0);
 };
 
-function* leafs(v: IEntry, kvs: IKvs): Iterable<IEntry> {
-  if (v.status === "todo") {
-    if (v.todo.length) {
-      for (const c of v.todo) {
-        yield* leafs(kvs[c], kvs);
+function* leafs(node_id: string, kvs: IKvs): Iterable<[string, IEntry]> {
+  const node = kvs[node_id];
+  if (node.status === "todo") {
+    if (node.todo.length) {
+      for (const c of node.todo) {
+        yield* leafs(c, kvs);
       }
     } else {
-      yield v;
+      yield [node_id, node];
     }
   }
 }
