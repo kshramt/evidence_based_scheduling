@@ -56,9 +56,32 @@ def _update_data_version(data):
     elif data["version"] == 6:
         return _update_data_version(_v7_of_v6(data))
     elif data["version"] == 7:
+        return _update_data_version(_v8_of_v7(data))
+    elif data["version"] == 8:
         return data
     else:
         raise Err(f"Unsupported data version: {data.get('version', 'None')}")
+
+
+def _v8_of_v7(data):
+    tid_of_sid = dict()
+    sid_of_tid = dict()
+    kmax = 0
+    for k, v in enumerate(sorted(data["kvs"].keys())):
+        k += 1
+        kmax = k
+        sid = _base36(k)
+        tid_of_sid[sid] = v
+        sid_of_tid[v] = sid
+    data["kvs"] = {sid_of_tid[k]: v for k, v in data["kvs"].items()}
+    for br in ("todo", "done", "dont", "parents"):
+        for v in data["kvs"].values():
+            v[br] = [sid_of_tid[k] for k in v[br]]
+    data["queue"] = [sid_of_tid[k] for k in data["queue"]]
+    data["root"] = sid_of_tid[data["root"]]
+    data["id_seq"] = kmax
+    data["version"] = 8
+    return data
 
 
 def _v7_of_v6(data):
@@ -154,6 +177,26 @@ def _v1_of_vnone(data):
     data["version"] = 1
     return data
 
+
+def _base36(x: int):
+    cs = "0123456789abcdefghijklmnopqrstuvwxyz"
+    assert len(cs) == 36
+    assert 0 <= x
+    res = ""
+    if x < 36:
+        return cs[x]
+    while 0 < x:
+        x, i = divmod(x, 36)
+        res = cs[i] + res
+    return res
+
+
+assert _base36(0) == "0"
+assert _base36(1) == "1"
+assert _base36(34) == "y"
+assert _base36(35) == "z"
+assert _base36(36) == "10"
+assert _base36(92384123) == "1j041n"
 
 app = flask.Flask(
     __name__, static_folder=jp("build", "static"), template_folder="build"

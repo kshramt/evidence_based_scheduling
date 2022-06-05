@@ -67,6 +67,7 @@ interface IState {
 interface IData {
   readonly current_entry: null | string;
   readonly root: string;
+  readonly id_seq: number;
   readonly kvs: IKvs;
   readonly queue: string[];
   readonly showTodoOnly: boolean;
@@ -200,14 +201,16 @@ const _rmFromTodo = (draft: Draft<IState>, node_id: string) => {
 };
 
 const emptyStateOf = (): IState => {
-  const root = "root";
+  const id_seq = 0;
+  const root = id_seq.toString(36);
   const kvs = {
-    root: newEntryValueOf([]),
+    [root]: newEntryValueOf([]),
   };
   return {
     data: {
       current_entry: null,
       root,
+      id_seq,
       kvs,
       queue: [],
       showTodoOnly: false,
@@ -362,7 +365,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     if (!state.data.kvs[parent].show_children) {
       state.data.kvs[parent].show_children = true;
     }
-    const node_id = new Date().toISOString();
+    const node_id = (state.data.id_seq += 1).toString(36);
     const v = newEntryValueOf([parent]);
     state.data.kvs[node_id] = v;
     state.data.kvs[parent].todo.push(node_id);
@@ -583,7 +586,9 @@ const MENU_HEIGHT = "2.5rem";
 const BODY_HEIGHT = `calc(100vh - ${MENU_HEIGHT})`;
 
 const App = () => {
-  const root = useSelector((state) => state.data.root);
+  const root = useSelector((state) => {
+    return state.data.root;
+  });
   return (
     <Chakra.VStack spacing="0">
       <Menu />
