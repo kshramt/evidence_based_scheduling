@@ -1257,13 +1257,17 @@ export function* multinomial<T>(xs: T[], ws: number[]) {
     if (r === 0) {
       yield xs[0];
     } else {
-      // todo: Use binary search.
-      for (const i of ws.keys()) {
-        if (partitions[i] < r && r <= partitions[i + 1]) {
-          yield xs[i];
-          break;
+      let lo = 0;
+      let hi = partitions.length - 1;
+      while (lo + 1 < hi) {
+        const mi = (hi + lo) >> 1;
+        if (partitions[mi] < r) {
+          lo = mi;
+        } else {
+          hi = mi;
         }
       }
+      yield xs[lo];
     }
   }
   // todo: For the stricter generators introduced in TypeScript version 3.6.
