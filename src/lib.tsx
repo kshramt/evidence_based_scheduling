@@ -60,6 +60,7 @@ interface IState {
   readonly data: IData;
   readonly caches: ICaches;
 
+  readonly filter_query: string;
   readonly saveSuccess: boolean;
 }
 
@@ -213,6 +214,7 @@ const emptyStateOf = (): IState => {
       version: 5,
     },
     caches: {},
+    filter_query: "",
     saveSuccess: true,
   };
 };
@@ -244,6 +246,7 @@ const doLoad = createAsyncThunk("doLoad", async () => {
   return {
     data,
     caches: {},
+    filter_query: "",
     saveSuccess: true,
   };
 });
@@ -334,6 +337,7 @@ const swap_show_children = register_save_type(
 const show_path_to_selected_node = register_save_type(
   register_history_type(createAction<string>("show_path_to_selected_node")),
 );
+const set_filter_query = createAction<string>("set_filter_query");
 
 const rootReducer = createReducer(emptyStateOf(), (builder) => {
   const ac = builder.addCase;
@@ -571,6 +575,9 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   ac(show_path_to_selected_node, (state, action) => {
     _show_path_to_selected_node(state, action.payload);
   });
+  ac(set_filter_query, (state, action) => {
+    state.filter_query = action.payload;
+  });
 });
 
 const MENU_HEIGHT = "2.5rem";
@@ -615,6 +622,13 @@ const Menu = () => {
   const _load = useCallback(() => {
     dispatch(doLoad());
   }, [dispatch]);
+  const filter_query = useSelector((state) => state.filter_query);
+  const handle_change = useCallback(
+    (e) => {
+      dispatch(set_filter_query(e.target.value));
+    },
+    [dispatch],
+  );
 
   return (
     <Chakra.HStack
@@ -646,6 +660,9 @@ const Menu = () => {
       </Chakra.Box>
       <Chakra.Box>
         <button onClick={_load}>⟳</button>
+      </Chakra.Box>
+      <Chakra.Box>
+        <Chakra.Input value={filter_query} onChange={handle_change} />
       </Chakra.Box>
     </Chakra.HStack>
   );
@@ -981,11 +998,22 @@ const TreeNode = React.memo((props: { node_id: string }) => {
 });
 
 const QueueNode = React.memo((props: { node_id: string }) => {
-  const shouldHide = useSelector(
-    (state) =>
-      state.data.showTodoOnly &&
-      state.data.kvs[props.node_id].status !== "todo",
-  );
+  const shouldHide = useSelector((state) => {
+    const node = state.data.kvs[props.node_id];
+    if (state.data.showTodoOnly && node.status !== "todo") {
+      return true;
+    }
+    const filter_query = state.filter_query.toLowerCase();
+    const text = node.text.toLowerCase();
+    let is_match_filter_query = true;
+    for (const q of filter_query.split(" ")) {
+      if (!text.includes(q)) {
+        is_match_filter_query = false;
+        break;
+      }
+    }
+    return !is_match_filter_query;
+  });
   return shouldHide ? null : (
     <Chakra.ListItem id={`queue${props.node_id}`}>
       {toTreeButtonOf(props.node_id)}
