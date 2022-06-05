@@ -14,10 +14,12 @@ import {
   createReducer,
   createSelector,
 } from "@reduxjs/toolkit";
-import produce, { Draft } from "immer";
+import produce, { Draft, setAutoFreeze } from "immer";
 import * as Chakra from "@chakra-ui/react";
 
 import "./lib.css";
+
+setAutoFreeze(false);
 
 const API_VERSION = "v1";
 const NO_ESTIMATION = 0;
@@ -103,12 +105,27 @@ interface IRange {
 interface ICaches {
   [k: string]: ICache;
 }
+const cache_of = (caches: ICaches, node_id: string) => {
+  return caches[node_id] === undefined
+    ? (caches[node_id] = {})
+    : caches[node_id];
+};
 
 interface ICache {
-  total_time: number;
-  percentiles: number[];
-  visited: number;
+  total_time?: number;
+  percentiles?: number[]; // 0, 10, 33, 50, 67, 90, 100
+  visited?: number;
 }
+const percentiles_of = (cache: ICache) => {
+  return cache.percentiles === undefined
+    ? (cache.percentiles = [])
+    : cache.percentiles;
+};
+const total_time_of = (cache: ICache) => {
+  return cache.total_time === undefined
+    ? (cache.total_time = -1)
+    : cache.total_time;
+};
 
 const history_type_set = new Set<string>();
 const register_history_type = <T extends {}>(x: T) => {
@@ -162,17 +179,6 @@ class History<T> {
   };
 }
 
-const setCache = (caches: ICaches, k: string) => {
-  if (caches[k] === undefined) {
-    caches[k] = {
-      total_time: -1,
-      percentiles: [] as number[], // 0, 10, 33, 50, 67, 90, 100
-      visited: _VISIT_COUNTER - 1,
-    };
-  }
-  return caches;
-};
-
 const _stop = (draft: Draft<IState>) => {
   if (draft.data.current_entry !== null) {
     const e = draft.data.kvs[draft.data.current_entry];
@@ -206,7 +212,7 @@ const emptyStateOf = (): IState => {
       showTodoOnly: false,
       version: 5,
     },
-    caches: setCache({}, root),
+    caches: {},
     saveSuccess: true,
   };
 };
@@ -235,13 +241,9 @@ const doLoad = createAsyncThunk("doLoad", async () => {
   if (data === null) {
     return null;
   }
-  const caches: ICaches = {};
-  for (const k of Object.keys(data.kvs)) {
-    setCache(caches, k);
-  }
   return {
     data,
-    caches,
+    caches: {},
     saveSuccess: true,
   };
 });
@@ -361,7 +363,6 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     state.data.kvs[node_id] = v;
     state.data.kvs[parent].todo.unshift(node_id);
     state.data.queue.push(node_id);
-    setCache(state.caches, node_id);
   });
   ac(setSaveSuccess, (state, action) => {
     state.saveSuccess = action.payload;
@@ -730,7 +731,7 @@ const _eval_ = (draft: Draft<IState>, k: string) => {
     });
   const n_mc = 2000;
   const ts = _estimate(leaf_estimates, ratios, weights, n_mc);
-  draft.caches[k].percentiles = [
+  cache_of(draft.caches, k).percentiles = [
     ts[0],
     ts[Math.round(n_mc / 10)],
     ts[Math.round(n_mc / 3)],
@@ -742,11 +743,12 @@ const _eval_ = (draft: Draft<IState>, k: string) => {
 };
 
 const _set_total_time = (k: string, kvs: IKvs, caches: ICaches) => {
-  return (caches[k].total_time = total_time_of(k, kvs, caches));
-};
-
-const total_time_of = (k: string, kvs: IKvs, caches: ICaches) => {
-  return _total_time_of(k, kvs, caches, (_VISIT_COUNTER += 1));
+  return (cache_of(caches, k).total_time = _total_time_of(
+    k,
+    kvs,
+    caches,
+    (_VISIT_COUNTER += 1),
+  ));
 };
 
 const _total_time_of = (
@@ -755,10 +757,10 @@ const _total_time_of = (
   caches: ICaches,
   vid: number,
 ): number => {
-  if (caches[k].visited === vid) {
+  if (cache_of(caches, k).visited === vid) {
     return 0;
   }
-  caches[k].visited = vid;
+  cache_of(caches, k).visited = vid;
   const v = kvs[k];
   const r = (total: number, current: string) => {
     return total + _total_time_of(current, kvs, caches, vid);
@@ -1000,7 +1002,7 @@ const Entry = (props: { node_id: string }) => {
   const show_detail = useSelector(
     (state) => state.data.kvs[props.node_id].show_detail,
   );
-  const cache = useSelector((state) => state.caches[props.node_id]);
+  const cache = useSelector((state) => cache_of(state.caches, props.node_id));
   const running = useSelector(
     (state) => props.node_id === state.data.current_entry,
   );
@@ -1051,7 +1053,7 @@ const Entry = (props: { node_id: string }) => {
         </>
       ) : null}
       <span onClick={on_click_total_time}>
-        {cache.total_time < 0 ? "-" : digits1(cache.total_time / 3600)}
+        {total_time_of(cache) < 0 ? "-" : digits1(total_time_of(cache) / 3600)}
       </span>
       {has_parent && status === "todo"
         ? topButtonOf(dispatch, props.node_id)
@@ -1080,7 +1082,7 @@ const Entry = (props: { node_id: string }) => {
           ) : null}
         </>
       ) : null}
-      {status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
+      {status === "todo" ? percentiles_of(cache).map(digits1).join(" ") : null}
     </div>
   );
 };
