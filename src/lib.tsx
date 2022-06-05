@@ -365,7 +365,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     const node_id = new Date().toISOString();
     const v = newEntryValueOf([parent], node_id);
     state.data.kvs[node_id] = v;
-    state.data.kvs[parent].todo.unshift(node_id);
+    state.data.kvs[parent].todo.push(node_id);
     state.data.queue.push(node_id);
   });
   ac(setSaveSuccess, (state, action) => {
@@ -1332,17 +1332,18 @@ const dontToTodoButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 ));
 
 const newButtonOf = memoize2((dispatch: AppDispatch, k: string) => {
-  const _focusTextAreaOfTheFirsttodo = (
+  const _focusTextAreaOfTheNewTodo = (
     dispatch: AppDispatch,
     getState: () => IState,
   ) => {
-    dispatch(doFocusTextArea(getState().data.kvs[k].todo[0]));
+    const todo = getState().data.kvs[k].todo;
+    dispatch(doFocusTextArea(todo[todo.length - 1]));
   };
   return (
     <button
       onClick={() => {
         dispatch(new_(k));
-        dispatch(_focusTextAreaOfTheFirsttodo);
+        dispatch(_focusTextAreaOfTheNewTodo);
       }}
     >
       {NEW_MARK}
