@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import ReactDOM from "react-dom";
+import ReactDOM from "react-dom/client";
 import {
   Provider,
   TypedUseSelectorHook,
@@ -1725,14 +1725,15 @@ const useDispatch = () => _useDispatch<AppDispatch>();
 const useSelector: TypedUseSelectorHook<RootState> = _useSelector;
 
 export const main = () => {
-  ReactDOM.render(
+  const container = document.getElementById("root");
+  const root = ReactDOM.createRoot(container!);
+  root.render(
     <Provider store={store}>
       <Chakra.ChakraProvider>
         <App />
         <ToastContainer />
       </Chakra.ChakraProvider>
     </Provider>,
-    document.getElementById("root"),
   );
   store.dispatch(doLoad());
 };
