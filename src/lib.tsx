@@ -60,7 +60,6 @@ interface IState {
   readonly data: IData;
   readonly caches: ICaches;
 
-  readonly filter_query: string;
   readonly saveSuccess: boolean;
 }
 
@@ -217,7 +216,6 @@ const emptyStateOf = (): IState => {
       version: 5,
     },
     caches: {},
-    filter_query: "",
     saveSuccess: true,
   };
 };
@@ -249,7 +247,6 @@ const doLoad = createAsyncThunk("doLoad", async () => {
   return {
     data,
     caches: {},
-    filter_query: "",
     saveSuccess: true,
   };
 });
@@ -340,7 +337,6 @@ const swap_show_children = register_save_type(
 const show_path_to_selected_node = register_save_type(
   register_history_type(createAction<string>("show_path_to_selected_node")),
 );
-const set_filter_query = createAction<string>("set_filter_query");
 
 const rootReducer = createReducer(emptyStateOf(), (builder) => {
   const ac = builder.addCase;
@@ -577,9 +573,6 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   ac(show_path_to_selected_node, (state, action) => {
     _show_path_to_selected_node(state, action.payload);
   });
-  ac(set_filter_query, (state, action) => {
-    state.filter_query = action.payload;
-  });
 });
 
 const MENU_HEIGHT = "2.5rem";
@@ -589,18 +582,34 @@ const App = () => {
   const root = useSelector((state) => {
     return state.data.root;
   });
+  const [filter_query, set_filter_query] = React.useState("");
+  const [filter_query2, set_filter_query2] = React.useState("");
+  const el = React.useMemo(
+    () => (
+      <Chakra.VStack spacing="0">
+        <Menu />
+        <Chakra.HStack paddingTop={MENU_HEIGHT}>
+          <Chakra.Box overflowY="scroll" height={BODY_HEIGHT}>
+            <QueueColumn />
+          </Chakra.Box>
+          <Chakra.Box overflowY="scroll" height={BODY_HEIGHT}>
+            <TreeNode node_id={root} />
+          </Chakra.Box>
+        </Chakra.HStack>
+      </Chakra.VStack>
+    ),
+    [root],
+  );
   return (
-    <Chakra.VStack spacing="0">
-      <Menu />
-      <Chakra.HStack paddingTop={MENU_HEIGHT}>
-        <Chakra.Box overflowY="scroll" height={BODY_HEIGHT}>
-          <QueueColumn />
-        </Chakra.Box>
-        <Chakra.Box overflowY="scroll" height={BODY_HEIGHT}>
-          <TreeNode node_id={root} />
-        </Chakra.Box>
-      </Chakra.HStack>
-    </Chakra.VStack>
+    <SetFilterQueryContext.Provider value={set_filter_query}>
+      <FilterQueryContext.Provider value={filter_query}>
+        <SetFilterQueryContext2.Provider value={set_filter_query2}>
+          <FilterQueryContext2.Provider value={filter_query2}>
+            {el}
+          </FilterQueryContext2.Provider>
+        </SetFilterQueryContext2.Provider>
+      </FilterQueryContext.Provider>
+    </SetFilterQueryContext.Provider>
   );
 };
 
@@ -626,12 +635,18 @@ const Menu = () => {
   const _load = useCallback(() => {
     dispatch(doLoad());
   }, [dispatch]);
-  const filter_query = useSelector((state) => state.filter_query);
+  const filter_query = React.useContext(FilterQueryContext);
+  const set_filter_query = React.useContext(SetFilterQueryContext);
+  const set_filter_query2 = React.useContext(SetFilterQueryContext2);
   const handle_change = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      dispatch(set_filter_query(e.target.value));
+      const v = e.target.value;
+      set_filter_query(v);
+      React.startTransition(() => {
+        set_filter_query2(v);
+      });
     },
-    [dispatch],
+    [set_filter_query, set_filter_query2],
   );
 
   return (
@@ -1010,7 +1025,7 @@ const QueueNode = (props: { node_id: string }) => {
   const is_not_todo = useSelector(
     (state) => state.data.kvs[props.node_id].status !== "todo",
   );
-  const filter_query = useSelector((state) => state.filter_query);
+  const filter_query = React.useContext(FilterQueryContext2);
   const text = useSelector((state) => state.data.kvs[props.node_id].text);
   const text_lower = React.useMemo(() => text.toLowerCase(), [text]);
   const should_hide = React.useMemo(() => {
@@ -1723,6 +1738,11 @@ type RootState = ReturnType<typeof store.getState>;
 type AppDispatch = typeof store.dispatch;
 const useDispatch = () => _useDispatch<AppDispatch>();
 const useSelector: TypedUseSelectorHook<RootState> = _useSelector;
+
+const FilterQueryContext = React.createContext("");
+const SetFilterQueryContext = React.createContext((_: string) => {});
+const FilterQueryContext2 = React.createContext("");
+const SetFilterQueryContext2 = React.createContext((_: string) => {});
 
 export const main = () => {
   const container = document.getElementById("root");
