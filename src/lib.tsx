@@ -1006,23 +1006,28 @@ const TreeNode = React.memo((props: { node_id: string }) => {
 });
 
 const QueueNode = React.memo((props: { node_id: string }) => {
-  const shouldHide = useSelector((state) => {
-    const node = state.data.kvs[props.node_id];
-    if (state.data.showTodoOnly && node.status !== "todo") {
+  const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
+  const is_not_todo = useSelector(
+    (state) => state.data.kvs[props.node_id].status !== "todo",
+  );
+  const filter_query = useSelector((state) => state.filter_query);
+  const text = useSelector((state) => state.data.kvs[props.node_id].text);
+  const text_lower = React.useMemo(() => text.toLowerCase(), [text]);
+  const should_hide = React.useMemo(() => {
+    if (showTodoOnly && is_not_todo) {
       return true;
     }
-    const filter_query = state.filter_query.toLowerCase();
-    const text = node.text.toLowerCase();
+    const filter_query_lower = filter_query.toLowerCase();
     let is_match_filter_query = true;
-    for (const q of filter_query.split(" ")) {
-      if (!text.includes(q)) {
+    for (const q of filter_query_lower.split(" ")) {
+      if (!text_lower.includes(q)) {
         is_match_filter_query = false;
         break;
       }
     }
     return !is_match_filter_query;
-  });
-  return shouldHide ? null : (
+  }, [showTodoOnly, is_not_todo, filter_query, text_lower]);
+  return should_hide ? null : (
     <Chakra.ListItem id={`queue${props.node_id}`}>
       {toTreeButtonOf(props.node_id)}
       {EntryOf(props.node_id)}
