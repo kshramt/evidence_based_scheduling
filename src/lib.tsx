@@ -962,7 +962,7 @@ const QueueColumn = () => {
   ) : null;
 };
 
-const TreeNodeList = React.memo((props: IListProps) => {
+const TreeNodeList = (props: IListProps) => {
   return props.node_id_list.length ? (
     <Chakra.OrderedList spacing="0.5rem" paddingLeft="1rem">
       {props.node_id_list.map((node_id) => {
@@ -974,9 +974,9 @@ const TreeNodeList = React.memo((props: IListProps) => {
       })}
     </Chakra.OrderedList>
   ) : null;
-});
+};
 
-const TreeNode = React.memo((props: { node_id: string }) => {
+const TreeNode = (props: { node_id: string }) => {
   const todo = useSelector((state) => state.data.kvs[props.node_id].todo);
   const done = useSelector((state) => state.data.kvs[props.node_id].done);
   const dont = useSelector((state) => state.data.kvs[props.node_id].dont);
@@ -1003,9 +1003,9 @@ const TreeNode = React.memo((props: { node_id: string }) => {
       ) : null}
     </>
   );
-});
+};
 
-const QueueNode = React.memo((props: { node_id: string }) => {
+const QueueNode = (props: { node_id: string }) => {
   const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
   const is_not_todo = useSelector(
     (state) => state.data.kvs[props.node_id].status !== "todo",
@@ -1033,7 +1033,7 @@ const QueueNode = React.memo((props: { node_id: string }) => {
       {EntryOf(props.node_id)}
     </Chakra.ListItem>
   );
-});
+};
 
 const Entry = (props: { node_id: string }) => {
   const status = useSelector((state) => state.data.kvs[props.node_id].status);
