@@ -614,7 +614,6 @@ const App = () => {
 };
 
 const Menu = () => {
-  const saveSuccess = useSelector((state) => state.saveSuccess);
   const root = useSelector((state) => state.data.root);
   const dispatch = useDispatch();
   const _undo = useCallback(() => {
