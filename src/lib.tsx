@@ -628,7 +628,7 @@ const Menu = () => {
   }, [dispatch]);
   const filter_query = useSelector((state) => state.filter_query);
   const handle_change = useCallback(
-    (e) => {
+    (e: React.ChangeEvent<HTMLInputElement>) => {
       dispatch(set_filter_query(e.target.value));
     },
     [dispatch],
@@ -952,7 +952,7 @@ const memoize2 = <A, B, R>(fn: (a: A, b: B) => R) => {
 const QueueColumn = () => {
   const queue = useSelector((state) => state.data.queue);
   const fn = React.useCallback(
-    (node_id) => <QueueNode node_id={node_id} key={node_id} />,
+    (node_id: string) => <QueueNode node_id={node_id} key={node_id} />,
     [],
   );
   return queue.length ? (
@@ -1665,8 +1665,9 @@ const undoable = (
 register_save_type("undo");
 register_save_type("redo");
 
+const { toast, ToastContainer } = Chakra.createStandaloneToast();
+
 const saveStateMiddlewareOf = (pred: (type_: string) => boolean) => {
-  const toast = Chakra.createStandaloneToast();
   const saveStateMiddleware: Middleware<{}, IState> =
     (store) => (next_dispatch) => (action) => {
       const ret = next_dispatch(action);
@@ -1723,6 +1724,7 @@ export const main = () => {
     <Provider store={store}>
       <Chakra.ChakraProvider>
         <App />
+        <ToastContainer />
       </Chakra.ChakraProvider>
     </Provider>,
     document.getElementById("root"),
