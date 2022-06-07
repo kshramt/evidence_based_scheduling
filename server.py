@@ -58,9 +58,42 @@ def _update_data_version(data):
     elif data["version"] == 7:
         return _update_data_version(_v8_of_v7(data))
     elif data["version"] == 8:
+        return _update_data_version(_v9_of_v8(data))
+    elif data["version"] == 9:
+        return _update_data_version(_v10_of_v9(data))
+    elif data["version"] == 10:
         return data
     else:
         raise Err(f"Unsupported data version: {data.get('version', 'None')}")
+
+
+def _v10_of_v9(data):
+    for k, v in data["kvs"].items():
+        v["children"] = v["todo"] + v["done"] + v["dont"]
+        del v["todo"]
+        del v["done"]
+        del v["dont"]
+    data["version"] = 10
+    return data
+
+
+def _v9_of_v8(data):
+    edges = dict()
+    for v in data["kvs"].values():
+        v["parents"] = []
+    for k, v in data["kvs"].items():
+        for br in ("todo", "done", "dont"):
+            brs = []
+            for ck in v[br]:
+                data["id_seq"] += 1
+                edge_id = _base36(data["id_seq"])
+                edges[edge_id] = dict(p=k, c=ck, t="strong")
+                brs.append(edge_id)
+                data["kvs"][ck]["parents"].append(edge_id)
+            v[br] = brs
+    data["edges"] = edges
+    data["version"] = 9
+    return data
 
 
 def _v8_of_v7(data):

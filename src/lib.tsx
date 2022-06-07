@@ -65,6 +65,7 @@ interface IState {
 
 interface IData {
   readonly current_entry: null | string;
+  readonly edges: IEdges;
   readonly root: string;
   readonly id_seq: number;
   readonly kvs: IKvs;
@@ -78,8 +79,7 @@ interface IKvs {
 }
 
 interface IEntry {
-  readonly done: string[];
-  readonly dont: string[];
+  readonly children: string[];
   readonly end_time: null | string;
   readonly estimate: number;
   readonly parents: string[];
@@ -90,7 +90,16 @@ interface IEntry {
   readonly status: TStatus;
   readonly style: IStyle;
   readonly text: string;
-  readonly todo: string[];
+}
+
+interface IEdges {
+  readonly [edge_id: string]: IEdge;
+}
+
+interface IEdge {
+  readonly c: string;
+  readonly p: string;
+  readonly t: "strong";
 }
 
 interface IStyle {
@@ -194,9 +203,6 @@ const _rmFromTodo = (draft: Draft<IState>, node_id: string) => {
   if (draft.data.current_entry === node_id) {
     _stop(draft);
   }
-  for (const parent of draft.data.kvs[node_id].parents) {
-    deleteAtVal(draft.data.kvs[parent].todo, node_id);
-  }
 };
 
 const emptyStateOf = (): IState => {
@@ -208,6 +214,7 @@ const emptyStateOf = (): IState => {
   return {
     data: {
       current_entry: null,
+      edges: {},
       root,
       id_seq,
       kvs,
@@ -222,8 +229,7 @@ const emptyStateOf = (): IState => {
 
 const newEntryValueOf = (parents: string[]) => {
   return {
-    done: [] as string[],
-    dont: [] as string[],
+    children: [] as string[],
     end_time: null,
     estimate: NO_ESTIMATION,
     parents,
@@ -234,7 +240,6 @@ const newEntryValueOf = (parents: string[]) => {
     status: "todo" as TStatus,
     style: { width: "49ex", height: "3ex" },
     text: "",
-    todo: [] as string[],
   };
 };
 
@@ -346,9 +351,26 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   });
   ac(delete_, (state, action) => {
     const k = action.payload;
-    if (state.data.kvs[k].todo.length === 0) {
-      _rmTodoEntry(state, k);
+    if (
+      state.data.kvs[k].children.filter((edge_id) => {
+        const edge = state.data.edges[edge_id];
+        if (edge.t !== "strong") {
+          return false;
+        }
+        let n_strong_parents = 0;
+        for (const p of state.data.kvs[edge.c].parents) {
+          if (state.data.edges[p].t === "strong") {
+            n_strong_parents += 1;
+          }
+        }
+        return n_strong_parents <= 1;
+      }).length === 0
+    ) {
+      _remove_child_edges_of_parents(state, k);
       deleteAtVal(state.data.queue, k);
+      for(const p of state.data.kvs[k].parents){
+        delete state.data.edges[p];
+      }
       delete state.data.kvs[k];
       delete state.caches[k];
       if (state.data.current_entry === k) {
@@ -362,9 +384,12 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       state.data.kvs[parent].show_children = true;
     }
     const node_id = (state.data.id_seq += 1).toString(36);
+    const edge_id = (state.data.id_seq += 1).toString(36);
     const v = newEntryValueOf([parent]);
+    const edge = { p: parent, c: node_id, t: "strong" as const };
     state.data.kvs[node_id] = v;
-    state.data.kvs[parent].todo.push(node_id);
+    state.data.edges[edge_id] = edge;
+    state.data.kvs[parent].children.push(edge_id);
     state.data.queue.push(node_id);
   });
   ac(setSaveSuccess, (state, action) => {
@@ -416,7 +441,10 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       const v = state.data.kvs[k];
       if (
         v.status === "todo" &&
-        v.todo.length <= 0 &&
+        v.children.filter(
+          (edge_id) =>
+            state.data.kvs[state.data.edges[edge_id].c].status === "todo",
+        ).length <= 0 &&
         0 < v.estimate &&
         v.estimate < estimate_min
       ) {
@@ -433,7 +461,13 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     let due_min = ":due: 9999-12-31T23:59:59";
     for (let k in state.data.kvs) {
       let v = state.data.kvs[k];
-      if (v.status === "todo" && v.todo.length <= 0) {
+      if (
+        v.status === "todo" &&
+        v.children.filter(
+          (edge_id) =>
+            state.data.kvs[state.data.edges[edge_id].c].status === "todo",
+        ).length <= 0
+      ) {
         while (true) {
           let due = null;
           for (const w of v.text.split("\n")) {
@@ -459,7 +493,8 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     if (k_min !== null) {
       _top(
         state,
-        leafs(k_min, state.data.kvs)[Symbol.iterator]().next().value[0],
+        leafs(k_min, state.data.kvs, state.data.edges)[Symbol.iterator]().next()
+          .value[0],
       );
     }
   });
@@ -471,42 +506,40 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   });
   ac(moveUp_, (state, action) => {
     const k = action.payload;
-    for (const parent of state.data.kvs[k].parents) {
-      moveUp(state.data.kvs[parent].todo, k);
+    for (const edge_id of state.data.kvs[k].parents) {
+      moveUp(state.data.kvs[state.data.edges[edge_id].p].children, edge_id);
     }
     moveUp(state.data.queue, k);
   });
   ac(moveDown_, (state, action) => {
     const k = action.payload;
-    for (const parent of state.data.kvs[k].parents) {
-      moveDown(state.data.kvs[parent].todo, k);
+    for (const edge_id of state.data.kvs[k].parents) {
+      moveDown(state.data.kvs[state.data.edges[edge_id].p].children, edge_id);
     }
     moveDown(state.data.queue, k);
   });
   ac(unindent, (state, action) => {
     const k = action.payload;
     if (state.data.kvs[k].parents.length) {
-      const pk = state.data.kvs[k].parents[0];
+      const pk = state.data.edges[state.data.kvs[k].parents[0]].p;
       if (state.data.kvs[pk].parents.length) {
-        const ppk = state.data.kvs[pk].parents[0];
-        _rmTodoEntry(state, k);
-        const entries = state.data.kvs[ppk].todo;
-        const i = entries.indexOf(pk);
+        const ppk = state.data.edges[state.data.kvs[pk].parents[0]].p;
+        _remove_child_edges_of_parents(state, k);
+        const i = state.data.kvs[ppk].children.indexOf(pk);
         assert(() => [i !== -1, "Must not happen."]);
-        _addTodoEntry(state, ppk, i, k);
+        _addTodoEntry(state, ppk, i, state.data.kvs[k].parents[0]);
       }
     }
   });
   ac(indent, (state, action) => {
     const k = action.payload;
     if (state.data.kvs[k].parents.length) {
-      const pk = state.data.kvs[k].parents[0];
-      const entries = state.data.kvs[pk].todo;
-      if (last(entries) !== k) {
-        const i = entries.indexOf(k);
-        const new_pk = entries[i + 1];
-        _rmTodoEntry(state, k);
-        _addTodoEntry(state, new_pk, 0, k);
+      const pk = state.data.edges[state.data.kvs[k].parents[0]].p;
+      if (last(state.data.kvs[pk].children) !== k) {
+        const i = state.data.kvs[pk].children.indexOf(k);
+        const new_pk = state.data.kvs[pk].children[i + 1];
+        _remove_child_edges_of_parents(state, k);
+        _addTodoEntry(state, new_pk, 0, state.data.kvs[k].parents[0]);
       }
     }
   });
@@ -761,7 +794,7 @@ const _eval_ = (draft: Draft<IState>, k: string) => {
         return w_t * w_p;
       })
     : [1];
-  const leaf_estimates = Array.from(leafs(k, draft.data.kvs))
+  const leaf_estimates = Array.from(leafs(k, draft.data.kvs, draft.data.edges))
     .map(([_, v]) => v)
     .filter((v) => {
       return v.estimate !== NO_ESTIMATION;
@@ -805,12 +838,7 @@ const _total_time_of = (
   const r = (total: number, current: string) => {
     return total + _total_time_of(current, kvs, caches, vid);
   };
-  return (
-    node_time_of(k, kvs) +
-    v.todo.reduce(r, 0) +
-    v.done.reduce(r, 0) +
-    v.dont.reduce(r, 0)
-  );
+  return node_time_of(k, kvs) + v.children.reduce(r, 0);
 };
 
 const node_time_of = (k: string, kvs: IKvs) => {
@@ -828,34 +856,39 @@ const _parentsOf = (k: string, kvs: IKvs) => {
   return ret;
 };
 
-const _rmTodoEntry = (draft: Draft<IState>, k: string) => {
-  if (draft.data.kvs[k].parents.length) {
-    const pk = draft.data.kvs[k].parents[0];
-    deleteAtVal(draft.data.kvs[pk].todo, k);
+const _remove_child_edges_of_parents = (
+  draft: Draft<IState>,
+  node_id: string,
+) => {
+  for (const edge_id of draft.data.kvs[node_id].parents) {
+    deleteAtVal(draft.data.kvs[draft.data.edges[edge_id].p].children, edge_id);
   }
 };
 
 const _addTodoEntry = (
   draft: Draft<IState>,
-  pk: string,
+  parent_node_id: string,
   i: number,
-  k: string,
+  edge_id: string,
 ) => {
-  if (pk) {
-    draft.data.kvs[k].parents[0] = pk;
-    draft.data.kvs[pk].todo.splice(i, 0, k);
-  }
+  draft.data.edges[edge_id].p = parent_node_id;
+  draft.data.kvs[parent_node_id].children.splice(i, 0, edge_id);
 };
 
 const _top = (draft: Draft<IState>, k: string) => {
-  _topTree(draft, k);
+  _topTree(draft, k, (_VISIT_COUNTER += 1));
   _topQueue(draft, k);
 };
 
-const _topTree = (draft: Draft<IState>, node_id: string) => {
-  for (const parent of draft.data.kvs[node_id].parents) {
-    toFront(draft.data.kvs[parent].todo, node_id);
-    _topTree(draft, parent);
+const _topTree = (draft: Draft<IState>, node_id: string, vid: number) => {
+  if (cache_of(draft.caches, node_id).visited === vid) {
+    return;
+  }
+  cache_of(draft.caches, node_id).visited = vid;
+  for (const edge_id of draft.data.kvs[node_id].parents) {
+    const parent_node_id = draft.data.edges[edge_id].p;
+    toFront(draft.data.kvs[parent_node_id].children, edge_id);
+    _topTree(draft, parent_node_id, vid);
   }
 };
 
@@ -895,39 +928,22 @@ const _dontToTodo = (draft: Draft<IState>, k: string) => {
   }
 };
 
-const _rmFromDone = (draft: Draft<IState>, k: string) => {
-  for (const parent of draft.data.kvs[k].parents) {
-    deleteAtVal(draft.data.kvs[parent].done, k);
-  }
-};
+const _rmFromDone = (draft: Draft<IState>, k: string) => {};
 
-const _rmFromDont = (draft: Draft<IState>, k: string) => {
-  for (const parent of draft.data.kvs[k].parents) {
-    deleteAtVal(draft.data.kvs[parent].dont, k);
-  }
-};
+const _rmFromDont = (draft: Draft<IState>, k: string) => {};
 
 const _addToTodo = (draft: Draft<IState>, k: string) => {
   draft.data.kvs[k].status = "todo";
-  for (const parent of draft.data.kvs[k].parents) {
-    draft.data.kvs[parent].todo.unshift(k);
-  }
 };
 
 const _addToDone = (draft: Draft<IState>, k: string) => {
   draft.data.kvs[k].status = "done";
   draft.data.kvs[k].end_time = new Date().toISOString();
-  for (const parent of draft.data.kvs[k].parents) {
-    draft.data.kvs[parent].done.unshift(k);
-  }
 };
 
 const _addToDont = (draft: Draft<IState>, k: string) => {
   draft.data.kvs[k].status = "dont";
   draft.data.kvs[k].end_time = new Date().toISOString();
-  for (const parent of draft.data.kvs[k].parents) {
-    draft.data.kvs[parent].dont.unshift(k);
-  }
 };
 
 const _show_path_to_selected_node = (draft: Draft<IState>, node_id: string) => {
@@ -991,9 +1007,21 @@ const TreeNodeList = (props: IListProps) => {
 };
 
 const TreeNode = (props: { node_id: string }) => {
-  const todo = useSelector((state) => state.data.kvs[props.node_id].todo);
-  const done = useSelector((state) => state.data.kvs[props.node_id].done);
-  const dont = useSelector((state) => state.data.kvs[props.node_id].dont);
+  const todo = useSelector((state) =>
+    _children_of(props.node_id, "todo", state.data.kvs, state.data.edges).map(
+      (edge_id) => state.data.edges[edge_id].c,
+    ),
+  );
+  const done = useSelector((state) =>
+    _children_of(props.node_id, "done", state.data.kvs, state.data.edges).map(
+      (edge_id) => state.data.edges[edge_id].c,
+    ),
+  );
+  const dont = useSelector((state) =>
+    _children_of(props.node_id, "dont", state.data.kvs, state.data.edges).map(
+      (edge_id) => state.data.edges[edge_id].c,
+    ),
+  );
   const show_children = useSelector(
     (state) => state.data.kvs[props.node_id].show_children,
   );
@@ -1062,11 +1090,13 @@ const Entry = (props: { node_id: string }) => {
     (state) => props.node_id === state.data.current_entry,
   );
   const noTodo = useSelector(
-    (state) => state.data.kvs[props.node_id].todo.length === 0,
+    (state) =>
+      _children_of(props.node_id, "todo", state.data.kvs, state.data.edges)
+        .length === 0,
   );
   const has_children = useSelector((state) => {
     const v = state.data.kvs[props.node_id];
-    return 0 < v.todo.length || 0 < v.done.length || 0 < v.dont.length;
+    return 0 < v.children.length;
   });
   const show_children = useSelector((state) => {
     return state.data.kvs[props.node_id].show_children;
@@ -1252,18 +1282,34 @@ export const sum = (xs: number[]) => {
   }, 0);
 };
 
-function* leafs(node_id: string, kvs: IKvs): Iterable<[string, IEntry]> {
+function* leafs(
+  node_id: string,
+  kvs: IKvs,
+  edges: IEdges,
+): Iterable<[string, IEntry]> {
   const node = kvs[node_id];
   if (node.status === "todo") {
-    if (node.todo.length) {
-      for (const c of node.todo) {
-        yield* leafs(c, kvs);
+    const todos = _children_of(node_id, "todo", kvs, edges);
+    if (todos.length) {
+      for (const c of todos) {
+        yield* leafs(c, kvs, edges);
       }
     } else {
       yield [node_id, node];
     }
   }
 }
+
+const _children_of = (
+  node_id: string,
+  status: TStatus,
+  kvs: IKvs,
+  edges: IEdges,
+) => {
+  return kvs[node_id].children.filter(
+    (edge_id) => kvs[edges[edge_id].c].status === status,
+  );
+};
 
 export function* multinomial<T>(xs: T[], ws: number[]) {
   const total = sum(ws);
@@ -1368,8 +1414,8 @@ const newButtonOf = memoize2((dispatch: AppDispatch, k: string) => {
     dispatch: AppDispatch,
     getState: () => IState,
   ) => {
-    const todo = getState().data.kvs[k].todo;
-    dispatch(doFocusTextArea(todo[todo.length - 1]));
+    const children = getState().data.kvs[k].children;
+    dispatch(doFocusTextArea(children[children.length - 1]));
   };
   return (
     <button
