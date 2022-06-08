@@ -41,6 +41,9 @@ const DETAIL_MARK = "⋮";
 
 let _VISIT_COUNTER = 0;
 
+type TNodeId = string & { readonly tag: unique symbol };
+type TEdgeId = string & { readonly tag: unique symbol };
+
 type AnyPayloadAction =
   | {
       readonly type: string;
@@ -53,7 +56,7 @@ type AnyPayloadAction =
 type TStatus = "done" | "dont" | "todo";
 
 interface IListProps {
-  readonly node_id_list: string[];
+  readonly node_id_list: TNodeId[];
 }
 
 interface IState {
@@ -64,25 +67,25 @@ interface IState {
 }
 
 interface IData {
-  readonly current_entry: null | string;
+  readonly current_entry: null | TNodeId;
   readonly edges: IEdges;
-  readonly root: string;
+  readonly root: TNodeId;
   readonly id_seq: number;
   readonly kvs: IKvs;
-  readonly queue: string[];
+  readonly queue: TNodeId[];
   readonly showTodoOnly: boolean;
   readonly version: number;
 }
 
 interface IKvs {
-  readonly [k: string]: IEntry;
+  readonly [k: TNodeId]: IEntry;
 }
 
 interface IEntry {
-  readonly children: string[];
+  readonly children: TEdgeId[];
   readonly end_time: null | string;
   readonly estimate: number;
-  readonly parents: string[];
+  readonly parents: TEdgeId[];
   readonly ranges: IRange[];
   readonly show_children: boolean;
   readonly show_detail: boolean;
@@ -93,12 +96,12 @@ interface IEntry {
 }
 
 interface IEdges {
-  readonly [edge_id: string]: IEdge;
+  readonly [edge_id: TEdgeId]: IEdge;
 }
 
 interface IEdge {
-  readonly c: string;
-  readonly p: string;
+  readonly c: TNodeId;
+  readonly p: TNodeId;
   readonly t: "strong";
 }
 
@@ -113,9 +116,9 @@ interface IRange {
 }
 
 interface ICaches {
-  [k: string]: ICache;
+  [k: TNodeId]: ICache;
 }
-const cache_of = (caches: ICaches, node_id: string) => {
+const cache_of = (caches: ICaches, node_id: TNodeId) => {
   return caches[node_id] === undefined
     ? (caches[node_id] = {})
     : caches[node_id];
@@ -194,12 +197,17 @@ const _stop = (draft: Draft<IState>) => {
     const e = draft.data.kvs[draft.data.current_entry];
     const r = last(e.ranges);
     r.end = Number(new Date()) / 1000;
-    _set_total_time(draft.data.current_entry, draft.data.kvs, draft.caches);
+    _set_total_time(
+      draft.data.current_entry,
+      draft.data.kvs,
+      draft.caches,
+      draft.data.edges,
+    );
     draft.data.current_entry = null;
   }
 };
 
-const _rmFromTodo = (draft: Draft<IState>, node_id: string) => {
+const _rmFromTodo = (draft: Draft<IState>, node_id: TNodeId) => {
   if (draft.data.current_entry === node_id) {
     _stop(draft);
   }
@@ -207,7 +215,7 @@ const _rmFromTodo = (draft: Draft<IState>, node_id: string) => {
 
 const emptyStateOf = (): IState => {
   const id_seq = 0;
-  const root = id_seq.toString(36);
+  const root = id_seq.toString(36) as TNodeId;
   const kvs = {
     [root]: newEntryValueOf([]),
   };
@@ -227,9 +235,9 @@ const emptyStateOf = (): IState => {
   };
 };
 
-const newEntryValueOf = (parents: string[]) => {
+const newEntryValueOf = (parents: TEdgeId[]) => {
   return {
-    children: [] as string[],
+    children: [] as TEdgeId[],
     end_time: null,
     estimate: NO_ESTIMATION,
     parents,
@@ -256,25 +264,25 @@ const doLoad = createAsyncThunk("doLoad", async () => {
   };
 });
 
-const eval_ = register_history_type(createAction<string>("eval_"));
+const eval_ = register_history_type(createAction<TNodeId>("eval_"));
 const delete_ = register_save_type(
-  register_history_type(createAction<string>("delete_")),
+  register_history_type(createAction<TNodeId>("delete_")),
 );
 const new_ = register_save_type(
-  register_history_type(createAction<string>("new_")),
+  register_history_type(createAction<TNodeId>("new_")),
 );
 const setSaveSuccess = createAction<boolean>("setSaveSuccess");
 const flipShowTodoOnly = register_save_type(
   register_history_type(createAction("flipShowTodoOnly")),
 );
 const flipShowDetail = register_save_type(
-  register_history_type(createAction<string>("flipShowDetail")),
+  register_history_type(createAction<TNodeId>("flipShowDetail")),
 );
 const start = register_save_type(
-  register_history_type(createAction<string>("start")),
+  register_history_type(createAction<TNodeId>("start")),
 );
 const top = register_save_type(
-  register_history_type(createAction<string>("top")),
+  register_history_type(createAction<TNodeId>("top")),
 );
 const smallestToTop = register_save_type(
   register_history_type(createAction("smallestToTop")),
@@ -283,25 +291,25 @@ const closestToTop = register_save_type(
   register_history_type(createAction("closestToTop")),
 );
 const set_total_time = register_history_type(
-  createAction<string>("set_total_time"),
+  createAction<TNodeId>("set_total_time"),
 );
 const stop = register_save_type(register_history_type(createAction("stop")));
 const moveUp_ = register_save_type(
-  register_history_type(createAction<string>("moveUp_")),
+  register_history_type(createAction<TNodeId>("moveUp_")),
 );
 const moveDown_ = register_save_type(
-  register_history_type(createAction<string>("moveDown_")),
+  register_history_type(createAction<TNodeId>("moveDown_")),
 );
 const unindent = register_save_type(
-  register_history_type(createAction<string>("unindent")),
+  register_history_type(createAction<TNodeId>("unindent")),
 );
 const indent = register_save_type(
-  register_history_type(createAction<string>("indent")),
+  register_history_type(createAction<TNodeId>("indent")),
 );
 const setEstimate = register_save_type(
   register_history_type(
     createAction<{
-      k: string;
+      k: TNodeId;
       estimate: number;
     }>("setEstimate"),
   ),
@@ -309,7 +317,7 @@ const setEstimate = register_save_type(
 const setLastRange_ = register_save_type(
   register_history_type(
     createAction<{
-      k: string;
+      k: TNodeId;
       t: number;
     }>("setLastRange_"),
   ),
@@ -317,7 +325,7 @@ const setLastRange_ = register_save_type(
 const setTextAndResizeTextArea = register_save_type(
   register_history_type(
     createAction<{
-      k: string;
+      k: TNodeId;
       text: string;
       width: null | string;
       height: null | string;
@@ -325,22 +333,22 @@ const setTextAndResizeTextArea = register_save_type(
   ),
 );
 const todoToDone = register_save_type(
-  register_history_type(createAction<string>("todoToDone")),
+  register_history_type(createAction<TNodeId>("todoToDone")),
 );
 const todoToDont = register_save_type(
-  register_history_type(createAction<string>("todoToDont")),
+  register_history_type(createAction<TNodeId>("todoToDont")),
 );
 const doneToTodo = register_save_type(
-  register_history_type(createAction<string>("doneToTodo")),
+  register_history_type(createAction<TNodeId>("doneToTodo")),
 );
 const dontToTodo = register_save_type(
-  register_history_type(createAction<string>("dontToTodo")),
+  register_history_type(createAction<TNodeId>("dontToTodo")),
 );
 const swap_show_children = register_save_type(
-  register_history_type(createAction<string>("swap_show_children")),
+  register_history_type(createAction<TNodeId>("swap_show_children")),
 );
 const show_path_to_selected_node = register_save_type(
-  register_history_type(createAction<string>("show_path_to_selected_node")),
+  register_history_type(createAction<TNodeId>("show_path_to_selected_node")),
 );
 
 const rootReducer = createReducer(emptyStateOf(), (builder) => {
@@ -368,7 +376,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     ) {
       _remove_child_edges_of_parents(state, k);
       deleteAtVal(state.data.queue, k);
-      for(const p of state.data.kvs[k].parents){
+      for (const p of state.data.kvs[k].parents) {
         delete state.data.edges[p];
       }
       delete state.data.kvs[k];
@@ -383,9 +391,9 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     if (!state.data.kvs[parent].show_children) {
       state.data.kvs[parent].show_children = true;
     }
-    const node_id = (state.data.id_seq += 1).toString(36);
-    const edge_id = (state.data.id_seq += 1).toString(36);
-    const v = newEntryValueOf([parent]);
+    const node_id = (state.data.id_seq += 1).toString(36) as TNodeId;
+    const edge_id = (state.data.id_seq += 1).toString(36) as TEdgeId;
+    const v = newEntryValueOf([edge_id]);
     const edge = { p: parent, c: node_id, t: "strong" as const };
     state.data.kvs[node_id] = v;
     state.data.edges[edge_id] = edge;
@@ -402,7 +410,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     }
     return state;
   });
-  ac(flipShowTodoOnly, (state, action) => {
+  ac(flipShowTodoOnly, (state) => {
     state.data.showTodoOnly = !state.data.showTodoOnly;
   });
   ac(flipShowDetail, (state, action) => {
@@ -434,10 +442,10 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   ac(top, (state, action) => {
     _top(state, action.payload);
   });
-  ac(smallestToTop, (state, action) => {
+  ac(smallestToTop, (state) => {
     let k_min = null;
     let estimate_min = Infinity;
-    for (const k in state.data.kvs) {
+    for (const k of Object.keys(state.data.kvs) as TNodeId[]) {
       const v = state.data.kvs[k];
       if (
         v.status === "todo" &&
@@ -456,10 +464,10 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       _top(state, k_min);
     }
   });
-  ac(closestToTop, (state, action) => {
+  ac(closestToTop, (state) => {
     let k_min = null;
     let due_min = ":due: 9999-12-31T23:59:59";
-    for (let k in state.data.kvs) {
+    for (let k of Object.keys(state.data.kvs) as TNodeId[]) {
       let v = state.data.kvs[k];
       if (
         v.status === "todo" &&
@@ -485,7 +493,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
           if (!v.parents.length) {
             break;
           }
-          k = v.parents[0];
+          k = state.data.edges[v.parents[0]].p;
           v = state.data.kvs[k];
         }
       }
@@ -499,9 +507,14 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     }
   });
   ac(set_total_time, (state, action) => {
-    _set_total_time(action.payload, state.data.kvs, state.caches);
+    _set_total_time(
+      action.payload,
+      state.data.kvs,
+      state.caches,
+      state.data.edges,
+    );
   });
-  ac(stop, (state, action) => {
+  ac(stop, (state) => {
     _stop(state);
   });
   ac(moveUp_, (state, action) => {
@@ -521,11 +534,12 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   ac(unindent, (state, action) => {
     const k = action.payload;
     if (state.data.kvs[k].parents.length) {
-      const pk = state.data.edges[state.data.kvs[k].parents[0]].p;
+      const edge_id = state.data.kvs[k].parents[0];
+      const pk = state.data.edges[edge_id].p;
       if (state.data.kvs[pk].parents.length) {
         const ppk = state.data.edges[state.data.kvs[pk].parents[0]].p;
         _remove_child_edges_of_parents(state, k);
-        const i = state.data.kvs[ppk].children.indexOf(pk);
+        const i = state.data.kvs[ppk].children.indexOf(edge_id);
         assert(() => [i !== -1, "Must not happen."]);
         _addTodoEntry(state, ppk, i, state.data.kvs[k].parents[0]);
       }
@@ -535,9 +549,10 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     const k = action.payload;
     if (state.data.kvs[k].parents.length) {
       const pk = state.data.edges[state.data.kvs[k].parents[0]].p;
-      if (last(state.data.kvs[pk].children) !== k) {
-        const i = state.data.kvs[pk].children.indexOf(k);
-        const new_pk = state.data.kvs[pk].children[i + 1];
+      const edge_id = last(state.data.kvs[pk].children);
+      if (state.data.edges[edge_id].c !== k) {
+        const i = state.data.kvs[pk].children.indexOf(edge_id);
+        const new_pk = state.data.edges[state.data.kvs[pk].children[i + 1]].c;
         _remove_child_edges_of_parents(state, k);
         _addTodoEntry(state, new_pk, 0, state.data.kvs[k].parents[0]);
       }
@@ -719,31 +734,31 @@ const Menu = () => {
   );
 };
 
-const doFocusStopButton = (k: string) => () => {
+const doFocusStopButton = (k: TNodeId) => () => {
   setTimeout(() => focus(stopButtonRefOf(k).current), 50);
 };
 
-const doFocusMoveUpButton = (k: string) => () => {
+const doFocusMoveUpButton = (k: TNodeId) => () => {
   setTimeout(() => focus(moveUpButtonRefOf(k).current), 50);
 };
 
-const doFocusMoveDownButton = (k: string) => () => {
+const doFocusMoveDownButton = (k: TNodeId) => () => {
   setTimeout(() => focus(moveDownButtonRefOf(k).current), 50);
 };
 
-const doFocusUnindentButton = (k: string) => () => {
+const doFocusUnindentButton = (k: TNodeId) => () => {
   setTimeout(() => focus(unindentButtonRefOf(k).current), 50);
 };
 
-const doFocusIndentButton = (k: string) => () => {
+const doFocusIndentButton = (k: TNodeId) => () => {
   setTimeout(() => focus(indentButtonRefOf(k).current), 50);
 };
 
-const doFocusTextArea = (k: string) => () => {
+const doFocusTextArea = (k: TNodeId) => () => {
   setTimeout(() => focus(textAreaRefOf(k).current), 50);
 };
 
-const setLastRange = (dispatch: AppDispatch, k: string, t: number) => {
+const setLastRange = (dispatch: AppDispatch, k: TNodeId, t: number) => {
   dispatch(
     setLastRange_({
       k,
@@ -752,9 +767,9 @@ const setLastRange = (dispatch: AppDispatch, k: string, t: number) => {
   );
 };
 
-const _eval_ = (draft: Draft<IState>, k: string) => {
-  _set_total_time(k, draft.data.kvs, draft.caches);
-  const candidates = Object.keys(draft.data.kvs).filter((k) => {
+const _eval_ = (draft: Draft<IState>, k: TNodeId) => {
+  _set_total_time(k, draft.data.kvs, draft.caches, draft.data.edges);
+  const candidates = (Object.keys(draft.data.kvs) as TNodeId[]).filter((k) => {
     const v = draft.data.kvs[k];
     return (
       (v.status === "done" || v.status === "dont") &&
@@ -765,7 +780,12 @@ const _eval_ = (draft: Draft<IState>, k: string) => {
     ? candidates.map((node_id) => {
         const node = draft.data.kvs[node_id];
         return (
-          _set_total_time(node_id, draft.data.kvs, draft.caches) /
+          _set_total_time(
+            node_id,
+            draft.data.kvs,
+            draft.caches,
+            draft.data.edges,
+          ) /
           3600 /
           node.estimate
         );
@@ -773,7 +793,7 @@ const _eval_ = (draft: Draft<IState>, k: string) => {
       })
     : [1];
   const now = Number(new Date()) / 1000;
-  const ks = _parentsOf(k, draft.data.kvs);
+  // todo: Use distance to tweak weights.
   // todo: The sampling weight should be a function of both the leaves and the candidates.
   const weights = candidates.length
     ? candidates.map((node_id) => {
@@ -783,15 +803,7 @@ const _eval_ = (draft: Draft<IState>, k: string) => {
           -(now - Date.parse(node.end_time as string) / 1000) /
             (86400 * 365.25),
         );
-        const parents = new Set(_parentsOf(node_id, draft.data.kvs));
-        let w_p = 1;
-        for (const k of ks) {
-          if (parents.has(k)) {
-            break;
-          }
-          w_p *= 0.1;
-        }
-        return w_t * w_p;
+        return w_t;
       })
     : [1];
   const leaf_estimates = Array.from(leafs(k, draft.data.kvs, draft.data.edges))
@@ -815,19 +827,26 @@ const _eval_ = (draft: Draft<IState>, k: string) => {
   ];
 };
 
-const _set_total_time = (k: string, kvs: IKvs, caches: ICaches) => {
+const _set_total_time = (
+  k: TNodeId,
+  kvs: IKvs,
+  caches: ICaches,
+  edges: IEdges,
+) => {
   return (cache_of(caches, k).total_time = _total_time_of(
     k,
     kvs,
     caches,
+    edges,
     (_VISIT_COUNTER += 1),
   ));
 };
 
 const _total_time_of = (
-  k: string,
+  k: TNodeId,
   kvs: IKvs,
   caches: ICaches,
+  edges: IEdges,
   vid: number,
 ): number => {
   if (cache_of(caches, k).visited === vid) {
@@ -835,30 +854,21 @@ const _total_time_of = (
   }
   cache_of(caches, k).visited = vid;
   const v = kvs[k];
-  const r = (total: number, current: string) => {
-    return total + _total_time_of(current, kvs, caches, vid);
+  const r = (total: number, current: TEdgeId) => {
+    return total + _total_time_of(edges[current].c, kvs, caches, edges, vid);
   };
   return node_time_of(k, kvs) + v.children.reduce(r, 0);
 };
 
-const node_time_of = (k: string, kvs: IKvs) => {
+const node_time_of = (k: TNodeId, kvs: IKvs) => {
   return kvs[k].ranges.reduce((total, current) => {
     return current.end === null ? total : total + (current.end - current.start);
   }, 0);
 };
 
-const _parentsOf = (k: string, kvs: IKvs) => {
-  let ret = [];
-  while (kvs[k].parents.length) {
-    ret.push(k);
-    k = kvs[k].parents[0];
-  }
-  return ret;
-};
-
 const _remove_child_edges_of_parents = (
   draft: Draft<IState>,
-  node_id: string,
+  node_id: TNodeId,
 ) => {
   for (const edge_id of draft.data.kvs[node_id].parents) {
     deleteAtVal(draft.data.kvs[draft.data.edges[edge_id].p].children, edge_id);
@@ -867,20 +877,20 @@ const _remove_child_edges_of_parents = (
 
 const _addTodoEntry = (
   draft: Draft<IState>,
-  parent_node_id: string,
+  parent_node_id: TNodeId,
   i: number,
-  edge_id: string,
+  edge_id: TEdgeId,
 ) => {
   draft.data.edges[edge_id].p = parent_node_id;
   draft.data.kvs[parent_node_id].children.splice(i, 0, edge_id);
 };
 
-const _top = (draft: Draft<IState>, k: string) => {
+const _top = (draft: Draft<IState>, k: TNodeId) => {
   _topTree(draft, k, (_VISIT_COUNTER += 1));
   _topQueue(draft, k);
 };
 
-const _topTree = (draft: Draft<IState>, node_id: string, vid: number) => {
+const _topTree = (draft: Draft<IState>, node_id: TNodeId, vid: number) => {
   if (cache_of(draft.caches, node_id).visited === vid) {
     return;
   }
@@ -892,15 +902,14 @@ const _topTree = (draft: Draft<IState>, node_id: string, vid: number) => {
   }
 };
 
-const _topQueue = (draft: Draft<IState>, k: string) => {
+const _topQueue = (draft: Draft<IState>, k: TNodeId) => {
   toFront(draft.data.queue, k);
 };
 
-const _doneToTodo = (draft: Draft<IState>, k: string) => {
-  _rmFromDone(draft, k);
+const _doneToTodo = (draft: Draft<IState>, k: TNodeId) => {
   _addToTodo(draft, k);
   if (draft.data.kvs[k].parents.length) {
-    const pk = draft.data.kvs[k].parents[0];
+    const pk = draft.data.edges[draft.data.kvs[k].parents[0]].p;
     switch (draft.data.kvs[pk].status) {
       case "done":
         _doneToTodo(draft, pk);
@@ -912,11 +921,10 @@ const _doneToTodo = (draft: Draft<IState>, k: string) => {
   }
 };
 
-const _dontToTodo = (draft: Draft<IState>, k: string) => {
-  _rmFromDont(draft, k);
+const _dontToTodo = (draft: Draft<IState>, k: TNodeId) => {
   _addToTodo(draft, k);
   if (draft.data.kvs[k].parents.length) {
-    const pk = draft.data.kvs[k].parents[0];
+    const pk = draft.data.edges[draft.data.kvs[k].parents[0]].p;
     switch (draft.data.kvs[pk].status) {
       case "done":
         _doneToTodo(draft, pk);
@@ -928,27 +936,26 @@ const _dontToTodo = (draft: Draft<IState>, k: string) => {
   }
 };
 
-const _rmFromDone = (draft: Draft<IState>, k: string) => {};
-
-const _rmFromDont = (draft: Draft<IState>, k: string) => {};
-
-const _addToTodo = (draft: Draft<IState>, k: string) => {
+const _addToTodo = (draft: Draft<IState>, k: TNodeId) => {
   draft.data.kvs[k].status = "todo";
 };
 
-const _addToDone = (draft: Draft<IState>, k: string) => {
+const _addToDone = (draft: Draft<IState>, k: TNodeId) => {
   draft.data.kvs[k].status = "done";
   draft.data.kvs[k].end_time = new Date().toISOString();
 };
 
-const _addToDont = (draft: Draft<IState>, k: string) => {
+const _addToDont = (draft: Draft<IState>, k: TNodeId) => {
   draft.data.kvs[k].status = "dont";
   draft.data.kvs[k].end_time = new Date().toISOString();
 };
 
-const _show_path_to_selected_node = (draft: Draft<IState>, node_id: string) => {
+const _show_path_to_selected_node = (
+  draft: Draft<IState>,
+  node_id: TNodeId,
+) => {
   while (draft.data.kvs[node_id].parents.length) {
-    node_id = draft.data.kvs[node_id].parents[0];
+    node_id = draft.data.edges[draft.data.kvs[node_id].parents[0]].p;
     if (!draft.data.kvs[node_id].show_children) {
       draft.data.kvs[node_id].show_children = true;
     }
@@ -982,7 +989,7 @@ const memoize2 = <A, B, R>(fn: (a: A, b: B) => R) => {
 const QueueColumn = () => {
   const queue = useSelector((state) => state.data.queue);
   const fn = React.useCallback(
-    (node_id: string) => <QueueNode node_id={node_id} key={node_id} />,
+    (node_id: TNodeId) => <QueueNode node_id={node_id} key={node_id} />,
     [],
   );
   return queue.length ? (
@@ -1006,7 +1013,7 @@ const TreeNodeList = (props: IListProps) => {
   ) : null;
 };
 
-const TreeNode = (props: { node_id: string }) => {
+const TreeNode = (props: { node_id: TNodeId }) => {
   const todo = useSelector((state) =>
     _children_of(props.node_id, "todo", state.data.kvs, state.data.edges).map(
       (edge_id) => state.data.edges[edge_id].c,
@@ -1047,7 +1054,7 @@ const TreeNode = (props: { node_id: string }) => {
   );
 };
 
-const QueueNode = (props: { node_id: string }) => {
+const QueueNode = (props: { node_id: TNodeId }) => {
   const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
   const is_not_todo = useSelector(
     (state) => state.data.kvs[props.node_id].status !== "todo",
@@ -1077,7 +1084,7 @@ const QueueNode = (props: { node_id: string }) => {
   );
 };
 
-const Entry = (props: { node_id: string }) => {
+const Entry = (props: { node_id: TNodeId }) => {
   const status = useSelector((state) => state.data.kvs[props.node_id].status);
   const has_parent = useSelector(
     (state) => !!state.data.kvs[props.node_id].parents.length,
@@ -1171,7 +1178,7 @@ const Entry = (props: { node_id: string }) => {
     </div>
   );
 };
-const EntryOf = memoize1((node_id: string) => {
+const EntryOf = memoize1((node_id: TNodeId) => {
   return <Entry node_id={node_id} key={node_id} />;
 });
 
@@ -1250,15 +1257,6 @@ const moveDown = <T extends {}>(a: T[], x: T) => {
   return a;
 };
 
-const toRear = <T extends {}>(a: T[], x: T) => {
-  const i = a.indexOf(x);
-  if (i !== -1) {
-    a.splice(i, 1);
-    a.push(x);
-  }
-  return a;
-};
-
 const deleteAtVal = <T extends {}>(a: T[], x: T) => {
   const i = a.indexOf(x);
   if (i !== -1) {
@@ -1283,16 +1281,16 @@ export const sum = (xs: number[]) => {
 };
 
 function* leafs(
-  node_id: string,
+  node_id: TNodeId,
   kvs: IKvs,
   edges: IEdges,
-): Iterable<[string, IEntry]> {
+): Iterable<[TNodeId, IEntry]> {
   const node = kvs[node_id];
   if (node.status === "todo") {
     const todos = _children_of(node_id, "todo", kvs, edges);
     if (todos.length) {
       for (const c of todos) {
-        yield* leafs(c, kvs, edges);
+        yield* leafs(edges[c].c, kvs, edges);
       }
     } else {
       yield [node_id, node];
@@ -1301,7 +1299,7 @@ function* leafs(
 }
 
 const _children_of = (
-  node_id: string,
+  node_id: TNodeId,
   status: TStatus,
   kvs: IKvs,
   edges: IEdges,
@@ -1349,31 +1347,31 @@ const assert = (fn: () => [boolean, string]) => {
   }
 };
 
-const stopButtonRefOf = memoize1((_: string) =>
+const stopButtonRefOf = memoize1((_: TNodeId) =>
   React.createRef<HTMLButtonElement>(),
 );
 
-const moveUpButtonRefOf = memoize1((_: string) =>
+const moveUpButtonRefOf = memoize1((_: TNodeId) =>
   React.createRef<HTMLButtonElement>(),
 );
 
-const moveDownButtonRefOf = memoize1((_: string) =>
+const moveDownButtonRefOf = memoize1((_: TNodeId) =>
   React.createRef<HTMLButtonElement>(),
 );
 
-const unindentButtonRefOf = memoize1((_: string) =>
+const unindentButtonRefOf = memoize1((_: TNodeId) =>
   React.createRef<HTMLButtonElement>(),
 );
 
-const indentButtonRefOf = memoize1((_: string) =>
+const indentButtonRefOf = memoize1((_: TNodeId) =>
   React.createRef<HTMLButtonElement>(),
 );
 
-const textAreaRefOf = memoize1((_: string) =>
+const textAreaRefOf = memoize1((_: TNodeId) =>
   React.createRef<HTMLTextAreaElement>(),
 );
 
-const toTreeButtonOf = memoize1((node_id: string) => {
+const toTreeButtonOf = memoize1((node_id: TNodeId) => {
   const dispatch = useDispatch();
   return (
     <a
@@ -1387,7 +1385,7 @@ const toTreeButtonOf = memoize1((node_id: string) => {
   );
 });
 
-const doneToTodoButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+const doneToTodoButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
     className="done"
     onClick={() => {
@@ -1398,7 +1396,7 @@ const doneToTodoButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   </button>
 ));
 
-const dontToTodoButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+const dontToTodoButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
     className="dont"
     onClick={() => {
@@ -1409,13 +1407,15 @@ const dontToTodoButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   </button>
 ));
 
-const newButtonOf = memoize2((dispatch: AppDispatch, k: string) => {
+const newButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => {
   const _focusTextAreaOfTheNewTodo = (
     dispatch: AppDispatch,
     getState: () => IState,
   ) => {
-    const children = getState().data.kvs[k].children;
-    dispatch(doFocusTextArea(children[children.length - 1]));
+    const state = getState();
+    dispatch(
+      doFocusTextArea(state.data.edges[last(state.data.kvs[k].children)].c),
+    );
   };
   return (
     <button
@@ -1429,7 +1429,7 @@ const newButtonOf = memoize2((dispatch: AppDispatch, k: string) => {
   );
 });
 
-const stopButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+const stopButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
     onClick={() => {
       dispatch(stop());
@@ -1440,7 +1440,7 @@ const stopButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   </button>
 ));
 
-const startButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+const startButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
     onClick={() => {
       dispatch(start(k));
@@ -1451,7 +1451,7 @@ const startButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   </button>
 ));
 
-const topButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+const topButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
     onClick={() => {
       dispatch(top(k));
@@ -1461,7 +1461,7 @@ const topButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   </button>
 ));
 
-const moveUpButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+const moveUpButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
     onClick={() => {
       dispatch(moveUp_(k));
@@ -1473,7 +1473,7 @@ const moveUpButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   </button>
 ));
 
-const moveDownButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+const moveDownButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
     onClick={() => {
       dispatch(moveDown_(k));
@@ -1485,7 +1485,7 @@ const moveDownButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   </button>
 ));
 
-const todoToDoneButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+const todoToDoneButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
     onClick={() => {
       dispatch(todoToDone(k));
@@ -1495,7 +1495,7 @@ const todoToDoneButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   </button>
 ));
 
-const todoToDontButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+const todoToDontButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
     onClick={() => {
       dispatch(todoToDont(k));
@@ -1505,7 +1505,7 @@ const todoToDontButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   </button>
 ));
 
-const unindentButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+const unindentButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
     onClick={() => {
       dispatch(unindent(k));
@@ -1517,7 +1517,7 @@ const unindentButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   </button>
 ));
 
-const indentButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+const indentButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
     onClick={() => {
       dispatch(indent(k));
@@ -1529,7 +1529,7 @@ const indentButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   </button>
 ));
 
-const showDetailButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+const showDetailButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
     onClick={() => {
       dispatch(flipShowDetail(k));
@@ -1539,7 +1539,7 @@ const showDetailButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   </button>
 ));
 
-const deleteButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+const deleteButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
     onClick={() => {
       dispatch(delete_(k));
@@ -1549,7 +1549,7 @@ const deleteButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
   </button>
 ));
 
-const evalButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
+const evalButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
     onClick={() => {
       dispatch(eval_(k));
@@ -1560,7 +1560,7 @@ const evalButtonOf = memoize2((dispatch: AppDispatch, k: string) => (
 ));
 
 const setEstimateOf = memoize2(
-  (dispatch: AppDispatch, k: string) =>
+  (dispatch: AppDispatch, k: TNodeId) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       dispatch(
         setEstimate({
@@ -1571,9 +1571,9 @@ const setEstimateOf = memoize2(
     },
 );
 
-const EstimationInputOf = memoize1((k: string) => <EstimationInput k={k} />);
+const EstimationInputOf = memoize1((k: TNodeId) => <EstimationInput k={k} />);
 
-const EstimationInput = (props: { k: string }) => {
+const EstimationInput = (props: { k: TNodeId }) => {
   const estimate = useSelector((state) => state.data.kvs[props.k].estimate);
   const status = useSelector((state) => state.data.kvs[props.k].status);
   const dispatch = useDispatch();
@@ -1589,13 +1589,13 @@ const EstimationInput = (props: { k: string }) => {
 };
 
 const setLastRangeOf = memoize2(
-  (dispatch: AppDispatch, k: string) =>
+  (dispatch: AppDispatch, k: TNodeId) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setLastRange(dispatch, k, Number(e.target.value));
     },
 );
 
-const TextArea = (props: { k: string }) => {
+const TextArea = (props: { k: TNodeId }) => {
   const state_text = useSelector((state) => state.data.kvs[props.k].text);
   const state_style = useSelector((state) => state.data.kvs[props.k].style);
   const status = useSelector((state) => state.data.kvs[props.k].status);
@@ -1668,9 +1668,9 @@ const getAndSetHeight = (el: HTMLTextAreaElement) => {
   return h;
 };
 
-const LastRangeOf = memoize1((k: string) => <LastRange k={k} />);
+const LastRangeOf = memoize1((k: TNodeId) => <LastRange k={k} />);
 
-const LastRange = (props: { k: string }) => {
+const LastRange = (props: { k: TNodeId }) => {
   const status = useSelector((state) => state.data.kvs[props.k].status);
   const lastRangeValue = useSelector((state) => {
     const v = state.data.kvs[props.k];
