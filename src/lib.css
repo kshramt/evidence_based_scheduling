@@ -32,6 +32,10 @@ input[type=number] {
   -moz-appearance: textfield;
 }
 
+.hidden{
+    display: none;
+}
+
 /* @media screen and (prefers-color-scheme: dark) { */
 /*     html{ */
 /*         filter: invert(1) hue-rotate(180deg); */

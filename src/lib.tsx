@@ -1078,7 +1078,7 @@ const TreeNode = (props: { node_id: TNodeId }) => {
   // )}
   return (
     <>
-      <Mui.Box id={`tree${props.node_id}`}>{EntryOf(props.node_id)}</Mui.Box>
+      <Mui.Box id={`t-${props.node_id}`}>{EntryOf(props.node_id)}</Mui.Box>
       {show_children ? (
         <>
           <TreeNodeList node_id_list={child_node_ids} />
@@ -1110,8 +1110,12 @@ const QueueNode = (props: { node_id: TNodeId }) => {
     }
     return !is_match_filter_query;
   }, [showTodoOnly, is_not_todo, filter_query, text_lower]);
-  return should_hide ? null : (
-    <li id={`queue${props.node_id}`}>
+  const class_name = React.useMemo(
+    () => (should_hide ? "hidden" : undefined),
+    [should_hide],
+  );
+  return (
+    <li id={`q-${props.node_id}`} className={class_name}>
       {toTreeButtonOf(props.node_id)}
       {EntryOf(props.node_id)}
     </li>
@@ -1409,7 +1413,7 @@ const toTreeButtonOf = memoize1((node_id: TNodeId) => {
   const dispatch = useDispatch();
   return (
     <a
-      href={`#tree${node_id}`}
+      href={`#t-${node_id}`}
       onClick={() => {
         dispatch(show_path_to_selected_node(node_id));
       }}
