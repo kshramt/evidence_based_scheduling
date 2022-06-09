@@ -16,6 +16,7 @@ import {
 } from "@reduxjs/toolkit";
 import produce, { Draft, setAutoFreeze } from "immer";
 import * as Mui from "@mui/material";
+import * as MuiIcons from "@mui/icons-material";
 
 import "./lib.css";
 
@@ -677,9 +678,7 @@ const App = () => {
           <SetFilterQueryContext2.Provider value={set_filter_query2}>
             <FilterQueryContext2.Provider value={filter_query2}>
               {el}
-              <Mui.Snackbar
-                open={saveFailed}
-              >
+              <Mui.Snackbar open={saveFailed}>
                 <Mui.Alert severity="error">Failed to save changes.</Mui.Alert>
               </Mui.Snackbar>
             </FilterQueryContext2.Provider>
@@ -724,6 +723,28 @@ const Menu = () => {
     },
     [set_filter_query, set_filter_query2],
   );
+  const clear_input = useCallback(() => {
+    const s = "";
+    set_filter_query(s);
+    React.startTransition(() => {
+      set_filter_query2(s);
+    });
+  }, [set_filter_query, set_filter_query2]);
+  const input_props = React.useMemo(
+    () => ({
+      endAdornment: (
+        <Mui.InputAdornment position="end">
+          <Mui.IconButton
+            aria-label="Clear the input field."
+            onClick={clear_input}
+          >
+            <MuiIcons.Clear />
+          </Mui.IconButton>
+        </Mui.InputAdornment>
+      ),
+    }),
+    [clear_input],
+  );
   // const theme = Mui.useTheme();
 
   return (
@@ -762,7 +783,11 @@ const Menu = () => {
         <button onClick={_load}>⟳</button>
       </Mui.Box>
       <Mui.Box>
-        <Mui.Input value={filter_query} onChange={handle_change} />
+        <Mui.TextField
+          value={filter_query}
+          onChange={handle_change}
+          InputProps={input_props}
+        />
       </Mui.Box>
     </Mui.Stack>
   );
