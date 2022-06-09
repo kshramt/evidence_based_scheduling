@@ -15,7 +15,7 @@ import {
   createSelector,
 } from "@reduxjs/toolkit";
 import produce, { Draft, setAutoFreeze } from "immer";
-import * as Chakra from "@chakra-ui/react";
+import * as Mui from "@mui/material";
 
 import "./lib.css";
 
@@ -627,37 +627,66 @@ const MENU_HEIGHT = "2.5rem";
 const BODY_HEIGHT = `calc(100vh - ${MENU_HEIGHT})`;
 
 const App = () => {
+  const prefers_dark_mode = Mui.useMediaQuery("(prefers-color-scheme: dark)");
+  const theme = React.useMemo(
+    () =>
+      Mui.createTheme({
+        palette: {
+          mode: prefers_dark_mode ? "dark" : "light",
+        },
+      }),
+    [prefers_dark_mode],
+  );
   const root = useSelector((state) => {
     return state.data.root;
+  });
+  const saveFailed = useSelector((state) => {
+    return !state.saveSuccess;
   });
   const [filter_query, set_filter_query] = React.useState("");
   const [filter_query2, set_filter_query2] = React.useState("");
   const el = React.useMemo(
     () => (
-      <Chakra.VStack spacing="0">
-        <Menu />
-        <Chakra.HStack paddingTop={MENU_HEIGHT}>
-          <Chakra.Box overflowY="scroll" height={BODY_HEIGHT}>
-            <QueueColumn />
-          </Chakra.Box>
-          <Chakra.Box overflowY="scroll" height={BODY_HEIGHT}>
-            <TreeNode node_id={root} />
-          </Chakra.Box>
-        </Chakra.HStack>
-      </Chakra.VStack>
+      <>
+        <Mui.CssBaseline />
+        <Mui.Stack spacing={0}>
+          <Menu />
+          <Mui.Stack
+            paddingTop={MENU_HEIGHT}
+            direction="row"
+            alignItems="flex-start"
+            justifyContent="center"
+            spacing={2}
+          >
+            <Mui.Box sx={{ overflowY: "scroll", height: BODY_HEIGHT }}>
+              <QueueColumn />
+            </Mui.Box>
+            <Mui.Box sx={{ overflowY: "scroll", height: BODY_HEIGHT }}>
+              <TreeNode node_id={root} />
+            </Mui.Box>
+          </Mui.Stack>
+        </Mui.Stack>
+      </>
     ),
     [root],
   );
   return (
-    <SetFilterQueryContext.Provider value={set_filter_query}>
-      <FilterQueryContext.Provider value={filter_query}>
-        <SetFilterQueryContext2.Provider value={set_filter_query2}>
-          <FilterQueryContext2.Provider value={filter_query2}>
-            {el}
-          </FilterQueryContext2.Provider>
-        </SetFilterQueryContext2.Provider>
-      </FilterQueryContext.Provider>
-    </SetFilterQueryContext.Provider>
+    <Mui.ThemeProvider theme={theme}>
+      <SetFilterQueryContext.Provider value={set_filter_query}>
+        <FilterQueryContext.Provider value={filter_query}>
+          <SetFilterQueryContext2.Provider value={set_filter_query2}>
+            <FilterQueryContext2.Provider value={filter_query2}>
+              {el}
+              <Mui.Snackbar
+                open={saveFailed}
+              >
+                <Mui.Alert severity="error">Failed to save changes.</Mui.Alert>
+              </Mui.Snackbar>
+            </FilterQueryContext2.Provider>
+          </SetFilterQueryContext2.Provider>
+        </FilterQueryContext.Provider>
+      </SetFilterQueryContext.Provider>
+    </Mui.ThemeProvider>
   );
 };
 
@@ -695,42 +724,47 @@ const Menu = () => {
     },
     [set_filter_query, set_filter_query2],
   );
+  // const theme = Mui.useTheme();
 
   return (
-    <Chakra.HStack
-      spacing="1rem"
-      height={MENU_HEIGHT}
-      width="full"
-      paddingLeft="1rem"
-      position="fixed"
-      top="0"
-      bgColor="gray.50"
-      zIndex="999999"
+    <Mui.Stack
+      direction="row"
+      alignItems="center"
+      justifyContent="flex-start"
+      spacing={2}
+      sx={{
+        // backgroundColor: theme.palette.primary.light,
+        height: MENU_HEIGHT,
+        paddingLeft: 2,
+        position: "fixed",
+        zIndex: 999999,
+        width: "100%",
+      }}
     >
-      <Chakra.Box>{stopButtonOf(dispatch, root)}</Chakra.Box>
-      <Chakra.Box>{newButtonOf(dispatch, root)}</Chakra.Box>
-      <Chakra.Box>
+      <Mui.Box>{stopButtonOf(dispatch, root)}</Mui.Box>
+      <Mui.Box>{newButtonOf(dispatch, root)}</Mui.Box>
+      <Mui.Box>
         <button onClick={_undo}>{UNDO_MARK}</button>
-      </Chakra.Box>
-      <Chakra.Box>
+      </Mui.Box>
+      <Mui.Box>
         <button onClick={_redo}>{REDO_MARK}</button>
-      </Chakra.Box>
-      <Chakra.Box>
+      </Mui.Box>
+      <Mui.Box>
         <button onClick={_flipShowTodoOnly}>👀</button>
-      </Chakra.Box>
-      <Chakra.Box>
+      </Mui.Box>
+      <Mui.Box>
         <button onClick={_smallestToTop}>Small</button>
-      </Chakra.Box>
-      <Chakra.Box>
+      </Mui.Box>
+      <Mui.Box>
         <button onClick={_closestToTop}>Due</button>
-      </Chakra.Box>
-      <Chakra.Box>
+      </Mui.Box>
+      <Mui.Box>
         <button onClick={_load}>⟳</button>
-      </Chakra.Box>
-      <Chakra.Box>
-        <Chakra.Input value={filter_query} onChange={handle_change} />
-      </Chakra.Box>
-    </Chakra.HStack>
+      </Mui.Box>
+      <Mui.Box>
+        <Mui.Input value={filter_query} onChange={handle_change} />
+      </Mui.Box>
+    </Mui.Stack>
   );
 };
 
@@ -992,40 +1026,27 @@ const QueueColumn = () => {
     (node_id: TNodeId) => <QueueNode node_id={node_id} key={node_id} />,
     [],
   );
-  return queue.length ? (
-    <Chakra.OrderedList spacing="0.5rem" listStylePosition="inside">
-      {queue.map(fn)}
-    </Chakra.OrderedList>
-  ) : null;
+  return queue.length ? <ol>{queue.map(fn)}</ol> : null;
 };
 
 const TreeNodeList = (props: IListProps) => {
+  // spacing="0.5rem" paddingLeft="1rem"
   return props.node_id_list.length ? (
-    <Chakra.OrderedList spacing="0.5rem" paddingLeft="1rem">
+    <ol>
       {props.node_id_list.map((node_id) => {
         return (
-          <Chakra.ListItem key={node_id}>
+          <li key={node_id}>
             <TreeNode node_id={node_id} />
-          </Chakra.ListItem>
+          </li>
         );
       })}
-    </Chakra.OrderedList>
+    </ol>
   ) : null;
 };
 
 const TreeNode = (props: { node_id: TNodeId }) => {
-  const todo = useSelector((state) =>
-    _children_of(props.node_id, "todo", state.data.kvs, state.data.edges).map(
-      (edge_id) => state.data.edges[edge_id].c,
-    ),
-  );
-  const done = useSelector((state) =>
-    _children_of(props.node_id, "done", state.data.kvs, state.data.edges).map(
-      (edge_id) => state.data.edges[edge_id].c,
-    ),
-  );
-  const dont = useSelector((state) =>
-    _children_of(props.node_id, "dont", state.data.kvs, state.data.edges).map(
+  const child_node_ids = useSelector((state) =>
+    state.data.kvs[props.node_id].children.map(
       (edge_id) => state.data.edges[edge_id].c,
     ),
   );
@@ -1034,20 +1055,18 @@ const TreeNode = (props: { node_id: TNodeId }) => {
   );
   const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
 
+  // {showTodoOnly ? null : (
+  //   <>
+  //     <TreeNodeList node_id_list={done} />
+  //     <TreeNodeList node_id_list={dont} />
+  //   </>
+  // )}
   return (
     <>
-      <Chakra.Box id={`tree${props.node_id}`}>
-        {EntryOf(props.node_id)}
-      </Chakra.Box>
+      <Mui.Box id={`tree${props.node_id}`}>{EntryOf(props.node_id)}</Mui.Box>
       {show_children ? (
         <>
-          <TreeNodeList node_id_list={todo} />
-          {showTodoOnly ? null : (
-            <>
-              <TreeNodeList node_id_list={done} />
-              <TreeNodeList node_id_list={dont} />
-            </>
-          )}
+          <TreeNodeList node_id_list={child_node_ids} />
         </>
       ) : null}
     </>
@@ -1077,10 +1096,10 @@ const QueueNode = (props: { node_id: TNodeId }) => {
     return !is_match_filter_query;
   }, [showTodoOnly, is_not_todo, filter_query, text_lower]);
   return should_hide ? null : (
-    <Chakra.ListItem id={`queue${props.node_id}`}>
+    <li id={`queue${props.node_id}`}>
       {toTreeButtonOf(props.node_id)}
       {EntryOf(props.node_id)}
-    </Chakra.ListItem>
+    </li>
   );
 };
 
@@ -1730,8 +1749,6 @@ const undoable = (
 register_save_type("undo");
 register_save_type("redo");
 
-const { toast, ToastContainer } = Chakra.createStandaloneToast();
-
 const saveStateMiddlewareOf = (pred: (type_: string) => boolean) => {
   const saveStateMiddleware: Middleware<{}, IState> =
     (store) => (next_dispatch) => (action) => {
@@ -1744,14 +1761,6 @@ const saveStateMiddlewareOf = (pred: (type_: string) => boolean) => {
           },
           body: JSON.stringify(store.getState().data),
         }).then((r) => {
-          if (!r.ok) {
-            toast({
-              title: "Failed to save.",
-              status: "error",
-              duration: 15000,
-              isClosable: true,
-            });
-          }
           store.dispatch(setSaveSuccess(r.ok));
         });
       }
@@ -1794,10 +1803,7 @@ export const main = () => {
   const root = ReactDOM.createRoot(container!);
   root.render(
     <Provider store={store}>
-      <Chakra.ChakraProvider>
-        <App />
-        <ToastContainer />
-      </Chakra.ChakraProvider>
+      <App />
     </Provider>,
   );
   store.dispatch(doLoad());
