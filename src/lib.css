@@ -33,6 +33,7 @@ input[type=number] {
 }
 
 .hidden{
+    /* todo: Use `content-visibility: hidden;`. */
     display: none;
 }
 

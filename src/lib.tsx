@@ -85,7 +85,6 @@ interface IEntry {
   readonly parents: TEdgeId[];
   readonly ranges: IRange[];
   readonly show_children: boolean;
-  readonly show_detail: boolean;
   readonly start_time: string;
   readonly status: TStatus;
   readonly style: IStyle;
@@ -117,25 +116,21 @@ interface ICaches {
 }
 const cache_of = (caches: ICaches, node_id: TNodeId) => {
   return caches[node_id] === undefined
-    ? (caches[node_id] = {})
+    ? (caches[node_id] = {
+        total_time: -1,
+        percentiles: [],
+        visited: -1,
+        show_detail: false,
+      })
     : caches[node_id];
 };
 
 interface ICache {
-  total_time?: number;
-  percentiles?: number[]; // 0, 10, 33, 50, 67, 90, 100
-  visited?: number;
+  total_time: number;
+  percentiles: number[]; // 0, 10, 33, 50, 67, 90, 100
+  visited: number;
+  show_detail: boolean;
 }
-const percentiles_of = (cache: ICache) => {
-  return cache.percentiles === undefined
-    ? (cache.percentiles = [])
-    : cache.percentiles;
-};
-const total_time_of = (cache: ICache) => {
-  return cache.total_time === undefined
-    ? (cache.total_time = -1)
-    : cache.total_time;
-};
 
 const history_type_set = new Set<string>();
 const register_history_type = <T extends {}>(x: T) => {
@@ -240,7 +235,6 @@ const newEntryValueOf = (parents: TEdgeId[]) => {
     parents,
     ranges: [] as IRange[],
     show_children: false,
-    show_detail: false,
     start_time: new Date().toISOString(),
     status: "todo" as TStatus,
     style: { width: "49ex", height: "3ex" },
@@ -272,9 +266,7 @@ const setSaveSuccess = createAction<boolean>("setSaveSuccess");
 const flipShowTodoOnly = register_save_type(
   register_history_type(createAction("flipShowTodoOnly")),
 );
-const flipShowDetail = register_save_type(
-  register_history_type(createAction<TNodeId>("flipShowDetail")),
-);
+const flipShowDetail = createAction<TNodeId>("flipShowDetail");
 const start = register_save_type(
   register_history_type(createAction<TNodeId>("start")),
 );
@@ -412,7 +404,8 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   });
   ac(flipShowDetail, (state, action) => {
     const k = action.payload;
-    state.data.kvs[k].show_detail = !state.data.kvs[k].show_detail;
+    cache_of(state.caches, k).show_detail = !cache_of(state.caches, k)
+      .show_detail;
   });
   ac(start, (state, action) => {
     const k = action.payload;
@@ -660,7 +653,6 @@ const App = () => {
     ),
     [height, root],
   );
-  console.log(appbar_height);
   return (
     <Mui.ThemeProvider theme={theme}>
       <SetFilterQueryContext.Provider value={set_filter_query}>
@@ -1127,9 +1119,6 @@ const Entry = (props: { node_id: TNodeId }) => {
   const has_parent = useSelector(
     (state) => !!state.data.kvs[props.node_id].parents.length,
   );
-  const show_detail = useSelector(
-    (state) => state.data.kvs[props.node_id].show_detail,
-  );
   const cache = useSelector((state) => cache_of(state.caches, props.node_id));
   const running = useSelector(
     (state) => props.node_id === state.data.current_entry,
@@ -1183,7 +1172,7 @@ const Entry = (props: { node_id: TNodeId }) => {
         </>
       ) : null}
       <span onClick={on_click_total_time}>
-        {total_time_of(cache) < 0 ? "-" : digits1(total_time_of(cache) / 3600)}
+        {cache.total_time < 0 ? "-" : digits1(cache.total_time / 3600)}
       </span>
       {has_parent && status === "todo"
         ? topButtonOf(dispatch, props.node_id)
@@ -1199,7 +1188,7 @@ const Entry = (props: { node_id: TNodeId }) => {
           ) : null}
           {LastRangeOf(props.node_id)}
           {showDetailButtonOf(dispatch, props.node_id)}
-          {show_detail ? (
+          {cache.show_detail ? (
             status === "todo" ? (
               <>
                 {moveUpButtonOf(dispatch, props.node_id)}
@@ -1212,7 +1201,7 @@ const Entry = (props: { node_id: TNodeId }) => {
           ) : null}
         </>
       ) : null}
-      {status === "todo" ? percentiles_of(cache).map(digits1).join(" ") : null}
+      {status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
     </div>
   );
 };
