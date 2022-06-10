@@ -62,11 +62,20 @@ def _update_data_version(data):
     elif data["version"] == 9:
         return _update_data_version(_v10_of_v9(data))
     elif data["version"] == 10:
-        return _v11_of_v10(data)
+        return _update_data_version(_v11_of_v10(data))
     elif data["version"] == 11:
+        return _update_data_version(_v12_of_v11(data))
+    elif data["version"] == 12:
         return data
     else:
         raise Err(f"Unsupported data version: {data.get('version', 'None')}")
+
+
+def _v12_of_v11(data):
+    for k, v in data["kvs"].items():
+        del v["style"]["width"]
+    data["version"] = 12
+    return data
 
 
 def _v11_of_v10(data):

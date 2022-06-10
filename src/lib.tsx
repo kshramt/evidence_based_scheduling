@@ -15,26 +15,27 @@ import {
   createSelector,
 } from "@reduxjs/toolkit";
 import produce, { Draft, setAutoFreeze } from "immer";
-import * as Mui from "@mui/material";
-import * as MuiIcons from "@mui/icons-material";
 
 import "./lib.css";
 
 setAutoFreeze(false);
 
+const MENU_HEIGHT = "3em";
 const API_VERSION = "v1";
 const NO_ESTIMATION = 0;
 const START_MARK = "▶";
+const ADD_MARK = "+";
+const STOP_MARK = "■";
 const TOP_MARK = "⬆";
 const MOVE_UP_MARK = "↑";
 const MOVE_DOWN_MARK = "↓";
 const UNINDENT_MARK = "↖︎";
 const INDENT_MARK = "↘︎︎";
-const EVAL_MARK = "⏳";
+const EVAL_MARK = "∑";
 const DELETE_MARK = "×";
 const DONE_MARK = "✓";
 const DONT_MARK = "🗑";
-const DETAIL_MARK = "⋮";
+const DETAIL_MARK = "≡";
 
 let _VISIT_COUNTER = 0;
 
@@ -103,7 +104,6 @@ interface IEdge {
 
 interface IStyle {
   readonly height: string;
-  readonly width: string;
 }
 
 interface IRange {
@@ -237,7 +237,7 @@ const newEntryValueOf = (parents: TEdgeId[]) => {
     show_children: false,
     start_time: new Date().toISOString(),
     status: "todo" as TStatus,
-    style: { width: "49ex", height: "3ex" },
+    style: { height: "3ex" },
     text: "",
   };
 };
@@ -316,7 +316,6 @@ const setTextAndResizeTextArea = register_save_type(
     createAction<{
       k: TNodeId;
       text: string;
-      width: null | string;
       height: null | string;
     }>("setTextAndResizeTextArea"),
   ),
@@ -571,14 +570,10 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   ac(setTextAndResizeTextArea, (state, action) => {
     const k = action.payload.k;
     const text = action.payload.text;
-    const width = action.payload.width;
     const height = action.payload.height;
     const v = state.data.kvs[k];
     v.text = text;
-    if (width !== null && height !== null) {
-      // if (v.style.width !== width) {
-      //   v.style.width = width;
-      // }
+    if (height !== null) {
       if (v.style.height !== height) {
         v.style.height = height;
       }
@@ -614,16 +609,6 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
 });
 
 const App = () => {
-  const prefers_dark_mode = Mui.useMediaQuery("(prefers-color-scheme: dark)");
-  const theme = React.useMemo(
-    () =>
-      Mui.createTheme({
-        palette: {
-          mode: prefers_dark_mode ? "dark" : "light",
-        },
-      }),
-    [prefers_dark_mode],
-  );
   const root = useSelector((state) => {
     return state.data.root;
   });
@@ -632,55 +617,75 @@ const App = () => {
   });
   const [filter_query, set_filter_query] = React.useState("");
   const [filter_query2, set_filter_query2] = React.useState("");
-  const appbar_height = useAppBarHeight();
-  const height = React.useMemo(
-    () => `calc(100vh - ${appbar_height}px)`,
-    [appbar_height],
-  );
+  const height = React.useMemo(() => `calc(100vh - ${MENU_HEIGHT})`, []);
   const qcol = React.useMemo(
     () => (
-      <Mui.Box sx={{ overflowY: "scroll", height }}>
+      <div
+        style={{
+          overflowY: "scroll",
+          height,
+          paddingLeft: "1em",
+          paddingRight: "1em",
+        }}
+      >
         <QueueColumn />
-      </Mui.Box>
+      </div>
     ),
     [height],
   );
   const tcol = React.useMemo(
     () => (
-      <Mui.Box sx={{ overflowY: "scroll", height }}>
+      <div style={{ overflowY: "scroll", height }}>
         <TreeNode node_id={root} />
-      </Mui.Box>
+      </div>
     ),
     [height, root],
   );
+  const save_failed_el = React.useMemo(
+    () =>
+      saveFailed ? (
+        <div
+          style={{
+            position: "fixed",
+            zIndex: 999999,
+            backgroundColor: "rgb(255, 150, 150)",
+            padding: "1em",
+            bottom: "2em",
+            left: "2em",
+          }}
+        >
+          Failed to save changes.
+        </div>
+      ) : null,
+    [saveFailed],
+  );
   return (
-    <Mui.ThemeProvider theme={theme}>
-      <SetFilterQueryContext.Provider value={set_filter_query}>
-        <FilterQueryContext.Provider value={filter_query}>
-          <SetFilterQueryContext2.Provider value={set_filter_query2}>
-            <FilterQueryContext2.Provider value={filter_query2}>
-              <Mui.CssBaseline />
-              <Menu />
-              <Mui.Toolbar />
-              <Mui.Container>
-                <Mui.Stack
-                  direction="row"
-                  alignItems="flex-start"
-                  justifyContent="center"
-                  spacing={2}
-                >
-                  {qcol}
-                  {tcol}
-                </Mui.Stack>
-              </Mui.Container>
-              <Mui.Snackbar open={saveFailed}>
-                <Mui.Alert severity="error">Failed to save changes.</Mui.Alert>
-              </Mui.Snackbar>
-            </FilterQueryContext2.Provider>
-          </SetFilterQueryContext2.Provider>
-        </FilterQueryContext.Provider>
-      </SetFilterQueryContext.Provider>
-    </Mui.ThemeProvider>
+    <SetFilterQueryContext.Provider value={set_filter_query}>
+      <FilterQueryContext.Provider value={filter_query}>
+        <SetFilterQueryContext2.Provider value={set_filter_query2}>
+          <FilterQueryContext2.Provider value={filter_query2}>
+            <Menu />
+            <div
+              style={{
+                display: "flex",
+                columnGap: "2em",
+                width: "100%",
+                left: 0,
+                top: MENU_HEIGHT,
+                position: "fixed",
+                zIndex: 0,
+                color: "rgb(10, 10, 10)",
+                backgroundColor: "rgb(245, 245, 245)",
+              }}
+            >
+              {qcol}
+              {tcol}
+            </div>
+            {save_failed_el}
+          </FilterQueryContext2.Provider>
+        </SetFilterQueryContext2.Provider>
+      </FilterQueryContext.Provider>
+    </SetFilterQueryContext.Provider>
   );
 };
 
@@ -725,53 +730,57 @@ const Menu = () => {
       set_filter_query2(s);
     });
   }, [set_filter_query, set_filter_query2]);
-  const input_props = React.useMemo(
-    () => ({
-      endAdornment: (
-        <Mui.InputAdornment position="end">
-          <Mui.IconButton
-            aria-label="Clear the input field."
-            onClick={clear_input}
-          >
-            <MuiIcons.Clear />
-          </Mui.IconButton>
-        </Mui.InputAdornment>
-      ),
-    }),
-    [clear_input],
-  );
 
   return (
-    <Mui.Box sx={{ flexGrow: 1 }}>
-      <Mui.AppBar>
-        <Mui.Toolbar>
-          {stopButtonOf(dispatch, root)}
-          {newButtonOf(dispatch, root)}
-          <Mui.IconButton arial-label="Undo." onClick={_undo}>
-            <MuiIcons.Undo />
-          </Mui.IconButton>
-          <Mui.IconButton arial-label="Redo." onClick={_redo}>
-            <MuiIcons.Redo />
-          </Mui.IconButton>
-          <Mui.IconButton
-            arial-label="Toggle the TODO-only flag."
-            onClick={_flipShowTodoOnly}
-          >
-            <MuiIcons.Visibility />
-          </Mui.IconButton>
-          <Mui.IconButton onClick={_smallestToTop}>Small</Mui.IconButton>
-          <Mui.IconButton onClick={_closestToTop}>Due</Mui.IconButton>
-          <Mui.IconButton arial-label="Sync." onClick={_load}>
-            <MuiIcons.Sync />
-          </Mui.IconButton>
-          <Mui.TextField
-            value={filter_query}
-            onChange={handle_change}
-            InputProps={input_props}
-          />
-        </Mui.Toolbar>
-      </Mui.AppBar>
-    </Mui.Box>
+    <div
+      style={{
+        display: "flex",
+        columnGap: "0.25em",
+        alignItems: "center",
+        height: MENU_HEIGHT,
+        position: "fixed",
+        zIndex: 999999,
+        paddingLeft: "1em",
+        backgroundColor: "rgb(240, 240, 240)",
+        width: "100%",
+        top: 0,
+        left: 0,
+      }}
+    >
+      {stopButtonOf(dispatch, root)}
+      {newButtonOf(dispatch, root)}
+      <button className="icon" arial-label="Undo." onClick={_undo}>
+        ↶
+      </button>
+      <button className="icon" arial-label="Redo." onClick={_redo}>
+        ↷
+      </button>
+      <button
+        className="icon"
+        arial-label="Toggle the TODO-only flag."
+        onClick={_flipShowTodoOnly}
+      >
+        👀
+      </button>
+      <button className="icon" onClick={_smallestToTop}>
+        Small
+      </button>
+      <button className="icon" onClick={_closestToTop}>
+        Due
+      </button>
+      <button className="icon" arial-label="Sync." onClick={_load}>
+        ↺
+      </button>
+      <input
+        type="search"
+        value={filter_query}
+        onChange={handle_change}
+        style={{ height: "2em" }}
+      />
+      <button className="icon" onClick={clear_input}>
+        {DELETE_MARK}
+      </button>
+    </div>
   );
 };
 
@@ -1070,7 +1079,7 @@ const TreeNode = (props: { node_id: TNodeId }) => {
   // )}
   return (
     <>
-      <Mui.Box id={`t-${props.node_id}`}>{EntryOf(props.node_id)}</Mui.Box>
+      <div id={`t-${props.node_id}`}>{EntryOf(props.node_id)}</div>
       {show_children ? (
         <>
           <TreeNodeList node_id_list={child_node_ids} />
@@ -1107,7 +1116,11 @@ const QueueNode = (props: { node_id: TNodeId }) => {
     [should_hide],
   );
   return (
-    <li id={`q-${props.node_id}`} className={class_name}>
+    <li
+      id={`q-${props.node_id}`}
+      className={class_name}
+      style={{ marginBottom: "1em" }}
+    >
       {toTreeButtonOf(props.node_id)}
       {EntryOf(props.node_id)}
     </li>
@@ -1140,6 +1153,27 @@ const Entry = (props: { node_id: TNodeId }) => {
     dispatch(set_total_time(props.node_id));
   }, [dispatch, props.node_id]);
 
+  return (
+    <>
+      <TextArea k={props.node_id} />
+      <div style={{ display: "flex", columnGap: "0.25em" }}>
+        {running
+          ? stopButtonOf(dispatch, props.node_id)
+          : startButtonOf(dispatch, props.node_id)}
+        {EstimationInputOf(props.node_id)}
+        <span onClick={on_click_total_time}>
+          {cache.total_time < 0 ? "-" : digits1(cache.total_time / 3600)}
+        </span>
+        {todoToDoneButtonOf(dispatch, props.node_id)}
+        {todoToDontButtonOf(dispatch, props.node_id)}
+        {evalButtonOf(dispatch, props.node_id)}
+        {topButtonOf(dispatch, props.node_id)}
+        {moveUpButtonOf(dispatch, props.node_id)}
+        {moveDownButtonOf(dispatch, props.node_id)}
+        {showDetailButtonOf(dispatch, props.node_id)}
+      </div>
+    </>
+  );
   return (
     <div
       className={
@@ -1414,7 +1448,7 @@ const toTreeButtonOf = memoize1((node_id: TNodeId) => {
 
 const doneToTodoButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
-    className="done"
+    className="icon"
     onClick={() => {
       dispatch(doneToTodo(k));
     }}
@@ -1425,7 +1459,7 @@ const doneToTodoButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
 
 const dontToTodoButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
-    className="dont"
+    className="icon"
     onClick={() => {
       dispatch(dontToTodo(k));
     }}
@@ -1445,32 +1479,35 @@ const newButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => {
     );
   };
   return (
-    <Mui.IconButton
+    <button
+      className="icon"
       arial-label="Add a new entry."
       onClick={() => {
         dispatch(new_(k));
         dispatch(_focusTextAreaOfTheNewTodo);
       }}
     >
-      <MuiIcons.Add />
-    </Mui.IconButton>
+      {ADD_MARK}
+    </button>
   );
 });
 
 const stopButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
-  <Mui.IconButton
+  <button
+    className="icon"
     arial-label="Stop."
     onClick={() => {
       dispatch(stop());
     }}
     ref={stopButtonRefOf(k)}
   >
-    <MuiIcons.Square />
-  </Mui.IconButton>
+    {STOP_MARK}
+  </button>
 ));
 
 const startButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
+    className="icon"
     onClick={() => {
       dispatch(start(k));
       dispatch(doFocusStopButton(k));
@@ -1482,6 +1519,7 @@ const startButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
 
 const topButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
+    className="icon"
     onClick={() => {
       dispatch(top(k));
     }}
@@ -1492,6 +1530,7 @@ const topButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
 
 const moveUpButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
+    className="icon"
     onClick={() => {
       dispatch(moveUp_(k));
       dispatch(doFocusMoveUpButton(k));
@@ -1504,6 +1543,7 @@ const moveUpButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
 
 const moveDownButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
+    className="icon"
     onClick={() => {
       dispatch(moveDown_(k));
       dispatch(doFocusMoveDownButton(k));
@@ -1516,6 +1556,7 @@ const moveDownButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
 
 const todoToDoneButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
+    className="icon"
     onClick={() => {
       dispatch(todoToDone(k));
     }}
@@ -1526,6 +1567,7 @@ const todoToDoneButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
 
 const todoToDontButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
+    className="icon"
     onClick={() => {
       dispatch(todoToDont(k));
     }}
@@ -1536,6 +1578,7 @@ const todoToDontButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
 
 const unindentButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
+    className="icon"
     onClick={() => {
       dispatch(unindent(k));
       dispatch(doFocusUnindentButton(k));
@@ -1548,6 +1591,7 @@ const unindentButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
 
 const indentButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
+    className="icon"
     onClick={() => {
       dispatch(indent(k));
       dispatch(doFocusIndentButton(k));
@@ -1560,6 +1604,7 @@ const indentButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
 
 const showDetailButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
+    className="icon"
     onClick={() => {
       dispatch(flipShowDetail(k));
     }}
@@ -1570,6 +1615,7 @@ const showDetailButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
 
 const deleteButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
+    className="icon"
     onClick={() => {
       dispatch(delete_(k));
     }}
@@ -1580,6 +1626,7 @@ const deleteButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
 
 const evalButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
+    className="icon"
     onClick={() => {
       dispatch(eval_(k));
     }}
@@ -1604,7 +1651,6 @@ const EstimationInputOf = memoize1((k: TNodeId) => <EstimationInput k={k} />);
 
 const EstimationInput = (props: { k: TNodeId }) => {
   const estimate = useSelector((state) => state.data.kvs[props.k].estimate);
-  const status = useSelector((state) => state.data.kvs[props.k].status);
   const dispatch = useDispatch();
   return (
     <input
@@ -1612,7 +1658,7 @@ const EstimationInput = (props: { k: TNodeId }) => {
       step="any"
       value={estimate}
       onChange={setEstimateOf(dispatch, props.k)}
-      className={status}
+      style={{ width: "3em" }}
     />
   );
 };
@@ -1661,7 +1707,6 @@ const TextArea = (props: { k: TNodeId }) => {
         setTextAndResizeTextArea({
           k: props.k,
           text: el.value,
-          width: el.style.width,
           height: h,
         }),
       );
@@ -1684,7 +1729,12 @@ const TextArea = (props: { k: TNodeId }) => {
       onChange={resizeAndSetText}
       onBlur={dispatchResizeAndSetText}
       className={status}
-      style={{ border: "solid 1px gray", ...style }}
+      style={{
+        overflow: "hidden",
+        resize: "vertical",
+        width: "35em",
+        ...style,
+      }}
       ref={textAreaRefOf(props.k)}
     />
   );
@@ -1718,23 +1768,6 @@ const LastRange = (props: { k: TNodeId }) => {
       className={status}
     />
   );
-};
-
-const useAppBarHeight = () => {
-  const theme = Mui.useTheme();
-  const toolbar_desktop_query = theme.breakpoints.up("sm");
-  const toolbar_landscape_query = `${theme.breakpoints.up(
-    "xs",
-  )} and (orientation: landscape)`;
-  const is_desktop = Mui.useMediaQuery(toolbar_desktop_query);
-  const is_landscape = Mui.useMediaQuery(toolbar_landscape_query);
-  return (
-    is_desktop
-      ? (theme.mixins.toolbar[toolbar_desktop_query] as { minHeight: number })
-      : is_landscape
-      ? (theme.mixins.toolbar[toolbar_landscape_query] as { minHeight: number })
-      : (theme.mixins.toolbar as { minHeight: number })
-  ).minHeight;
 };
 
 const undoable = (
