@@ -17,6 +17,12 @@ div.non-leaf{
     background-color: rgb(230, 255, 230);
 }
 
+button, input, select, textarea {
+  font-family : inherit;
+  font-size   : inherit;
+  background-color: inherit;
+}
+
 button.icon{
     background-color: rgb(210, 210, 210);
     text-align: center;
