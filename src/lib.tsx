@@ -20,7 +20,7 @@ import "./lib.css";
 
 setAutoFreeze(false);
 
-const MENU_HEIGHT = "3em";
+const MENU_HEIGHT = "4em" as const;
 const API_VERSION = "v1";
 const NO_ESTIMATION = 0;
 const START_MARK = "▶";
@@ -710,35 +710,16 @@ const App = () => {
     () => (
       <>
         <Menu />
-        <div
-          style={{
-            display: "flex",
-            columnGap: "2em",
-            width: "100%",
-            left: 0,
-            top: MENU_HEIGHT,
-            position: "fixed",
-            color: "rgb(10, 10, 10)",
-            backgroundColor: "rgb(247, 247, 247)",
-          }}
-        >
+        <div className="flex w-full gap-x-8" style={{ marginTop: MENU_HEIGHT }}>
           <div
-            style={{
-              overflowY: "scroll",
-              height: `calc(100vh - ${MENU_HEIGHT})`,
-              paddingLeft: "1em",
-              paddingRight: "1em",
-              flexShrink: 0,
-            }}
+            className={`overflow-y-auto pl-[1em] shrink-0 pt-[1em]`}
+            style={{ height: `calc(100vh - ${MENU_HEIGHT})` }}
           >
             <QueueColumn />
           </div>
           <div
-            style={{
-              overflowY: "scroll",
-              height: `calc(100vh - ${MENU_HEIGHT})`,
-              flexShrink: 0,
-            }}
+            className={`overflow-y-auto pl-[1em] shrink-0 pt-[1em]`}
+            style={{ height: `calc(100vh - ${MENU_HEIGHT})` }}
           >
             <TreeNode node_id={root} />
           </div>
@@ -750,16 +731,7 @@ const App = () => {
   const save_failed_el = React.useMemo(
     () =>
       saveFailed ? (
-        <div
-          style={{
-            position: "fixed",
-            zIndex: 999999,
-            backgroundColor: "rgb(255, 150, 150)",
-            padding: "1em",
-            bottom: "2em",
-            left: "2em",
-          }}
-        >
+        <div className="fixed z-[999999] font-bold p-[1em] bottom-8 left-8 bg-red-300 dark:bg-red-800 text-gray-800 dark:text-gray-200">
           Failed to save changes.
         </div>
       ) : null,
@@ -823,19 +795,8 @@ const Menu = () => {
 
   return (
     <div
-      style={{
-        display: "flex",
-        columnGap: "0.25em",
-        alignItems: "center",
-        height: MENU_HEIGHT,
-        position: "fixed",
-        zIndex: 999999,
-        paddingLeft: "1em",
-        backgroundColor: "rgb(240, 240, 240)",
-        width: "100%",
-        top: 0,
-        left: 0,
-      }}
+      className={`flex items-center fixed z-[999999] pl-[1em] gap-x-[0.25em] w-full top-0  bg-gray-200 dark:bg-gray-900`}
+      style={{ height: MENU_HEIGHT }}
     >
       {stopButtonOf(dispatch, root)}
       {newButtonOf(dispatch, root)}
@@ -861,11 +822,7 @@ const Menu = () => {
       <button className="icon" arial-label="Sync." onClick={_load}>
         ↺
       </button>
-      <input
-        value={filter_query}
-        onChange={handle_change}
-        style={{ height: "2em" }}
-      />
+      <input value={filter_query} onChange={handle_change} className="h-2em" />
       <button className="icon" onClick={clear_input}>
         {DELETE_MARK}
       </button>
@@ -1168,7 +1125,7 @@ const TreeNode = (props: { node_id: TNodeId }) => {
   // )}
   return (
     <>
-      <div id={`t-${props.node_id}`}>{EntryOf(props.node_id)}</div>
+      {EntryOf(props.node_id)}
       {show_children ? (
         <>
           <TreeNodeList node_id_list={child_node_ids} />
@@ -1201,7 +1158,7 @@ const QueueNode = (props: { node_id: TNodeId }) => {
     return !is_match_filter_query;
   }, [showTodoOnly, is_not_todo, filter_query, text_lower]);
   return should_hide ? null : (
-    <li id={`q-${props.node_id}`} style={{ marginBottom: "1em" }}>
+    <li id={`q-${props.node_id}`} className="mb-[1em] last:mb-0">
       {toTreeButtonOf(props.node_id)}
       {EntryOf(props.node_id)}
     </li>
@@ -1231,9 +1188,7 @@ const ChildEdgeTable = (props: { node_id: TNodeId }) => {
   );
   return (
     <table>
-      <tbody
-        style={{ display: "block", maxHeight: "10em", overflowY: "scroll" }}
-      >
+      <tbody className="block max-h-[10em] overflow-y-scroll">
         {children.map(EdgeRowOf)}
       </tbody>
     </table>
@@ -1247,7 +1202,9 @@ const EdgeRow = (props: { edge_id: TEdgeId }) => {
       <td>
         <select>
           {edge_type_values.map((t, i) => (
-            <option value={t} key={i}>{t}</option>
+            <option value={t} key={i}>
+              {t}
+            </option>
           ))}
         </select>
       </td>
@@ -1291,9 +1248,7 @@ const Entry = (props: { node_id: TNodeId }) => {
   return (
     <>
       <TextArea k={props.node_id} />
-      <div
-        style={{ display: "flex", columnGap: "0.25em", alignItems: "baseline" }}
-      >
+      <div className="flex gap-x-[0.25em] items-baseline">
         {running
           ? stopButtonOf(dispatch, props.node_id)
           : startButtonOf(dispatch, props.node_id)}
@@ -1320,14 +1275,14 @@ const Entry = (props: { node_id: TNodeId }) => {
           ? " running"
           : has_children && !show_children
           ? " non-leaf"
-          : "")
+          : "") +
+        "inline-block"
       }
       onDoubleClick={(e) => {
         if (e.target === e.currentTarget) {
           dispatch(swap_show_children(props.node_id));
         }
       }}
-      style={{ display: "inline-block" }}
     >
       {has_parent ? (
         <>
@@ -1796,7 +1751,7 @@ const EstimationInput = (props: { k: TNodeId }) => {
       step="any"
       value={estimate}
       onChange={setEstimateOf(dispatch, props.k)}
-      style={{ width: "3em" }}
+      className="w-[3em]"
     />
   );
 };
@@ -1866,11 +1821,8 @@ const TextArea = (props: { k: TNodeId }) => {
       value={text}
       onChange={resizeAndSetText}
       onBlur={dispatchResizeAndSetText}
-      className={status}
+      className={status + " resize-y w-[30em]"}
       style={{
-        overflow: "hidden",
-        resize: "vertical",
-        width: "30em",
         ...style,
       }}
       ref={textAreaRefOf(props.k)}

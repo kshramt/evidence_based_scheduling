@@ -4,6 +4,9 @@
   "private": true,
   "homepage": ".",
   "proxy": "http://127.0.0.1:5000",
+  "prettier": {
+    "trailingComma": "all"
+  },
   "dependencies": {
     "@reduxjs/toolkit": "^1.8.2",
     "@types/jest": "^28.1.1",
