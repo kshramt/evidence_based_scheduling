@@ -706,29 +706,46 @@ const App = () => {
   });
   const [filter_query, set_filter_query] = React.useState("");
   const [filter_query2, set_filter_query2] = React.useState("");
-  const height = React.useMemo(() => `calc(100vh - ${MENU_HEIGHT})`, []);
-  const qcol = React.useMemo(
+  const el = React.useMemo(
     () => (
-      <div
-        style={{
-          overflowY: "scroll",
-          height,
-          paddingLeft: "1em",
-          paddingRight: "1em",
-        }}
-      >
-        <QueueColumn />
-      </div>
+      <>
+        <Menu />
+        <div
+          style={{
+            display: "flex",
+            columnGap: "2em",
+            width: "100%",
+            left: 0,
+            top: MENU_HEIGHT,
+            position: "fixed",
+            color: "rgb(10, 10, 10)",
+            backgroundColor: "rgb(247, 247, 247)",
+          }}
+        >
+          <div
+            style={{
+              overflowY: "scroll",
+              height: `calc(100vh - ${MENU_HEIGHT})`,
+              paddingLeft: "1em",
+              paddingRight: "1em",
+              flexShrink: 0,
+            }}
+          >
+            <QueueColumn />
+          </div>
+          <div
+            style={{
+              overflowY: "scroll",
+              height: `calc(100vh - ${MENU_HEIGHT})`,
+              flexShrink: 0,
+            }}
+          >
+            <TreeNode node_id={root} />
+          </div>
+        </div>
+      </>
     ),
-    [height],
-  );
-  const tcol = React.useMemo(
-    () => (
-      <div style={{ overflowY: "scroll", height }}>
-        <TreeNode node_id={root} />
-      </div>
-    ),
-    [height, root],
+    [root],
   );
   const save_failed_el = React.useMemo(
     () =>
@@ -753,23 +770,7 @@ const App = () => {
       <FilterQueryContext.Provider value={filter_query}>
         <SetFilterQueryContext2.Provider value={set_filter_query2}>
           <FilterQueryContext2.Provider value={filter_query2}>
-            <Menu />
-            <div
-              style={{
-                display: "flex",
-                columnGap: "2em",
-                width: "100%",
-                left: 0,
-                top: MENU_HEIGHT,
-                position: "fixed",
-                zIndex: 0,
-                color: "rgb(10, 10, 10)",
-                backgroundColor: "rgb(245, 245, 245)",
-              }}
-            >
-              {qcol}
-              {tcol}
-            </div>
+            {el}
             {save_failed_el}
           </FilterQueryContext2.Provider>
         </SetFilterQueryContext2.Provider>
@@ -861,7 +862,6 @@ const Menu = () => {
         ↺
       </button>
       <input
-        type="search"
         value={filter_query}
         onChange={handle_change}
         style={{ height: "2em" }}
@@ -1200,21 +1200,63 @@ const QueueNode = (props: { node_id: TNodeId }) => {
     }
     return !is_match_filter_query;
   }, [showTodoOnly, is_not_todo, filter_query, text_lower]);
-  const class_name = React.useMemo(
-    () => (should_hide ? "hidden" : undefined),
-    [should_hide],
-  );
-  return (
-    <li
-      id={`q-${props.node_id}`}
-      className={class_name}
-      style={{ marginBottom: "1em" }}
-    >
+  return should_hide ? null : (
+    <li id={`q-${props.node_id}`} style={{ marginBottom: "1em" }}>
       {toTreeButtonOf(props.node_id)}
       {EntryOf(props.node_id)}
     </li>
   );
 };
+
+const Details = (props: { node_id: TNodeId }) => {
+  const parents = useSelector((state) => state.data.kvs[props.node_id].parents);
+  const children = useSelector(
+    (state) => state.data.kvs[props.node_id].children,
+  );
+  return (
+    <>
+      <ol>
+        {parents.map((edge_id) => (
+          <li key={edge_id}>{edge_id}</li>
+        ))}
+      </ol>
+      <ChildEdgeTable node_id={props.node_id} />
+    </>
+  );
+};
+
+const ChildEdgeTable = (props: { node_id: TNodeId }) => {
+  const children = useSelector(
+    (state) => state.data.kvs[props.node_id].children,
+  );
+  return (
+    <table>
+      <tbody
+        style={{ display: "block", maxHeight: "10em", overflowY: "scroll" }}
+      >
+        {children.map(EdgeRowOf)}
+      </tbody>
+    </table>
+  );
+};
+const EdgeRow = (props: { edge_id: TEdgeId }) => {
+  const edge = useSelector((state) => state.data.edges[props.edge_id]);
+  return (
+    <tr>
+      <td>{props.edge_id}</td>
+      <td>
+        <select>
+          {edge_type_values.map((t, i) => (
+            <option value={t} key={i}>{t}</option>
+          ))}
+        </select>
+      </td>
+    </tr>
+  );
+};
+const EdgeRowOf = memoize1((edge_id: TEdgeId) => (
+  <EdgeRow edge_id={edge_id} key={edge_id} />
+));
 
 const Entry = (props: { node_id: TNodeId }) => {
   const status = useSelector((state) => state.data.kvs[props.node_id].status);
@@ -1241,11 +1283,17 @@ const Entry = (props: { node_id: TNodeId }) => {
   const on_click_total_time = useCallback(() => {
     dispatch(set_total_time(props.node_id));
   }, [dispatch, props.node_id]);
+  const details = React.useMemo(
+    () => (cache.show_detail ? <Details node_id={props.node_id} /> : null),
+    [cache.show_detail, props.node_id],
+  );
 
   return (
     <>
       <TextArea k={props.node_id} />
-      <div style={{ display: "flex", columnGap: "0.25em" }}>
+      <div
+        style={{ display: "flex", columnGap: "0.25em", alignItems: "baseline" }}
+      >
         {running
           ? stopButtonOf(dispatch, props.node_id)
           : startButtonOf(dispatch, props.node_id)}
@@ -1261,6 +1309,7 @@ const Entry = (props: { node_id: TNodeId }) => {
         {moveDownButtonOf(dispatch, props.node_id)}
         {showDetailButtonOf(dispatch, props.node_id)}
       </div>
+      {details}
     </>
   );
   return (
@@ -1821,7 +1870,7 @@ const TextArea = (props: { k: TNodeId }) => {
       style={{
         overflow: "hidden",
         resize: "vertical",
-        width: "35em",
+        width: "30em",
         ...style,
       }}
       ref={textAreaRefOf(props.k)}
