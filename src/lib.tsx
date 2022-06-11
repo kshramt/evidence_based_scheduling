@@ -96,7 +96,7 @@ interface IData {
   readonly current_entry: null | TNodeId;
   readonly edges: IEdges;
   readonly root: TNodeId;
-  readonly id_seq: number;
+  id_seq: number;
   readonly kvs: IKvs;
   readonly queue: TNodeId[];
   readonly showTodoOnly: boolean;
@@ -289,9 +289,15 @@ const _rmFromTodo = (draft: Draft<IState>, node_id: TNodeId) => {
   }
 };
 
+const new_node_id_of = (state: IState) => new_id_of(state) as TNodeId;
+const new_edge_id_of = (state: IState) => new_id_of(state) as TEdgeId;
+const new_id_of = (state: IState) =>
+  id_string_of_number((state.data.id_seq += 1));
+const id_string_of_number = (x: number) => x.toString(36);
+
 const emptyStateOf = (): IState => {
   const id_seq = 0;
-  const root = id_seq.toString(36) as TNodeId;
+  const root = id_string_of_number(id_seq) as TNodeId;
   const kvs = {
     [root]: newEntryValueOf([]),
   };
@@ -462,8 +468,8 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     if (!state.data.kvs[parent].show_children) {
       state.data.kvs[parent].show_children = true;
     }
-    const node_id = (state.data.id_seq += 1).toString(36) as TNodeId;
-    const edge_id = (state.data.id_seq += 1).toString(36) as TEdgeId;
+    const node_id = new_node_id_of(state);
+    const edge_id = new_edge_id_of(state);
     const v = newEntryValueOf([edge_id]);
     const edge = { p: parent, c: node_id, t: "strong" as const };
     state.data.kvs[node_id] = v;
