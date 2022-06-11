@@ -74,6 +74,8 @@ def _update_data_version(data):
 def _v12_of_v11(data):
     for k, v in data["kvs"].items():
         del v["style"]["width"]
+        if "show_children" not in v:
+            v["show_children"] = False
     data["version"] = 12
     return data
 
