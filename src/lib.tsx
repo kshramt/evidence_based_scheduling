@@ -31,11 +31,11 @@ const MOVE_UP_MARK = "↑";
 const MOVE_DOWN_MARK = "↓";
 const UNINDENT_MARK = "↖︎";
 const INDENT_MARK = "↘︎︎";
-const EVAL_MARK = "∑";
-const DELETE_MARK = "×";
+const EVAL_MARK = "Σ";
+const DELETE_MARK = "✕";
 const DONE_MARK = "✓";
 const DONT_MARK = "🗑";
-const DETAIL_MARK = "≡";
+const DETAIL_MARK = "☰";
 
 let _VISIT_COUNTER = 0;
 
