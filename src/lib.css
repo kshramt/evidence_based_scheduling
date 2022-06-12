@@ -17,6 +17,11 @@ textarea {
   font-size: inherit;
   background-color: inherit;
 }
+input, textarea{
+  border-style: solid;
+  border-width: 1px;
+  border-color: gray;
+}
 
 @layer base {
   html,
@@ -24,10 +29,10 @@ textarea {
     @apply bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100;
   }
   ol {
-    @apply list-inside list-decimal mx-[2em];
+    @apply list-decimal mx-[2em];
   }
   ul {
-    @apply list-inside list-disc mx-[2em];
+    @apply list-disc mx-[2em];
   }
   li {
     @apply list-item;
@@ -35,7 +40,7 @@ textarea {
 }
 
 @layer components {
-  button.icon {
+  .btn-icon {
     @apply bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-center min-w-[2em] h-[2em] border-none shadow-none;
   }
 
@@ -45,9 +50,4 @@ textarea {
   textarea.dont {
     @apply text-gray-500;
   }
-}
-
-.hidden {
-  /* todo: Use `content-visibility: hidden;`. */
-  display: none;
 }

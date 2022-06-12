@@ -16,6 +16,8 @@ import {
 } from "@reduxjs/toolkit";
 import produce, { Draft, setAutoFreeze } from "immer";
 
+import * as consts from "./consts";
+import * as toast from "./toast";
 import "./lib.css";
 
 setAutoFreeze(false);
@@ -32,7 +34,6 @@ const MOVE_DOWN_MARK = "↓";
 const UNINDENT_MARK = "↖︎";
 const INDENT_MARK = "↘︎︎";
 const EVAL_MARK = "Σ";
-const DELETE_MARK = "✕";
 const DONE_MARK = "✓";
 const DONT_MARK = "🗑";
 const DETAIL_MARK = "☰";
@@ -728,22 +729,13 @@ const App = () => {
     ),
     [root],
   );
-  const save_failed_el = React.useMemo(
-    () =>
-      saveFailed ? (
-        <div className="fixed z-[999999] font-bold p-[1em] bottom-8 left-8 bg-red-300 dark:bg-red-800 text-gray-800 dark:text-gray-200">
-          Failed to save changes.
-        </div>
-      ) : null,
-    [saveFailed],
-  );
   return (
     <SetFilterQueryContext.Provider value={set_filter_query}>
       <FilterQueryContext.Provider value={filter_query}>
         <SetFilterQueryContext2.Provider value={set_filter_query2}>
           <FilterQueryContext2.Provider value={filter_query2}>
             {el}
-            {save_failed_el}
+            {toast.component}
           </FilterQueryContext2.Provider>
         </SetFilterQueryContext2.Provider>
       </FilterQueryContext.Provider>
@@ -800,31 +792,31 @@ const Menu = () => {
     >
       {stopButtonOf(dispatch, root)}
       {newButtonOf(dispatch, root)}
-      <button className="icon" arial-label="Undo." onClick={_undo}>
+      <button className="btn-icon" arial-label="Undo." onClick={_undo}>
         ↶
       </button>
-      <button className="icon" arial-label="Redo." onClick={_redo}>
+      <button className="btn-icon" arial-label="Redo." onClick={_redo}>
         ↷
       </button>
       <button
-        className="icon"
+        className="btn-icon"
         arial-label="Toggle the TODO-only flag."
         onClick={_flipShowTodoOnly}
       >
         👀
       </button>
-      <button className="icon" onClick={_smallestToTop}>
+      <button className="btn-icon" onClick={_smallestToTop}>
         Small
       </button>
-      <button className="icon" onClick={_closestToTop}>
+      <button className="btn-icon" onClick={_closestToTop}>
         Due
       </button>
-      <button className="icon" arial-label="Sync." onClick={_load}>
+      <button className="btn-icon" arial-label="Sync." onClick={_load}>
         ↺
       </button>
       <input value={filter_query} onChange={handle_change} className="h-2em" />
-      <button className="icon" onClick={clear_input}>
-        {DELETE_MARK}
+      <button className="btn-icon" onClick={clear_input}>
+        {consts.DELETE_MARK}
       </button>
     </div>
   );
@@ -1116,6 +1108,10 @@ const TreeNode = (props: { node_id: TNodeId }) => {
     (state) => state.data.kvs[props.node_id].show_children,
   );
   const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
+  const entry = React.useMemo(
+    () => <Entry node_id={props.node_id} />,
+    [props.node_id],
+  );
 
   // {showTodoOnly ? null : (
   //   <>
@@ -1125,7 +1121,7 @@ const TreeNode = (props: { node_id: TNodeId }) => {
   // )}
   return (
     <>
-      {EntryOf(props.node_id)}
+      {entry}
       {show_children ? (
         <>
           <TreeNodeList node_id_list={child_node_ids} />
@@ -1157,10 +1153,15 @@ const QueueNode = (props: { node_id: TNodeId }) => {
     }
     return !is_match_filter_query;
   }, [showTodoOnly, is_not_todo, filter_query, text_lower]);
+  const entry = React.useMemo(
+    () => <Entry node_id={props.node_id} />,
+    [props.node_id],
+  );
+  // className="hidden" is slower.
   return should_hide ? null : (
     <li id={`q-${props.node_id}`} className="mb-[1em] last:mb-0">
       {toTreeButtonOf(props.node_id)}
-      {EntryOf(props.node_id)}
+      {entry}
     </li>
   );
 };
@@ -1248,7 +1249,7 @@ const Entry = (props: { node_id: TNodeId }) => {
   return (
     <>
       <TextArea k={props.node_id} />
-      <div className="flex gap-x-[0.25em] items-baseline">
+      <div className="flex gap-x-[0.25em] items-baseline mt-[0.25em]">
         {running
           ? stopButtonOf(dispatch, props.node_id)
           : startButtonOf(dispatch, props.node_id)}
@@ -1332,9 +1333,6 @@ const Entry = (props: { node_id: TNodeId }) => {
     </div>
   );
 };
-const EntryOf = memoize1((node_id: TNodeId) => {
-  return <Entry node_id={node_id} key={node_id} />;
-});
 
 const _estimate = (
   estimates: number[],
@@ -1541,7 +1539,7 @@ const toTreeButtonOf = memoize1((node_id: TNodeId) => {
 
 const doneToTodoButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
-    className="icon"
+    className="btn-icon"
     onClick={() => {
       dispatch(doneToTodo(k));
     }}
@@ -1552,7 +1550,7 @@ const doneToTodoButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
 
 const dontToTodoButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
-    className="icon"
+    className="btn-icon"
     onClick={() => {
       dispatch(dontToTodo(k));
     }}
@@ -1573,7 +1571,7 @@ const newButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => {
   };
   return (
     <button
-      className="icon"
+      className="btn-icon"
       arial-label="Add a new entry."
       onClick={() => {
         dispatch(new_(k));
@@ -1587,7 +1585,7 @@ const newButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => {
 
 const stopButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
-    className="icon"
+    className="btn-icon"
     arial-label="Stop."
     onClick={() => {
       dispatch(stop());
@@ -1600,7 +1598,7 @@ const stopButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
 
 const startButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
-    className="icon"
+    className="btn-icon"
     onClick={() => {
       dispatch(start(k));
       dispatch(doFocusStopButton(k));
@@ -1612,7 +1610,7 @@ const startButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
 
 const topButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
-    className="icon"
+    className="btn-icon"
     onClick={() => {
       dispatch(top(k));
     }}
@@ -1623,7 +1621,7 @@ const topButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
 
 const moveUpButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
-    className="icon"
+    className="btn-icon"
     onClick={() => {
       dispatch(moveUp_(k));
       dispatch(doFocusMoveUpButton(k));
@@ -1636,7 +1634,7 @@ const moveUpButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
 
 const moveDownButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
-    className="icon"
+    className="btn-icon"
     onClick={() => {
       dispatch(moveDown_(k));
       dispatch(doFocusMoveDownButton(k));
@@ -1649,7 +1647,7 @@ const moveDownButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
 
 const todoToDoneButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
-    className="icon"
+    className="btn-icon"
     onClick={() => {
       dispatch(todoToDone(k));
     }}
@@ -1660,7 +1658,7 @@ const todoToDoneButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
 
 const todoToDontButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
-    className="icon"
+    className="btn-icon"
     onClick={() => {
       dispatch(todoToDont(k));
     }}
@@ -1671,7 +1669,7 @@ const todoToDontButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
 
 const unindentButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
-    className="icon"
+    className="btn-icon"
     onClick={() => {
       dispatch(unindent(k));
       dispatch(doFocusUnindentButton(k));
@@ -1684,7 +1682,7 @@ const unindentButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
 
 const indentButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
-    className="icon"
+    className="btn-icon"
     onClick={() => {
       dispatch(indent(k));
       dispatch(doFocusIndentButton(k));
@@ -1697,7 +1695,7 @@ const indentButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
 
 const showDetailButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
-    className="icon"
+    className="btn-icon"
     onClick={() => {
       dispatch(flipShowDetail(k));
     }}
@@ -1708,18 +1706,18 @@ const showDetailButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
 
 const deleteButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
-    className="icon"
+    className="btn-icon"
     onClick={() => {
       dispatch(delete_(k));
     }}
   >
-    {DELETE_MARK}
+    {consts.DELETE_MARK}
   </button>
 ));
 
 const evalButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   <button
-    className="icon"
+    className="btn-icon"
     onClick={() => {
       dispatch(eval_(k));
     }}
@@ -1912,6 +1910,9 @@ const saveStateMiddlewareOf = (pred: (type_: string) => boolean) => {
           body: JSON.stringify(store.getState().data),
         }).then((r) => {
           store.dispatch(setSaveSuccess(r.ok));
+          if(!r.ok){
+            toast.add("error", "Failed to save changes.", 10000);
+          }
         });
       }
       return ret;
