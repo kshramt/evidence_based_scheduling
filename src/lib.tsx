@@ -344,6 +344,7 @@ const doLoad = createAsyncThunk("doLoad", async () => {
     return null;
   }
 });
+register_history_type(doLoad.fulfilled)
 
 const eval_ = register_history_type(createAction<TNodeId>("eval_"));
 const delete_ = register_save_type(
