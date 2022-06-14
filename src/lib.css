@@ -51,3 +51,7 @@ input, textarea{
     @apply text-gray-500;
   }
 }
+
+.material-symbols-outlined {
+   vertical-align: bottom;
+}

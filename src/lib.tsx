@@ -25,18 +25,42 @@ setAutoFreeze(false);
 const MENU_HEIGHT = "4em" as const;
 const API_VERSION = "v1";
 const NO_ESTIMATION = 0;
-const START_MARK = "▶";
-const ADD_MARK = "+";
-const STOP_MARK = "■";
-const TOP_MARK = "⬆";
-const MOVE_UP_MARK = "↑";
-const MOVE_DOWN_MARK = "↓";
-const UNINDENT_MARK = "↖︎";
-const INDENT_MARK = "↘︎︎";
-const EVAL_MARK = "Σ";
-const DONE_MARK = "✓";
-const DONT_MARK = "🗑";
-const DETAIL_MARK = "☰";
+const START_MARK = (
+  <span className="material-symbols-outlined">play_arrow</span>
+);
+const ADD_MARK = (
+  <span className="material-symbols-outlined">add</span>
+);
+const STOP_MARK = (
+  <span className="material-symbols-outlined">stop</span>
+);
+const TOP_MARK = (
+  <span className="material-symbols-outlined">arrow_upward</span>
+);
+const MOVE_UP_MARK = (
+  <span className="material-symbols-outlined">north</span>
+);
+const MOVE_DOWN_MARK = (
+  <span className="material-symbols-outlined">south</span>
+);
+const UNINDENT_MARK = (
+  <span className="material-symbols-outlined">north_west</span>
+);
+const INDENT_MARK = (
+  <span className="material-symbols-outlined">south_wast</span>
+);
+const EVAL_MARK = (
+  <span className="material-symbols-outlined">functions</span>
+);
+const DONE_MARK = (
+  <span className="material-symbols-outlined">done</span>
+); //"✓";
+const DONT_MARK = (
+  <span className="material-symbols-outlined">delete</span>
+);
+const DETAIL_MARK = (
+  <span className="material-symbols-outlined">menu</span>
+);
 
 let _VISIT_COUNTER = 0;
 
@@ -794,17 +818,17 @@ const Menu = () => {
       {stopButtonOf(dispatch, root)}
       {newButtonOf(dispatch, root)}
       <button className="btn-icon" arial-label="Undo." onClick={_undo}>
-        ↶
+        <span className="material-symbols-outlined">undo</span>
       </button>
       <button className="btn-icon" arial-label="Redo." onClick={_redo}>
-        ↷
+        <span className="material-symbols-outlined">redo</span>
       </button>
       <button
         className="btn-icon"
         arial-label="Toggle the TODO-only flag."
         onClick={_flipShowTodoOnly}
       >
-        👀
+        <span className="material-symbols-outlined">visibility</span>
       </button>
       <button className="btn-icon" onClick={_smallestToTop}>
         Small
@@ -813,12 +837,18 @@ const Menu = () => {
         Due
       </button>
       <button className="btn-icon" arial-label="Sync." onClick={_load}>
-        ↺
+        <span className="material-symbols-outlined align-top">refresh</span>
       </button>
-      <input value={filter_query} onChange={handle_change} className="h-2em" />
-      <button className="btn-icon" onClick={clear_input}>
-        {consts.DELETE_MARK}
-      </button>
+      <div className="flex items-center border border-solid border-gray-400">
+        <input
+          value={filter_query}
+          onChange={handle_change}
+          className="h-[2em] border-none"
+        />
+        <button className="btn-icon" onClick={clear_input}>
+          {consts.DELETE_MARK}
+        </button>
+      </div>
     </div>
   );
 };
