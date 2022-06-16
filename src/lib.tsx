@@ -12,13 +12,17 @@ import {
   createAction,
   createAsyncThunk,
   createReducer,
-  createSelector,
 } from "@reduxjs/toolkit";
 import produce, { Draft, setAutoFreeze } from "immer";
+import memoize from "proxy-memoize";
+import "@fontsource/material-icons";
 
+import * as checks from "./checks";
 import * as consts from "./consts";
 import * as toast from "./toast";
 import "./lib.css";
+import * as types from "./types";
+import * as utils from "./utils";
 
 setAutoFreeze(false);
 
@@ -26,220 +30,27 @@ const MENU_HEIGHT = "4em" as const;
 const API_VERSION = "v1";
 const NO_ESTIMATION = 0;
 const START_MARK = (
-  <span className="material-symbols-outlined">play_arrow</span>
+  <span className="material-icons">play_arrow</span>
 );
-const ADD_MARK = (
-  <span className="material-symbols-outlined">add</span>
-);
-const STOP_MARK = (
-  <span className="material-symbols-outlined">stop</span>
-);
+const ADD_MARK = <span className="material-icons">add</span>;
+const STOP_MARK = <span className="material-icons">stop</span>;
 const TOP_MARK = (
-  <span className="material-symbols-outlined">arrow_upward</span>
+  <span className="material-icons">arrow_upward</span>
 );
-const MOVE_UP_MARK = (
-  <span className="material-symbols-outlined">north</span>
-);
-const MOVE_DOWN_MARK = (
-  <span className="material-symbols-outlined">south</span>
-);
+const MOVE_UP_MARK = <span className="material-icons">north</span>;
+const MOVE_DOWN_MARK = <span className="material-icons">south</span>;
 const UNINDENT_MARK = (
-  <span className="material-symbols-outlined">north_west</span>
+  <span className="material-icons">north_west</span>
 );
 const INDENT_MARK = (
-  <span className="material-symbols-outlined">south_wast</span>
+  <span className="material-icons">south_wast</span>
 );
-const EVAL_MARK = (
-  <span className="material-symbols-outlined">functions</span>
-);
-const DONE_MARK = (
-  <span className="material-symbols-outlined">done</span>
-); //"✓";
-const DONT_MARK = (
-  <span className="material-symbols-outlined">delete</span>
-);
-const DETAIL_MARK = (
-  <span className="material-symbols-outlined">menu</span>
-);
+const EVAL_MARK = <span className="material-icons">functions</span>;
+const DONE_MARK = <span className="material-icons">done</span>; //"✓";
+const DONT_MARK = <span className="material-icons">delete</span>;
+const DETAIL_MARK = <span className="material-icons">menu</span>;
 
 let _VISIT_COUNTER = 0;
-
-const is_object = (x: any) =>
-  x && typeof x === "object" && x.constructor === Object;
-
-const record_if_false_of = () => {
-  const path: string[] = [];
-  const record_if_false = (x: boolean, k: string) => {
-    if (!x) {
-      path.push(k);
-    }
-    return x;
-  };
-  record_if_false.path = path;
-  record_if_false.check_array = (x: any, pred: (x: any) => boolean) =>
-    record_if_false(Array.isArray(x), "isArray") &&
-    x.every((v: any, i: number) => record_if_false(pred(v), i.toString()));
-  record_if_false.check_object = (x: any, pred: (x: any) => boolean) =>
-    record_if_false(is_object(x), "is_object") &&
-    Object.entries(x).every(([k, v]: [string, any]) =>
-      record_if_false(pred(v), k),
-    );
-  return record_if_false;
-};
-type TRecordIfFalse = ReturnType<typeof record_if_false_of>;
-
-type TNodeId = string & { readonly tag: unique symbol };
-const is_TNodeId = (x: any): x is TNodeId => typeof x === "string";
-type TEdgeId = string & { readonly tag: unique symbol };
-const is_TEdgeId = (x: any): x is TEdgeId => typeof x === "string";
-
-type AnyPayloadAction =
-  | {
-      readonly type: string;
-    }
-  | {
-      readonly type: string;
-      readonly payload: any;
-    };
-
-const status_values = ["done", "dont", "todo"] as const;
-type TStatus = typeof status_values[number];
-const is_TStatus = (x: any): x is TStatus => status_values.includes(x);
-
-interface IListProps {
-  readonly node_id_list: TNodeId[];
-}
-
-interface IState {
-  readonly data: IData;
-  readonly caches: ICaches;
-
-  readonly saveSuccess: boolean;
-}
-
-interface IData {
-  readonly current_entry: null | TNodeId;
-  readonly edges: IEdges;
-  readonly root: TNodeId;
-  id_seq: number;
-  readonly kvs: IKvs;
-  readonly queue: TNodeId[];
-  readonly showTodoOnly: boolean;
-  readonly version: number;
-}
-const is_IData = (data: any, record_if_false: TRecordIfFalse): data is IData =>
-  record_if_false(is_object(data), "is_object") &&
-  record_if_false(
-    data.current_entry === null || is_TNodeId(data.current_entry),
-    "current_entry",
-  ) &&
-  record_if_false(is_IEdges(data.edges, record_if_false), "edges") &&
-  record_if_false(is_TNodeId(data.root), "root") &&
-  record_if_false(typeof data.id_seq === "number", "id_seq") &&
-  record_if_false(is_IKvs(data.kvs, record_if_false), "kvs") &&
-  record_if_false(
-    record_if_false.check_array(data.queue, is_TNodeId),
-    "queue",
-  ) &&
-  record_if_false(typeof data.showTodoOnly === "boolean", "showTodoOnly") &&
-  record_if_false(typeof data.version === "number", "version");
-
-interface IKvs {
-  readonly [k: TNodeId]: IEntry;
-}
-const is_IKvs = (x: any, record_if_false: TRecordIfFalse): x is IKvs =>
-  record_if_false.check_object(x, (v) => is_IEntry(v, record_if_false));
-
-interface IEntry {
-  readonly children: TEdgeId[];
-  readonly end_time: null | string;
-  readonly estimate: number;
-  readonly parents: TEdgeId[];
-  readonly ranges: IRange[];
-  readonly show_children: boolean;
-  readonly start_time: string;
-  readonly status: TStatus;
-  readonly style: IStyle;
-  readonly text: string;
-}
-const is_IEntry = (x: any, record_if_false: TRecordIfFalse): x is IEntry =>
-  record_if_false(is_object(x), "is_object") &&
-  record_if_false(Array.isArray(x.children), "children") &&
-  record_if_false(
-    record_if_false.check_array(x.children, is_TEdgeId),
-    "children",
-  ) &&
-  record_if_false(
-    x.end_time === null || typeof x.end_time === "string",
-    "end_time",
-  ) &&
-  record_if_false(typeof x.estimate === "number", "estimate") &&
-  record_if_false(
-    record_if_false.check_array(x.parents, is_TEdgeId),
-    "parents",
-  ) &&
-  record_if_false(record_if_false.check_array(x.ranges, is_IRange), "ranges") &&
-  record_if_false(typeof x.show_children === "boolean", "show_children") &&
-  record_if_false(typeof x.start_time === "string", "start_time") &&
-  record_if_false(is_TStatus(x.status), "status") &&
-  record_if_false(is_IStyle(x.style), "style") &&
-  record_if_false(typeof x.text === "string", "text");
-
-interface IEdges {
-  readonly [edge_id: TEdgeId]: IEdge;
-}
-const is_IEdges = (
-  edges: any,
-  record_if_false: TRecordIfFalse,
-): edges is IEdges => record_if_false.check_object(edges, is_IEdge);
-
-const edge_type_values = ["strong", "weak"] as const;
-type TEdgeType = typeof edge_type_values[number];
-const is_TEdgeType = (x: any): x is TEdgeType => edge_type_values.includes(x);
-
-interface IEdge {
-  readonly c: TNodeId;
-  readonly p: TNodeId;
-  readonly t: TEdgeType;
-}
-const is_IEdge = (x: any): x is IEdge =>
-  is_object(x) && is_TNodeId(x.c) && is_TNodeId(x.p) && is_TEdgeType(x.t);
-
-interface IStyle {
-  readonly height: string;
-}
-const is_IStyle = (x: any): x is IStyle =>
-  is_object(x) && typeof x.height === "string";
-
-interface IRange {
-  readonly start: number;
-  end: null | number;
-}
-const is_IRange = (x: any): x is IRange =>
-  is_object(x) &&
-  typeof x.start === "number" &&
-  (x.end === null || typeof x.end === "number");
-
-interface ICaches {
-  [k: TNodeId]: ICache;
-}
-const cache_of = (caches: ICaches, node_id: TNodeId) => {
-  return caches[node_id] === undefined
-    ? (caches[node_id] = {
-        total_time: -1,
-        percentiles: [],
-        visited: -1,
-        show_detail: false,
-      })
-    : caches[node_id];
-};
-
-interface ICache {
-  total_time: number;
-  percentiles: number[]; // 0, 10, 33, 50, 67, 90, 100
-  visited: number;
-  show_detail: boolean;
-}
 
 const history_type_set = new Set<string>();
 const register_history_type = <T extends {}>(x: T) => {
@@ -293,7 +104,18 @@ class History<T> {
   };
 }
 
-const _stop = (draft: Draft<IState>) => {
+const cache_of = (caches: types.ICaches, node_id: types.TNodeId) => {
+  return caches[node_id] === undefined
+    ? (caches[node_id] = {
+        total_time: -1,
+        percentiles: [],
+        visited: -1,
+        show_detail: false,
+      })
+    : caches[node_id];
+};
+
+const _stop = (draft: Draft<types.IState>) => {
   if (draft.data.current_entry !== null) {
     const e = draft.data.kvs[draft.data.current_entry];
     const r = last(e.ranges);
@@ -308,21 +130,23 @@ const _stop = (draft: Draft<IState>) => {
   }
 };
 
-const _rmFromTodo = (draft: Draft<IState>, node_id: TNodeId) => {
+const _rmFromTodo = (draft: Draft<types.IState>, node_id: types.TNodeId) => {
   if (draft.data.current_entry === node_id) {
     _stop(draft);
   }
 };
 
-const new_node_id_of = (state: IState) => new_id_of(state) as TNodeId;
-const new_edge_id_of = (state: IState) => new_id_of(state) as TEdgeId;
-const new_id_of = (state: IState) =>
+const new_node_id_of = (state: types.IState) =>
+  new_id_of(state) as types.TNodeId;
+const new_edge_id_of = (state: types.IState) =>
+  new_id_of(state) as types.TEdgeId;
+const new_id_of = (state: types.IState) =>
   id_string_of_number((state.data.id_seq += 1));
 const id_string_of_number = (x: number) => x.toString(36);
 
-const emptyStateOf = (): IState => {
+const emptyStateOf = (): types.IState => {
   const id_seq = 0;
-  const root = id_string_of_number(id_seq) as TNodeId;
+  const root = id_string_of_number(id_seq) as types.TNodeId;
   const kvs = {
     [root]: newEntryValueOf([]),
   };
@@ -335,23 +159,23 @@ const emptyStateOf = (): IState => {
       kvs,
       queue: [],
       showTodoOnly: false,
-      version: 5,
+      version: 12,
     },
     caches: {},
     saveSuccess: true,
   };
 };
 
-const newEntryValueOf = (parents: TEdgeId[]) => {
+const newEntryValueOf = (parents: types.TEdgeId[]) => {
   return {
-    children: [] as TEdgeId[],
+    children: [] as types.TEdgeId[],
     end_time: null,
     estimate: NO_ESTIMATION,
     parents,
-    ranges: [] as IRange[],
+    ranges: [] as types.IRange[],
     show_children: false,
     start_time: new Date().toISOString(),
-    status: "todo" as TStatus,
+    status: "todo" as types.TStatus,
     style: { height: "3ex" },
     text: "",
   };
@@ -360,33 +184,36 @@ const newEntryValueOf = (parents: TEdgeId[]) => {
 const doLoad = createAsyncThunk("doLoad", async () => {
   const resp = await fetch("api/" + API_VERSION + "/get");
   const data: any = await resp.json();
-  const record_if_false = record_if_false_of();
-  if (is_IData(data, record_if_false)) {
+  const record_if_false = types.record_if_false_of();
+  if (types.is_IData(data, record_if_false)) {
     return { data, caches: {}, saveSuccess: true };
   } else {
-    console.log(record_if_false.path);
+    console.warn(record_if_false.path);
     return null;
   }
 });
-register_history_type(doLoad.fulfilled)
+register_history_type(doLoad.fulfilled);
 
-const eval_ = register_history_type(createAction<TNodeId>("eval_"));
+const eval_ = register_history_type(createAction<types.TNodeId>("eval_"));
 const delete_ = register_save_type(
-  register_history_type(createAction<TNodeId>("delete_")),
+  register_history_type(createAction<types.TNodeId>("delete_")),
+);
+const delete_edge_action = register_save_type(
+  register_history_type(createAction<types.TEdgeId>("delete_edge_action")),
 );
 const new_ = register_save_type(
-  register_history_type(createAction<TNodeId>("new_")),
+  register_history_type(createAction<types.TNodeId>("new_")),
 );
 const setSaveSuccess = createAction<boolean>("setSaveSuccess");
 const flipShowTodoOnly = register_save_type(
   register_history_type(createAction("flipShowTodoOnly")),
 );
-const flipShowDetail = createAction<TNodeId>("flipShowDetail");
+const flipShowDetail = createAction<types.TNodeId>("flipShowDetail");
 const start = register_save_type(
-  register_history_type(createAction<TNodeId>("start")),
+  register_history_type(createAction<types.TNodeId>("start")),
 );
 const top = register_save_type(
-  register_history_type(createAction<TNodeId>("top")),
+  register_history_type(createAction<types.TNodeId>("top")),
 );
 const smallestToTop = register_save_type(
   register_history_type(createAction("smallestToTop")),
@@ -395,25 +222,25 @@ const closestToTop = register_save_type(
   register_history_type(createAction("closestToTop")),
 );
 const set_total_time = register_history_type(
-  createAction<TNodeId>("set_total_time"),
+  createAction<types.TNodeId>("set_total_time"),
 );
 const stop = register_save_type(register_history_type(createAction("stop")));
 const moveUp_ = register_save_type(
-  register_history_type(createAction<TNodeId>("moveUp_")),
+  register_history_type(createAction<types.TNodeId>("moveUp_")),
 );
 const moveDown_ = register_save_type(
-  register_history_type(createAction<TNodeId>("moveDown_")),
+  register_history_type(createAction<types.TNodeId>("moveDown_")),
 );
 const unindent = register_save_type(
-  register_history_type(createAction<TNodeId>("unindent")),
+  register_history_type(createAction<types.TNodeId>("unindent")),
 );
 const indent = register_save_type(
-  register_history_type(createAction<TNodeId>("indent")),
+  register_history_type(createAction<types.TNodeId>("indent")),
 );
 const setEstimate = register_save_type(
   register_history_type(
     createAction<{
-      k: TNodeId;
+      k: types.TNodeId;
       estimate: number;
     }>("setEstimate"),
   ),
@@ -421,7 +248,7 @@ const setEstimate = register_save_type(
 const setLastRange_ = register_save_type(
   register_history_type(
     createAction<{
-      k: TNodeId;
+      k: types.TNodeId;
       t: number;
     }>("setLastRange_"),
   ),
@@ -429,29 +256,31 @@ const setLastRange_ = register_save_type(
 const setTextAndResizeTextArea = register_save_type(
   register_history_type(
     createAction<{
-      k: TNodeId;
+      k: types.TNodeId;
       text: string;
       height: null | string;
     }>("setTextAndResizeTextArea"),
   ),
 );
 const todoToDone = register_save_type(
-  register_history_type(createAction<TNodeId>("todoToDone")),
+  register_history_type(createAction<types.TNodeId>("todoToDone")),
 );
 const todoToDont = register_save_type(
-  register_history_type(createAction<TNodeId>("todoToDont")),
+  register_history_type(createAction<types.TNodeId>("todoToDont")),
 );
 const doneToTodo = register_save_type(
-  register_history_type(createAction<TNodeId>("doneToTodo")),
+  register_history_type(createAction<types.TNodeId>("doneToTodo")),
 );
 const dontToTodo = register_save_type(
-  register_history_type(createAction<TNodeId>("dontToTodo")),
+  register_history_type(createAction<types.TNodeId>("dontToTodo")),
 );
 const swap_show_children = register_save_type(
-  register_history_type(createAction<TNodeId>("swap_show_children")),
+  register_history_type(createAction<types.TNodeId>("swap_show_children")),
 );
 const show_path_to_selected_node = register_save_type(
-  register_history_type(createAction<TNodeId>("show_path_to_selected_node")),
+  register_history_type(
+    createAction<types.TNodeId>("show_path_to_selected_node"),
+  ),
 );
 
 const rootReducer = createReducer(emptyStateOf(), (builder) => {
@@ -488,6 +317,16 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
         state.data.current_entry = null;
       }
     }
+  });
+  ac(delete_edge_action, (state, action) => {
+    const edge_id = action.payload;
+    if (!checks.is_deletable_edge(edge_id, state)) {
+      toast.add("error", `Edge ${edge_id} cannot be deleted.`);
+    }
+    const edge = state.data.edges[edge_id];
+    deleteAtVal(state.data.kvs[edge.p].children, edge_id);
+    deleteAtVal(state.data.kvs[edge.c].parents, edge_id);
+    delete state.data.edges[edge_id];
   });
   ac(new_, (state, action) => {
     const parent = action.payload;
@@ -549,7 +388,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   ac(smallestToTop, (state) => {
     let k_min = null;
     let estimate_min = Infinity;
-    for (const k of Object.keys(state.data.kvs) as TNodeId[]) {
+    for (const k of Object.keys(state.data.kvs) as types.TNodeId[]) {
       const v = state.data.kvs[k];
       if (
         v.status === "todo" &&
@@ -571,7 +410,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   ac(closestToTop, (state) => {
     let k_min = null;
     let due_min = ":due: 9999-12-31T23:59:59";
-    for (let k of Object.keys(state.data.kvs) as TNodeId[]) {
+    for (let k of Object.keys(state.data.kvs) as types.TNodeId[]) {
       let v = state.data.kvs[k];
       if (
         v.status === "todo" &&
@@ -727,9 +566,6 @@ const App = () => {
   const root = useSelector((state) => {
     return state.data.root;
   });
-  const saveFailed = useSelector((state) => {
-    return !state.saveSuccess;
-  });
   const [filter_query, set_filter_query] = React.useState("");
   const [filter_query2, set_filter_query2] = React.useState("");
   const el = React.useMemo(
@@ -818,17 +654,17 @@ const Menu = () => {
       {stopButtonOf(dispatch, root)}
       {newButtonOf(dispatch, root)}
       <button className="btn-icon" arial-label="Undo." onClick={_undo}>
-        <span className="material-symbols-outlined">undo</span>
+        <span className="material-icons">undo</span>
       </button>
       <button className="btn-icon" arial-label="Redo." onClick={_redo}>
-        <span className="material-symbols-outlined">redo</span>
+        <span className="material-icons">redo</span>
       </button>
       <button
         className="btn-icon"
         arial-label="Toggle the TODO-only flag."
         onClick={_flipShowTodoOnly}
       >
-        <span className="material-symbols-outlined">visibility</span>
+        <span className="material-icons">visibility</span>
       </button>
       <button className="btn-icon" onClick={_smallestToTop}>
         Small
@@ -837,7 +673,7 @@ const Menu = () => {
         Due
       </button>
       <button className="btn-icon" arial-label="Sync." onClick={_load}>
-        <span className="material-symbols-outlined align-top">refresh</span>
+        <span className="material-icons">refresh</span>
       </button>
       <div className="flex items-center border border-solid border-gray-400">
         <input
@@ -853,31 +689,31 @@ const Menu = () => {
   );
 };
 
-const doFocusStopButton = (k: TNodeId) => () => {
+const doFocusStopButton = (k: types.TNodeId) => () => {
   setTimeout(() => focus(stopButtonRefOf(k).current), 50);
 };
 
-const doFocusMoveUpButton = (k: TNodeId) => () => {
+const doFocusMoveUpButton = (k: types.TNodeId) => () => {
   setTimeout(() => focus(moveUpButtonRefOf(k).current), 50);
 };
 
-const doFocusMoveDownButton = (k: TNodeId) => () => {
+const doFocusMoveDownButton = (k: types.TNodeId) => () => {
   setTimeout(() => focus(moveDownButtonRefOf(k).current), 50);
 };
 
-const doFocusUnindentButton = (k: TNodeId) => () => {
+const doFocusUnindentButton = (k: types.TNodeId) => () => {
   setTimeout(() => focus(unindentButtonRefOf(k).current), 50);
 };
 
-const doFocusIndentButton = (k: TNodeId) => () => {
+const doFocusIndentButton = (k: types.TNodeId) => () => {
   setTimeout(() => focus(indentButtonRefOf(k).current), 50);
 };
 
-const doFocusTextArea = (k: TNodeId) => () => {
+const doFocusTextArea = (k: types.TNodeId) => () => {
   setTimeout(() => focus(textAreaRefOf(k).current), 50);
 };
 
-const setLastRange = (dispatch: AppDispatch, k: TNodeId, t: number) => {
+const setLastRange = (dispatch: AppDispatch, k: types.TNodeId, t: number) => {
   dispatch(
     setLastRange_({
       k,
@@ -886,15 +722,17 @@ const setLastRange = (dispatch: AppDispatch, k: TNodeId, t: number) => {
   );
 };
 
-const _eval_ = (draft: Draft<IState>, k: TNodeId) => {
+const _eval_ = (draft: Draft<types.IState>, k: types.TNodeId) => {
   _set_total_time(k, draft.data.kvs, draft.caches, draft.data.edges);
-  const candidates = (Object.keys(draft.data.kvs) as TNodeId[]).filter((k) => {
-    const v = draft.data.kvs[k];
-    return (
-      (v.status === "done" || v.status === "dont") &&
-      v.estimate !== NO_ESTIMATION
-    );
-  });
+  const candidates = (Object.keys(draft.data.kvs) as types.TNodeId[]).filter(
+    (k) => {
+      const v = draft.data.kvs[k];
+      return (
+        (v.status === "done" || v.status === "dont") &&
+        v.estimate !== NO_ESTIMATION
+      );
+    },
+  );
   const ratios = candidates.length
     ? candidates.map((node_id) => {
         const node = draft.data.kvs[node_id];
@@ -947,10 +785,10 @@ const _eval_ = (draft: Draft<IState>, k: TNodeId) => {
 };
 
 const _set_total_time = (
-  k: TNodeId,
-  kvs: IKvs,
-  caches: ICaches,
-  edges: IEdges,
+  k: types.TNodeId,
+  kvs: types.IKvs,
+  caches: types.ICaches,
+  edges: types.IEdges,
 ) => {
   return (cache_of(caches, k).total_time = _total_time_of(
     k,
@@ -962,10 +800,10 @@ const _set_total_time = (
 };
 
 const _total_time_of = (
-  k: TNodeId,
-  kvs: IKvs,
-  caches: ICaches,
-  edges: IEdges,
+  k: types.TNodeId,
+  kvs: types.IKvs,
+  caches: types.ICaches,
+  edges: types.IEdges,
   vid: number,
 ): number => {
   if (cache_of(caches, k).visited === vid) {
@@ -973,21 +811,21 @@ const _total_time_of = (
   }
   cache_of(caches, k).visited = vid;
   const v = kvs[k];
-  const r = (total: number, current: TEdgeId) => {
+  const r = (total: number, current: types.TEdgeId) => {
     return total + _total_time_of(edges[current].c, kvs, caches, edges, vid);
   };
   return node_time_of(k, kvs) + v.children.reduce(r, 0);
 };
 
-const node_time_of = (k: TNodeId, kvs: IKvs) => {
+const node_time_of = (k: types.TNodeId, kvs: types.IKvs) => {
   return kvs[k].ranges.reduce((total, current) => {
     return current.end === null ? total : total + (current.end - current.start);
   }, 0);
 };
 
 const _remove_child_edges_of_parents = (
-  draft: Draft<IState>,
-  node_id: TNodeId,
+  draft: Draft<types.IState>,
+  node_id: types.TNodeId,
 ) => {
   for (const edge_id of draft.data.kvs[node_id].parents) {
     deleteAtVal(draft.data.kvs[draft.data.edges[edge_id].p].children, edge_id);
@@ -995,21 +833,25 @@ const _remove_child_edges_of_parents = (
 };
 
 const _addTodoEntry = (
-  draft: Draft<IState>,
-  parent_node_id: TNodeId,
+  draft: Draft<types.IState>,
+  parent_node_id: types.TNodeId,
   i: number,
-  edge_id: TEdgeId,
+  edge_id: types.TEdgeId,
 ) => {
   draft.data.edges[edge_id].p = parent_node_id;
   draft.data.kvs[parent_node_id].children.splice(i, 0, edge_id);
 };
 
-const _top = (draft: Draft<IState>, k: TNodeId) => {
+const _top = (draft: Draft<types.IState>, k: types.TNodeId) => {
   _topTree(draft, k, (_VISIT_COUNTER += 1));
   _topQueue(draft, k);
 };
 
-const _topTree = (draft: Draft<IState>, node_id: TNodeId, vid: number) => {
+const _topTree = (
+  draft: Draft<types.IState>,
+  node_id: types.TNodeId,
+  vid: number,
+) => {
   if (cache_of(draft.caches, node_id).visited === vid) {
     return;
   }
@@ -1021,11 +863,11 @@ const _topTree = (draft: Draft<IState>, node_id: TNodeId, vid: number) => {
   }
 };
 
-const _topQueue = (draft: Draft<IState>, k: TNodeId) => {
+const _topQueue = (draft: Draft<types.IState>, k: types.TNodeId) => {
   toFront(draft.data.queue, k);
 };
 
-const _doneToTodo = (draft: Draft<IState>, k: TNodeId) => {
+const _doneToTodo = (draft: Draft<types.IState>, k: types.TNodeId) => {
   _addToTodo(draft, k);
   if (draft.data.kvs[k].parents.length) {
     const pk = draft.data.edges[draft.data.kvs[k].parents[0]].p;
@@ -1040,7 +882,7 @@ const _doneToTodo = (draft: Draft<IState>, k: TNodeId) => {
   }
 };
 
-const _dontToTodo = (draft: Draft<IState>, k: TNodeId) => {
+const _dontToTodo = (draft: Draft<types.IState>, k: types.TNodeId) => {
   _addToTodo(draft, k);
   if (draft.data.kvs[k].parents.length) {
     const pk = draft.data.edges[draft.data.kvs[k].parents[0]].p;
@@ -1055,23 +897,23 @@ const _dontToTodo = (draft: Draft<IState>, k: TNodeId) => {
   }
 };
 
-const _addToTodo = (draft: Draft<IState>, k: TNodeId) => {
+const _addToTodo = (draft: Draft<types.IState>, k: types.TNodeId) => {
   draft.data.kvs[k].status = "todo";
 };
 
-const _addToDone = (draft: Draft<IState>, k: TNodeId) => {
+const _addToDone = (draft: Draft<types.IState>, k: types.TNodeId) => {
   draft.data.kvs[k].status = "done";
   draft.data.kvs[k].end_time = new Date().toISOString();
 };
 
-const _addToDont = (draft: Draft<IState>, k: TNodeId) => {
+const _addToDont = (draft: Draft<types.IState>, k: types.TNodeId) => {
   draft.data.kvs[k].status = "dont";
   draft.data.kvs[k].end_time = new Date().toISOString();
 };
 
 const _show_path_to_selected_node = (
-  draft: Draft<IState>,
-  node_id: TNodeId,
+  draft: Draft<types.IState>,
+  node_id: types.TNodeId,
 ) => {
   while (draft.data.kvs[node_id].parents.length) {
     node_id = draft.data.edges[draft.data.kvs[node_id].parents[0]].p;
@@ -1108,13 +950,13 @@ const memoize2 = <A, B, R>(fn: (a: A, b: B) => R) => {
 const QueueColumn = () => {
   const queue = useSelector((state) => state.data.queue);
   const fn = React.useCallback(
-    (node_id: TNodeId) => <QueueNode node_id={node_id} key={node_id} />,
+    (node_id: types.TNodeId) => <QueueNode node_id={node_id} key={node_id} />,
     [],
   );
   return queue.length ? <ol>{queue.map(fn)}</ol> : null;
 };
 
-const TreeNodeList = (props: IListProps) => {
+const TreeNodeList = (props: types.IListProps) => {
   // spacing="0.5rem" paddingLeft="1rem"
   return props.node_id_list.length ? (
     <ol>
@@ -1129,40 +971,41 @@ const TreeNodeList = (props: IListProps) => {
   ) : null;
 };
 
-const TreeNode = (props: { node_id: TNodeId }) => {
-  const child_node_ids = useSelector((state) =>
-    state.data.kvs[props.node_id].children.map(
-      (edge_id) => state.data.edges[edge_id].c,
-    ),
-  );
-  const show_children = useSelector(
-    (state) => state.data.kvs[props.node_id].show_children,
-  );
-  const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
+const TreeNode = (props: { node_id: types.TNodeId }) => {
   const entry = React.useMemo(
     () => <Entry node_id={props.node_id} />,
     [props.node_id],
   );
-
-  // {showTodoOnly ? null : (
-  //   <>
-  //     <TreeNodeList node_id_list={done} />
-  //     <TreeNodeList node_id_list={dont} />
-  //   </>
-  // )}
-  return (
-    <>
-      {entry}
-      {show_children ? (
-        <>
-          <TreeNodeList node_id_list={child_node_ids} />
-        </>
-      ) : null}
-    </>
+  const show_children = useSelector(
+    (state) => state.data.kvs[props.node_id].show_children,
+  );
+  const child_node_ids = useSelector(
+    React.useMemo(
+      () =>
+        memoize((state) =>
+          state.data.kvs[props.node_id].children.map(
+            (edge_id) => state.data.edges[edge_id].c,
+          ),
+        ),
+      [props.node_id],
+    ),
+  );
+  return React.useMemo(
+    () => (
+      <>
+        {entry}
+        {show_children ? (
+          <>
+            <TreeNodeList node_id_list={child_node_ids} />
+          </>
+        ) : null}
+      </>
+    ),
+    [entry, show_children, child_node_ids],
   );
 };
 
-const QueueNode = (props: { node_id: TNodeId }) => {
+const QueueNode = (props: { node_id: types.TNodeId }) => {
   const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
   const is_not_todo = useSelector(
     (state) => state.data.kvs[props.node_id].status !== "todo",
@@ -1197,11 +1040,8 @@ const QueueNode = (props: { node_id: TNodeId }) => {
   );
 };
 
-const Details = (props: { node_id: TNodeId }) => {
+const Details = (props: { node_id: types.TNodeId }) => {
   const parents = useSelector((state) => state.data.kvs[props.node_id].parents);
-  const children = useSelector(
-    (state) => state.data.kvs[props.node_id].children,
-  );
   return (
     <>
       <ol>
@@ -1214,40 +1054,60 @@ const Details = (props: { node_id: TNodeId }) => {
   );
 };
 
-const ChildEdgeTable = (props: { node_id: TNodeId }) => {
+const ChildEdgeTable = (props: { node_id: types.TNodeId }) => {
   const children = useSelector(
     (state) => state.data.kvs[props.node_id].children,
   );
   return (
-    <table>
+    <table className="table-auto">
       <tbody className="block max-h-[10em] overflow-y-scroll">
         {children.map(EdgeRowOf)}
       </tbody>
     </table>
   );
 };
-const EdgeRow = (props: { edge_id: TEdgeId }) => {
-  const edge = useSelector((state) => state.data.edges[props.edge_id]);
-  return (
-    <tr>
-      <td>{props.edge_id}</td>
-      <td>
-        <select>
-          {edge_type_values.map((t, i) => (
-            <option value={t} key={i}>
-              {t}
-            </option>
-          ))}
-        </select>
-      </td>
-    </tr>
+const EdgeRow = (props: { edge_id: types.TEdgeId }) => {
+  const is_deletable = useSelector(
+    React.useMemo(
+      () => memoize((state) => checks.is_deletable_edge(props.edge_id, state)),
+      [props.edge_id],
+    ),
+  );
+  const dispatch = useDispatch();
+  const delete_edge = React.useCallback(
+    () => dispatch(delete_edge_action(props.edge_id)),
+    [props.edge_id],
+  );
+  // set edge type
+  // filter edges
+  return React.useMemo(
+    () => (
+      <tr>
+        <td className="p-[0.25em]">{props.edge_id}</td>
+        <td className="p-[0.25em]">
+          <select disabled={!is_deletable}>
+            {types.edge_type_values.map((t, i) => (
+              <option value={t} key={i}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </td>
+        <td className="p-[0.25em]">
+          <button className="btn-icon" onClick={delete_edge}>
+            {consts.DELETE_MARK}
+          </button>
+        </td>
+      </tr>
+    ),
+    [props.edge_id, is_deletable],
   );
 };
-const EdgeRowOf = memoize1((edge_id: TEdgeId) => (
+const EdgeRowOf = memoize1((edge_id: types.TEdgeId) => (
   <EdgeRow edge_id={edge_id} key={edge_id} />
 ));
 
-const Entry = (props: { node_id: TNodeId }) => {
+const Entry = (props: { node_id: types.TNodeId }) => {
   const status = useSelector((state) => state.data.kvs[props.node_id].status);
   const has_parent = useSelector(
     (state) => !!state.data.kvs[props.node_id].parents.length,
@@ -1278,9 +1138,27 @@ const Entry = (props: { node_id: TNodeId }) => {
   );
 
   return (
-    <>
+    <div
+      className={utils.join(
+        running
+          ? "running"
+          : has_children && !show_children
+          ? "hidden-leafs"
+          : undefined,
+      )}
+      onDoubleClick={(e) => {
+        if (e.target === e.currentTarget) {
+          dispatch(swap_show_children(props.node_id));
+        }
+      }}
+    >
       <TextArea k={props.node_id} />
-      <div className="flex gap-x-[0.25em] items-baseline mt-[0.25em]">
+      <div
+        className={utils.join(
+          "flex gap-x-[0.25em] items-baseline mt-[0.25em]",
+          !cache.show_detail && "opacity-40 hover:opacity-100",
+        )}
+      >
         {running
           ? stopButtonOf(dispatch, props.node_id)
           : startButtonOf(dispatch, props.node_id)}
@@ -1297,19 +1175,17 @@ const Entry = (props: { node_id: TNodeId }) => {
         {showDetailButtonOf(dispatch, props.node_id)}
       </div>
       {details}
-    </>
+    </div>
   );
   return (
     <div
-      className={
-        status +
-        (running
-          ? " running"
+      className={utils.join(
+        running
+          ? ".running"
           : has_children && !show_children
-          ? " non-leaf"
-          : "") +
-        "inline-block"
-      }
+          ? ".hidden-leafs"
+          : undefined,
+      )}
       onDoubleClick={(e) => {
         if (e.target === e.currentTarget) {
           dispatch(swap_show_children(props.node_id));
@@ -1386,7 +1262,7 @@ const _estimate = (
   return ts;
 };
 
-const lastRangeOf = (ranges: IRange[]): null | IRange => {
+const lastRangeOf = (ranges: types.IRange[]): null | types.IRange => {
   return ranges.length
     ? last(ranges).end === null
       ? lastRangeOf(butLast(ranges))
@@ -1464,10 +1340,10 @@ export const sum = (xs: number[]) => {
 };
 
 function* leafs(
-  node_id: TNodeId,
-  kvs: IKvs,
-  edges: IEdges,
-): Iterable<[TNodeId, IEntry]> {
+  node_id: types.TNodeId,
+  kvs: types.IKvs,
+  edges: types.IEdges,
+): Iterable<[types.TNodeId, types.IEntry]> {
   const node = kvs[node_id];
   if (node.status === "todo") {
     const todos = _children_of(node_id, "todo", kvs, edges);
@@ -1482,10 +1358,10 @@ function* leafs(
 }
 
 const _children_of = (
-  node_id: TNodeId,
-  status: TStatus,
-  kvs: IKvs,
-  edges: IEdges,
+  node_id: types.TNodeId,
+  status: types.TStatus,
+  kvs: types.IKvs,
+  edges: types.IEdges,
 ) => {
   return kvs[node_id].children.filter(
     (edge_id) => kvs[edges[edge_id].c].status === status,
@@ -1530,31 +1406,31 @@ const assert = (fn: () => [boolean, string]) => {
   }
 };
 
-const stopButtonRefOf = memoize1((_: TNodeId) =>
+const stopButtonRefOf = memoize1((_: types.TNodeId) =>
   React.createRef<HTMLButtonElement>(),
 );
 
-const moveUpButtonRefOf = memoize1((_: TNodeId) =>
+const moveUpButtonRefOf = memoize1((_: types.TNodeId) =>
   React.createRef<HTMLButtonElement>(),
 );
 
-const moveDownButtonRefOf = memoize1((_: TNodeId) =>
+const moveDownButtonRefOf = memoize1((_: types.TNodeId) =>
   React.createRef<HTMLButtonElement>(),
 );
 
-const unindentButtonRefOf = memoize1((_: TNodeId) =>
+const unindentButtonRefOf = memoize1((_: types.TNodeId) =>
   React.createRef<HTMLButtonElement>(),
 );
 
-const indentButtonRefOf = memoize1((_: TNodeId) =>
+const indentButtonRefOf = memoize1((_: types.TNodeId) =>
   React.createRef<HTMLButtonElement>(),
 );
 
-const textAreaRefOf = memoize1((_: TNodeId) =>
+const textAreaRefOf = memoize1((_: types.TNodeId) =>
   React.createRef<HTMLTextAreaElement>(),
 );
 
-const toTreeButtonOf = memoize1((node_id: TNodeId) => {
+const toTreeButtonOf = memoize1((node_id: types.TNodeId) => {
   const dispatch = useDispatch();
   return (
     <a
@@ -1568,32 +1444,36 @@ const toTreeButtonOf = memoize1((node_id: TNodeId) => {
   );
 });
 
-const doneToTodoButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
-  <button
-    className="btn-icon"
-    onClick={() => {
-      dispatch(doneToTodo(k));
-    }}
-  >
-    {DONE_MARK}
-  </button>
-));
+const doneToTodoButtonOf = memoize2(
+  (dispatch: AppDispatch, k: types.TNodeId) => (
+    <button
+      className="btn-icon"
+      onClick={() => {
+        dispatch(doneToTodo(k));
+      }}
+    >
+      {DONE_MARK}
+    </button>
+  ),
+);
 
-const dontToTodoButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
-  <button
-    className="btn-icon"
-    onClick={() => {
-      dispatch(dontToTodo(k));
-    }}
-  >
-    {DONT_MARK}
-  </button>
-));
+const dontToTodoButtonOf = memoize2(
+  (dispatch: AppDispatch, k: types.TNodeId) => (
+    <button
+      className="btn-icon"
+      onClick={() => {
+        dispatch(dontToTodo(k));
+      }}
+    >
+      {DONT_MARK}
+    </button>
+  ),
+);
 
-const newButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => {
+const newButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => {
   const _focusTextAreaOfTheNewTodo = (
     dispatch: AppDispatch,
-    getState: () => IState,
+    getState: () => types.IState,
   ) => {
     const state = getState();
     dispatch(
@@ -1614,7 +1494,7 @@ const newButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => {
   );
 });
 
-const stopButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
+const stopButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
   <button
     className="btn-icon"
     arial-label="Stop."
@@ -1627,7 +1507,7 @@ const stopButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   </button>
 ));
 
-const startButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
+const startButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
   <button
     className="btn-icon"
     onClick={() => {
@@ -1639,7 +1519,7 @@ const startButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   </button>
 ));
 
-const topButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
+const topButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
   <button
     className="btn-icon"
     onClick={() => {
@@ -1650,7 +1530,7 @@ const topButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   </button>
 ));
 
-const moveUpButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
+const moveUpButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
   <button
     className="btn-icon"
     onClick={() => {
@@ -1663,7 +1543,7 @@ const moveUpButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   </button>
 ));
 
-const moveDownButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
+const moveDownButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
   <button
     className="btn-icon"
     onClick={() => {
@@ -1676,29 +1556,33 @@ const moveDownButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   </button>
 ));
 
-const todoToDoneButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
-  <button
-    className="btn-icon"
-    onClick={() => {
-      dispatch(todoToDone(k));
-    }}
-  >
-    {DONE_MARK}
-  </button>
-));
+const todoToDoneButtonOf = memoize2(
+  (dispatch: AppDispatch, k: types.TNodeId) => (
+    <button
+      className="btn-icon"
+      onClick={() => {
+        dispatch(todoToDone(k));
+      }}
+    >
+      {DONE_MARK}
+    </button>
+  ),
+);
 
-const todoToDontButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
-  <button
-    className="btn-icon"
-    onClick={() => {
-      dispatch(todoToDont(k));
-    }}
-  >
-    {DONT_MARK}
-  </button>
-));
+const todoToDontButtonOf = memoize2(
+  (dispatch: AppDispatch, k: types.TNodeId) => (
+    <button
+      className="btn-icon"
+      onClick={() => {
+        dispatch(todoToDont(k));
+      }}
+    >
+      {DONT_MARK}
+    </button>
+  ),
+);
 
-const unindentButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
+const unindentButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
   <button
     className="btn-icon"
     onClick={() => {
@@ -1711,7 +1595,7 @@ const unindentButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   </button>
 ));
 
-const indentButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
+const indentButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
   <button
     className="btn-icon"
     onClick={() => {
@@ -1724,18 +1608,20 @@ const indentButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   </button>
 ));
 
-const showDetailButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
-  <button
-    className="btn-icon"
-    onClick={() => {
-      dispatch(flipShowDetail(k));
-    }}
-  >
-    {DETAIL_MARK}
-  </button>
-));
+const showDetailButtonOf = memoize2(
+  (dispatch: AppDispatch, k: types.TNodeId) => (
+    <button
+      className="btn-icon"
+      onClick={() => {
+        dispatch(flipShowDetail(k));
+      }}
+    >
+      {DETAIL_MARK}
+    </button>
+  ),
+);
 
-const deleteButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
+const deleteButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
   <button
     className="btn-icon"
     onClick={() => {
@@ -1746,7 +1632,7 @@ const deleteButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
   </button>
 ));
 
-const evalButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
+const evalButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
   <button
     className="btn-icon"
     onClick={() => {
@@ -1758,7 +1644,7 @@ const evalButtonOf = memoize2((dispatch: AppDispatch, k: TNodeId) => (
 ));
 
 const setEstimateOf = memoize2(
-  (dispatch: AppDispatch, k: TNodeId) =>
+  (dispatch: AppDispatch, k: types.TNodeId) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       dispatch(
         setEstimate({
@@ -1769,9 +1655,11 @@ const setEstimateOf = memoize2(
     },
 );
 
-const EstimationInputOf = memoize1((k: TNodeId) => <EstimationInput k={k} />);
+const EstimationInputOf = memoize1((k: types.TNodeId) => (
+  <EstimationInput k={k} />
+));
 
-const EstimationInput = (props: { k: TNodeId }) => {
+const EstimationInput = (props: { k: types.TNodeId }) => {
   const estimate = useSelector((state) => state.data.kvs[props.k].estimate);
   const dispatch = useDispatch();
   return (
@@ -1780,19 +1668,19 @@ const EstimationInput = (props: { k: TNodeId }) => {
       step="any"
       value={estimate}
       onChange={setEstimateOf(dispatch, props.k)}
-      className="w-[3em]"
+      className="w-[3em] h-[2em]"
     />
   );
 };
 
 const setLastRangeOf = memoize2(
-  (dispatch: AppDispatch, k: TNodeId) =>
+  (dispatch: AppDispatch, k: types.TNodeId) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setLastRange(dispatch, k, Number(e.target.value));
     },
 );
 
-const TextArea = (props: { k: TNodeId }) => {
+const TextArea = (props: { k: types.TNodeId }) => {
   const state_text = useSelector((state) => state.data.kvs[props.k].text);
   const state_style = useSelector((state) => state.data.kvs[props.k].style);
   const status = useSelector((state) => state.data.kvs[props.k].status);
@@ -1835,7 +1723,6 @@ const TextArea = (props: { k: TNodeId }) => {
     },
     [dispatch, props.k],
   );
-
   if (state_text !== text_prev) {
     setText(state_text);
     setText_prev(state_text);
@@ -1850,7 +1737,14 @@ const TextArea = (props: { k: TNodeId }) => {
       value={text}
       onChange={resizeAndSetText}
       onBlur={dispatchResizeAndSetText}
-      className={status + " resize-y w-[30em]"}
+      className={utils.join(
+        "resize-y w-[30em] overflow-hidden",
+        status === "done"
+          ? "text-red-300"
+          : status === "dont"
+          ? "text-gray-500"
+          : undefined,
+      )}
       style={{
         ...style,
       }}
@@ -1866,9 +1760,9 @@ const getAndSetHeight = (el: HTMLTextAreaElement) => {
   return h;
 };
 
-const LastRangeOf = memoize1((k: TNodeId) => <LastRange k={k} />);
+const LastRangeOf = memoize1((k: types.TNodeId) => <LastRange k={k} />);
 
-const LastRange = (props: { k: TNodeId }) => {
+const LastRange = (props: { k: types.TNodeId }) => {
   const status = useSelector((state) => state.data.kvs[props.k].status);
   const lastRangeValue = useSelector((state) => {
     const v = state.data.kvs[props.k];
@@ -1890,13 +1784,16 @@ const LastRange = (props: { k: TNodeId }) => {
 };
 
 const undoable = (
-  reducer: (state: undefined | IState, action: AnyPayloadAction) => IState,
-  noop: AnyPayloadAction,
+  reducer: (
+    state: undefined | types.IState,
+    action: types.AnyPayloadAction,
+  ) => types.IState,
+  noop: types.AnyPayloadAction,
   pred: (type_: string) => boolean,
 ) => {
   const init = reducer(undefined, noop);
-  const history = new History<IState>(init);
-  return (state: undefined | IState, action: AnyPayloadAction) => {
+  const history = new History<types.IState>(init);
+  return (state: undefined | types.IState, action: types.AnyPayloadAction) => {
     if (state === undefined) {
       return init;
     }
@@ -1929,7 +1826,7 @@ register_save_type("undo");
 register_save_type("redo");
 
 const saveStateMiddlewareOf = (pred: (type_: string) => boolean) => {
-  const saveStateMiddleware: Middleware<{}, IState> =
+  const saveStateMiddleware: Middleware<{}, types.IState> =
     (store) => (next_dispatch) => (action) => {
       const ret = next_dispatch(action);
       if (pred(action.type)) {
@@ -1941,7 +1838,7 @@ const saveStateMiddlewareOf = (pred: (type_: string) => boolean) => {
           body: JSON.stringify(store.getState().data),
         }).then((r) => {
           store.dispatch(setSaveSuccess(r.ok));
-          if(!r.ok){
+          if (!r.ok) {
             toast.add("error", "Failed to save changes.", 10000);
           }
         });

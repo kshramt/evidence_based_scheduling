@@ -2,13 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-div.running {
-  background-color: Moccasin;
-}
-div.non-leaf {
-  background-color: rgb(230, 255, 230);
-}
-
 button,
 input,
 select,
@@ -17,7 +10,8 @@ textarea {
   font-size: inherit;
   background-color: inherit;
 }
-input, textarea{
+input,
+textarea {
   border-style: solid;
   border-width: 1px;
   border-color: gray;
@@ -41,17 +35,17 @@ input, textarea{
 
 @layer components {
   .btn-icon {
-    @apply bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-center min-w-[2em] h-[2em] border-none shadow-none;
+    @apply bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-center min-w-[2rem] h-[2rem] text-[1rem] border-none shadow-none;
   }
-
-  textarea.done {
-    @apply text-red-300;
+  .running {
+    @apply bg-yellow-300 dark:bg-yellow-700;
   }
-  textarea.dont {
-    @apply text-gray-500;
+  .hidden-leafs {
+    @apply bg-[#d6ffd6] dark:bg-[#213821];
   }
 }
 
-.material-symbols-outlined {
-   vertical-align: bottom;
+.material-icons{
+    vertical-align: -0.35rem;
+    font-size: 1.5rem; /* 24px/16px */
 }
