@@ -95,24 +95,22 @@ class History<T> {
   };
 }
 
-const _stop = (draft: Draft<types.IState>) => {
-  if (draft.data.current_entry !== null) {
-    const e = draft.data.kvs[draft.data.current_entry];
-    const r = last(e.ranges);
-    r.end = Number(new Date()) / 1000;
-    _set_total_time(
-      draft.data.current_entry,
-      draft.data.kvs,
-      draft.caches,
-      draft.data.edges,
-    );
-    draft.data.current_entry = null;
+const stop = (
+  draft: Draft<types.IState>,
+  node_id: types.TNodeId,
+  t?: number,
+) => {
+  const last_range = last(draft.data.kvs[node_id].ranges);
+  if (last_range && last_range.end === null) {
+    last_range.end = t ?? Number(new Date()) / 1000;
+    _set_total_time(node_id, draft.data.kvs, draft.caches, draft.data.edges);
   }
 };
 
-const _rmFromTodo = (draft: Draft<types.IState>, node_id: types.TNodeId) => {
-  if (draft.data.current_entry === node_id) {
-    _stop(draft);
+const stop_all = (draft: Draft<types.IState>) => {
+  const t = Number(new Date()) / 1000;
+  for (const node_id of draft.data.queue) {
+    stop(draft, node_id, t);
   }
 };
 
@@ -132,7 +130,6 @@ const emptyStateOf = (): types.IState => {
   };
   return {
     data: {
-      current_entry: null,
       edges: {},
       root,
       id_seq,
@@ -177,8 +174,8 @@ const doLoad = createAsyncThunk("doLoad", async () => {
 register_history_type(doLoad.fulfilled);
 
 const eval_ = register_history_type(createAction<types.TNodeId>("eval_"));
-const delete_ = register_save_type(
-  register_history_type(createAction<types.TNodeId>("delete_")),
+const delete_action = register_save_type(
+  register_history_type(createAction<types.TNodeId>("delete_action")),
 );
 const delete_edge_action = register_save_type(
   register_history_type(createAction<types.TEdgeId>("delete_edge_action")),
@@ -190,8 +187,8 @@ const flipShowTodoOnly = register_save_type(
   register_history_type(createAction("flipShowTodoOnly")),
 );
 const flipShowDetail = createAction<types.TNodeId>("flipShowDetail");
-const start = register_save_type(
-  register_history_type(createAction<types.TNodeId>("start")),
+const start_action = register_save_type(
+  register_history_type(createAction<types.TNodeId>("start_action")),
 );
 const top = register_save_type(
   register_history_type(createAction<types.TNodeId>("top")),
@@ -205,7 +202,12 @@ const closestToTop = register_save_type(
 const set_total_time = register_history_type(
   createAction<types.TNodeId>("set_total_time"),
 );
-const stop = register_save_type(register_history_type(createAction("stop")));
+const stop_action = register_save_type(
+  register_history_type(createAction<types.TNodeId>("stop_action")),
+);
+const stop_all_action = register_save_type(
+  register_history_type(createAction("stop_all_action")),
+);
 const moveUp_ = register_save_type(
   register_history_type(createAction<types.TNodeId>("moveUp_")),
 );
@@ -280,7 +282,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     const k = action.payload;
     _eval_(state, k);
   });
-  ac(delete_, (state, action) => {
+  ac(delete_action, (state, action) => {
     const k = action.payload;
     if (
       state.data.kvs[k].children.filter((edge_id) => {
@@ -304,9 +306,6 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       }
       delete state.data.kvs[k];
       delete state.caches[k];
-      if (state.data.current_entry === k) {
-        state.data.current_entry = null;
-      }
     }
   });
   ac(delete_edge_action, (state, action) => {
@@ -354,26 +353,29 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       k,
     ).show_detail;
   });
-  ac(start, (state, action) => {
-    const k = action.payload;
-    if (k !== state.data.current_entry) {
-      switch (state.data.kvs[k].status) {
+  ac(start_action, (state, action) => {
+    const node_id = action.payload;
+    const last_range = last(state.data.kvs[node_id].ranges);
+    if (!last_range || last_range.end !== null) {
+      switch (state.data.kvs[node_id].status) {
         case "done":
-          _doneToTodo(state, k);
+          _doneToTodo(state, node_id);
           break;
         case "dont":
-          _dontToTodo(state, k);
+          _dontToTodo(state, node_id);
           break;
       }
-      _top(state, k);
-      assert(() => [state.data.kvs[k].status === "todo", "Must not happen"]);
-      _stop(state);
-      state.data.current_entry = k;
-      state.data.kvs[k].ranges.push({
+      _top(state, node_id);
+      assert(() => [
+        state.data.kvs[node_id].status === "todo",
+        "Must not happen",
+      ]);
+      stop_all(state);
+      state.data.kvs[node_id].ranges.push({
         start: Number(new Date()) / 1000,
         end: null,
       });
-      _show_path_to_selected_node(state, k);
+      _show_path_to_selected_node(state, node_id);
     }
   });
   ac(top, (state, action) => {
@@ -451,8 +453,11 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       state.data.edges,
     );
   });
-  ac(stop, (state) => {
-    _stop(state);
+  ac(stop_action, (state, action) => {
+    stop(state, action.payload);
+  });
+  ac(stop_all_action, (state) => {
+    stop_all(state);
   });
   ac(moveUp_, (state, action) => {
     const k = action.payload;
@@ -529,13 +534,13 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   });
   ac(todoToDone, (state, action) => {
     const k = action.payload;
-    _rmFromTodo(state, k);
+    stop(state, k);
     _addToDone(state, k);
     _topQueue(state, k);
   });
   ac(todoToDont, (state, action) => {
     const k = action.payload;
-    _rmFromTodo(state, k);
+    stop(state, k);
     _addToDont(state, k);
     _topQueue(state, k);
   });
@@ -650,6 +655,7 @@ const App = () => {
 const Menu = () => {
   const root = useSelector((state) => state.data.root);
   const dispatch = useDispatch();
+  const stop_all = useCallback(() => dispatch(stop_all_action()), [dispatch]);
   const _undo = useCallback(() => {
     dispatch({ type: "undo" });
   }, [dispatch]);
@@ -673,7 +679,9 @@ const Menu = () => {
       className={`flex items-center fixed z-[999999] pl-[1em] gap-x-[0.25em] w-full top-0  bg-gray-200 dark:bg-gray-900`}
       style={{ height: MENU_HEIGHT }}
     >
-      {stopButtonOf(dispatch, root)}
+      <button className="btn-icon" onClick={stop_all}>
+        <span className="material-icons">{STOP_MARK}</span>
+      </button>
       {newButtonOf(dispatch, root)}
       <button className="btn-icon" arial-label="Undo." onClick={_undo}>
         <span className="material-icons">undo</span>
@@ -1311,9 +1319,11 @@ const Entry = (props: { node_id: types.TNodeId }) => {
   const cache = useSelector((state) =>
     types.cache_of(state.caches, props.node_id),
   );
-  const running = useSelector(
-    (state) => props.node_id === state.data.current_entry,
-  );
+  const ranges = useSelector((state) => state.data.kvs[props.node_id].ranges);
+  const running = React.useMemo(() => {
+    const last_range = last(ranges);
+    return last_range && last_range.end === null;
+  }, [ranges]);
   const noTodo = false;
   // const noTodo = useSelector(
   //   (state) =>
@@ -1698,24 +1708,26 @@ const newButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => {
   );
 });
 
-const stopButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
-  <button
-    className="btn-icon"
-    arial-label="Stop."
-    onClick={() => {
-      dispatch(stop());
-    }}
-    ref={stopButtonRefOf(k)}
-  >
-    {STOP_MARK}
-  </button>
-));
+const stopButtonOf = memoize2(
+  (dispatch: AppDispatch, node_id: types.TNodeId) => (
+    <button
+      className="btn-icon"
+      arial-label="Stop."
+      onClick={() => {
+        dispatch(stop_action(node_id));
+      }}
+      ref={stopButtonRefOf(node_id)}
+    >
+      {STOP_MARK}
+    </button>
+  ),
+);
 
 const startButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
   <button
     className="btn-icon"
     onClick={() => {
-      dispatch(start(k));
+      dispatch(start_action(k));
       dispatch(doFocusStopButton(k));
     }}
   >
@@ -1829,7 +1841,7 @@ const deleteButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
   <button
     className="btn-icon"
     onClick={() => {
-      dispatch(delete_(k));
+      dispatch(delete_action(k));
     }}
   >
     {consts.DELETE_MARK}

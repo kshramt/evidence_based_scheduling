@@ -50,7 +50,6 @@ export interface IState {
 }
 
 export interface IData {
-  readonly current_entry: null | TNodeId;
   readonly edges: IEdges;
   readonly root: TNodeId;
   id_seq: number;
@@ -64,10 +63,6 @@ export const is_IData = (
   record_if_false: TRecordIfFalse,
 ): data is IData =>
   record_if_false(is_object(data), "is_object") &&
-  record_if_false(
-    data.current_entry === null || is_TNodeId(data.current_entry),
-    "current_entry",
-  ) &&
   record_if_false(is_IEdges(data.edges, record_if_false), "edges") &&
   record_if_false(is_TNodeId(data.root), "root") &&
   record_if_false(typeof data.id_seq === "number", "id_seq") &&

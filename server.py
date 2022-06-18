@@ -76,6 +76,7 @@ def _v12_of_v11(data):
         del v["style"]["width"]
         if "show_children" not in v:
             v["show_children"] = False
+    del data["current_entry"]
     data["version"] = 12
     return data
 
