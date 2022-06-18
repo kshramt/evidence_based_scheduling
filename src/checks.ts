@@ -1,6 +1,18 @@
 import * as types from "./types";
 import * as utils from "./utils";
 
+export const is_deletable_node = (
+  node_id: types.TNodeId,
+  state: types.IState,
+) => {
+  return (
+    node_id !== state.data.root &&
+    state.data.kvs[node_id].children.every((edge_id) =>
+      is_deletable_edge(edge_id, state),
+    )
+  );
+};
+
 export const is_deletable_edge = (
   edge_id: types.TEdgeId,
   state: types.IState,

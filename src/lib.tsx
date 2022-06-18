@@ -35,8 +35,6 @@ const STOP_MARK = <span className="material-icons">stop</span>;
 const TOP_MARK = <span className="material-icons">arrow_upward</span>;
 const MOVE_UP_MARK = <span className="material-icons">north</span>;
 const MOVE_DOWN_MARK = <span className="material-icons">south</span>;
-const UNINDENT_MARK = <span className="material-icons">north_west</span>;
-const INDENT_MARK = <span className="material-icons">south_wast</span>;
 const EVAL_MARK = <span className="material-icons">functions</span>;
 const DONE_MARK = <span className="material-icons">done</span>; //"✓";
 const DONT_MARK = <span className="material-icons">delete</span>;
@@ -180,8 +178,8 @@ const delete_action = register_save_type(
 const delete_edge_action = register_save_type(
   register_history_type(createAction<types.TEdgeId>("delete_edge_action")),
 );
-const new_ = register_save_type(
-  register_history_type(createAction<types.TNodeId>("new_")),
+const new_action = register_save_type(
+  register_history_type(createAction<types.TNodeId>("new_action")),
 );
 const flipShowTodoOnly = register_save_type(
   register_history_type(createAction("flipShowTodoOnly")),
@@ -213,12 +211,6 @@ const moveUp_ = register_save_type(
 );
 const moveDown_ = register_save_type(
   register_history_type(createAction<types.TNodeId>("moveDown_")),
-);
-const unindent = register_save_type(
-  register_history_type(createAction<types.TNodeId>("unindent")),
-);
-const indent = register_save_type(
-  register_history_type(createAction<types.TNodeId>("indent")),
 );
 const setEstimate = register_save_type(
   register_history_type(
@@ -283,29 +275,28 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     _eval_(state, k);
   });
   ac(delete_action, (state, action) => {
-    const k = action.payload;
-    if (
-      state.data.kvs[k].children.filter((edge_id) => {
-        const edge = state.data.edges[edge_id];
-        if (edge.t !== "strong") {
-          return false;
-        }
-        let n_strong_parents = 0;
-        for (const p of state.data.kvs[edge.c].parents) {
-          if (state.data.edges[p].t === "strong") {
-            n_strong_parents += 1;
-          }
-        }
-        return n_strong_parents <= 1;
-      }).length === 0
-    ) {
-      _remove_child_edges_of_parents(state, k);
-      deleteAtVal(state.data.queue, k);
-      for (const p of state.data.kvs[k].parents) {
-        delete state.data.edges[p];
-      }
-      delete state.data.kvs[k];
-      delete state.caches[k];
+    const node_id = action.payload;
+    if (checks.is_deletable_node(node_id, state)) {
+      const node = state.data.kvs[node_id];
+      node.parents.forEach((edge_id) => {
+        deleteAtVal(
+          state.data.kvs[state.data.edges[edge_id].p].children,
+          edge_id,
+        );
+        delete state.data.edges[edge_id];
+      });
+      node.children.forEach((edge_id) => {
+        deleteAtVal(
+          state.data.kvs[state.data.edges[edge_id].c].parents,
+          edge_id,
+        );
+        delete state.data.edges[edge_id];
+      });
+      deleteAtVal(state.data.queue, node_id);
+      delete state.data.kvs[node_id];
+      delete state.caches[node_id];
+    } else {
+      toast.add("error", `Node ${node_id} is not deletable.`);
     }
   });
   ac(delete_edge_action, (state, action) => {
@@ -322,7 +313,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       );
     }
   });
-  ac(new_, (state, action) => {
+  ac(new_action, (state, action) => {
     const parent = action.payload;
     if (!state.data.kvs[parent].show_children) {
       state.data.kvs[parent].show_children = true;
@@ -472,33 +463,6 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       moveDown(state.data.kvs[state.data.edges[edge_id].p].children, edge_id);
     }
     moveDown(state.data.queue, k);
-  });
-  ac(unindent, (state, action) => {
-    const k = action.payload;
-    if (state.data.kvs[k].parents.length) {
-      const edge_id = state.data.kvs[k].parents[0];
-      const pk = state.data.edges[edge_id].p;
-      if (state.data.kvs[pk].parents.length) {
-        const ppk = state.data.edges[state.data.kvs[pk].parents[0]].p;
-        _remove_child_edges_of_parents(state, k);
-        const i = state.data.kvs[ppk].children.indexOf(edge_id);
-        assert(() => [i !== -1, "Must not happen."]);
-        _addTodoEntry(state, ppk, i, state.data.kvs[k].parents[0]);
-      }
-    }
-  });
-  ac(indent, (state, action) => {
-    const k = action.payload;
-    if (state.data.kvs[k].parents.length) {
-      const pk = state.data.edges[state.data.kvs[k].parents[0]].p;
-      const edge_id = last(state.data.kvs[pk].children);
-      if (state.data.edges[edge_id].c !== k) {
-        const i = state.data.kvs[pk].children.indexOf(edge_id);
-        const new_pk = state.data.edges[state.data.kvs[pk].children[i + 1]].c;
-        _remove_child_edges_of_parents(state, k);
-        _addTodoEntry(state, new_pk, 0, state.data.kvs[k].parents[0]);
-      }
-    }
   });
   ac(setEstimate, (state, action) => {
     const k = action.payload.k;
@@ -737,16 +701,19 @@ const NodeFilterQueryInput = () => {
     });
   }, [set_node_filter_query_fast, set_node_filter_query_slow]);
   return (
-    <div className="flex items-center border border-solid border-gray-400">
-      <input
-        value={node_filter_query}
-        onChange={handle_change}
-        className="h-[2em] border-none"
-      />
-      <button className="btn-icon" onClick={clear_input}>
-        {consts.DELETE_MARK}
-      </button>
-    </div>
+    <>
+      Filter:
+      <div className="flex items-center border border-solid border-gray-400">
+        <input
+          value={node_filter_query}
+          onChange={handle_change}
+          className="h-[2em] border-none"
+        />
+        <button className="btn-icon" onClick={clear_input}>
+          {consts.DELETE_MARK}
+        </button>
+      </div>
+    </>
   );
 };
 
@@ -765,16 +732,19 @@ const NodeIdsInput = () => {
     set_node_ids(v);
   }, [set_node_ids]);
   return (
-    <div className="flex items-center border border-solid border-gray-400">
-      <input
-        value={node_ids}
-        onChange={handle_change}
-        className="h-[2em] border-none"
-      />
-      <button className="btn-icon" onClick={clear_input}>
-        {consts.DELETE_MARK}
-      </button>
-    </div>
+    <>
+      IDs:
+      <div className="flex items-center border border-solid border-gray-400">
+        <input
+          value={node_ids}
+          onChange={handle_change}
+          className="h-[2em] border-none"
+        />
+        <button className="btn-icon" onClick={clear_input}>
+          {consts.DELETE_MARK}
+        </button>
+      </div>
+    </>
   );
 };
 
@@ -815,14 +785,6 @@ const doFocusMoveUpButton = (k: types.TNodeId) => () => {
 
 const doFocusMoveDownButton = (k: types.TNodeId) => () => {
   setTimeout(() => focus(moveDownButtonRefOf(k).current), 50);
-};
-
-const doFocusUnindentButton = (k: types.TNodeId) => () => {
-  setTimeout(() => focus(unindentButtonRefOf(k).current), 50);
-};
-
-const doFocusIndentButton = (k: types.TNodeId) => () => {
-  setTimeout(() => focus(indentButtonRefOf(k).current), 50);
 };
 
 const doFocusTextArea = (k: types.TNodeId) => () => {
@@ -937,25 +899,6 @@ const node_time_of = (k: types.TNodeId, kvs: types.IKvs) => {
   return kvs[k].ranges.reduce((total, current) => {
     return current.end === null ? total : total + (current.end - current.start);
   }, 0);
-};
-
-const _remove_child_edges_of_parents = (
-  draft: Draft<types.IState>,
-  node_id: types.TNodeId,
-) => {
-  for (const edge_id of draft.data.kvs[node_id].parents) {
-    deleteAtVal(draft.data.kvs[draft.data.edges[edge_id].p].children, edge_id);
-  }
-};
-
-const _addTodoEntry = (
-  draft: Draft<types.IState>,
-  parent_node_id: types.TNodeId,
-  i: number,
-  edge_id: types.TEdgeId,
-) => {
-  draft.data.edges[edge_id].p = parent_node_id;
-  draft.data.kvs[parent_node_id].children.splice(i, 0, edge_id);
 };
 
 const _top = (draft: Draft<types.IState>, k: types.TNodeId) => {
@@ -1197,6 +1140,8 @@ const Details = (props: { node_id: types.TNodeId }) => {
   }, [dispatch, node_ids, new_edge_type, props.node_id]);
   return show_detail ? (
     <div className="mt-[0.5em]">
+      {deleteButtonOf(dispatch, props.node_id)}
+      <hr className="my-[0.25em]" />
       <div className="flex gap-x-[0.25em] items-baseline">
         Add:
         <select value={new_edge_type} onChange={handle_new_edge_type_change}>
@@ -1433,8 +1378,6 @@ const Entry = (props: { node_id: types.TNodeId }) => {
               <>
                 {moveUpButtonOf(dispatch, props.node_id)}
                 {moveDownButtonOf(dispatch, props.node_id)}
-                {unindentButtonOf(dispatch, props.node_id)}
-                {indentButtonOf(dispatch, props.node_id)}
                 {has_children ? null : deleteButtonOf(dispatch, props.node_id)}
               </>
             ) : null
@@ -1632,14 +1575,6 @@ const moveDownButtonRefOf = memoize1((_: types.TNodeId) =>
   React.createRef<HTMLButtonElement>(),
 );
 
-const unindentButtonRefOf = memoize1((_: types.TNodeId) =>
-  React.createRef<HTMLButtonElement>(),
-);
-
-const indentButtonRefOf = memoize1((_: types.TNodeId) =>
-  React.createRef<HTMLButtonElement>(),
-);
-
 const textAreaRefOf = memoize1((_: types.TNodeId) =>
   React.createRef<HTMLTextAreaElement>(),
 );
@@ -1691,7 +1626,7 @@ const newButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => {
   ) => {
     const state = getState();
     dispatch(
-      doFocusTextArea(state.data.edges[last(state.data.kvs[k].children)].c),
+      doFocusTextArea(state.data.edges[state.data.kvs[k].children[0]].c),
     );
   };
   return (
@@ -1699,7 +1634,7 @@ const newButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => {
       className="btn-icon"
       arial-label="Add a new entry."
       onClick={() => {
-        dispatch(new_(k));
+        dispatch(new_action(k));
         dispatch(_focusTextAreaOfTheNewTodo);
       }}
     >
@@ -1797,32 +1732,6 @@ const todoToDontButtonOf = memoize2(
     </button>
   ),
 );
-
-const unindentButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
-  <button
-    className="btn-icon"
-    onClick={() => {
-      dispatch(unindent(k));
-      dispatch(doFocusUnindentButton(k));
-    }}
-    ref={unindentButtonRefOf(k)}
-  >
-    {UNINDENT_MARK}
-  </button>
-));
-
-const indentButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
-  <button
-    className="btn-icon"
-    onClick={() => {
-      dispatch(indent(k));
-      dispatch(doFocusIndentButton(k));
-    }}
-    ref={indentButtonRefOf(k)}
-  >
-    {INDENT_MARK}
-  </button>
-));
 
 const showDetailButtonOf = memoize2(
   (dispatch: AppDispatch, k: types.TNodeId) => (
