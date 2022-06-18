@@ -334,7 +334,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     const edge = { p: parent, c: node_id, t: "strong" as const };
     state.data.kvs[node_id] = v;
     state.data.edges[edge_id] = edge;
-    state.data.kvs[parent].children.push(edge_id);
+    state.data.kvs[parent].children.unshift(edge_id);
     state.data.queue.push(node_id);
   });
   // todo: Handle doLoad.rejected.
