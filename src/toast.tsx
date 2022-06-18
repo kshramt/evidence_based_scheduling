@@ -83,7 +83,7 @@ export const component = <Component />;
 export const add = (
   severity: TSeverity,
   text: string,
-  duration: number = 0,
+  duration: number = 10000,
 ) => {
   const id = store.add(severity, text);
   if (0 < duration) {

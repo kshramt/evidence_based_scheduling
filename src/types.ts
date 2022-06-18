@@ -23,7 +23,7 @@ export const record_if_false_of = () => {
 type TRecordIfFalse = ReturnType<typeof record_if_false_of>;
 
 export type TNodeId = string & { readonly tag: unique symbol };
-const is_TNodeId = (x: any): x is TNodeId => typeof x === "string";
+export const is_TNodeId = (x: any): x is TNodeId => typeof x === "string";
 export type TEdgeId = string & { readonly tag: unique symbol };
 const is_TEdgeId = (x: any): x is TEdgeId => typeof x === "string";
 
@@ -47,8 +47,6 @@ export interface IListProps {
 export interface IState {
   readonly data: IData;
   readonly caches: ICaches;
-
-  readonly saveSuccess: boolean;
 }
 
 export interface IData {
@@ -132,7 +130,7 @@ const is_IEdges = (
 
 export const edge_type_values = ["strong", "weak"] as const;
 export type TEdgeType = typeof edge_type_values[number];
-const is_TEdgeType = (x: any): x is TEdgeType => edge_type_values.includes(x);
+export const is_TEdgeType = (x: any): x is TEdgeType => edge_type_values.includes(x);
 
 export interface IEdge {
   readonly c: TNodeId;
@@ -160,6 +158,16 @@ const is_IRange = (x: any): x is IRange =>
 export interface ICaches {
   [k: TNodeId]: ICache;
 }
+export const cache_of = (caches: ICaches, node_id: TNodeId) => {
+  return caches[node_id] === undefined
+    ? (caches[node_id] = {
+        total_time: -1,
+        percentiles: [],
+        visited: -1,
+        show_detail: false,
+      })
+    : caches[node_id];
+};
 
 interface ICache {
   total_time: number;

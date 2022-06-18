@@ -29,28 +29,19 @@ setAutoFreeze(false);
 const MENU_HEIGHT = "4em" as const;
 const API_VERSION = "v1";
 const NO_ESTIMATION = 0;
-const START_MARK = (
-  <span className="material-icons">play_arrow</span>
-);
+const START_MARK = <span className="material-icons">play_arrow</span>;
 const ADD_MARK = <span className="material-icons">add</span>;
 const STOP_MARK = <span className="material-icons">stop</span>;
-const TOP_MARK = (
-  <span className="material-icons">arrow_upward</span>
-);
+const TOP_MARK = <span className="material-icons">arrow_upward</span>;
 const MOVE_UP_MARK = <span className="material-icons">north</span>;
 const MOVE_DOWN_MARK = <span className="material-icons">south</span>;
-const UNINDENT_MARK = (
-  <span className="material-icons">north_west</span>
-);
-const INDENT_MARK = (
-  <span className="material-icons">south_wast</span>
-);
+const UNINDENT_MARK = <span className="material-icons">north_west</span>;
+const INDENT_MARK = <span className="material-icons">south_wast</span>;
 const EVAL_MARK = <span className="material-icons">functions</span>;
 const DONE_MARK = <span className="material-icons">done</span>; //"✓";
 const DONT_MARK = <span className="material-icons">delete</span>;
-const DETAIL_MARK = <span className="material-icons">menu</span>;
-
-let _VISIT_COUNTER = 0;
+const DETAIL_MARK = <span className="material-icons">more_vert</span>;
+const COPY_MARK = <span className="material-icons">content_copy</span>;
 
 const history_type_set = new Set<string>();
 const register_history_type = <T extends {}>(x: T) => {
@@ -104,17 +95,6 @@ class History<T> {
   };
 }
 
-const cache_of = (caches: types.ICaches, node_id: types.TNodeId) => {
-  return caches[node_id] === undefined
-    ? (caches[node_id] = {
-        total_time: -1,
-        percentiles: [],
-        visited: -1,
-        show_detail: false,
-      })
-    : caches[node_id];
-};
-
 const _stop = (draft: Draft<types.IState>) => {
   if (draft.data.current_entry !== null) {
     const e = draft.data.kvs[draft.data.current_entry];
@@ -162,7 +142,6 @@ const emptyStateOf = (): types.IState => {
       version: 12,
     },
     caches: {},
-    saveSuccess: true,
   };
 };
 
@@ -186,7 +165,10 @@ const doLoad = createAsyncThunk("doLoad", async () => {
   const data: any = await resp.json();
   const record_if_false = types.record_if_false_of();
   if (types.is_IData(data, record_if_false)) {
-    return { data, caches: {}, saveSuccess: true };
+    return {
+      data,
+      caches: {},
+    };
   } else {
     console.warn(record_if_false.path);
     return null;
@@ -204,7 +186,6 @@ const delete_edge_action = register_save_type(
 const new_ = register_save_type(
   register_history_type(createAction<types.TNodeId>("new_")),
 );
-const setSaveSuccess = createAction<boolean>("setSaveSuccess");
 const flipShowTodoOnly = register_save_type(
   register_history_type(createAction("flipShowTodoOnly")),
 );
@@ -282,6 +263,16 @@ const show_path_to_selected_node = register_save_type(
     createAction<types.TNodeId>("show_path_to_selected_node"),
   ),
 );
+const set_edge_type_action = register_save_type(
+  register_history_type(
+    createAction<{ edge_id: types.TEdgeId; edge_type: types.TEdgeType }>(
+      "set_edge_type_action",
+    ),
+  ),
+);
+const add_edges_action = register_save_type(
+  register_history_type(createAction<types.IEdge[]>("add_edges_action")),
+);
 
 const rootReducer = createReducer(emptyStateOf(), (builder) => {
   const ac = builder.addCase;
@@ -320,13 +311,17 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   });
   ac(delete_edge_action, (state, action) => {
     const edge_id = action.payload;
-    if (!checks.is_deletable_edge(edge_id, state)) {
-      toast.add("error", `Edge ${edge_id} cannot be deleted.`);
+    if (checks.is_deletable_edge(edge_id, state)) {
+      const edge = state.data.edges[edge_id];
+      deleteAtVal(state.data.kvs[edge.p].children, edge_id);
+      deleteAtVal(state.data.kvs[edge.c].parents, edge_id);
+      delete state.data.edges[edge_id];
+    } else {
+      toast.add(
+        "error",
+        `Edge ${state.data.edges[edge_id]} cannot be deleted.`,
+      );
     }
-    const edge = state.data.edges[edge_id];
-    deleteAtVal(state.data.kvs[edge.p].children, edge_id);
-    deleteAtVal(state.data.kvs[edge.c].parents, edge_id);
-    delete state.data.edges[edge_id];
   });
   ac(new_, (state, action) => {
     const parent = action.payload;
@@ -342,9 +337,6 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     state.data.kvs[parent].children.push(edge_id);
     state.data.queue.push(node_id);
   });
-  ac(setSaveSuccess, (state, action) => {
-    state.saveSuccess = action.payload;
-  });
   // todo: Handle doLoad.rejected.
   ac(doLoad.fulfilled, (state, action) => {
     if (action.payload !== null) {
@@ -357,8 +349,10 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   });
   ac(flipShowDetail, (state, action) => {
     const k = action.payload;
-    cache_of(state.caches, k).show_detail = !cache_of(state.caches, k)
-      .show_detail;
+    types.cache_of(state.caches, k).show_detail = !types.cache_of(
+      state.caches,
+      k,
+    ).show_detail;
   });
   ac(start, (state, action) => {
     const k = action.payload;
@@ -560,47 +554,96 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   ac(show_path_to_selected_node, (state, action) => {
     _show_path_to_selected_node(state, action.payload);
   });
+  ac(set_edge_type_action, (state, action) => {
+    if (!checks.is_deletable_edge(action.payload.edge_id, state)) {
+      toast.add(
+        "error",
+        `${action} is not applicable to Edge${
+          state.data.edges[action.payload.edge_id]
+        }.`,
+      );
+    }
+    state.data.edges[action.payload.edge_id].t = action.payload.edge_type;
+  });
+  ac(add_edges_action, (state, action) => {
+    for (const edge of action.payload) {
+      if (edge.p in state.data.kvs && edge.c in state.data.kvs) {
+        if (checks.has_edge(edge.p, edge.c, state)) {
+          toast.add(
+            "error",
+            `${JSON.stringify(action)}: Edges for ${JSON.stringify(
+              edge,
+            )} already exist.`,
+          );
+        } else {
+          const edge_id = new_edge_id_of(state);
+          state.data.edges[edge_id] = edge;
+          state.data.kvs[edge.c].parents.unshift(edge_id);
+          state.data.kvs[edge.p].children.unshift(edge_id);
+          if (checks.has_cycle(edge_id, state)) {
+            delete state.data.edges[edge_id];
+            state.data.kvs[edge.c].parents.splice(0, 1);
+            state.data.kvs[edge.p].children.splice(0, 1);
+            toast.add(
+              "error",
+              `${JSON.stringify(action)}: Detected a cycle for ${JSON.stringify(
+                edge,
+              )}.`,
+            );
+          } else {
+            toast.add("info", `Added a edge ${edge.p} -> ${edge.c}.`);
+          }
+        }
+      } else {
+        toast.add(
+          "error",
+          `${JSON.stringify(action)}: Nodes for ${JSON.stringify(
+            edge,
+          )} does not exist.`,
+        );
+      }
+    }
+  });
 });
 
 const App = () => {
-  const root = useSelector((state) => {
-    return state.data.root;
-  });
-  const [filter_query, set_filter_query] = React.useState("");
-  const [filter_query2, set_filter_query2] = React.useState("");
+  const [node_filter_query_fast, set_node_filter_query_fast] =
+    React.useState("");
+  const [node_filter_query_slow, set_node_filter_query_slow] =
+    React.useState("");
+  const [node_ids, set_node_ids] = React.useState("");
   const el = React.useMemo(
     () => (
       <>
         <Menu />
-        <div className="flex w-full gap-x-8" style={{ marginTop: MENU_HEIGHT }}>
-          <div
-            className={`overflow-y-auto pl-[1em] shrink-0 pt-[1em]`}
-            style={{ height: `calc(100vh - ${MENU_HEIGHT})` }}
-          >
-            <QueueColumn />
-          </div>
-          <div
-            className={`overflow-y-auto pl-[1em] shrink-0 pt-[1em]`}
-            style={{ height: `calc(100vh - ${MENU_HEIGHT})` }}
-          >
-            <TreeNode node_id={root} />
-          </div>
-        </div>
+        <Body />
       </>
     ),
-    [root],
+    [],
   );
   return (
-    <SetFilterQueryContext.Provider value={set_filter_query}>
-      <FilterQueryContext.Provider value={filter_query}>
-        <SetFilterQueryContext2.Provider value={set_filter_query2}>
-          <FilterQueryContext2.Provider value={filter_query2}>
-            {el}
-            {toast.component}
-          </FilterQueryContext2.Provider>
-        </SetFilterQueryContext2.Provider>
-      </FilterQueryContext.Provider>
-    </SetFilterQueryContext.Provider>
+    <set_node_filter_query_slow_context.Provider
+      value={set_node_filter_query_slow}
+    >
+      <set_node_filter_query_fast_context.Provider
+        value={set_node_filter_query_fast}
+      >
+        <set_node_ids_context.Provider value={set_node_ids}>
+          <node_ids_context.Provider value={node_ids}>
+            <node_filter_query_slow_context.Provider
+              value={node_filter_query_slow}
+            >
+              <node_filter_query_fast_context.Provider
+                value={node_filter_query_fast}
+              >
+                {el}
+                {toast.component}
+              </node_filter_query_fast_context.Provider>
+            </node_filter_query_slow_context.Provider>
+          </node_ids_context.Provider>
+        </set_node_ids_context.Provider>
+      </set_node_filter_query_fast_context.Provider>
+    </set_node_filter_query_slow_context.Provider>
   );
 };
 
@@ -625,27 +668,6 @@ const Menu = () => {
   const _load = useCallback(() => {
     dispatch(doLoad());
   }, [dispatch]);
-  const filter_query = React.useContext(FilterQueryContext);
-  const set_filter_query = React.useContext(SetFilterQueryContext);
-  const set_filter_query2 = React.useContext(SetFilterQueryContext2);
-  const handle_change = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const v = e.target.value;
-      set_filter_query(v);
-      React.startTransition(() => {
-        set_filter_query2(v);
-      });
-    },
-    [set_filter_query, set_filter_query2],
-  );
-  const clear_input = useCallback(() => {
-    const s = "";
-    set_filter_query(s);
-    React.startTransition(() => {
-      set_filter_query2(s);
-    });
-  }, [set_filter_query, set_filter_query2]);
-
   return (
     <div
       className={`flex items-center fixed z-[999999] pl-[1em] gap-x-[0.25em] w-full top-0  bg-gray-200 dark:bg-gray-900`}
@@ -675,17 +697,103 @@ const Menu = () => {
       <button className="btn-icon" arial-label="Sync." onClick={_load}>
         <span className="material-icons">refresh</span>
       </button>
-      <div className="flex items-center border border-solid border-gray-400">
-        <input
-          value={filter_query}
-          onChange={handle_change}
-          className="h-[2em] border-none"
-        />
-        <button className="btn-icon" onClick={clear_input}>
-          {consts.DELETE_MARK}
-        </button>
-      </div>
+      <NodeFilterQueryInput />
+      <NodeIdsInput />
     </div>
+  );
+};
+
+const NodeFilterQueryInput = () => {
+  const set_node_filter_query_fast = React.useContext(
+    set_node_filter_query_fast_context,
+  );
+  const set_node_filter_query_slow = React.useContext(
+    set_node_filter_query_slow_context,
+  );
+  const node_filter_query = React.useContext(node_filter_query_fast_context);
+  const handle_change = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const v = e.target.value;
+      set_node_filter_query_fast(v);
+      React.startTransition(() => {
+        set_node_filter_query_slow(v);
+      });
+    },
+    [set_node_filter_query_fast, set_node_filter_query_slow],
+  );
+  const clear_input = useCallback(() => {
+    const v = "";
+    set_node_filter_query_fast(v);
+    React.startTransition(() => {
+      set_node_filter_query_slow(v);
+    });
+  }, [set_node_filter_query_fast, set_node_filter_query_slow]);
+  return (
+    <div className="flex items-center border border-solid border-gray-400">
+      <input
+        value={node_filter_query}
+        onChange={handle_change}
+        className="h-[2em] border-none"
+      />
+      <button className="btn-icon" onClick={clear_input}>
+        {consts.DELETE_MARK}
+      </button>
+    </div>
+  );
+};
+
+const NodeIdsInput = () => {
+  const set_node_ids = React.useContext(set_node_ids_context);
+  const node_ids = React.useContext(node_ids_context);
+  const handle_change = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const v = e.target.value;
+      set_node_ids(v);
+    },
+    [set_node_ids],
+  );
+  const clear_input = useCallback(() => {
+    const v = "";
+    set_node_ids(v);
+  }, [set_node_ids]);
+  return (
+    <div className="flex items-center border border-solid border-gray-400">
+      <input
+        value={node_ids}
+        onChange={handle_change}
+        className="h-[2em] border-none"
+      />
+      <button className="btn-icon" onClick={clear_input}>
+        {consts.DELETE_MARK}
+      </button>
+    </div>
+  );
+};
+
+const Body = () => {
+  const root = useSelector((state) => {
+    return state.data.root;
+  });
+  return React.useMemo(
+    () => (
+      <>
+        <div className="flex w-full gap-x-8" style={{ marginTop: MENU_HEIGHT }}>
+          <div
+            className={`overflow-y-auto pl-[1em] shrink-0 pt-[1em]`}
+            style={{ height: `calc(100vh - ${MENU_HEIGHT})` }}
+          >
+            <QueueColumn />
+          </div>
+          <div
+            className={`overflow-y-auto pl-[1em] shrink-0 pt-[1em]`}
+            style={{ height: `calc(100vh - ${MENU_HEIGHT})` }}
+          >
+            <TreeNode node_id={root} />
+          </div>
+        </div>
+      </>
+    ),
+    [root],
   );
 };
 
@@ -773,7 +881,7 @@ const _eval_ = (draft: Draft<types.IState>, k: types.TNodeId) => {
     });
   const n_mc = 2000;
   const ts = _estimate(leaf_estimates, ratios, weights, n_mc);
-  cache_of(draft.caches, k).percentiles = [
+  types.cache_of(draft.caches, k).percentiles = [
     ts[0],
     ts[Math.round(n_mc / 10)],
     ts[Math.round(n_mc / 3)],
@@ -790,12 +898,12 @@ const _set_total_time = (
   caches: types.ICaches,
   edges: types.IEdges,
 ) => {
-  return (cache_of(caches, k).total_time = _total_time_of(
+  return (types.cache_of(caches, k).total_time = _total_time_of(
     k,
     kvs,
     caches,
     edges,
-    (_VISIT_COUNTER += 1),
+    utils.visit_counter_of(),
   ));
 };
 
@@ -806,10 +914,10 @@ const _total_time_of = (
   edges: types.IEdges,
   vid: number,
 ): number => {
-  if (cache_of(caches, k).visited === vid) {
+  if (types.cache_of(caches, k).visited === vid) {
     return 0;
   }
-  cache_of(caches, k).visited = vid;
+  types.cache_of(caches, k).visited = vid;
   const v = kvs[k];
   const r = (total: number, current: types.TEdgeId) => {
     return total + _total_time_of(edges[current].c, kvs, caches, edges, vid);
@@ -843,7 +951,7 @@ const _addTodoEntry = (
 };
 
 const _top = (draft: Draft<types.IState>, k: types.TNodeId) => {
-  _topTree(draft, k, (_VISIT_COUNTER += 1));
+  _topTree(draft, k, utils.visit_counter_of());
   _topQueue(draft, k);
 };
 
@@ -852,10 +960,10 @@ const _topTree = (
   node_id: types.TNodeId,
   vid: number,
 ) => {
-  if (cache_of(draft.caches, node_id).visited === vid) {
+  if (types.cache_of(draft.caches, node_id).visited === vid) {
     return;
   }
-  cache_of(draft.caches, node_id).visited = vid;
+  types.cache_of(draft.caches, node_id).visited = vid;
   for (const edge_id of draft.data.kvs[node_id].parents) {
     const parent_node_id = draft.data.edges[edge_id].p;
     toFront(draft.data.kvs[parent_node_id].children, edge_id);
@@ -972,23 +1080,24 @@ const TreeNodeList = (props: types.IListProps) => {
 };
 
 const TreeNode = (props: { node_id: types.TNodeId }) => {
-  const entry = React.useMemo(
-    () => <Entry node_id={props.node_id} />,
-    [props.node_id],
-  );
+  const entry = EntryOf(props.node_id);
   const show_children = useSelector(
     (state) => state.data.kvs[props.node_id].show_children,
   );
-  const child_node_ids = useSelector(
-    React.useMemo(
-      () =>
-        memoize((state) =>
-          state.data.kvs[props.node_id].children.map(
-            (edge_id) => state.data.edges[edge_id].c,
-          ),
-        ),
-      [props.node_id],
-    ),
+  const children = useSelector(
+    (state) => state.data.kvs[props.node_id].children,
+  );
+  const edges = useSelector((state) => state.data.edges);
+  const child_node_ids_of = React.useMemo(
+    () =>
+      memoize((x: { children: typeof children; edges: typeof edges }) =>
+        x.children.map((edge_id) => x.edges[edge_id].c),
+      ),
+    [],
+  );
+  const child_node_ids = React.useMemo(
+    () => child_node_ids_of({ children, edges }),
+    [children, edges, child_node_ids_of],
   );
   return React.useMemo(
     () => (
@@ -1010,27 +1119,24 @@ const QueueNode = (props: { node_id: types.TNodeId }) => {
   const is_not_todo = useSelector(
     (state) => state.data.kvs[props.node_id].status !== "todo",
   );
-  const filter_query = React.useContext(FilterQueryContext2);
+  const node_filter_query = React.useContext(node_filter_query_slow_context);
   const text = useSelector((state) => state.data.kvs[props.node_id].text);
-  const text_lower = React.useMemo(() => text.toLowerCase(), [text]);
   const should_hide = React.useMemo(() => {
     if (showTodoOnly && is_not_todo) {
       return true;
     }
-    const filter_query_lower = filter_query.toLowerCase();
-    let is_match_filter_query = true;
-    for (const q of filter_query_lower.split(" ")) {
-      if (!text_lower.includes(q)) {
-        is_match_filter_query = false;
+    const node_filter_query_lower = node_filter_query.toLowerCase();
+    const text_lower = text.toLowerCase();
+    let is_match_filter_node_query = true;
+    for (const q of node_filter_query_lower.split(" ")) {
+      if (props.node_id !== q && !text_lower.includes(q)) {
+        is_match_filter_node_query = false;
         break;
       }
     }
-    return !is_match_filter_query;
-  }, [showTodoOnly, is_not_todo, filter_query, text_lower]);
-  const entry = React.useMemo(
-    () => <Entry node_id={props.node_id} />,
-    [props.node_id],
-  );
+    return !is_match_filter_node_query;
+  }, [showTodoOnly, is_not_todo, node_filter_query, text, props.node_id]);
+  const entry = EntryOf(props.node_id);
   // className="hidden" is slower.
   return should_hide ? null : (
     <li id={`q-${props.node_id}`} className="mb-[1em] last:mb-0">
@@ -1041,17 +1147,78 @@ const QueueNode = (props: { node_id: types.TNodeId }) => {
 };
 
 const Details = (props: { node_id: types.TNodeId }) => {
-  const parents = useSelector((state) => state.data.kvs[props.node_id].parents);
-  return (
-    <>
-      <ol>
-        {parents.map((edge_id) => (
-          <li key={edge_id}>{edge_id}</li>
-        ))}
-      </ol>
-      <ChildEdgeTable node_id={props.node_id} />
-    </>
+  const [new_edge_type, set_new_edge_type] =
+    React.useState<types.TEdgeType>("strong");
+  const handle_new_edge_type_change = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const v = e.target.value;
+      if (types.is_TEdgeType(v)) {
+        set_new_edge_type(v);
+      } else {
+        toast.add("error", `Invalid edge type: ${v}`);
+      }
+    },
+    [set_new_edge_type],
   );
+  const show_detail = useSelector(
+    (state) => types.cache_of(state.caches, props.node_id).show_detail,
+  );
+  const dispatch = useDispatch();
+  const node_ids = React.useContext(node_ids_context);
+  const handle_add_parents = React.useCallback(() => {
+    dispatch(
+      add_edges_action(
+        node_ids_list_of_node_ids_string(node_ids).map((p) => ({
+          p,
+          c: props.node_id,
+          t: new_edge_type,
+        })),
+      ),
+    );
+  }, [dispatch, node_ids, new_edge_type, props.node_id]);
+  const handle_add_children = React.useCallback(() => {
+    dispatch(
+      add_edges_action(
+        node_ids_list_of_node_ids_string(node_ids).map((c) => ({
+          p: props.node_id,
+          c,
+          t: new_edge_type,
+        })),
+      ),
+    );
+  }, [dispatch, node_ids, new_edge_type, props.node_id]);
+  return show_detail ? (
+    <div className="mt-[0.5em]">
+      <div className="flex gap-x-[0.25em] items-baseline">
+        Add:
+        <select value={new_edge_type} onChange={handle_new_edge_type_change}>
+          {types.edge_type_values.map((t, i) => (
+            <option value={t} key={i}>
+              {t}
+            </option>
+          ))}
+        </select>
+        <button className="btn-icon" onClick={handle_add_parents}>
+          Parents
+        </button>
+        <button className="btn-icon" onClick={handle_add_children}>
+          Children
+        </button>
+      </div>
+      <hr className="my-[0.25em]" />
+      <ChildEdgeTable node_id={props.node_id} />
+    </div>
+  ) : null;
+};
+
+const node_ids_list_of_node_ids_string = (node_ids: string) => {
+  const seen = new Set<types.TNodeId>();
+  for (const node_id of node_ids.split(" ")) {
+    if (node_id && types.is_TNodeId(node_id) && !seen.has(node_id)) {
+      seen.add(node_id);
+    }
+  }
+  return Array.from(seen);
 };
 
 const ChildEdgeTable = (props: { node_id: types.TNodeId }) => {
@@ -1067,25 +1234,50 @@ const ChildEdgeTable = (props: { node_id: types.TNodeId }) => {
   );
 };
 const EdgeRow = (props: { edge_id: types.TEdgeId }) => {
-  const is_deletable = useSelector(
+  const selected = useSelector(
     React.useMemo(
-      () => memoize((state) => checks.is_deletable_edge(props.edge_id, state)),
+      () =>
+        memoize((state) => {
+          return {
+            is_deletable: checks.is_deletable_edge(props.edge_id, state),
+            edge_type: state.data.edges[props.edge_id].t,
+          };
+        }),
       [props.edge_id],
     ),
   );
   const dispatch = useDispatch();
   const delete_edge = React.useCallback(
     () => dispatch(delete_edge_action(props.edge_id)),
-    [props.edge_id],
+    [props.edge_id, dispatch],
+  );
+  const set_edge_type = React.useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const edge_type = e.target.value;
+      if (types.is_TEdgeType(edge_type)) {
+        dispatch(
+          set_edge_type_action({
+            edge_id: props.edge_id,
+            edge_type,
+          }),
+        );
+      } else {
+        toast.add("error", `Invalid edge type: ${edge_type}`);
+      }
+    },
+    [props.edge_id, dispatch],
   );
   // set edge type
-  // filter edges
   return React.useMemo(
     () => (
       <tr>
         <td className="p-[0.25em]">{props.edge_id}</td>
         <td className="p-[0.25em]">
-          <select disabled={!is_deletable}>
+          <select
+            disabled={!selected.is_deletable}
+            value={selected.edge_type}
+            onChange={set_edge_type}
+          >
             {types.edge_type_values.map((t, i) => (
               <option value={t} key={i}>
                 {t}
@@ -1094,13 +1286,17 @@ const EdgeRow = (props: { edge_id: types.TEdgeId }) => {
           </select>
         </td>
         <td className="p-[0.25em]">
-          <button className="btn-icon" onClick={delete_edge}>
+          <button
+            className="btn-icon"
+            onClick={delete_edge}
+            disabled={!selected.is_deletable}
+          >
             {consts.DELETE_MARK}
           </button>
         </td>
       </tr>
     ),
-    [props.edge_id, is_deletable],
+    [props.edge_id, selected, delete_edge, set_edge_type],
   );
 };
 const EdgeRowOf = memoize1((edge_id: types.TEdgeId) => (
@@ -1109,22 +1305,24 @@ const EdgeRowOf = memoize1((edge_id: types.TEdgeId) => (
 
 const Entry = (props: { node_id: types.TNodeId }) => {
   const status = useSelector((state) => state.data.kvs[props.node_id].status);
-  const has_parent = useSelector(
-    (state) => !!state.data.kvs[props.node_id].parents.length,
+  const has_parent = useSelector((state) =>
+    Boolean(state.data.kvs[props.node_id].parents.length),
   );
-  const cache = useSelector((state) => cache_of(state.caches, props.node_id));
+  const cache = useSelector((state) =>
+    types.cache_of(state.caches, props.node_id),
+  );
   const running = useSelector(
     (state) => props.node_id === state.data.current_entry,
   );
-  const noTodo = useSelector(
-    (state) =>
-      _children_of(props.node_id, "todo", state.data.kvs, state.data.edges)
-        .length === 0,
+  const noTodo = false;
+  // const noTodo = useSelector(
+  //   (state) =>
+  //     _children_of(props.node_id, "todo", state.data.kvs, state.data.edges)
+  //       .length === 0,
+  // );
+  const has_children = useSelector((state) =>
+    Boolean(state.data.kvs[props.node_id].children.length),
   );
-  const has_children = useSelector((state) => {
-    const v = state.data.kvs[props.node_id];
-    return 0 < v.children.length;
-  });
   const show_children = useSelector((state) => {
     return state.data.kvs[props.node_id].show_children;
   });
@@ -1132,10 +1330,6 @@ const Entry = (props: { node_id: types.TNodeId }) => {
   const on_click_total_time = useCallback(() => {
     dispatch(set_total_time(props.node_id));
   }, [dispatch, props.node_id]);
-  const details = React.useMemo(
-    () => (cache.show_detail ? <Details node_id={props.node_id} /> : null),
-    [cache.show_detail, props.node_id],
-  );
 
   return (
     <div
@@ -1159,22 +1353,23 @@ const Entry = (props: { node_id: types.TNodeId }) => {
           !cache.show_detail && "opacity-40 hover:opacity-100",
         )}
       >
-        {running
-          ? stopButtonOf(dispatch, props.node_id)
-          : startButtonOf(dispatch, props.node_id)}
-        {EstimationInputOf(props.node_id)}
         <span onClick={on_click_total_time}>
           {cache.total_time < 0 ? "-" : digits1(cache.total_time / 3600)}
         </span>
+        {EstimationInputOf(props.node_id)}
+        {running
+          ? stopButtonOf(dispatch, props.node_id)
+          : startButtonOf(dispatch, props.node_id)}
         {todoToDoneButtonOf(dispatch, props.node_id)}
         {todoToDontButtonOf(dispatch, props.node_id)}
         {evalButtonOf(dispatch, props.node_id)}
         {topButtonOf(dispatch, props.node_id)}
         {moveUpButtonOf(dispatch, props.node_id)}
         {moveDownButtonOf(dispatch, props.node_id)}
+        {CopyNodeIdButton_of(props.node_id)}
         {showDetailButtonOf(dispatch, props.node_id)}
       </div>
-      {details}
+      <Details node_id={props.node_id} />
     </div>
   );
   return (
@@ -1240,6 +1435,9 @@ const Entry = (props: { node_id: types.TNodeId }) => {
     </div>
   );
 };
+const EntryOf = memoize1((node_id: types.TNodeId) => (
+  <Entry node_id={node_id} />
+));
 
 const _estimate = (
   estimates: number[],
@@ -1263,15 +1461,21 @@ const _estimate = (
 };
 
 const lastRangeOf = (ranges: types.IRange[]): null | types.IRange => {
-  return ranges.length
-    ? last(ranges).end === null
-      ? lastRangeOf(butLast(ranges))
-      : last(ranges)
-    : null;
-};
-
-const butLast = <T extends {}>(xs: T[]): T[] => {
-  return xs.length ? xs.slice(0, -1) : xs;
+  const n = ranges.length;
+  if (n < 1) {
+    return null;
+  } else {
+    const last = ranges[n - 1];
+    if (last.end === null) {
+      if (n - 2 < 0) {
+        return null;
+      } else {
+        return ranges[n - 2];
+      }
+    } else {
+      return last;
+    }
+  }
 };
 
 const focus = <T extends HTMLElement>(r: null | T) => {
@@ -1643,6 +1847,24 @@ const evalButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
   </button>
 ));
 
+const CopyNodeIdButton = (props: { node_id: types.TNodeId }) => {
+  const clipboard = utils.useClipboard(props.node_id);
+  const set_node_ids = React.useContext(set_node_ids_context);
+  const handle_click = React.useCallback(() => {
+    clipboard.copy();
+    set_node_ids((node_ids: string) => props.node_id + " " + node_ids);
+  }, [props.node_id, set_node_ids, clipboard]);
+  return (
+    <button className="btn-icon" onClick={handle_click}>
+      {clipboard.is_copied ? DONE_MARK : COPY_MARK}
+    </button>
+  );
+};
+
+const CopyNodeIdButton_of = memoize1((node_id: types.TNodeId) => (
+  <CopyNodeIdButton node_id={node_id} />
+));
+
 const setEstimateOf = memoize2(
   (dispatch: AppDispatch, k: types.TNodeId) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1763,24 +1985,24 @@ const getAndSetHeight = (el: HTMLTextAreaElement) => {
 const LastRangeOf = memoize1((k: types.TNodeId) => <LastRange k={k} />);
 
 const LastRange = (props: { k: types.TNodeId }) => {
-  const status = useSelector((state) => state.data.kvs[props.k].status);
-  const lastRangeValue = useSelector((state) => {
-    const v = state.data.kvs[props.k];
-    const lastRange = lastRangeOf(v.ranges);
-    return lastRange !== null && lastRange.end !== null && v.parents.length
-      ? (lastRange.end - lastRange.start) / 3600
-      : null;
+  const last_range = useSelector((state) => {
+    return lastRangeOf(state.data.kvs[props.k].ranges);
   });
   const dispatch = useDispatch();
-  return lastRangeValue === null ? null : (
-    <input
-      type="number"
-      step="any"
-      value={lastRangeValue}
-      onChange={setLastRangeOf(dispatch, props.k)}
-      className={status}
-    />
-  );
+  return React.useMemo(() => {
+    const last_range_value =
+      last_range !== null && last_range.end !== null
+        ? (last_range.end - last_range.start) / 3600
+        : null;
+    return last_range_value === null ? null : (
+      <input
+        type="number"
+        step="any"
+        value={last_range_value}
+        onChange={setLastRangeOf(dispatch, props.k)}
+      />
+    );
+  }, [last_range, dispatch, props.k]);
 };
 
 const undoable = (
@@ -1837,7 +2059,6 @@ const saveStateMiddlewareOf = (pred: (type_: string) => boolean) => {
           },
           body: JSON.stringify(store.getState().data),
         }).then((r) => {
-          store.dispatch(setSaveSuccess(r.ok));
           if (!r.ok) {
             toast.add("error", "Failed to save changes.", 10000);
           }
@@ -1872,10 +2093,21 @@ type AppDispatch = typeof store.dispatch;
 const useDispatch = () => _useDispatch<AppDispatch>();
 const useSelector: TypedUseSelectorHook<RootState> = _useSelector;
 
-const FilterQueryContext = React.createContext("");
-const SetFilterQueryContext = React.createContext((_: string) => {});
-const FilterQueryContext2 = React.createContext("");
-const SetFilterQueryContext2 = React.createContext((_: string) => {});
+type TSetStateArg<T> = T | ((prev: T) => T);
+
+const set_node_filter_query_fast_context = React.createContext(
+  (_: TSetStateArg<string>) => {},
+);
+const set_node_filter_query_slow_context = React.createContext(
+  (_: TSetStateArg<string>) => {},
+);
+const node_filter_query_fast_context = React.createContext("");
+const node_filter_query_slow_context = React.createContext("");
+
+const set_node_ids_context = React.createContext(
+  (_: TSetStateArg<string>) => {},
+);
+const node_ids_context = React.createContext("");
 
 export const main = () => {
   const container = document.getElementById("root");
