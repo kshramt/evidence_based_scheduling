@@ -33,6 +33,7 @@ const START_MARK = <span className="material-icons">play_arrow</span>;
 const ADD_MARK = <span className="material-icons">add</span>;
 const STOP_MARK = <span className="material-icons">stop</span>;
 const TOP_MARK = <span className="material-icons">arrow_upward</span>;
+const UNDO_MARK = <span className="material-icons">undo</span>;
 const MOVE_UP_MARK = <span className="material-icons">north</span>;
 const MOVE_DOWN_MARK = <span className="material-icons">south</span>;
 const EVAL_MARK = <span className="material-icons">functions</span>;
@@ -188,7 +189,7 @@ const flipShowDetail = createAction<types.TNodeId>("flipShowDetail");
 const start_action = register_save_type(
   register_history_type(createAction<types.TNodeId>("start_action")),
 );
-const top = register_save_type(
+const top_action = register_save_type(
   register_history_type(createAction<types.TNodeId>("top")),
 );
 const smallestToTop = register_save_type(
@@ -249,7 +250,7 @@ const doneToTodo = register_save_type(
 const dontToTodo = register_save_type(
   register_history_type(createAction<types.TNodeId>("dontToTodo")),
 );
-const swap_show_children = register_save_type(
+const toggle_show_children = register_save_type(
   register_history_type(createAction<types.TNodeId>("swap_show_children")),
 );
 const show_path_to_selected_node = register_save_type(
@@ -369,7 +370,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       _show_path_to_selected_node(state, node_id);
     }
   });
-  ac(top, (state, action) => {
+  ac(top_action, (state, action) => {
     _top(state, action.payload);
   });
   ac(smallestToTop, (state) => {
@@ -516,7 +517,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     const k = action.payload;
     _dontToTodo(state, k);
   });
-  ac(swap_show_children, (state, action) => {
+  ac(toggle_show_children, (state, action) => {
     state.data.kvs[action.payload].show_children =
       !state.data.kvs[action.payload].show_children;
   });
@@ -646,9 +647,9 @@ const Menu = () => {
       <button className="btn-icon" onClick={stop_all}>
         <span className="material-icons">{STOP_MARK}</span>
       </button>
-      {newButtonOf(dispatch, root)}
+      {NewButton_of(dispatch, root)}
       <button className="btn-icon" arial-label="Undo." onClick={_undo}>
-        <span className="material-icons">undo</span>
+        {UNDO_MARK}
       </button>
       <button className="btn-icon" arial-label="Redo." onClick={_redo}>
         <span className="material-icons">redo</span>
@@ -1018,7 +1019,7 @@ const QueueColumn = () => {
 const TreeNodeList = (props: types.IListProps) => {
   // spacing="0.5rem" paddingLeft="1rem"
   return props.node_id_list.length ? (
-    <ol>
+    <ol className="mt-[1em]">
       {props.node_id_list.map((node_id) => {
         return (
           <li key={node_id}>
@@ -1111,9 +1112,6 @@ const Details = (props: { node_id: types.TNodeId }) => {
     },
     [set_new_edge_type],
   );
-  const show_detail = useSelector(
-    (state) => types.cache_of(state.caches, props.node_id).show_detail,
-  );
   const dispatch = useDispatch();
   const node_ids = React.useContext(node_ids_context);
   const handle_add_parents = React.useCallback(() => {
@@ -1138,7 +1136,7 @@ const Details = (props: { node_id: types.TNodeId }) => {
       ),
     );
   }, [dispatch, node_ids, new_edge_type, props.node_id]);
-  return show_detail ? (
+  return (
     <div className="mt-[0.5em]">
       {deleteButtonOf(dispatch, props.node_id)}
       <hr className="my-[0.25em]" />
@@ -1161,7 +1159,7 @@ const Details = (props: { node_id: types.TNodeId }) => {
       <hr className="my-[0.25em]" />
       <ChildEdgeTable node_id={props.node_id} />
     </div>
-  ) : null;
+  );
 };
 
 const node_ids_list_of_node_ids_string = (node_ids: string) => {
@@ -1258,9 +1256,7 @@ const EdgeRowOf = memoize1((edge_id: types.TEdgeId) => (
 
 const Entry = (props: { node_id: types.TNodeId }) => {
   const status = useSelector((state) => state.data.kvs[props.node_id].status);
-  const has_parent = useSelector((state) =>
-    Boolean(state.data.kvs[props.node_id].parents.length),
-  );
+  const root = useSelector((state) => state.data.root);
   const cache = useSelector((state) =>
     types.cache_of(state.caches, props.node_id),
   );
@@ -1269,122 +1265,77 @@ const Entry = (props: { node_id: types.TNodeId }) => {
     const last_range = last(ranges);
     return last_range && last_range.end === null;
   }, [ranges]);
-  const noTodo = false;
-  // const noTodo = useSelector(
-  //   (state) =>
-  //     _children_of(props.node_id, "todo", state.data.kvs, state.data.edges)
-  //       .length === 0,
-  // );
-  const has_children = useSelector((state) =>
-    Boolean(state.data.kvs[props.node_id].children.length),
+  const children = useSelector(
+    (state) => state.data.kvs[props.node_id].children,
   );
+  const edges = useSelector((state) => state.data.edges);
   const show_children = useSelector((state) => {
     return state.data.kvs[props.node_id].show_children;
   });
   const dispatch = useDispatch();
+
   const on_click_total_time = useCallback(() => {
     dispatch(set_total_time(props.node_id));
   }, [dispatch, props.node_id]);
+  const handle_toggle_show_children = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (e.target === e.currentTarget) {
+        dispatch(toggle_show_children(props.node_id));
+      }
+    },
+    [props.node_id, dispatch],
+  );
+
+  const has_strong_children = children.some(
+    (edge_id) => edges[edge_id].t === "strong",
+  );
+  const has_hidden_leaf = Boolean(children.length) && !show_children;
+  const is_root = props.node_id === root;
 
   return (
     <div
       className={utils.join(
-        running
-          ? "running"
-          : has_children && !show_children
-          ? "hidden-leafs"
-          : undefined,
+        running ? "running" : has_hidden_leaf ? "hidden-leafs" : undefined,
       )}
-      onDoubleClick={(e) => {
-        if (e.target === e.currentTarget) {
-          dispatch(swap_show_children(props.node_id));
-        }
-      }}
+      onDoubleClick={handle_toggle_show_children}
     >
-      <TextArea k={props.node_id} />
+      {is_root || <TextArea k={props.node_id} />}
       <div
         className={utils.join(
           "flex gap-x-[0.25em] items-baseline mt-[0.25em]",
           !cache.show_detail && "opacity-40 hover:opacity-100",
         )}
       >
-        <span onClick={on_click_total_time}>
+        <span onClick={on_click_total_time} className="opacity-100">
           {cache.total_time < 0 ? "-" : digits1(cache.total_time / 3600)}
         </span>
-        {EstimationInputOf(props.node_id)}
-        {running
-          ? stopButtonOf(dispatch, props.node_id)
-          : startButtonOf(dispatch, props.node_id)}
-        {todoToDoneButtonOf(dispatch, props.node_id)}
-        {todoToDontButtonOf(dispatch, props.node_id)}
-        {evalButtonOf(dispatch, props.node_id)}
-        {topButtonOf(dispatch, props.node_id)}
-        {moveUpButtonOf(dispatch, props.node_id)}
-        {moveDownButtonOf(dispatch, props.node_id)}
-        {CopyNodeIdButton_of(props.node_id)}
-        {showDetailButtonOf(dispatch, props.node_id)}
-      </div>
-      <Details node_id={props.node_id} />
-    </div>
-  );
-  return (
-    <div
-      className={utils.join(
-        running
-          ? ".running"
-          : has_children && !show_children
-          ? ".hidden-leafs"
-          : undefined,
-      )}
-      onDoubleClick={(e) => {
-        if (e.target === e.currentTarget) {
-          dispatch(swap_show_children(props.node_id));
-        }
-      }}
-    >
-      {has_parent ? (
-        <>
-          {status === "todo"
-            ? newButtonOf(dispatch, props.node_id)
-            : status === "done"
-            ? doneToTodoButtonOf(dispatch, props.node_id)
-            : dontToTodoButtonOf(dispatch, props.node_id)}
-          <TextArea k={props.node_id} />
-          {EstimationInputOf(props.node_id)}
-          {running
+        {is_root || EstimationInputOf(props.node_id)}
+        {is_root ||
+          (running
             ? stopButtonOf(dispatch, props.node_id)
-            : startButtonOf(dispatch, props.node_id)}
-        </>
-      ) : null}
-      <span onClick={on_click_total_time}>
-        {cache.total_time < 0 ? "-" : digits1(cache.total_time / 3600)}
-      </span>
-      {has_parent && status === "todo"
-        ? topButtonOf(dispatch, props.node_id)
-        : null}
-      {status === "todo" ? evalButtonOf(dispatch, props.node_id) : null}
-      {has_parent ? (
-        <>
-          {noTodo && status === "todo" ? (
-            <>
-              {todoToDoneButtonOf(dispatch, props.node_id)}
-              {todoToDontButtonOf(dispatch, props.node_id)}
-            </>
-          ) : null}
-          {LastRangeOf(props.node_id)}
-          {showDetailButtonOf(dispatch, props.node_id)}
-          {cache.show_detail ? (
-            status === "todo" ? (
-              <>
-                {moveUpButtonOf(dispatch, props.node_id)}
-                {moveDownButtonOf(dispatch, props.node_id)}
-                {has_children ? null : deleteButtonOf(dispatch, props.node_id)}
-              </>
-            ) : null
-          ) : null}
-        </>
-      ) : null}
-      {status === "todo" ? cache.percentiles.map(digits1).join(" ") : null}
+            : startButtonOf(dispatch, props.node_id))}
+        {is_root ||
+          has_strong_children ||
+          status !== "todo" ||
+          todoToDoneButtonOf(dispatch, props.node_id)}
+        {is_root ||
+          has_strong_children ||
+          status !== "todo" ||
+          todoToDontButtonOf(dispatch, props.node_id)}
+        {is_root ||
+          (status === "done" && doneToTodoButtonOf(dispatch, props.node_id))}
+        {is_root ||
+          (status === "dont" && dontToTodoButtonOf(dispatch, props.node_id))}
+        {status === "todo" && evalButtonOf(dispatch, props.node_id)}
+        {is_root || topButtonOf(dispatch, props.node_id)}
+        {is_root || moveUpButtonOf(dispatch, props.node_id)}
+        {is_root || moveDownButtonOf(dispatch, props.node_id)}
+        {CopyNodeIdButton_of(props.node_id)}
+        {status === "todo" && NewButton_of(dispatch, props.node_id)}
+        {showDetailButtonOf(dispatch, props.node_id)}
+        {status === "todo" && cache.percentiles.map(digits1).join(" ")}
+      </div>
+      {cache.show_detail && <Details node_id={props.node_id} />}
     </div>
   );
 };
@@ -1601,7 +1552,7 @@ const doneToTodoButtonOf = memoize2(
         dispatch(doneToTodo(k));
       }}
     >
-      {DONE_MARK}
+      {UNDO_MARK}
     </button>
   ),
 );
@@ -1614,12 +1565,12 @@ const dontToTodoButtonOf = memoize2(
         dispatch(dontToTodo(k));
       }}
     >
-      {DONT_MARK}
+      {UNDO_MARK}
     </button>
   ),
 );
 
-const newButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => {
+const NewButton_of = memoize2((dispatch: AppDispatch, k: types.TNodeId) => {
   const _focusTextAreaOfTheNewTodo = (
     dispatch: AppDispatch,
     getState: () => types.IState,
@@ -1632,7 +1583,6 @@ const newButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => {
   return (
     <button
       className="btn-icon"
-      arial-label="Add a new entry."
       onClick={() => {
         dispatch(new_action(k));
         dispatch(_focusTextAreaOfTheNewTodo);
@@ -1674,7 +1624,7 @@ const topButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
   <button
     className="btn-icon"
     onClick={() => {
-      dispatch(top(k));
+      dispatch(top_action(k));
     }}
   >
     {TOP_MARK}
