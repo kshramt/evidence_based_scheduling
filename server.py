@@ -1,11 +1,9 @@
 import datetime
 import json
 import os
+import urllib
 
 import flask
-
-
-LATEST_VERSION = 5
 
 
 class Err(Exception):
@@ -26,8 +24,13 @@ def jp(path, *more):
     'a'
     >>> jp("a", "/b", "c")
     'a/b/c'
+    >>> jp("gs://b", "c//d")
+    'gs://b/c/d'
     """
-    return os.path.normpath(os.path.sep.join((path, os.path.sep.join(more))))
+    puri = urllib.parse.urlparse(os.path.sep.join((path, os.path.sep.join(more))))
+    return urllib.parse.ParseResult(
+        **{**puri._asdict(), **dict(path=os.path.normpath(puri.path))}
+    ).geturl()
 
 
 DATA_DIR = os.environ.get("EBS_DATA_DIR", "data")
@@ -49,16 +52,120 @@ def _update_data_version(data):
     elif data["version"] == 4:
         return _update_data_version(_v5_of_v4(data))
     elif data["version"] == 5:
+        return _update_data_version(_v6_of_v5(data))
+    elif data["version"] == 6:
+        return _update_data_version(_v7_of_v6(data))
+    elif data["version"] == 7:
+        return _update_data_version(_v8_of_v7(data))
+    elif data["version"] == 8:
+        return _update_data_version(_v9_of_v8(data))
+    elif data["version"] == 9:
+        return _update_data_version(_v10_of_v9(data))
+    elif data["version"] == 10:
+        return _update_data_version(_v11_of_v10(data))
+    elif data["version"] == 11:
+        return _update_data_version(_v12_of_v11(data))
+    elif data["version"] == 12:
         return data
     else:
         raise Err(f"Unsupported data version: {data.get('version', 'None')}")
+
+
+def _v12_of_v11(data):
+    for k, v in data["kvs"].items():
+        del v["style"]["width"]
+        if "show_children" not in v:
+            v["show_children"] = False
+    del data["current_entry"]
+    data["nodes"] = data["kvs"]
+    del data["kvs"]
+    data["version"] = 12
+    return data
+
+
+def _v11_of_v10(data):
+    for k, v in data["kvs"].items():
+        if "show_detail" in v:
+            del v["show_detail"]
+    data["version"] = 11
+    return data
+
+
+def _v10_of_v9(data):
+    for k, v in data["kvs"].items():
+        v["children"] = v["todo"] + v["done"] + v["dont"]
+        del v["todo"]
+        del v["done"]
+        del v["dont"]
+    data["version"] = 10
+    return data
+
+
+def _v9_of_v8(data):
+    edges = dict()
+    for v in data["kvs"].values():
+        v["parents"] = []
+    for k, v in data["kvs"].items():
+        for br in ("todo", "done", "dont"):
+            brs = []
+            for ck in v[br]:
+                data["id_seq"] += 1
+                edge_id = _base36(data["id_seq"])
+                edges[edge_id] = dict(p=k, c=ck, t="strong")
+                brs.append(edge_id)
+                data["kvs"][ck]["parents"].append(edge_id)
+            v[br] = brs
+    data["edges"] = edges
+    data["version"] = 9
+    return data
+
+
+def _v8_of_v7(data):
+    tid_of_sid = dict()
+    sid_of_tid = dict()
+    kmax = 0
+    for k, v in enumerate(sorted(data["kvs"].keys())):
+        k += 1
+        kmax = k
+        sid = _base36(k)
+        tid_of_sid[sid] = v
+        sid_of_tid[v] = sid
+    data["kvs"] = {sid_of_tid[k]: v for k, v in data["kvs"].items()}
+    for br in ("todo", "done", "dont", "parents"):
+        for v in data["kvs"].values():
+            v[br] = [sid_of_tid[k] for k in v[br]]
+    data["queue"] = [sid_of_tid[k] for k in data["queue"]]
+    data["root"] = sid_of_tid[data["root"]]
+    data["id_seq"] = kmax
+    data["version"] = 8
+    return data
+
+
+def _v7_of_v6(data):
+    del data["selected_node_id"]
+    for k, v in data["kvs"].items():
+        v["show_children"] = False
+
+        if v["parent"] is None:
+            v["parents"] = []
+        else:
+            v["parents"] = [v["parent"]]
+        del v["parent"]
+    data["version"] = 7
+    return data
+
+
+def _v6_of_v5(data):
+    data["selected_node_id"] = data["root"]
+    data["version"] = 6
+    return data
 
 
 def _v5_of_v4(data):
     for k, v in data["kvs"].items():
         v["style"] = dict(width=v["width"], height=v["height"])
         del v["width"], v["height"]
-    data["version"] = LATEST_VERSION
+    data["version"] = 5
     return data
 
 
@@ -128,6 +235,26 @@ def _v1_of_vnone(data):
     return data
 
 
+def _base36(x: int):
+    cs = "0123456789abcdefghijklmnopqrstuvwxyz"
+    assert len(cs) == 36
+    assert 0 <= x
+    res = ""
+    if x < 36:
+        return cs[x]
+    while 0 < x:
+        x, i = divmod(x, 36)
+        res = cs[i] + res
+    return res
+
+
+assert _base36(0) == "0"
+assert _base36(1) == "1"
+assert _base36(34) == "y"
+assert _base36(35) == "z"
+assert _base36(36) == "10"
+assert _base36(92384123) == "1j041n"
+
 app = flask.Flask(
     __name__, static_folder=jp("build", "static"), template_folder="build"
 )
@@ -150,7 +277,7 @@ def get():
         data = _join_text_v1(data)
         data = _parse_datetime_v1(data)
     except IOError:
-        data = None;
+        data = None
     res = flask.make_response(flask.json.jsonify(data))
     res.headers["Cache-Control"] = "no-store"
     return res
@@ -197,7 +324,7 @@ def _new_entry_v1(t: str) -> dict:
 
 
 def _format_datetime_v1(data):
-    for v in data["kvs"].values():
+    for v in data["nodes" if 12 <= data["version"] else "kvs"].values():
         for r in v["ranges"]:
             for k in ["start", "end"]:
                 if r[k] is not None:
@@ -208,7 +335,7 @@ def _format_datetime_v1(data):
 
 
 def _parse_datetime_v1(data):
-    for v in data["kvs"].values():
+    for v in data["nodes" if 12 <= data["version"] else "kvs"].values():
         for r in v["ranges"]:
             for k in ["start", "end"]:
                 if r[k] is not None:
@@ -217,14 +344,18 @@ def _parse_datetime_v1(data):
 
 
 def _split_text_v1(data):
-    for v in data["kvs"].values():
+    for v in data["nodes" if 12 <= data["version"] else "kvs"].values():
         v["text"] = v["text"].split("\n")
     return data
 
 
 def _join_text_v1(data):
-    for v in data["kvs"].values():
-        v["text"] = "\n".join(v["text"])
+    if 12 <= data["version"]:
+        for node in data["nodes"].values():
+            node["text"] = "\n".join(node["text"])
+    else:
+        for v in data["kvs"].values():
+            v["text"] = "\n".join(v["text"])
     return data
 
 
