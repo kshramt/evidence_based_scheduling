@@ -282,11 +282,10 @@ const todoToDone = register_save_type(
 const todoToDont = register_save_type(
   register_history_type(createAction<types.TNodeId>("todoToDont")),
 );
-const doneToTodo = register_save_type(
-  register_history_type(createAction<types.TNodeId>("doneToTodo")),
-);
-const dontToTodo = register_save_type(
-  register_history_type(createAction<types.TNodeId>("dontToTodo")),
+const done_or_dont_to_todo_action = register_save_type(
+  register_history_type(
+    createAction<types.TNodeId>("done_or_dont_to_todo_action"),
+  ),
 );
 const toggle_show_children = register_save_type(
   register_history_type(createAction<types.TNodeId>("swap_show_children")),
@@ -396,16 +395,12 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   });
   ac(start_action, (state, action) => {
     const node_id = action.payload;
+    if (state.data.nodes[node_id].status !== "todo") {
+      toast.add("error", `None todo node ${node_id} cannot be started.`);
+      return;
+    }
     const last_range = last(state.data.nodes[node_id].ranges);
     if (!last_range || last_range.end !== null) {
-      switch (state.data.nodes[node_id].status) {
-        case "done":
-          _doneToTodo(state, node_id);
-          break;
-        case "dont":
-          _dontToTodo(state, node_id);
-          break;
-      }
       _top(state, node_id);
       assert(() => [
         state.data.nodes[node_id].status === "todo",
@@ -416,7 +411,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
         start: Number(new Date()) / 1000,
         end: null,
       });
-      _show_path_to_selected_node(state, node_id);
+      // _show_path_to_selected_node(state, node_id);
     }
   });
   ac(top_action, (state, action) => {
@@ -568,13 +563,13 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       );
     }
   });
-  ac(doneToTodo, (state, action) => {
-    const k = action.payload;
-    _doneToTodo(state, k);
-  });
-  ac(dontToTodo, (state, action) => {
-    const k = action.payload;
-    _dontToTodo(state, k);
+  ac(done_or_dont_to_todo_action, (state, action) => {
+    const node_id = action.payload;
+    if (checks.is_uncompletable_node_of(node_id, state)) {
+      _addToTodo(state, node_id);
+    } else {
+      toast.add("error", `Node ${node_id} cannot be set to todo.`);
+    }
   });
   ac(toggle_show_children, (state, action) => {
     state.data.nodes[action.payload].show_children =
@@ -975,36 +970,6 @@ const _topQueue = (draft: Draft<types.IState>, k: types.TNodeId) => {
   toFront(draft.data.queue, k);
 };
 
-const _doneToTodo = (draft: Draft<types.IState>, k: types.TNodeId) => {
-  _addToTodo(draft, k);
-  if (draft.data.nodes[k].parents.length) {
-    const pk = draft.data.edges[draft.data.nodes[k].parents[0]].p;
-    switch (draft.data.nodes[pk].status) {
-      case "done":
-        _doneToTodo(draft, pk);
-        break;
-      case "dont":
-        _dontToTodo(draft, pk);
-        break;
-    }
-  }
-};
-
-const _dontToTodo = (draft: Draft<types.IState>, k: types.TNodeId) => {
-  _addToTodo(draft, k);
-  if (draft.data.nodes[k].parents.length) {
-    const pk = draft.data.edges[draft.data.nodes[k].parents[0]].p;
-    switch (draft.data.nodes[pk].status) {
-      case "done":
-        _doneToTodo(draft, pk);
-        break;
-      case "dont":
-        _dontToTodo(draft, pk);
-        break;
-    }
-  }
-};
-
 const _addToTodo = (draft: Draft<types.IState>, k: types.TNodeId) => {
   draft.data.nodes[k].status = "todo";
 };
@@ -1320,6 +1285,15 @@ const Entry = (props: { node_id: types.TNodeId }) => {
     cache.child_edges,
   );
 
+  const parents = useSelector(
+    (state) => state.data.nodes[props.node_id].parents,
+  );
+  const is_uncompletable = checks.is_uncompletable_node_of_nodes_and_edges(
+    parents,
+    cache.parent_nodes,
+    cache.parent_edges,
+  );
+
   const show_children = useSelector((state) => {
     return state.data.nodes[props.node_id].show_children;
   });
@@ -1359,11 +1333,12 @@ const Entry = (props: { node_id: types.TNodeId }) => {
             !cache.show_detail && "opacity-40 hover:opacity-100",
           )}
         >
-          <span onClick={on_click_total_time} className="opacity-100">
+          <span onClick={on_click_total_time}>
             {cache.total_time < 0 ? "-" : digits1(cache.total_time / 3600)}
           </span>
           {is_root || EstimationInputOf(props.node_id)}
           {is_root ||
+            status !== "todo" ||
             (running
               ? stopButtonOf(dispatch, props.node_id)
               : startButtonOf(dispatch, props.node_id))}
@@ -1376,9 +1351,9 @@ const Entry = (props: { node_id: types.TNodeId }) => {
             !is_completable ||
             todoToDontButtonOf(dispatch, props.node_id)}
           {is_root ||
-            (status === "done" && doneToTodoButtonOf(dispatch, props.node_id))}
-          {is_root ||
-            (status === "dont" && dontToTodoButtonOf(dispatch, props.node_id))}
+            status === "todo" ||
+            !is_uncompletable ||
+            DoneOrDontToTodoButton_of(dispatch, props.node_id)}
           {status === "todo" && evalButtonOf(dispatch, props.node_id)}
           {is_root || topButtonOf(dispatch, props.node_id)}
           {is_root || moveUpButtonOf(dispatch, props.node_id)}
@@ -1612,25 +1587,12 @@ const toTreeButtonOf = memoize1((node_id: types.TNodeId) => {
   );
 });
 
-const doneToTodoButtonOf = memoize2(
-  (dispatch: AppDispatch, k: types.TNodeId) => (
+const DoneOrDontToTodoButton_of = memoize2(
+  (dispatch: AppDispatch, node_id: types.TNodeId) => (
     <button
       className="btn-icon"
       onClick={() => {
-        dispatch(doneToTodo(k));
-      }}
-    >
-      {UNDO_MARK}
-    </button>
-  ),
-);
-
-const dontToTodoButtonOf = memoize2(
-  (dispatch: AppDispatch, k: types.TNodeId) => (
-    <button
-      className="btn-icon"
-      onClick={() => {
-        dispatch(dontToTodo(k));
+        dispatch(done_or_dont_to_todo_action(node_id));
       }}
     >
       {UNDO_MARK}

@@ -1,6 +1,28 @@
 import * as types from "./types";
 import * as utils from "./utils";
 
+export const is_uncompletable_node_of = (
+  node_id: types.TNodeId,
+  state: types.IState,
+) => {
+  return is_uncompletable_node_of_nodes_and_edges(
+    state.data.nodes[node_id].parents,
+    state.data.nodes,
+    state.data.edges,
+  );
+};
+export const is_uncompletable_node_of_nodes_and_edges = (
+  parents: types.TEdgeId[],
+  nodes: types.INodes,
+
+  edges: types.IEdges,
+) => {
+  return parents.some((edge_id) => {
+    const edge = edges[edge_id];
+    return edge.t === "strong" && nodes[edge.p].status === "todo";
+  });
+};
+
 export const is_completable_node_of = (
   node_id: types.TNodeId,
   state: types.IState,
