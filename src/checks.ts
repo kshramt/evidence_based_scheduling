@@ -1,6 +1,32 @@
 import * as types from "./types";
 import * as utils from "./utils";
 
+export const has_visible_path_of = (
+  node_id: types.TNodeId,
+  state: types.IState,
+) => {
+  return _has_visible_path_of(node_id, state, utils.visit_counter_of());
+};
+const _has_visible_path_of = (
+  node_id: types.TNodeId,
+  state: types.IState,
+  vid: number,
+): boolean => {
+  if (node_id === state.data.root) {
+    return true;
+  }
+  if (utils.vids[node_id] === vid) {
+    return false;
+  }
+  utils.vids[node_id] = vid;
+  if (!state.data.nodes[node_id].show_children) {
+    return false;
+  }
+  return state.data.nodes[node_id].parents.some((edge_id) =>
+    _has_visible_path_of(state.data.edges[edge_id].p, state, vid),
+  );
+};
+
 export const is_uncompletable_node_of = (
   node_id: types.TNodeId,
   state: types.IState,
@@ -113,18 +139,18 @@ export const has_edge = (
   );
 };
 
-export const has_cycle = (edge_id: types.TEdgeId, state: types.IState) => {
+export const has_cycle_of = (edge_id: types.TEdgeId, state: types.IState) => {
   const edge = state.data.edges[edge_id];
   const vid = utils.visit_counter_of();
   utils.vids[edge.c] = vid;
-  return _has_cycle(edge.p, state, vid, edge.c);
+  return _has_cycle_of(edge.p, state, vid, edge.c);
 };
-const _has_cycle = (
+const _has_cycle_of = (
   node_id: types.TNodeId,
   state: types.IState,
   vid: number,
   origin_node_id: types.TNodeId,
-) => {
+): boolean => {
   if (node_id === origin_node_id) {
     return true;
   }
@@ -132,10 +158,7 @@ const _has_cycle = (
     return false;
   }
   utils.vids[node_id] = vid;
-  for (const edge_id of state.data.nodes[node_id].parents) {
-    if (_has_cycle(state.data.edges[edge_id].p, state, vid, origin_node_id)) {
-      return true;
-    }
-  }
-  return false;
+  return state.data.nodes[node_id].parents.some((edge_id) =>
+    _has_cycle_of(state.data.edges[edge_id].p, state, vid, origin_node_id),
+  );
 };

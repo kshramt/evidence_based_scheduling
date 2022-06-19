@@ -24,7 +24,7 @@ import "./lib.css";
 import * as types from "./types";
 import * as utils from "./utils";
 
-const MENU_HEIGHT = "4em" as const;
+const MENU_HEIGHT = "3rem" as const;
 const API_VERSION = "v1";
 const NO_ESTIMATION = 0;
 const START_MARK = <span className="material-icons">play_arrow</span>;
@@ -411,7 +411,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
         start: Number(new Date()) / 1000,
         end: null,
       });
-      // _show_path_to_selected_node(state, node_id);
+      _show_path_to_selected_node(state, node_id);
     }
   });
   ac(top_action, (state, action) => {
@@ -604,7 +604,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
           state.data.edges[edge_id] = edge;
           state.data.nodes[edge.c].parents.unshift(edge_id);
           state.data.nodes[edge.p].children.unshift(edge_id);
-          if (checks.has_cycle(edge_id, state)) {
+          if (checks.has_cycle_of(edge_id, state)) {
             delete state.data.edges[edge_id];
             state.data.nodes[edge.c].parents.splice(0, 1);
             state.data.nodes[edge.p].children.splice(0, 1);
@@ -646,6 +646,7 @@ const App = () => {
       <>
         <Menu />
         <Body />
+        {toast.component}
       </>
     ),
     [],
@@ -666,7 +667,6 @@ const App = () => {
                 value={node_filter_query_fast}
               >
                 {el}
-                {toast.component}
               </node_filter_query_fast_context.Provider>
             </node_filter_query_slow_context.Provider>
           </node_ids_context.Provider>
@@ -814,22 +814,19 @@ const Body = () => {
   });
   return React.useMemo(
     () => (
-      <>
-        <div className="flex w-full gap-x-8" style={{ marginTop: MENU_HEIGHT }}>
-          <div
-            className={`overflow-y-auto pl-[1em] shrink-0 pt-[1em]`}
-            style={{ height: `calc(100vh - ${MENU_HEIGHT})` }}
-          >
-            <QueueColumn />
-          </div>
-          <div
-            className={`overflow-y-auto pl-[1em] shrink-0 pt-[1em]`}
-            style={{ height: `calc(100vh - ${MENU_HEIGHT})` }}
-          >
-            {TreeNode_of(root)}
-          </div>
+      <div
+        className="flex w-full h-screen gap-x-8 overflow-y-hidden"
+        style={{
+          paddingTop: MENU_HEIGHT,
+        }}
+      >
+        <div className={`overflow-y-scroll pl-[1em] shrink-0`}>
+          <QueueColumn />
         </div>
-      </>
+        <div className={`overflow-y-scroll pl-[1em] shrink-0`}>
+          {TreeNode_of(root)}
+        </div>
+      </div>
     ),
     [root],
   );
@@ -988,6 +985,9 @@ const _show_path_to_selected_node = (
   draft: Draft<types.IState>,
   node_id: types.TNodeId,
 ) => {
+  if (checks.has_visible_path_of(node_id, draft)) {
+    return;
+  }
   while (draft.data.nodes[node_id].parents.length) {
     node_id = draft.data.edges[draft.data.nodes[node_id].parents[0]].p;
     if (!draft.data.nodes[node_id].show_children) {
@@ -1022,17 +1022,13 @@ const memoize2 = <A, B, R>(fn: (a: A, b: B) => R) => {
 
 const QueueColumn = () => {
   const queue = useSelector((state) => state.data.queue);
-  const fn = React.useCallback(
-    (node_id: types.TNodeId) => <QueueNode node_id={node_id} key={node_id} />,
-    [],
-  );
-  return queue.length ? <ol>{queue.map(fn)}</ol> : null;
+  return queue.length ? <ol>{queue.map(QueueNode_of)}</ol> : null;
 };
 
 const TreeNodeList = (props: types.IListProps) => {
   // spacing="0.5rem" paddingLeft="1rem"
   return props.node_id_list.length ? (
-    <ol className="mt-[1em]">
+    <ol className="pt-[1em]">
       {props.node_id_list.map((node_id) => {
         return <li key={node_id}>{TreeNode_of(node_id)}</li>;
       })}
@@ -1041,7 +1037,7 @@ const TreeNodeList = (props: types.IListProps) => {
 };
 
 const TreeNode = (props: { node_id: types.TNodeId }) => {
-  const entry = EntryOf(props.node_id);
+  const entry = TreeEntry_of(props.node_id);
   const show_children = useSelector(
     (state) => state.data.nodes[props.node_id].show_children,
   );
@@ -1073,6 +1069,7 @@ const TreeNode_of = memoize1((node_id: types.TNodeId) => (
 ));
 
 const QueueNode = (props: { node_id: types.TNodeId }) => {
+  const entry = QueueEntry_of(props.node_id);
   const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
   const is_not_todo = useSelector(
     (state) => state.data.nodes[props.node_id].status !== "todo",
@@ -1086,15 +1083,13 @@ const QueueNode = (props: { node_id: types.TNodeId }) => {
     text,
     props.node_id,
   );
-  const entry = EntryOf(props.node_id);
   // className="hidden" is slower.
-  return should_hide ? null : (
-    <li id={`q-${props.node_id}`} className="mb-[1em] last:mb-0">
-      {toTreeButtonOf(props.node_id)}
-      {entry}
-    </li>
-  );
+  return should_hide ? null : <li className="mb-[1em] last:mb-0">{entry}</li>;
 };
+const QueueNode_of = memoize1((node_id: types.TNodeId) => (
+  <QueueNode node_id={node_id} key={node_id} />
+));
+
 const _should_hide_of = (
   showTodoOnly: boolean,
   is_not_todo: boolean,
@@ -1117,7 +1112,39 @@ const _should_hide_of = (
   return !is_match_filter_node_query;
 };
 
+const QueueEntry_of = memoize1((node_id: types.TNodeId) => (
+  <EntryWrapper node_id={node_id}>
+    <div className="flex items-end w-fit">
+      {ToTreeLink_of(node_id)}
+      <div id={`q-${node_id}`}>{TextArea_of(node_id)}</div>
+    </div>
+    {EntryButtons_of(node_id)}
+    {Details_of(node_id)}
+  </EntryWrapper>
+));
+
+const TreeEntry_of = memoize1((node_id: types.TNodeId) => (
+  <EntryWrapper node_id={node_id}>
+    <div className="flex items-end w-fit">
+      {ToQueueLink_of(node_id)}
+      <div id={`t-${node_id}`}>{TextArea_of(node_id)}</div>
+    </div>
+    {EntryButtons_of(node_id)}
+    {Details_of(node_id)}
+  </EntryWrapper>
+));
+
 const Details = (props: { node_id: types.TNodeId }) => {
+  const show_detail = useSelector(
+    (state) => state.caches[props.node_id].show_detail,
+  );
+  return show_detail ? DetailsImpl_of(props.node_id) : null;
+};
+const Details_of = memoize1((node_id: types.TNodeId) => (
+  <Details node_id={node_id} />
+));
+
+const DetailsImpl = (props: { node_id: types.TNodeId }) => {
   const [new_edge_type, set_new_edge_type] =
     React.useState<types.TEdgeType>("strong");
   const handle_new_edge_type_change = useCallback(
@@ -1156,7 +1183,7 @@ const Details = (props: { node_id: types.TNodeId }) => {
     );
   }, [dispatch, node_ids, new_edge_type, props.node_id]);
   return (
-    <div className="mt-[0.5em]">
+    <div className="pt-[0.5em]">
       {deleteButtonOf(dispatch, props.node_id)}
       <hr className="my-[0.25em]" />
       <div className="flex gap-x-[0.25em] items-baseline">
@@ -1180,6 +1207,9 @@ const Details = (props: { node_id: types.TNodeId }) => {
     </div>
   );
 };
+const DetailsImpl_of = memoize1((node_id: types.TNodeId) => (
+  <DetailsImpl node_id={node_id} />
+));
 
 const node_ids_list_of_node_ids_string = (node_ids: string) => {
   const seen = new Set<types.TNodeId>();
@@ -1269,7 +1299,49 @@ const EdgeRowOf = memoize1((edge_id: types.TEdgeId) => (
   <EdgeRow edge_id={edge_id} key={edge_id} />
 ));
 
-const Entry = (props: { node_id: types.TNodeId }) => {
+const EntryWrapper = (props: {
+  node_id: types.TNodeId;
+  children: React.ReactNode;
+}) => {
+  const ranges = useSelector((state) => state.data.nodes[props.node_id].ranges);
+  const last_range = last(ranges);
+  const running = last_range && last_range.end === null;
+
+  const has_children = useSelector((state) =>
+    Boolean(state.data.nodes[props.node_id].children.length),
+  );
+  const show_children = useSelector((state) => {
+    return state.data.nodes[props.node_id].show_children;
+  });
+  const has_hidden_leaf = has_children && !show_children;
+
+  const dispatch = useDispatch();
+  const handle_toggle_show_children = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (e.target === e.currentTarget) {
+        dispatch(toggle_show_children(props.node_id));
+      }
+    },
+    [props.node_id, dispatch],
+  );
+
+  return React.useMemo(
+    () => (
+      <div
+        className={utils.join(
+          "pt-[0.5em]",
+          running ? "running" : has_hidden_leaf ? "hidden-leafs" : undefined,
+        )}
+        onDoubleClick={handle_toggle_show_children}
+      >
+        {props.children}
+      </div>
+    ),
+    [has_hidden_leaf, running, handle_toggle_show_children, props.children],
+  );
+};
+
+const EntryButtons = (props: { node_id: types.TNodeId }) => {
   const ranges = useSelector((state) => state.data.nodes[props.node_id].ranges);
   const last_range = last(ranges);
   const running = last_range && last_range.end === null;
@@ -1294,12 +1366,6 @@ const Entry = (props: { node_id: types.TNodeId }) => {
     cache.parent_edges,
   );
 
-  const show_children = useSelector((state) => {
-    return state.data.nodes[props.node_id].show_children;
-  });
-  const has_children = Boolean(children.length);
-  const has_hidden_leaf = has_children && !show_children;
-
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
 
   const root = useSelector((state) => state.data.root);
@@ -1309,81 +1375,63 @@ const Entry = (props: { node_id: types.TNodeId }) => {
   const on_click_total_time = useCallback(() => {
     dispatch(set_total_time(props.node_id));
   }, [dispatch, props.node_id]);
-  const handle_toggle_show_children = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (e.target === e.currentTarget) {
-        dispatch(toggle_show_children(props.node_id));
-      }
-    },
-    [props.node_id, dispatch],
-  );
 
   return React.useMemo(
     () => (
       <div
         className={utils.join(
-          running ? "running" : has_hidden_leaf ? "hidden-leafs" : undefined,
+          "flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]",
+          !cache.show_detail && "opacity-40 hover:opacity-100",
         )}
-        onDoubleClick={handle_toggle_show_children}
       >
-        {is_root || TextArea_of(props.node_id)}
-        <div
-          className={utils.join(
-            "flex gap-x-[0.25em] items-baseline mt-[0.25em]",
-            !cache.show_detail && "opacity-40 hover:opacity-100",
-          )}
-        >
-          <span onClick={on_click_total_time}>
-            {cache.total_time < 0 ? "-" : digits1(cache.total_time / 3600)}
-          </span>
-          {is_root || EstimationInputOf(props.node_id)}
-          {is_root ||
-            status !== "todo" ||
-            (running
-              ? stopButtonOf(dispatch, props.node_id)
-              : startButtonOf(dispatch, props.node_id))}
-          {is_root ||
-            status !== "todo" ||
-            !is_completable ||
-            todoToDoneButtonOf(dispatch, props.node_id)}
-          {is_root ||
-            status !== "todo" ||
-            !is_completable ||
-            todoToDontButtonOf(dispatch, props.node_id)}
-          {is_root ||
-            status === "todo" ||
-            !is_uncompletable ||
-            DoneOrDontToTodoButton_of(dispatch, props.node_id)}
-          {status === "todo" && evalButtonOf(dispatch, props.node_id)}
-          {is_root || topButtonOf(dispatch, props.node_id)}
-          {is_root || moveUpButtonOf(dispatch, props.node_id)}
-          {is_root || moveDownButtonOf(dispatch, props.node_id)}
-          {CopyNodeIdButton_of(props.node_id)}
-          {status === "todo" && NewButton_of(dispatch, props.node_id)}
-          {showDetailButtonOf(dispatch, props.node_id)}
-          {status === "todo" && cache.percentiles.map(digits1).join(" ")}
-        </div>
-        {cache.show_detail && <Details node_id={props.node_id} />}
+        <span onClick={on_click_total_time}>
+          {cache.total_time < 0 ? "-" : digits1(cache.total_time / 3600)}
+        </span>
+        {is_root || EstimationInputOf(props.node_id)}
+        {is_root ||
+          status !== "todo" ||
+          (running
+            ? stopButtonOf(dispatch, props.node_id)
+            : startButtonOf(dispatch, props.node_id))}
+        {is_root ||
+          status !== "todo" ||
+          !is_completable ||
+          todoToDoneButtonOf(dispatch, props.node_id)}
+        {is_root ||
+          status !== "todo" ||
+          !is_completable ||
+          todoToDontButtonOf(dispatch, props.node_id)}
+        {is_root ||
+          status === "todo" ||
+          !is_uncompletable ||
+          DoneOrDontToTodoButton_of(dispatch, props.node_id)}
+        {status === "todo" && evalButtonOf(dispatch, props.node_id)}
+        {is_root || topButtonOf(dispatch, props.node_id)}
+        {is_root || moveUpButtonOf(dispatch, props.node_id)}
+        {is_root || moveDownButtonOf(dispatch, props.node_id)}
+        {CopyNodeIdButton_of(props.node_id)}
+        {status === "todo" && NewButton_of(dispatch, props.node_id)}
+        {showDetailButtonOf(dispatch, props.node_id)}
+        {status === "todo" && cache.percentiles.map(digits1).join(" ")}
       </div>
     ),
     [
       cache.percentiles,
       cache.show_detail,
       cache.total_time,
-      has_hidden_leaf,
       running,
       status,
-      handle_toggle_show_children,
       on_click_total_time,
       is_root,
       is_completable,
+      is_uncompletable,
       props.node_id,
       dispatch,
     ],
   );
 };
-const EntryOf = memoize1((node_id: types.TNodeId) => (
-  <Entry node_id={node_id} />
+const EntryButtons_of = memoize1((node_id: types.TNodeId) => (
+  <EntryButtons node_id={node_id} />
 ));
 
 const _estimate = (
@@ -1573,19 +1621,30 @@ const textAreaRefOf = memoize1((_: types.TNodeId) =>
   React.createRef<HTMLTextAreaElement>(),
 );
 
-const toTreeButtonOf = memoize1((node_id: types.TNodeId) => {
+const ToTreeLink = (props: { node_id: types.TNodeId }) => {
   const dispatch = useDispatch();
   return (
     <a
-      href={`#t-${node_id}`}
+      href={`#t-${props.node_id}`}
       onClick={() => {
-        dispatch(show_path_to_selected_node(node_id));
+        dispatch(show_path_to_selected_node(props.node_id));
       }}
     >
-      <button>→</button>
+      →
     </a>
   );
-});
+};
+const ToTreeLink_of = memoize1((node_id: types.TNodeId) => (
+  <ToTreeLink node_id={node_id} />
+));
+
+const ToQueueLink = (props: { node_id: types.TNodeId }) => {
+  const root = useSelector((state) => state.data.root);
+  return props.node_id === root ? null : <a href={`#q-${props.node_id}`}>←</a>;
+};
+const ToQueueLink_of = memoize1((node_id: types.TNodeId) => (
+  <ToQueueLink node_id={node_id} />
+));
 
 const DoneOrDontToTodoButton_of = memoize2(
   (dispatch: AppDispatch, node_id: types.TNodeId) => (
@@ -1804,6 +1863,14 @@ const setLastRangeOf = memoize2(
 );
 
 const TextArea = (props: { node_id: types.TNodeId }) => {
+  const root = useSelector((state) => state.data.root);
+  return props.node_id === root ? null : TextAreaImpl_of(props.node_id);
+};
+const TextArea_of = memoize1((node_id: types.TNodeId) => (
+  <TextArea node_id={node_id} />
+));
+
+const TextAreaImpl = (props: { node_id: types.TNodeId }) => {
   const state_text = useSelector(
     (state) => state.data.nodes[props.node_id].text,
   );
@@ -1879,8 +1946,8 @@ const TextArea = (props: { node_id: types.TNodeId }) => {
     />
   );
 };
-const TextArea_of = memoize1((node_id: types.TNodeId) => (
-  <TextArea node_id={node_id} />
+const TextAreaImpl_of = memoize1((node_id: types.TNodeId) => (
+  <TextAreaImpl node_id={node_id} />
 ));
 
 const getAndSetHeight = (el: HTMLTextAreaElement) => {
@@ -2025,7 +2092,6 @@ export const main = () => {
       <Provider store={store}>
         <App />
       </Provider>
-      ,
     </React.StrictMode>,
   );
   store.dispatch(doLoad());
