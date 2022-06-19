@@ -2,12 +2,23 @@ import * as types from "./types";
 import * as utils from "./utils";
 
 export const is_completable_node_of = (
-  state: types.IState,
   node_id: types.TNodeId,
+  state: types.IState,
 ) => {
-  return !state.data.kvs[node_id].children.some((edge_id) => {
-    const edge = state.data.edges[edge_id];
-    return edge.t === "strong" && state.data.kvs[edge.c].status === "todo";
+  return is_completable_node_of_nodes_and_edges(
+    state.data.nodes[node_id].children,
+    state.data.nodes,
+    state.data.edges,
+  );
+};
+export const is_completable_node_of_nodes_and_edges = (
+  children: types.TEdgeId[],
+  nodes: types.INodes,
+  edges: types.IEdges,
+) => {
+  return !children.some((edge_id) => {
+    const edge = edges[edge_id];
+    return edge.t === "strong" && nodes[edge.c].status === "todo";
   });
 };
 
@@ -17,7 +28,7 @@ export const is_deletable_node = (
 ) => {
   return (
     node_id !== state.data.root &&
-    state.data.kvs[node_id].children.every((edge_id) =>
+    state.data.nodes[node_id].children.every((edge_id) =>
       is_deletable_edge_of(edge_id, state),
     )
   );
@@ -27,12 +38,23 @@ export const is_deletable_edge_of = (
   edge_id: types.TEdgeId,
   state: types.IState,
 ) => {
-  if (state.data.edges[edge_id].t !== "strong") {
+  return is_deletable_edge_of_nodes_and_edges(
+    state.data.edges[edge_id],
+    state.data.nodes,
+    state.data.edges,
+  );
+};
+export const is_deletable_edge_of_nodes_and_edges = (
+  edge: types.IEdge,
+  nodes: types.INodes,
+  edges: types.IEdges,
+) => {
+  if (edge.t !== "strong") {
     return true;
   }
   let count = 0;
-  for (const peid of state.data.kvs[state.data.edges[edge_id].c].parents) {
-    if (state.data.edges[peid].t === "strong") {
+  for (const parent_edge_id of nodes[edge.c].parents) {
+    if (edges[parent_edge_id].t === "strong") {
       count += 1;
       if (1 < count) {
         return true;
@@ -48,7 +70,7 @@ export const has_multiple_edges = (
   state: types.IState,
 ) => {
   let count = 0;
-  for (const parent_edge_id of state.data.kvs[child_node_id].parents) {
+  for (const parent_edge_id of state.data.nodes[child_node_id].parents) {
     if (state.data.edges[parent_edge_id].p === parent_node_id) {
       count += 1;
       if (1 < count) {
@@ -64,7 +86,7 @@ export const has_edge = (
   c: types.TNodeId,
   state: types.IState,
 ) => {
-  return state.data.kvs[c].parents.some(
+  return state.data.nodes[c].parents.some(
     (edge_id) => state.data.edges[edge_id].p === p,
   );
 };
@@ -72,7 +94,7 @@ export const has_edge = (
 export const has_cycle = (edge_id: types.TEdgeId, state: types.IState) => {
   const edge = state.data.edges[edge_id];
   const vid = utils.visit_counter_of();
-  types.cache_of(state.caches, edge.c).visited = vid;
+  utils.vids[edge.c] = vid;
   return _has_cycle(edge.p, state, vid, edge.c);
 };
 const _has_cycle = (
@@ -84,11 +106,11 @@ const _has_cycle = (
   if (node_id === origin_node_id) {
     return true;
   }
-  if (types.cache_of(state.caches, node_id).visited === vid) {
+  if (utils.vids[node_id] === vid) {
     return false;
   }
-  types.cache_of(state.caches, node_id).visited = vid;
-  for (const edge_id of state.data.kvs[node_id].parents) {
+  utils.vids[node_id] = vid;
+  for (const edge_id of state.data.nodes[node_id].parents) {
     if (_has_cycle(state.data.edges[edge_id].p, state, vid, origin_node_id)) {
       return true;
     }

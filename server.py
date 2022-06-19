@@ -77,6 +77,8 @@ def _v12_of_v11(data):
         if "show_children" not in v:
             v["show_children"] = False
     del data["current_entry"]
+    data["nodes"] = data["kvs"]
+    del data["kvs"]
     data["version"] = 12
     return data
 
@@ -322,7 +324,7 @@ def _new_entry_v1(t: str) -> dict:
 
 
 def _format_datetime_v1(data):
-    for v in data["kvs"].values():
+    for v in data["nodes" if 12 <= data["version"] else "kvs"].values():
         for r in v["ranges"]:
             for k in ["start", "end"]:
                 if r[k] is not None:
@@ -333,7 +335,7 @@ def _format_datetime_v1(data):
 
 
 def _parse_datetime_v1(data):
-    for v in data["kvs"].values():
+    for v in data["nodes" if 12 <= data["version"] else "kvs"].values():
         for r in v["ranges"]:
             for k in ["start", "end"]:
                 if r[k] is not None:
@@ -342,14 +344,18 @@ def _parse_datetime_v1(data):
 
 
 def _split_text_v1(data):
-    for v in data["kvs"].values():
+    for v in data["nodes" if 12 <= data["version"] else "kvs"].values():
         v["text"] = v["text"].split("\n")
     return data
 
 
 def _join_text_v1(data):
-    for v in data["kvs"].values():
-        v["text"] = "\n".join(v["text"])
+    if 12 <= data["version"]:
+        for node in data["nodes"].values():
+            node["text"] = "\n".join(node["text"])
+    else:
+        for v in data["kvs"].values():
+            v["text"] = "\n".join(v["text"])
     return data
 
 

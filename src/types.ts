@@ -53,7 +53,7 @@ export interface IData {
   readonly edges: IEdges;
   readonly root: TNodeId;
   id_seq: number;
-  readonly kvs: IKvs;
+  readonly nodes: INodes;
   readonly queue: TNodeId[];
   readonly showTodoOnly: boolean;
   readonly version: number;
@@ -66,7 +66,7 @@ export const is_IData = (
   record_if_false(is_IEdges(data.edges, record_if_false), "edges") &&
   record_if_false(is_TNodeId(data.root), "root") &&
   record_if_false(typeof data.id_seq === "number", "id_seq") &&
-  record_if_false(is_IKvs(data.kvs, record_if_false), "kvs") &&
+  record_if_false(is_INodes(data.nodes, record_if_false), "nodes") &&
   record_if_false(
     record_if_false.check_array(data.queue, is_TNodeId),
     "queue",
@@ -74,13 +74,13 @@ export const is_IData = (
   record_if_false(typeof data.showTodoOnly === "boolean", "showTodoOnly") &&
   record_if_false(typeof data.version === "number", "version");
 
-export interface IKvs {
-  readonly [k: TNodeId]: IEntry;
+export interface INodes {
+  [k: TNodeId]: INode;
 }
-const is_IKvs = (x: any, record_if_false: TRecordIfFalse): x is IKvs =>
-  record_if_false.check_object(x, (v) => is_IEntry(v, record_if_false));
+const is_INodes = (x: any, record_if_false: TRecordIfFalse): x is INodes =>
+  record_if_false.check_object(x, (v) => is_INode(v, record_if_false));
 
-export interface IEntry {
+export interface INode {
   readonly children: TEdgeId[];
   readonly end_time: null | string;
   readonly estimate: number;
@@ -92,7 +92,7 @@ export interface IEntry {
   readonly style: IStyle;
   readonly text: string;
 }
-const is_IEntry = (x: any, record_if_false: TRecordIfFalse): x is IEntry =>
+const is_INode = (x: any, record_if_false: TRecordIfFalse): x is INode =>
   record_if_false(is_object(x), "is_object") &&
   record_if_false(Array.isArray(x.children), "children") &&
   record_if_false(
@@ -116,7 +116,7 @@ const is_IEntry = (x: any, record_if_false: TRecordIfFalse): x is IEntry =>
   record_if_false(typeof x.text === "string", "text");
 
 export interface IEdges {
-  readonly [edge_id: TEdgeId]: IEdge;
+  [edge_id: TEdgeId]: IEdge;
 }
 const is_IEdges = (
   edges: any,
@@ -153,20 +153,17 @@ const is_IRange = (x: any): x is IRange =>
 export interface ICaches {
   [k: TNodeId]: ICache;
 }
-export const cache_of = (caches: ICaches, node_id: TNodeId) => {
-  return caches[node_id] === undefined
-    ? (caches[node_id] = {
-        total_time: -1,
-        percentiles: [],
-        visited: -1,
-        show_detail: false,
-      })
-    : caches[node_id];
-};
 
 interface ICache {
   total_time: number;
   percentiles: number[]; // 0, 10, 33, 50, 67, 90, 100
-  visited: number;
   show_detail: boolean;
+  parent_edges: IEdges;
+  parent_nodes: INodes;
+  child_edges: IEdges;
+  child_nodes: INodes;
+}
+
+export interface IVids{
+  [k: TNodeId]: undefined | number;
 }
