@@ -831,7 +831,7 @@ const Body = () => {
             className={`overflow-y-auto pl-[1em] shrink-0 pt-[1em]`}
             style={{ height: `calc(100vh - ${MENU_HEIGHT})` }}
           >
-            <TreeNode node_id={root} />
+            {TreeNode_of(root)}
           </div>
         </div>
       </>
@@ -1069,11 +1069,7 @@ const TreeNodeList = (props: types.IListProps) => {
   return props.node_id_list.length ? (
     <ol className="mt-[1em]">
       {props.node_id_list.map((node_id) => {
-        return (
-          <li key={node_id}>
-            <TreeNode node_id={node_id} />
-          </li>
-        );
+        return <li key={node_id}>{TreeNode_of(node_id)}</li>;
       })}
     </ol>
   ) : null;
@@ -1088,21 +1084,28 @@ const TreeNode = (props: { node_id: types.TNodeId }) => {
     (state) => state.data.nodes[props.node_id].children,
   );
   const edges = useSelector((state) => state.caches[props.node_id].child_edges);
-  const child_node_ids = children.map((edge_id) => edges[edge_id].c);
+  const tree_node_list = React.useMemo(
+    () =>
+      show_children && (
+        <TreeNodeList
+          node_id_list={children.map((edge_id) => edges[edge_id].c)}
+        />
+      ),
+    [children, edges, show_children],
+  );
   return React.useMemo(
     () => (
       <>
         {entry}
-        {show_children ? (
-          <>
-            <TreeNodeList node_id_list={child_node_ids} />
-          </>
-        ) : null}
+        {tree_node_list}
       </>
     ),
-    [entry, show_children, child_node_ids],
+    [entry, tree_node_list],
   );
 };
+const TreeNode_of = memoize1((node_id: types.TNodeId) => (
+  <TreeNode node_id={node_id} />
+));
 
 const QueueNode = (props: { node_id: types.TNodeId }) => {
   const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
@@ -1236,10 +1239,14 @@ const ChildEdgeTable = (props: { node_id: types.TNodeId }) => {
   );
 };
 const EdgeRow = (props: { edge_id: types.TEdgeId }) => {
-  const edge = useSelector(state=>state.data.edges[props.edge_id])
-  const nodes = useSelector(state=>state.caches[edge.p].child_nodes)
-  const edges = useSelector(state=>state.caches[edge.c].parent_edges)
-  const is_deletable_edge = checks.is_deletable_edge_of_nodes_and_edges(edge, nodes, edges);
+  const edge = useSelector((state) => state.data.edges[props.edge_id]);
+  const nodes = useSelector((state) => state.caches[edge.p].child_nodes);
+  const edges = useSelector((state) => state.caches[edge.c].parent_edges);
+  const is_deletable_edge = checks.is_deletable_edge_of_nodes_and_edges(
+    edge,
+    nodes,
+    edges,
+  );
   const dispatch = useDispatch();
   const delete_edge = React.useCallback(
     () => dispatch(delete_edge_action(props.edge_id)),
@@ -1316,7 +1323,7 @@ const Entry = (props: { node_id: types.TNodeId }) => {
   const show_children = useSelector((state) => {
     return state.data.nodes[props.node_id].show_children;
   });
-  const has_children = Boolean(children.length)
+  const has_children = Boolean(children.length);
   const has_hidden_leaf = has_children && !show_children;
 
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
