@@ -14,7 +14,7 @@ import {
   createReducer,
 } from "@reduxjs/toolkit";
 import produce, { Draft, setAutoFreeze } from "immer";
-import memoize from "proxy-memoize";
+// import memoize from "proxy-memoize";  // Too large overhead
 import "@fontsource/material-icons";
 
 import * as checks from "./checks";
@@ -302,7 +302,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   });
   ac(delete_edge_action, (state, action) => {
     const edge_id = action.payload;
-    if (checks.is_deletable_edge(edge_id, state)) {
+    if (checks.is_deletable_edge_of(edge_id, state)) {
       const edge = state.data.edges[edge_id];
       deleteAtVal(state.data.kvs[edge.p].children, edge_id);
       deleteAtVal(state.data.kvs[edge.c].parents, edge_id);
@@ -498,16 +498,30 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     }
   });
   ac(todoToDone, (state, action) => {
-    const k = action.payload;
-    stop(state, k);
-    _addToDone(state, k);
-    _topQueue(state, k);
+    const node_id = action.payload;
+    if (checks.is_completable_node_of(state, node_id)) {
+      stop(state, node_id);
+      _addToDone(state, node_id);
+      _topQueue(state, node_id);
+    } else {
+      toast.add(
+        "error",
+        `The status of node ${node_id} cannot be set to done.`,
+      );
+    }
   });
   ac(todoToDont, (state, action) => {
-    const k = action.payload;
-    stop(state, k);
-    _addToDont(state, k);
-    _topQueue(state, k);
+    const node_id = action.payload;
+    if (checks.is_completable_node_of(state, node_id)) {
+      stop(state, node_id);
+      _addToDont(state, node_id);
+      _topQueue(state, node_id);
+    } else {
+      toast.add(
+        "error",
+        `The status of node ${node_id} cannot be set to dont.`,
+      );
+    }
   });
   ac(doneToTodo, (state, action) => {
     const k = action.payload;
@@ -525,7 +539,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     _show_path_to_selected_node(state, action.payload);
   });
   ac(set_edge_type_action, (state, action) => {
-    if (!checks.is_deletable_edge(action.payload.edge_id, state)) {
+    if (!checks.is_deletable_edge_of(action.payload.edge_id, state)) {
       toast.add(
         "error",
         `${action} is not applicable to Edge${
@@ -1040,17 +1054,7 @@ const TreeNode = (props: { node_id: types.TNodeId }) => {
     (state) => state.data.kvs[props.node_id].children,
   );
   const edges = useSelector((state) => state.data.edges);
-  const child_node_ids_of = React.useMemo(
-    () =>
-      memoize((x: { children: typeof children; edges: typeof edges }) =>
-        x.children.map((edge_id) => x.edges[edge_id].c),
-      ),
-    [],
-  );
-  const child_node_ids = React.useMemo(
-    () => child_node_ids_of({ children, edges }),
-    [children, edges, child_node_ids_of],
-  );
+  const child_node_ids = children.map((edge_id) => edges[edge_id].c);
   return React.useMemo(
     () => (
       <>
@@ -1073,21 +1077,13 @@ const QueueNode = (props: { node_id: types.TNodeId }) => {
   );
   const node_filter_query = React.useContext(node_filter_query_slow_context);
   const text = useSelector((state) => state.data.kvs[props.node_id].text);
-  const should_hide = React.useMemo(() => {
-    if (showTodoOnly && is_not_todo) {
-      return true;
-    }
-    const node_filter_query_lower = node_filter_query.toLowerCase();
-    const text_lower = text.toLowerCase();
-    let is_match_filter_node_query = true;
-    for (const q of node_filter_query_lower.split(" ")) {
-      if (props.node_id !== q && !text_lower.includes(q)) {
-        is_match_filter_node_query = false;
-        break;
-      }
-    }
-    return !is_match_filter_node_query;
-  }, [showTodoOnly, is_not_todo, node_filter_query, text, props.node_id]);
+  const should_hide = _should_hide_of(
+    showTodoOnly,
+    is_not_todo,
+    node_filter_query,
+    text,
+    props.node_id,
+  );
   const entry = EntryOf(props.node_id);
   // className="hidden" is slower.
   return should_hide ? null : (
@@ -1096,6 +1092,27 @@ const QueueNode = (props: { node_id: types.TNodeId }) => {
       {entry}
     </li>
   );
+};
+const _should_hide_of = (
+  showTodoOnly: boolean,
+  is_not_todo: boolean,
+  node_filter_query: string,
+  text: string,
+  node_id: types.TNodeId,
+) => {
+  if (showTodoOnly && is_not_todo) {
+    return true;
+  }
+  const node_filter_query_lower = node_filter_query.toLowerCase();
+  const text_lower = text.toLowerCase();
+  let is_match_filter_node_query = true;
+  for (const q of node_filter_query_lower.split(" ")) {
+    if (node_id !== q && !text_lower.includes(q)) {
+      is_match_filter_node_query = false;
+      break;
+    }
+  }
+  return !is_match_filter_node_query;
 };
 
 const Details = (props: { node_id: types.TNodeId }) => {
@@ -1185,18 +1202,21 @@ const ChildEdgeTable = (props: { node_id: types.TNodeId }) => {
   );
 };
 const EdgeRow = (props: { edge_id: types.TEdgeId }) => {
-  const selected = useSelector(
-    React.useMemo(
-      () =>
-        memoize((state) => {
-          return {
-            is_deletable: checks.is_deletable_edge(props.edge_id, state),
-            edge_type: state.data.edges[props.edge_id].t,
-          };
-        }),
-      [props.edge_id],
-    ),
-  );
+  const state = useSelector((state) => state);
+  const is_deletable_edge = checks.is_deletable_edge_of(props.edge_id, state);
+  const edge_type = state.data.edges[props.edge_id].t;
+  // const selected = useSelector(
+  //   React.useMemo(
+  //     () =>
+  //       memoize((state) => {
+  //         return {
+  //           is_deletable: checks.is_deletable_edge(props.edge_id, state),
+  //           edge_type: state.data.edges[props.edge_id].t,
+  //         };
+  //       }),
+  //     [props.edge_id],
+  //   ),
+  // );
   const dispatch = useDispatch();
   const delete_edge = React.useCallback(
     () => dispatch(delete_edge_action(props.edge_id)),
@@ -1225,8 +1245,8 @@ const EdgeRow = (props: { edge_id: types.TEdgeId }) => {
         <td className="p-[0.25em]">{props.edge_id}</td>
         <td className="p-[0.25em]">
           <select
-            disabled={!selected.is_deletable}
-            value={selected.edge_type}
+            disabled={!is_deletable_edge}
+            value={edge_type}
             onChange={set_edge_type}
           >
             {types.edge_type_values.map((t, i) => (
@@ -1240,14 +1260,14 @@ const EdgeRow = (props: { edge_id: types.TEdgeId }) => {
           <button
             className="btn-icon"
             onClick={delete_edge}
-            disabled={!selected.is_deletable}
+            disabled={!is_deletable_edge}
           >
             {consts.DELETE_MARK}
           </button>
         </td>
       </tr>
     ),
-    [props.edge_id, selected, delete_edge, set_edge_type],
+    [props.edge_id, is_deletable_edge, edge_type, delete_edge, set_edge_type],
   );
 };
 const EdgeRowOf = memoize1((edge_id: types.TEdgeId) => (
@@ -1286,9 +1306,6 @@ const Entry = (props: { node_id: types.TNodeId }) => {
     [props.node_id, dispatch],
   );
 
-  const has_strong_children = children.some(
-    (edge_id) => edges[edge_id].t === "strong",
-  );
   const has_hidden_leaf = Boolean(children.length) && !show_children;
   const is_root = props.node_id === root;
 
@@ -1299,7 +1316,7 @@ const Entry = (props: { node_id: types.TNodeId }) => {
       )}
       onDoubleClick={handle_toggle_show_children}
     >
-      {is_root || <TextArea k={props.node_id} />}
+      {is_root || TextArea_of(props.node_id)}
       <div
         className={utils.join(
           "flex gap-x-[0.25em] items-baseline mt-[0.25em]",
@@ -1315,11 +1332,9 @@ const Entry = (props: { node_id: types.TNodeId }) => {
             ? stopButtonOf(dispatch, props.node_id)
             : startButtonOf(dispatch, props.node_id))}
         {is_root ||
-          has_strong_children ||
           status !== "todo" ||
           todoToDoneButtonOf(dispatch, props.node_id)}
         {is_root ||
-          has_strong_children ||
           status !== "todo" ||
           todoToDontButtonOf(dispatch, props.node_id)}
         {is_root ||
@@ -1773,10 +1788,12 @@ const setLastRangeOf = memoize2(
     },
 );
 
-const TextArea = (props: { k: types.TNodeId }) => {
-  const state_text = useSelector((state) => state.data.kvs[props.k].text);
-  const state_style = useSelector((state) => state.data.kvs[props.k].style);
-  const status = useSelector((state) => state.data.kvs[props.k].status);
+const TextArea = (props: { node_id: types.TNodeId }) => {
+  const state_text = useSelector((state) => state.data.kvs[props.node_id].text);
+  const state_style = useSelector(
+    (state) => state.data.kvs[props.node_id].style,
+  );
+  const status = useSelector((state) => state.data.kvs[props.node_id].status);
   const dispatch = useDispatch();
   const [text, setText] = useState(state_text);
   const [style, setStyle] = useState(state_style);
@@ -1808,13 +1825,13 @@ const TextArea = (props: { k: types.TNodeId }) => {
       const h = getAndSetHeight(el);
       dispatch(
         setTextAndResizeTextArea({
-          k: props.k,
+          k: props.node_id,
           text: el.value,
           height: h,
         }),
       );
     },
-    [dispatch, props.k],
+    [dispatch, props.node_id],
   );
   if (state_text !== text_prev) {
     setText(state_text);
@@ -1841,10 +1858,13 @@ const TextArea = (props: { k: types.TNodeId }) => {
       style={{
         ...style,
       }}
-      ref={textAreaRefOf(props.k)}
+      ref={textAreaRefOf(props.node_id)}
     />
   );
 };
+const TextArea_of = memoize1((node_id: types.TNodeId) => (
+  <TextArea node_id={node_id} />
+));
 
 const getAndSetHeight = (el: HTMLTextAreaElement) => {
   el.style.height = "1px";
@@ -1984,9 +2004,12 @@ export const main = () => {
   const container = document.getElementById("root");
   const root = ReactDOM.createRoot(container!);
   root.render(
-    <Provider store={store}>
-      <App />
-    </Provider>,
+    <React.StrictMode>
+      <Provider store={store}>
+        <App />
+      </Provider>
+      ,
+    </React.StrictMode>,
   );
   store.dispatch(doLoad());
 };

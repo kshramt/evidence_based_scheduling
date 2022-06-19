@@ -1,6 +1,16 @@
 import * as types from "./types";
 import * as utils from "./utils";
 
+export const is_completable_node_of = (
+  state: types.IState,
+  node_id: types.TNodeId,
+) => {
+  return !state.data.kvs[node_id].children.some((edge_id) => {
+    const edge = state.data.edges[edge_id];
+    return edge.t === "strong" && state.data.kvs[edge.c].status === "todo";
+  });
+};
+
 export const is_deletable_node = (
   node_id: types.TNodeId,
   state: types.IState,
@@ -8,12 +18,12 @@ export const is_deletable_node = (
   return (
     node_id !== state.data.root &&
     state.data.kvs[node_id].children.every((edge_id) =>
-      is_deletable_edge(edge_id, state),
+      is_deletable_edge_of(edge_id, state),
     )
   );
 };
 
-export const is_deletable_edge = (
+export const is_deletable_edge_of = (
   edge_id: types.TEdgeId,
   state: types.IState,
 ) => {
