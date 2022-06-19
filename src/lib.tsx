@@ -1185,7 +1185,7 @@ const DetailsImpl = (props: { node_id: types.TNodeId }) => {
   return (
     <div className="pt-[0.5em]">
       {deleteButtonOf(dispatch, props.node_id)}
-      <hr className="my-[0.25em]" />
+      <hr className="my-[0.5em]" />
       <div className="flex gap-x-[0.25em] items-baseline">
         Add:
         <select value={new_edge_type} onChange={handle_new_edge_type_change}>
@@ -1202,7 +1202,9 @@ const DetailsImpl = (props: { node_id: types.TNodeId }) => {
           Children
         </button>
       </div>
-      <hr className="my-[0.25em]" />
+      <hr className="my-[0.5em]" />
+      <ParentEdgeTable node_id={props.node_id} />
+      <hr className="my-[0.5em]" />
       <ChildEdgeTable node_id={props.node_id} />
     </div>
   );
@@ -1228,19 +1230,21 @@ const ChildEdgeTable = (props: { node_id: types.TNodeId }) => {
   return (
     <table className="table-auto">
       <tbody className="block max-h-[10em] overflow-y-scroll">
-        {children.map(EdgeRowOf)}
+        {children.map(ChildEdgeRow_of)}
       </tbody>
     </table>
   );
 };
-const EdgeRow = (props: { edge_id: types.TEdgeId }) => {
+const ChildEdgeRow = (props: { edge_id: types.TEdgeId }) => {
   const edge = useSelector((state) => state.data.edges[props.edge_id]);
-  const nodes = useSelector((state) => state.caches[edge.p].child_nodes);
-  const edges = useSelector((state) => state.caches[edge.c].parent_edges);
+  const child_nodes = useSelector((state) => state.caches[edge.p].child_nodes);
+  const parent_edges = useSelector(
+    (state) => state.caches[edge.c].parent_edges,
+  );
   const is_deletable_edge = checks.is_deletable_edge_of_nodes_and_edges(
     edge,
-    nodes,
-    edges,
+    child_nodes,
+    parent_edges,
   );
   const dispatch = useDispatch();
   const delete_edge = React.useCallback(
@@ -1263,11 +1267,19 @@ const EdgeRow = (props: { edge_id: types.TEdgeId }) => {
     },
     [props.edge_id, dispatch],
   );
-  // set edge type
+  const text = child_nodes[edge.c].text;
+  const to_tree_link = React.useMemo(
+    () => (
+      <span title={text}>
+        <ToTreeLink node_id={edge.c}>{text.slice(0, 15)}</ToTreeLink>
+      </span>
+    ),
+    [edge.c, text],
+  );
   return React.useMemo(
     () => (
       <tr>
-        <td className="p-[0.25em]">{props.edge_id}</td>
+        <td className="p-[0.25em]">{to_tree_link}</td>
         <td className="p-[0.25em]">
           <select
             disabled={!is_deletable_edge}
@@ -1292,11 +1304,102 @@ const EdgeRow = (props: { edge_id: types.TEdgeId }) => {
         </td>
       </tr>
     ),
-    [props.edge_id, is_deletable_edge, edge.t, delete_edge, set_edge_type],
+    [is_deletable_edge, edge.t, to_tree_link, delete_edge, set_edge_type],
   );
 };
-const EdgeRowOf = memoize1((edge_id: types.TEdgeId) => (
-  <EdgeRow edge_id={edge_id} key={edge_id} />
+const ChildEdgeRow_of = memoize1((edge_id: types.TEdgeId) => (
+  <ChildEdgeRow edge_id={edge_id} key={edge_id} />
+));
+
+const ParentEdgeTable = (props: { node_id: types.TNodeId }) => {
+  const parents = useSelector(
+    (state) => state.data.nodes[props.node_id].parents,
+  );
+  return (
+    <table className="table-auto">
+      <tbody className="block max-h-[10em] overflow-y-scroll">
+        {parents.map(ParentEdgeRow_of)}
+      </tbody>
+    </table>
+  );
+};
+const ParentEdgeRow = (props: { edge_id: types.TEdgeId }) => {
+  const edge = useSelector((state) => state.data.edges[props.edge_id]);
+  const parent_nodes = useSelector(
+    (state) => state.caches[edge.c].parent_nodes,
+  );
+  const child_nodes = useSelector((state) => state.caches[edge.p].child_nodes);
+  const parent_edges = useSelector(
+    (state) => state.caches[edge.c].parent_edges,
+  );
+  const is_deletable_edge = checks.is_deletable_edge_of_nodes_and_edges(
+    edge,
+    child_nodes,
+    parent_edges,
+  );
+  const dispatch = useDispatch();
+  const delete_edge = React.useCallback(
+    () => dispatch(delete_edge_action(props.edge_id)),
+    [props.edge_id, dispatch],
+  );
+  const set_edge_type = React.useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const edge_type = e.target.value;
+      if (types.is_TEdgeType(edge_type)) {
+        dispatch(
+          set_edge_type_action({
+            edge_id: props.edge_id,
+            edge_type,
+          }),
+        );
+      } else {
+        toast.add("error", `Invalid edge type: ${edge_type}`);
+      }
+    },
+    [props.edge_id, dispatch],
+  );
+  const text = parent_nodes[edge.p].text;
+  const to_tree_link = React.useMemo(
+    () => (
+      <span title={text}>
+        <ToTreeLink node_id={edge.c}>{text.slice(0, 15)}</ToTreeLink>
+      </span>
+    ),
+    [edge.c, text],
+  );
+  return React.useMemo(
+    () => (
+      <tr>
+        <td className="p-[0.25em]">{to_tree_link}</td>
+        <td className="p-[0.25em]">
+          <select
+            disabled={!is_deletable_edge}
+            value={edge.t}
+            onChange={set_edge_type}
+          >
+            {types.edge_type_values.map((t, i) => (
+              <option value={t} key={i}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </td>
+        <td className="p-[0.25em]">
+          <button
+            className="btn-icon"
+            onClick={delete_edge}
+            disabled={!is_deletable_edge}
+          >
+            {consts.DELETE_MARK}
+          </button>
+        </td>
+      </tr>
+    ),
+    [is_deletable_edge, edge.t, to_tree_link, delete_edge, set_edge_type],
+  );
+};
+const ParentEdgeRow_of = memoize1((edge_id: types.TEdgeId) => (
+  <ParentEdgeRow edge_id={edge_id} key={edge_id} />
 ));
 
 const EntryWrapper = (props: {
@@ -1621,7 +1724,10 @@ const textAreaRefOf = memoize1((_: types.TNodeId) =>
   React.createRef<HTMLTextAreaElement>(),
 );
 
-const ToTreeLink = (props: { node_id: types.TNodeId }) => {
+const ToTreeLink = (props: {
+  node_id: types.TNodeId;
+  children?: React.ReactNode;
+}) => {
   const dispatch = useDispatch();
   return (
     <a
@@ -1630,7 +1736,7 @@ const ToTreeLink = (props: { node_id: types.TNodeId }) => {
         dispatch(show_path_to_selected_node(props.node_id));
       }}
     >
-      →
+      {props.children === undefined ? "→" : props.children}
     </a>
   );
 };
@@ -1638,9 +1744,17 @@ const ToTreeLink_of = memoize1((node_id: types.TNodeId) => (
   <ToTreeLink node_id={node_id} />
 ));
 
-const ToQueueLink = (props: { node_id: types.TNodeId }) => {
+const ToQueueLink = (props: {
+  node_id: types.TNodeId;
+  children?: React.ReactNode;
+}) => {
   const root = useSelector((state) => state.data.root);
-  return props.node_id === root ? null : <a href={`#q-${props.node_id}`}>←</a>;
+  return props.node_id === root ? null : (
+    <a href={`#q-${props.node_id}`}>
+      {" "}
+      {props.children === undefined ? "←" : props.children}
+    </a>
+  );
 };
 const ToQueueLink_of = memoize1((node_id: types.TNodeId) => (
   <ToQueueLink node_id={node_id} />
