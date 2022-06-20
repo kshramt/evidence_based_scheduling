@@ -1,4 +1,5 @@
 import datetime
+import gzip
 import json
 import os
 import urllib
@@ -270,7 +271,7 @@ def root():
 @app.route("/api/v1/get")
 def get():
     try:
-        with open(jp(DATA_DIR, DATA_BASENAME) + ".json") as fp:
+        with gzip.open(jp(DATA_DIR, DATA_BASENAME) + ".json.gz", "rt") as fp:
             data = json.load(fp)
         data = _remove_tail_none_v1(data)
         data = _update_data_version(data)
@@ -296,12 +297,12 @@ def save(data):
     time = datetime.datetime.now().isoformat()
     if DATA_CHECKPOINT_DIR is not None:
         mkdir(DATA_CHECKPOINT_DIR)
-        with open(
-            jp(DATA_CHECKPOINT_DIR, DATA_BASENAME) + "_" + time + ".json", "w"
+        with gzip.open(
+            jp(DATA_CHECKPOINT_DIR, DATA_BASENAME) + "_" + time + ".json.gz", "wt"
         ) as fp:
             fp.write(s)
     mkdir(DATA_DIR)
-    with open(jp(DATA_DIR, DATA_BASENAME) + ".json", "w") as fp:
+    with gzip.open(jp(DATA_DIR, DATA_BASENAME) + ".json.gz", "wt") as fp:
         fp.write(s)
     return time
 
