@@ -1075,27 +1075,35 @@ const TreeNode = (props: { node_id: types.TNodeId }) => {
   const show_children = useSelector(
     (state) => state.data.nodes[props.node_id].show_children,
   );
+  const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
   const children = useSelector(
     (state) => state.data.nodes[props.node_id].children,
   );
   const edges = useSelector((state) => state.caches[props.node_id].child_edges);
+  const nodes = useSelector((state) => state.caches[props.node_id].child_nodes);
   const tree_node_list = React.useMemo(
-    () =>
-      show_children && (
-        <TreeNodeList
-          node_id_list={children.map((edge_id) => edges[edge_id].c)}
-        />
-      ),
-    [children, edges, show_children],
-  );
-  return React.useMemo(
     () => (
-      <>
-        {entry}
-        {tree_node_list}
-      </>
+      <TreeNodeList
+        node_id_list={
+          show_children
+            ? (showTodoOnly
+                ? children.filter(
+                    (edge_id) => nodes[edges[edge_id].c].status === "todo",
+                  )
+                : children
+              ).map((edge_id) => edges[edge_id].c)
+            : []
+        }
+      />
     ),
-    [entry, tree_node_list],
+    [show_children, showTodoOnly, children, nodes, edges],
+  );
+
+  return (
+    <>
+      {entry}
+      {tree_node_list}
+    </>
   );
 };
 const TreeNode_of = memoize1((node_id: types.TNodeId) => (
