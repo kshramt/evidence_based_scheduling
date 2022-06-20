@@ -28,6 +28,9 @@ const MENU_HEIGHT = "3rem" as const;
 const API_VERSION = "v1";
 const NO_ESTIMATION = 0;
 const START_MARK = <span className="material-icons">play_arrow</span>;
+const START_CONCURRNET_MARK = (
+  <span className="material-icons">double_arrow</span>
+);
 const ADD_MARK = <span className="material-icons">add</span>;
 const STOP_MARK = <span className="material-icons">stop</span>;
 const TOP_MARK = <span className="material-icons">arrow_upward</span>;
@@ -226,7 +229,11 @@ const flipShowTodoOnly = register_save_type(
 );
 const flipShowDetail = createAction<types.TNodeId>("flipShowDetail");
 const start_action = register_save_type(
-  register_history_type(createAction<types.TNodeId>("start_action")),
+  register_history_type(
+    createAction<{ node_id: types.TNodeId; is_concurrent: boolean }>(
+      "start_action",
+    ),
+  ),
 );
 const top_action = register_save_type(
   register_history_type(createAction<types.TNodeId>("top")),
@@ -395,7 +402,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     state.caches[node_id].show_detail = !state.caches[node_id].show_detail;
   });
   ac(start_action, (state, action) => {
-    const node_id = action.payload;
+    const node_id = action.payload.node_id;
     if (state.data.nodes[node_id].status !== "todo") {
       toast.add("error", `None todo node ${node_id} cannot be started.`);
       return;
@@ -407,7 +414,9 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
         state.data.nodes[node_id].status === "todo",
         "Must not happen",
       ]);
-      stop_all(state);
+      if (!action.payload.is_concurrent) {
+        stop_all(state);
+      }
       state.data.nodes[node_id].ranges.push({
         start: Number(new Date()) / 1000,
         end: null,
@@ -531,7 +540,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   ac(setLastRange_, (state, action) => {
     const node_id = action.payload.k;
     const t = action.payload.t;
-    const l = lastRangeOf(state.data.nodes[node_id].ranges);
+    const l = last_range_of(state.data.nodes[node_id].ranges);
     if (l !== null && l.end) {
       const t1 = l.end - l.start;
       const t2 = t * 3600;
@@ -1226,6 +1235,7 @@ const DetailsImpl = (props: { node_id: types.TNodeId }) => {
   }, [dispatch, node_ids, new_edge_type, props.node_id]);
   return (
     <div className="pt-[0.5em]">
+      <hr className="my-[0.5em]" />
       {deleteButtonOf(dispatch, props.node_id)}
       <hr className="my-[0.5em]" />
       <div className="flex gap-x-[0.25em] items-baseline">
@@ -1248,6 +1258,7 @@ const DetailsImpl = (props: { node_id: types.TNodeId }) => {
       <ParentEdgeTable node_id={props.node_id} />
       <hr className="my-[0.5em]" />
       <ChildEdgeTable node_id={props.node_id} />
+      <hr className="my-[0.5em]" />
     </div>
   );
 };
@@ -1533,11 +1544,17 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
           {cache.total_time < 0 ? "-" : digits1(cache.total_time / 3600)}
         </span>
         {is_root || EstimationInputOf(props.node_id)}
+        {is_root || LastRange_of(props.node_id)}
         {is_root ||
           status !== "todo" ||
-          (running
-            ? stopButtonOf(dispatch, props.node_id)
-            : startButtonOf(dispatch, props.node_id))}
+          (running ? (
+            stopButtonOf(dispatch, props.node_id)
+          ) : (
+            <>
+              {StartButton_of(dispatch, props.node_id)}
+              {StartConcurrentButton_of(dispatch, props.node_id)}
+            </>
+          ))}
         {is_root ||
           status !== "todo" ||
           !is_completable ||
@@ -1604,7 +1621,7 @@ const _estimate = (
   return ts;
 };
 
-const lastRangeOf = (ranges: types.IRange[]): null | types.IRange => {
+const last_range_of = (ranges: types.IRange[]): null | types.IRange => {
   const n = ranges.length;
   if (n < 1) {
     return null;
@@ -1857,17 +1874,32 @@ const stopButtonOf = memoize2(
   ),
 );
 
-const startButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
-  <button
-    className="btn-icon"
-    onClick={() => {
-      dispatch(start_action(k));
-      dispatch(doFocusStopButton(k));
-    }}
-  >
-    {START_MARK}
-  </button>
-));
+const StartButton_of = memoize2(
+  (dispatch: AppDispatch, node_id: types.TNodeId) => (
+    <button
+      className="btn-icon"
+      onClick={() => {
+        dispatch(start_action({ node_id, is_concurrent: false }));
+        dispatch(doFocusStopButton(node_id));
+      }}
+    >
+      {START_MARK}
+    </button>
+  ),
+);
+const StartConcurrentButton_of = memoize2(
+  (dispatch: AppDispatch, node_id: types.TNodeId) => (
+    <button
+      className="btn-icon"
+      onClick={() => {
+        dispatch(start_action({ node_id, is_concurrent: true }));
+        dispatch(doFocusStopButton(node_id));
+      }}
+    >
+      {START_CONCURRNET_MARK}
+    </button>
+  ),
+);
 
 const topButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
   <button
@@ -2117,28 +2149,20 @@ const getAndSetHeight = (el: HTMLTextAreaElement) => {
   return h;
 };
 
-const LastRangeOf = memoize1((k: types.TNodeId) => <LastRange k={k} />);
-
-const LastRange = (props: { k: types.TNodeId }) => {
-  const last_range = useSelector((state) => {
-    return lastRangeOf(state.data.nodes[props.k].ranges);
-  });
-  const dispatch = useDispatch();
-  return React.useMemo(() => {
-    const last_range_value =
-      last_range !== null && last_range.end !== null
-        ? (last_range.end - last_range.start) / 3600
-        : null;
-    return last_range_value === null ? null : (
-      <input
-        type="number"
-        step="any"
-        value={last_range_value}
-        onChange={setLastRangeOf(dispatch, props.k)}
-      />
-    );
-  }, [last_range, dispatch, props.k]);
+const LastRange = (props: { node_id: types.TNodeId }) => {
+  const ranges = useSelector((state) => state.data.nodes[props.node_id].ranges);
+  const last_range = last_range_of(ranges);
+  return (
+    <>
+      {last_range &&
+        last_range.end &&
+        digits2((last_range.end - last_range.start) / 3600)}
+    </>
+  );
 };
+const LastRange_of = memoize1((node_id: types.TNodeId) => (
+  <LastRange node_id={node_id} />
+));
 
 const undoable = (
   reducer: (
