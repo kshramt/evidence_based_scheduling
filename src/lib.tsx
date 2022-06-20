@@ -100,6 +100,7 @@ const stop = (
   const last_range = last(draft.data.nodes[node_id].ranges);
   if (last_range && last_range.end === null) {
     last_range.end = t ?? Number(new Date()) / 1000;
+    update_node_caches(node_id, draft);
     _set_total_time(draft, node_id);
   }
 };
@@ -411,6 +412,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
         start: Number(new Date()) / 1000,
         end: null,
       });
+      update_node_caches(node_id, state);
       _show_path_to_selected_node(state, node_id);
     }
   });
@@ -492,30 +494,44 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     stop_all(state);
   });
   ac(moveUp_, (state, action) => {
-    const k = action.payload;
-    for (const edge_id of state.data.nodes[k].parents) {
-      moveUp(state.data.nodes[state.data.edges[edge_id].p].children, edge_id);
+    if (state.data.nodes[action.payload].status === "todo") {
+      for (const edge_id of state.data.nodes[action.payload].parents) {
+        const node_id = state.data.edges[edge_id].p;
+        moveUp(state.data.nodes[node_id].children, edge_id);
+        update_node_caches(node_id, state);
+      }
+      moveUp(state.data.queue, action.payload);
+    } else {
+      toast.add("error", `Non-todo node ${action.payload} cannot be moved up.`);
     }
-    moveUp(state.data.queue, k);
   });
   ac(moveDown_, (state, action) => {
-    const k = action.payload;
-    for (const edge_id of state.data.nodes[k].parents) {
-      moveDown(state.data.nodes[state.data.edges[edge_id].p].children, edge_id);
+    if (state.data.nodes[action.payload].status === "todo") {
+      for (const edge_id of state.data.nodes[action.payload].parents) {
+        const node_id = state.data.edges[edge_id].p;
+        moveDown(state.data.nodes[node_id].children, edge_id);
+        update_node_caches(node_id, state);
+      }
+      moveDown(state.data.queue, action.payload);
+    } else {
+      toast.add(
+        "error",
+        `Non-todo node ${action.payload} cannot be moved down.`,
+      );
     }
-    moveDown(state.data.queue, k);
   });
   ac(setEstimate, (state, action) => {
-    const k = action.payload.k;
+    const node_id = action.payload.k;
     const estimate = action.payload.estimate;
-    if (state.data.nodes[k].estimate !== estimate) {
-      state.data.nodes[k].estimate = estimate;
+    if (state.data.nodes[node_id].estimate !== estimate) {
+      state.data.nodes[node_id].estimate = estimate;
     }
+    update_node_caches(node_id, state);
   });
   ac(setLastRange_, (state, action) => {
-    const k = action.payload.k;
+    const node_id = action.payload.k;
     const t = action.payload.t;
-    const l = lastRangeOf(state.data.nodes[k].ranges);
+    const l = lastRangeOf(state.data.nodes[node_id].ranges);
     if (l !== null && l.end) {
       const t1 = l.end - l.start;
       const t2 = t * 3600;
@@ -524,24 +540,28 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
         l.end = l.start + t2;
       }
     }
+    update_node_caches(node_id, state);
   });
   ac(setTextAndResizeTextArea, (state, action) => {
-    const k = action.payload.k;
+    const node_id = action.payload.k;
     const text = action.payload.text;
     const height = action.payload.height;
-    const v = state.data.nodes[k];
-    v.text = text;
+    const node = state.data.nodes[node_id];
+    node.text = text;
     if (height !== null) {
-      if (v.style.height !== height) {
-        v.style.height = height;
+      if (node.style.height !== height) {
+        node.style.height = height;
       }
     }
+    update_node_caches(node_id, state);
   });
   ac(todoToDone, (state, action) => {
     const node_id = action.payload;
     if (checks.is_completable_node_of(node_id, state)) {
       stop(state, node_id);
-      _addToDone(state, node_id);
+      state.data.nodes[node_id].status = "done";
+      state.data.nodes[node_id].end_time = new Date().toISOString();
+      update_node_caches(node_id, state);
       _topQueue(state, node_id);
     } else {
       toast.add(
@@ -554,7 +574,9 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     const node_id = action.payload;
     if (checks.is_completable_node_of(node_id, state)) {
       stop(state, node_id);
-      _addToDont(state, node_id);
+      state.data.nodes[node_id].status = "dont";
+      state.data.nodes[node_id].end_time = new Date().toISOString();
+      update_node_caches(node_id, state);
       _topQueue(state, node_id);
     } else {
       toast.add(
@@ -566,14 +588,17 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   ac(done_or_dont_to_todo_action, (state, action) => {
     const node_id = action.payload;
     if (checks.is_uncompletable_node_of(node_id, state)) {
-      _addToTodo(state, node_id);
+      state.data.nodes[node_id].status = "todo";
+      update_node_caches(node_id, state);
     } else {
       toast.add("error", `Node ${node_id} cannot be set to todo.`);
     }
   });
   ac(toggle_show_children, (state, action) => {
-    state.data.nodes[action.payload].show_children =
-      !state.data.nodes[action.payload].show_children;
+    const node_id = action.payload;
+    state.data.nodes[node_id].show_children =
+      !state.data.nodes[node_id].show_children;
+    update_node_caches(node_id, state);
   });
   ac(show_path_to_selected_node, (state, action) => {
     _show_path_to_selected_node(state, action.payload);
@@ -587,7 +612,9 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
         }.`,
       );
     }
-    state.data.edges[action.payload.edge_id].t = action.payload.edge_type;
+    const edge = state.data.edges[action.payload.edge_id];
+    edge.t = action.payload.edge_type;
+    update_edge_caches(action.payload.edge_id, state);
   });
   ac(add_edges_action, (state, action) => {
     for (const edge of action.payload) {
@@ -942,43 +969,31 @@ const node_time_of = (node_id: types.TNodeId, nodes: types.INodes) => {
   }, 0);
 };
 
-const _top = (draft: Draft<types.IState>, k: types.TNodeId) => {
-  _topTree(draft, k, utils.visit_counter_of());
-  _topQueue(draft, k);
+const _top = (draft: Draft<types.IState>, node_id: types.TNodeId) => {
+  if (draft.data.nodes[node_id].status === "todo") {
+    _topTree(draft, node_id);
+    _topQueue(draft, node_id);
+  } else {
+    toast.add("error", `Non-todo node ${node_id} cannot be moved.`);
+  }
 };
 
-const _topTree = (
-  draft: Draft<types.IState>,
-  node_id: types.TNodeId,
-  vid: number,
-) => {
-  if (utils.vids[node_id] === vid) {
-    return;
-  }
-  utils.vids[node_id] = vid;
-  for (const edge_id of draft.data.nodes[node_id].parents) {
-    const parent_node_id = draft.data.edges[edge_id].p;
-    toFront(draft.data.nodes[parent_node_id].children, edge_id);
-    _topTree(draft, parent_node_id, vid);
+const _topTree = (draft: Draft<types.IState>, node_id: types.TNodeId) => {
+  while (draft.data.nodes[node_id].parents.length) {
+    for (const edge_id of draft.data.nodes[node_id].parents) {
+      const edge = draft.data.edges[edge_id];
+      if (edge.t === "strong" && draft.data.nodes[edge.p].status === "todo") {
+        toFront(draft.data.nodes[edge.p].children, edge_id);
+        update_node_caches(edge.p, draft);
+        node_id = edge.p;
+        break;
+      }
+    }
   }
 };
 
 const _topQueue = (draft: Draft<types.IState>, k: types.TNodeId) => {
   toFront(draft.data.queue, k);
-};
-
-const _addToTodo = (draft: Draft<types.IState>, k: types.TNodeId) => {
-  draft.data.nodes[k].status = "todo";
-};
-
-const _addToDone = (draft: Draft<types.IState>, k: types.TNodeId) => {
-  draft.data.nodes[k].status = "done";
-  draft.data.nodes[k].end_time = new Date().toISOString();
-};
-
-const _addToDont = (draft: Draft<types.IState>, k: types.TNodeId) => {
-  draft.data.nodes[k].status = "dont";
-  draft.data.nodes[k].end_time = new Date().toISOString();
 };
 
 const _show_path_to_selected_node = (
@@ -992,8 +1007,27 @@ const _show_path_to_selected_node = (
     node_id = draft.data.edges[draft.data.nodes[node_id].parents[0]].p;
     if (!draft.data.nodes[node_id].show_children) {
       draft.data.nodes[node_id].show_children = true;
+      update_node_caches(node_id, draft);
     }
   }
+};
+
+const update_node_caches = (node_id: types.TNodeId, state: types.IState) => {
+  const node = state.data.nodes[node_id];
+  node.parents.forEach(
+    (edge_id) =>
+      (state.caches[state.data.edges[edge_id].p].child_nodes[node_id] = node),
+  );
+  node.children.forEach(
+    (edge_id) =>
+      (state.caches[state.data.edges[edge_id].c].parent_nodes[node_id] = node),
+  );
+};
+
+const update_edge_caches = (edge_id: types.TEdgeId, state: types.IState) => {
+  const edge = state.data.edges[edge_id];
+  state.caches[edge.p].child_edges[edge_id] = edge;
+  state.caches[edge.c].parent_edges[edge_id] = edge;
 };
 
 const memoize1 = <A, R>(fn: (a: A) => R) => {
@@ -1362,10 +1396,10 @@ const ParentEdgeRow = (props: { edge_id: types.TEdgeId }) => {
   const to_tree_link = React.useMemo(
     () => (
       <span title={text}>
-        <ToTreeLink node_id={edge.c}>{text.slice(0, 15)}</ToTreeLink>
+        <ToTreeLink node_id={edge.p}>{text.slice(0, 15)}</ToTreeLink>
       </span>
     ),
-    [edge.c, text],
+    [edge.p, text],
   );
   return React.useMemo(
     () => (
@@ -1509,9 +1543,13 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
           !is_uncompletable ||
           DoneOrDontToTodoButton_of(dispatch, props.node_id)}
         {status === "todo" && evalButtonOf(dispatch, props.node_id)}
-        {is_root || topButtonOf(dispatch, props.node_id)}
-        {is_root || moveUpButtonOf(dispatch, props.node_id)}
-        {is_root || moveDownButtonOf(dispatch, props.node_id)}
+        {is_root || status !== "todo" || topButtonOf(dispatch, props.node_id)}
+        {is_root ||
+          status !== "todo" ||
+          moveUpButtonOf(dispatch, props.node_id)}
+        {is_root ||
+          status !== "todo" ||
+          moveDownButtonOf(dispatch, props.node_id)}
         {CopyNodeIdButton_of(props.node_id)}
         {status === "todo" && NewButton_of(dispatch, props.node_id)}
         {showDetailButtonOf(dispatch, props.node_id)}
