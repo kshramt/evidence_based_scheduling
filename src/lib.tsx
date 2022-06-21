@@ -1498,10 +1498,6 @@ const EntryWrapper = (props: {
 };
 
 const EntryButtons = (props: { node_id: types.TNodeId }) => {
-  const ranges = useSelector((state) => state.data.nodes[props.node_id].ranges);
-  const last_range = last(ranges);
-  const running = last_range && last_range.end === null;
-
   const cache = useSelector((state) => state.caches[props.node_id]);
 
   const children = useSelector(
@@ -1545,16 +1541,7 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
         </span>
         {is_root || EstimationInputOf(props.node_id)}
         {is_root || LastRange_of(props.node_id)}
-        {is_root ||
-          status !== "todo" ||
-          (running ? (
-            stopButtonOf(dispatch, props.node_id)
-          ) : (
-            <>
-              {StartButton_of(dispatch, props.node_id)}
-              {StartConcurrentButton_of(dispatch, props.node_id)}
-            </>
-          ))}
+        {is_root || StartOrStopButtons_of(props.node_id)}
         {is_root ||
           status !== "todo" ||
           !is_completable ||
@@ -1585,7 +1572,6 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
       cache.percentiles,
       cache.show_detail,
       cache.total_time,
-      running,
       status,
       on_click_total_time,
       is_root,
@@ -1598,6 +1584,25 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
 };
 const EntryButtons_of = memoize1((node_id: types.TNodeId) => (
   <EntryButtons node_id={node_id} />
+));
+
+const StartOrStopButtons = (props: { node_id: types.TNodeId }) => {
+  const ranges = useSelector((state) => state.data.nodes[props.node_id].ranges);
+  const last_range = last(ranges);
+  const running = last_range && last_range.end === null;
+  const dispatch = useDispatch();
+
+  return running ? (
+    stopButtonOf(dispatch, props.node_id)
+  ) : (
+    <>
+      {StartButton_of(dispatch, props.node_id)}
+      {StartConcurrentButton_of(dispatch, props.node_id)}
+    </>
+  );
+};
+const StartOrStopButtons_of = memoize1((node_id: types.TNodeId) => (
+  <StartOrStopButtons node_id={node_id} />
 ));
 
 const _estimate = (
