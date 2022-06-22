@@ -952,33 +952,55 @@ const _eval_ = (draft: Draft<types.IState>, k: types.TNodeId) => {
 };
 
 const _set_total_time = (state: types.IState, node_id: types.TNodeId) => {
-  return (state.caches[node_id].total_time = _total_time_of(
-    state,
-    node_id,
-    utils.visit_counter_of(),
-  ));
+  return (state.caches[node_id].total_time = total_time_of(state, node_id));
+};
+
+const total_time_of = (state: types.IState, node_id: types.TNodeId) => {
+  const eventss: [number, -1 | 1][][] = [];
+  _total_time_of(node_id, state, utils.visit_counter_of(), eventss);
+  const events = eventss.flat();
+  events.sort((a, b) => a[0] - b[0]);
+  let res = 0;
+  let count = 0;
+  let t_prev = -1;
+  const count_ge_0: () => [boolean, string] = () => [0 <= count, "0 <= count"];
+  for (const [t, inc] of events) {
+    if (count === 0) {
+      count += inc;
+      t_prev = t;
+    } else {
+      count += inc;
+      if (count === 0) {
+        res += t - t_prev;
+      }
+    }
+    assert(count_ge_0);
+  }
+  return res;
 };
 
 const _total_time_of = (
-  state: types.IState,
   node_id: types.TNodeId,
+  state: types.IState,
   vid: number,
-): number => {
+  eventss: [number, -1 | 1][][],
+) => {
   if (utils.vids[node_id] === vid) {
-    return 0;
+    return;
   }
   utils.vids[node_id] = vid;
-  const v = state.data.nodes[node_id];
-  const r = (total: number, current: types.TEdgeId) => {
-    return total + _total_time_of(state, state.data.edges[current].c, vid);
-  };
-  return node_time_of(node_id, state.data.nodes) + v.children.reduce(r, 0);
-};
-
-const node_time_of = (node_id: types.TNodeId, nodes: types.INodes) => {
-  return nodes[node_id].ranges.reduce((total, current) => {
-    return current.end === null ? total : total + (current.end - current.start);
-  }, 0);
+  const node = state.data.nodes[node_id];
+  const events: [number, -1 | 1][] = [];
+  for (const range of node.ranges) {
+    events.push([range.start, 1]);
+    if (range.end !== null) {
+      events.push([range.end, -1]);
+    }
+  }
+  eventss.push(events);
+  for (const edge_id of node.children) {
+    _total_time_of(state.data.edges[edge_id].c, state, vid, eventss);
+  }
 };
 
 const _top = (draft: Draft<types.IState>, node_id: types.TNodeId) => {
