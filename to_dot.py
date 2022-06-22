@@ -28,10 +28,17 @@ def run(args):
     data = json.load(sys.stdin)
     print("digraph G{")
     for k, v in data["nodes"].items():
+        if args.todo and v["status"] != "todo":
+            continue
         color = color_of_status[v["status"]]
         label = "\n".join(v["text"][:-1]).strip().split("\n")[0].strip()[:20]
         print(f"n{k}[label={json.dumps(label, ensure_ascii=False)} fontcolor={color}]")
     for k, v in data["edges"].items():
+        if args.todo and (
+            (data["nodes"][v["p"]]["status"] != "todo")
+            or (data["nodes"][v["c"]]["status"] != "todo")
+        ):
+            continue
         style = "dashed" if v["t"] == "weak" else "solid"
         print(f"n{v['p']}->n{v['c']}[style={json.dumps(style)}]")
     print("}")
@@ -55,6 +62,7 @@ def _parse_argv(argv):
         type=lambda x: getattr(logging, x.upper()),
         help="Set log level.",
     )
+    parser.add_argument("--todo", action="store_true")
     args = parser.parse_args(argv)
     logger.debug(dict(args=args))
     return args
