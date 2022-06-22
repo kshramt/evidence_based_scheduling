@@ -489,7 +489,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     if (k_min !== null) {
       _top(
         state,
-        leafs(k_min, state.data.nodes, state.data.edges)
+        todo_leafs_of(k_min, state, (edge) => true)
           [Symbol.iterator]()
           .next().value[0],
       );
@@ -928,7 +928,7 @@ const _eval_ = (draft: Draft<types.IState>, k: types.TNodeId) => {
       })
     : [1];
   const leaf_estimates = Array.from(
-    leafs(k, draft.data.nodes, draft.data.edges),
+    todo_leafs_of(k, draft, (edge) => edge.t === "strong"),
   )
     .map(([_, v]) => v)
     .filter((v) => {
@@ -1738,34 +1738,40 @@ export const sum = (xs: number[]) => {
   }, 0);
 };
 
-function* leafs(
+const todo_leafs_of = (
   node_id: types.TNodeId,
-  nodes: types.INodes,
-  edges: types.IEdges,
+  state: types.IState,
+  edge_filter: (edge: types.IEdge) => boolean,
+) => {
+  return _todo_leafs_of(node_id, state, edge_filter, utils.visit_counter_of());
+};
+function* _todo_leafs_of(
+  node_id: types.TNodeId,
+  state: types.IState,
+  edge_filter: (edge: types.IEdge) => boolean,
+  vid: number,
 ): Iterable<[types.TNodeId, types.INode]> {
-  const node = nodes[node_id];
-  if (node.status === "todo") {
-    const todos = _children_of(node_id, "todo", nodes, edges);
-    if (todos.length) {
-      for (const c of todos) {
-        yield* leafs(edges[c].c, nodes, edges);
-      }
-    } else {
-      yield [node_id, node];
+  if (utils.vids[node_id] === vid) {
+    return;
+  }
+  utils.vids[node_id] = vid;
+  const node = state.data.nodes[node_id];
+  if (node.status !== "todo") {
+    return;
+  }
+  let had_strong_todo_child = false;
+  for (const edge_id of node.children) {
+    const edge = state.data.edges[edge_id];
+    if (!edge_filter(edge)) {
+      continue;
     }
+    yield* _todo_leafs_of(edge.c, state, edge_filter, vid);
+    had_strong_todo_child = true;
+  }
+  if (!had_strong_todo_child) {
+    yield [node_id, node];
   }
 }
-
-const _children_of = (
-  node_id: types.TNodeId,
-  status: types.TStatus,
-  nodes: types.INodes,
-  edges: types.IEdges,
-) => {
-  return nodes[node_id].children.filter(
-    (edge_id) => nodes[edges[edge_id].c].status === status,
-  );
-};
 
 export function* multinomial<T>(xs: T[], ws: number[]) {
   const total = sum(ws);
