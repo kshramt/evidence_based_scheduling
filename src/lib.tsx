@@ -138,6 +138,7 @@ const emptyStateOf = (): types.IState => {
     showTodoOnly: false,
     version: 12,
   };
+  data.nodes[root].text = "root";
   const caches = {
     [root]: new_cache_of(data, root),
   };
