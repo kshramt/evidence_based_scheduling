@@ -157,6 +157,7 @@ export interface ICaches {
 interface ICache {
   total_time: number;
   percentiles: number[]; // 0, 10, 33, 50, 67, 90, 100
+  leaf_estimates_sum: number;
   show_detail: boolean;
   parent_edges: IEdges;
   parent_nodes: INodes;

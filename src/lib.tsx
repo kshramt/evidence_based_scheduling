@@ -177,6 +177,7 @@ const new_cache_of = (data: types.IData, node_id: types.TNodeId) => {
   return {
     total_time: -1,
     percentiles: [],
+    leaf_estimates_sum: -1,
     show_detail: false,
     parent_edges,
     parent_nodes,
@@ -938,6 +939,7 @@ const _eval_ = (draft: Draft<types.IState>, k: types.TNodeId) => {
     });
   const n_mc = 2000;
   const ts = _estimate(leaf_estimates, ratios, weights, n_mc);
+  draft.caches[k].leaf_estimates_sum = sum(leaf_estimates);
   draft.caches[k].percentiles = [
     ts[0],
     ts[Math.round(n_mc / 10)],
@@ -1566,11 +1568,15 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
         {CopyNodeIdButton_of(props.node_id)}
         {status === "todo" && NewButton_of(dispatch, props.node_id)}
         {showDetailButtonOf(dispatch, props.node_id)}
+        {status === "todo" &&
+          0 <= cache.leaf_estimates_sum &&
+          digits1(cache.leaf_estimates_sum) + " | "}
         {status === "todo" && cache.percentiles.map(digits1).join(" ")}
       </div>
     ),
     [
       cache.percentiles,
+      cache.leaf_estimates_sum,
       cache.show_detail,
       cache.total_time,
       status,
