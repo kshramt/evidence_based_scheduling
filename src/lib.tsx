@@ -406,7 +406,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   ac(start_action, (state, action) => {
     const node_id = action.payload.node_id;
     if (state.data.nodes[node_id].status !== "todo") {
-      toast.add("error", `None todo node ${node_id} cannot be started.`);
+      toast.add("error", `Non-todo node ${node_id} cannot be started.`);
       return;
     }
     const last_range = last(state.data.nodes[node_id].ranges);
@@ -1572,7 +1572,7 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
         </span>
         {is_root || EstimationInputOf(props.node_id)}
         {is_root || LastRange_of(props.node_id)}
-        {is_root || StartOrStopButtons_of(props.node_id)}
+        {is_root || status !== "todo" || StartOrStopButtons_of(props.node_id)}
         {is_root ||
           status !== "todo" ||
           !is_completable ||
