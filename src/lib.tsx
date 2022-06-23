@@ -965,7 +965,7 @@ const total_time_of = (state: types.IState, node_id: types.TNodeId) => {
   const eventss: [number, -1 | 1][][] = [];
   _total_time_of(node_id, state, utils.visit_counter_of(), eventss);
   const events = eventss.flat();
-  events.sort((a, b) => a[0] - b[0]);
+  events.sort((a, b) => (a[0] === b[0] ? b[1] - a[1] : a[0] - b[0]));
   let res = 0;
   let count = 0;
   let t_prev = -1;
