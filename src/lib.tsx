@@ -629,45 +629,51 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   });
   ac(add_edges_action, (state, action) => {
     for (const edge of action.payload) {
-      if (edge.p in state.data.nodes && edge.c in state.data.nodes) {
-        if (checks.has_edge(edge.p, edge.c, state)) {
-          toast.add(
-            "error",
-            `${JSON.stringify(action)}: Edges for ${JSON.stringify(
-              edge,
-            )} already exist.`,
-          );
-        } else {
-          const edge_id = new_edge_id_of(state);
-          state.data.edges[edge_id] = edge;
-          state.data.nodes[edge.c].parents.unshift(edge_id);
-          state.data.nodes[edge.p].children.unshift(edge_id);
-          if (checks.has_cycle_of(edge_id, state)) {
-            delete state.data.edges[edge_id];
-            state.data.nodes[edge.c].parents.splice(0, 1);
-            state.data.nodes[edge.p].children.splice(0, 1);
-            toast.add(
-              "error",
-              `${JSON.stringify(action)}: Detected a cycle for ${JSON.stringify(
-                edge,
-              )}.`,
-            );
-          } else {
-            state.caches[edge.p].child_edges[edge_id] = edge;
-            state.caches[edge.p].child_nodes[edge.c] = state.data.nodes[edge.c];
-            state.caches[edge.c].parent_edges[edge_id] = edge;
-            state.caches[edge.c].parent_nodes[edge.p] =
-              state.data.nodes[edge.p];
-            toast.add("info", `Added a edge ${edge.p} -> ${edge.c}.`);
-          }
-        }
-      } else {
+      if (edge.c === state.data.root) {
+        toast.add(
+          "error",
+          `No node should have the root node as its child: ${edge}`,
+        );
+        continue;
+      }
+      if (!(edge.p in state.data.nodes && edge.c in state.data.nodes)) {
         toast.add(
           "error",
           `${JSON.stringify(action)}: Nodes for ${JSON.stringify(
             edge,
           )} does not exist.`,
         );
+        continue;
+      }
+      if (checks.has_edge(edge.p, edge.c, state)) {
+        toast.add(
+          "error",
+          `${JSON.stringify(action)}: Edges for ${JSON.stringify(
+            edge,
+          )} already exist.`,
+        );
+        continue;
+      }
+      const edge_id = new_edge_id_of(state);
+      state.data.edges[edge_id] = edge;
+      state.data.nodes[edge.c].parents.unshift(edge_id);
+      state.data.nodes[edge.p].children.unshift(edge_id);
+      if (checks.has_cycle_of(edge_id, state)) {
+        delete state.data.edges[edge_id];
+        state.data.nodes[edge.c].parents.splice(0, 1);
+        state.data.nodes[edge.p].children.splice(0, 1);
+        toast.add(
+          "error",
+          `${JSON.stringify(action)}: Detected a cycle for ${JSON.stringify(
+            edge,
+          )}.`,
+        );
+      } else {
+        state.caches[edge.p].child_edges[edge_id] = edge;
+        state.caches[edge.p].child_nodes[edge.c] = state.data.nodes[edge.c];
+        state.caches[edge.c].parent_edges[edge_id] = edge;
+        state.caches[edge.c].parent_nodes[edge.p] = state.data.nodes[edge.p];
+        toast.add("info", `Added a edge ${edge.p} -> ${edge.c}.`);
       }
     }
   });
