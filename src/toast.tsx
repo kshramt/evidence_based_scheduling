@@ -72,7 +72,7 @@ const Component = () => {
           >
             {consts.DELETE_MARK}
           </button>
-          <div className="w-[15em] break-words">{message.text}</div>
+          <div className="w-[20em] break-words">{message.text}</div>
         </li>
       ))}
     </ul>

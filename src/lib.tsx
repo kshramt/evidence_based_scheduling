@@ -269,12 +269,22 @@ const setEstimate = register_save_type(
     }>("setEstimate"),
   ),
 );
-const setLastRange_ = register_save_type(
+const set_range_value_action = register_save_type(
   register_history_type(
     createAction<{
-      k: types.TNodeId;
-      t: number;
-    }>("setLastRange_"),
+      node_id: types.TNodeId;
+      i_range: number;
+      k: keyof types.IRange;
+      v: string;
+    }>("set_range_value_action"),
+  ),
+);
+const delete_range_action = register_save_type(
+  register_history_type(
+    createAction<{
+      node_id: types.TNodeId;
+      i_range: number;
+    }>("delete_range_action"),
   ),
 );
 const setTextAndResizeTextArea = register_save_type(
@@ -539,19 +549,37 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     }
     update_node_caches(node_id, state);
   });
-  ac(setLastRange_, (state, action) => {
-    const node_id = action.payload.k;
-    const t = action.payload.t;
-    const l = last_range_of(state.data.nodes[node_id].ranges);
-    if (l !== null && l.end) {
-      const t1 = l.end - l.start;
-      const t2 = t * 3600;
-      const dt = t2 - t1;
-      if (dt !== 0) {
-        l.end = l.start + t2;
-      }
+  ac(set_range_value_action, (state, action) => {
+    const range =
+      state.data.nodes[action.payload.node_id].ranges[action.payload.i_range];
+    const prev_seconds = range[action.payload.k];
+    if (prev_seconds === null) {
+      toast.add(
+        "error",
+        `range.end of the running node ${
+          action.payload.node_id
+        } cannot be set ${JSON.stringify(action)}.`,
+      );
+      return;
     }
-    update_node_caches(node_id, state);
+    const seconds = utils.seconds_of_datetime_local(action.payload.v);
+    if (isNaN(seconds)) {
+      toast.add("error", `Invalid datetime_local: ${JSON.stringify(action)}`);
+      return;
+    }
+    range[action.payload.k] = seconds;
+    if (range.end !== null && range.end < range.start) {
+      toast.add("error", `range.end < range.start: ${JSON.stringify(action)}`);
+      range[action.payload.k] = prev_seconds;
+    }
+    update_node_caches(action.payload.node_id, state);
+  });
+  ac(delete_range_action, (state, action) => {
+    state.data.nodes[action.payload.node_id].ranges.splice(
+      action.payload.i_range,
+      1,
+    );
+    update_node_caches(action.payload.node_id, state);
   });
   ac(setTextAndResizeTextArea, (state, action) => {
     const node_id = action.payload.k;
@@ -665,7 +693,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
         toast.add(
           "error",
           `${JSON.stringify(action)}: Detected a cycle for ${JSON.stringify(
-            edge,
+            JSON.stringify(edge),
           )}.`,
         );
       } else {
@@ -890,15 +918,6 @@ const doFocusMoveDownButton = (k: types.TNodeId) => () => {
 
 const doFocusTextArea = (k: types.TNodeId) => () => {
   setTimeout(() => focus(textAreaRefOf(k).current), 50);
-};
-
-const setLastRange = (dispatch: AppDispatch, k: types.TNodeId, t: number) => {
-  dispatch(
-    setLastRange_({
-      k,
-      t,
-    }),
-  );
 };
 
 const _eval_ = (draft: Draft<types.IState>, k: types.TNodeId) => {
@@ -1290,6 +1309,8 @@ const DetailsImpl = (props: { node_id: types.TNodeId }) => {
       <hr className="my-[0.5em]" />
       <ChildEdgeTable node_id={props.node_id} />
       <hr className="my-[0.5em]" />
+      <RangesTable node_id={props.node_id} />
+      <hr className="my-[0.5em]" />
     </div>
   );
 };
@@ -1305,6 +1326,92 @@ const node_ids_list_of_node_ids_string = (node_ids: string) => {
     }
   }
   return Array.from(seen);
+};
+
+const RangesTable = (props: { node_id: types.TNodeId }) => {
+  const n = useSelector(
+    (state) => state.data.nodes[props.node_id].ranges.length,
+  );
+  const rows = new Array(n);
+  for (let i = 0; i < n; ++i) {
+    const i_range = n - i - 1;
+    rows[i] = (
+      <RangesTableRow i_range={i_range} node_id={props.node_id} key={i_range} />
+    );
+  }
+  return (
+    <table className="table-auto">
+      <tbody className="block max-h-[10em] overflow-y-scroll">{rows}</tbody>
+    </table>
+  );
+};
+const RangesTableRow = (props: { node_id: types.TNodeId; i_range: number }) => {
+  const range = useSelector(
+    (state) => state.data.nodes[props.node_id].ranges[props.i_range],
+  );
+  const dispatch = useDispatch();
+  const set_start = React.useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      dispatch(
+        set_range_value_action({
+          node_id: props.node_id,
+          i_range: props.i_range,
+          k: "start",
+          v: e.target.value,
+        }),
+      );
+    },
+    [props.node_id, props.i_range, dispatch],
+  );
+  const set_end = React.useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      dispatch(
+        set_range_value_action({
+          node_id: props.node_id,
+          i_range: props.i_range,
+          k: "end",
+          v: e.target.value,
+        }),
+      );
+    },
+    [props.node_id, props.i_range, dispatch],
+  );
+  const handle_delete = React.useCallback(() => {
+    dispatch(
+      delete_range_action({
+        node_id: props.node_id,
+        i_range: props.i_range,
+      }),
+    );
+  }, [props.node_id, props.i_range, dispatch]);
+  const start_date = utils.datetime_local_of_seconds(range.start);
+  const end_date = range.end
+    ? utils.datetime_local_of_seconds(range.end)
+    : undefined;
+  return React.useMemo(
+    () => (
+      <tr>
+        <td className="p-[0.25em]">
+          <input
+            type="datetime-local"
+            value={start_date}
+            onChange={set_start}
+          />
+        </td>
+        <td className="p-[0.25em]">
+          {end_date && (
+            <input type="datetime-local" value={end_date} onChange={set_end} />
+          )}
+        </td>
+        <td className="p-[0.25em]">
+          <button className="btn-icon" onClick={handle_delete}>
+            {consts.DELETE_MARK}
+          </button>
+        </td>
+      </tr>
+    ),
+    [end_date, start_date, handle_delete, set_start, set_end],
+  );
 };
 
 const ChildEdgeTable = (props: { node_id: types.TNodeId }) => {
@@ -2092,13 +2199,6 @@ const EstimationInput = (props: { k: types.TNodeId }) => {
     />
   );
 };
-
-const setLastRangeOf = memoize2(
-  (dispatch: AppDispatch, k: types.TNodeId) =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setLastRange(dispatch, k, Number(e.target.value));
-    },
-);
 
 const TextArea = (props: { node_id: types.TNodeId }) => {
   const root = useSelector((state) => state.data.root);
