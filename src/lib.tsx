@@ -42,6 +42,8 @@ const DONE_MARK = <span className="material-icons">done</span>;
 const DONT_MARK = <span className="material-icons">delete</span>;
 const DETAIL_MARK = <span className="material-icons">more_vert</span>;
 const COPY_MARK = <span className="material-icons">content_copy</span>;
+const FORWARD_MARK = <span className="material-icons">arrow_forward_ios</span>;
+const BACK_MARK = <span className="material-icons">arrow_back_ios</span>;
 
 const history_type_set = new Set<string>();
 const register_history_type = <T extends {}>(x: T) => {
@@ -1379,20 +1381,62 @@ const node_ids_list_of_node_ids_string = (node_ids: string) => {
 };
 
 const RangesTable = (props: { node_id: types.TNodeId }) => {
+  const rows_per_page = 10;
+  const [offset, set_offset] = React.useState(0);
   const n = useSelector(
     (state) => state.data.nodes[props.node_id].ranges.length,
   );
-  const rows = new Array(n);
-  for (let i = 0; i < n; ++i) {
+  const offset_prev = offset - rows_per_page;
+  const offset_next = offset + rows_per_page;
+  const handle_offset_input = React.useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) =>
+      set_offset(Math.min(Math.max(0, parseInt(e.target.value)), n - 1)),
+    [n, set_offset],
+  );
+  const handle_offset_next = React.useCallback(
+    () => set_offset((offset) => Math.min(offset + rows_per_page, n - 1)),
+    [n, set_offset],
+  );
+  const handle_offset_prev = React.useCallback(
+    () => set_offset((offset) => Math.max(offset - rows_per_page, 0)),
+    [set_offset],
+  );
+  const rows = [];
+  for (let i = offset; i < Math.min(offset + rows_per_page, n); ++i) {
     const i_range = n - i - 1;
     rows[i] = (
       <RangesTableRow i_range={i_range} node_id={props.node_id} key={i_range} />
     );
   }
   return (
-    <table className="table-auto">
-      <tbody className="block max-h-[10em] overflow-y-scroll">{rows}</tbody>
-    </table>
+    <>
+      <div className="flex gap-x-[0.25em] items-baseline">
+        <button
+          disabled={offset - rows_per_page < 0}
+          onClick={handle_offset_prev}
+          className="btn-icon"
+        >
+          {BACK_MARK}
+        </button>
+        <input
+          onChange={handle_offset_input}
+          type="number"
+          className="w-[5em]"
+          value={offset}
+        />
+        /{n}
+        <button
+          disabled={n <= offset + rows_per_page}
+          onClick={handle_offset_next}
+          className="btn-icon"
+        >
+          {FORWARD_MARK}
+        </button>
+      </div>
+      <table className="table-auto">
+        <tbody className="block max-h-[10em] overflow-y-scroll">{rows}</tbody>
+      </table>
+    </>
   );
 };
 const RangesTableRow = (props: { node_id: types.TNodeId; i_range: number }) => {
