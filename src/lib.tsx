@@ -38,7 +38,7 @@ const UNDO_MARK = <span className="material-icons">undo</span>;
 const MOVE_UP_MARK = <span className="material-icons">north</span>;
 const MOVE_DOWN_MARK = <span className="material-icons">south</span>;
 const EVAL_MARK = <span className="material-icons">functions</span>;
-const DONE_MARK = <span className="material-icons">done</span>; //"✓";
+const DONE_MARK = <span className="material-icons">done</span>;
 const DONT_MARK = <span className="material-icons">delete</span>;
 const DETAIL_MARK = <span className="material-icons">more_vert</span>;
 const COPY_MARK = <span className="material-icons">content_copy</span>;
@@ -245,6 +245,9 @@ const smallestToTop = register_save_type(
 );
 const closestToTop = register_save_type(
   register_history_type(createAction("closestToTop")),
+);
+const move_important_node_to_top_action = register_save_type(
+  register_history_type(createAction("move_important_node_to_top_action")),
 );
 const set_total_time = register_history_type(
   createAction<types.TNodeId>("set_total_time"),
@@ -504,6 +507,47 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
           .next().value[0],
       );
     }
+  });
+  ac(move_important_node_to_top_action, (state) => {
+    let candidate = null;
+    let n_parents_max = 0;
+    const count_parents = (node_id: types.TNodeId, vid: number) => {
+      if (utils.vids[node_id] === vid) {
+        return 0;
+      }
+      utils.vids[node_id] = vid;
+      const node = state.data.nodes[node_id];
+      if (node.status !== "todo") {
+        return 0;
+      }
+      let res = 1;
+      for (const edge_id of node.parents) {
+        res += count_parents(state.data.edges[edge_id].p, vid);
+      }
+      return res;
+    };
+    for (const node_id of state.data.queue) {
+      if (
+        state.data.nodes[node_id].status !== "todo" ||
+        state.data.nodes[node_id].children.some((edge_id) => {
+          const edge = state.data.edges[edge_id];
+          return (
+            edge.t === "strong" && state.data.nodes[edge.c].status === "todo"
+          );
+        })
+      ) {
+        continue;
+      }
+      const n_parents = count_parents(node_id, utils.visit_counter_of());
+      if (n_parents_max < n_parents) {
+        candidate = node_id;
+        n_parents_max = n_parents;
+      }
+    }
+    if (candidate === null) {
+      return;
+    }
+    _top(state, candidate);
   });
   ac(set_total_time, (state, action) => {
     _set_total_time(state, action.payload);
@@ -767,6 +811,9 @@ const Menu = () => {
   const _closestToTop = useCallback(() => {
     dispatch(closestToTop());
   }, [dispatch]);
+  const move_important_node_to_top = useCallback(() => {
+    dispatch(move_important_node_to_top_action());
+  }, [dispatch]);
   const _load = useCallback(() => {
     dispatch(doLoad());
   }, [dispatch]);
@@ -797,6 +844,9 @@ const Menu = () => {
       </button>
       <button className="btn-icon" onClick={_closestToTop}>
         Due
+      </button>
+      <button className="btn-icon" onClick={move_important_node_to_top}>
+        Important
       </button>
       <button className="btn-icon" arial-label="Sync." onClick={_load}>
         <span className="material-icons">refresh</span>
