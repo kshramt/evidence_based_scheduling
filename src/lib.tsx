@@ -1133,7 +1133,9 @@ const collect_ranges = (
     return;
   }
   utils.vids[node_id] = vid;
-  ranges_list.push(state.data.nodes[node_id].ranges);
+  if (state.data.nodes[node_id].ranges.length) {
+    ranges_list.push(state.data.nodes[node_id].ranges);
+  }
   for (const edge_id of state.data.nodes[node_id].children) {
     collect_ranges(state.data.edges[edge_id].c, state, vid, ranges_list);
   }
