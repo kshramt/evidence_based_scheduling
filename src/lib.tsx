@@ -1911,16 +1911,14 @@ const _estimate = (
   weights: number[],
   n_mc: number,
 ) => {
-  const ts = [];
+  const ts = Array(n_mc);
   const rng = new Multinomial(weights);
   for (let i = 0; i < n_mc; i++) {
-    ts.push(
-      sum(
-        estimates.map((x) => {
-          return ratios[rng.sample()] * x;
-        }),
-      ),
-    );
+    let t = 0;
+    for (const estimate of estimates) {
+      t += ratios[rng.sample()] * estimate;
+    }
+    ts[i] = t;
   }
   ts.sort((a, b) => a - b);
   return ts;
