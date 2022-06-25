@@ -448,7 +448,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   ac(smallestToTop, (state) => {
     let k_min = null;
     let estimate_min = Infinity;
-    for (const k of Object.keys(state.data.nodes) as types.TNodeId[]) {
+    for (const k of state.data.queue) {
       const v = state.data.nodes[k];
       if (
         v.status === "todo" &&
@@ -470,7 +470,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
   ac(closestToTop, (state) => {
     let k_min = null;
     let due_min = ":due: 9999-12-31T23:59:59";
-    for (let k of Object.keys(state.data.nodes) as types.TNodeId[]) {
+    for (let k of state.data.queue) {
       let v = state.data.nodes[k];
       if (
         v.status === "todo" &&
@@ -974,7 +974,7 @@ const doFocusTextArea = (k: types.TNodeId) => () => {
 
 const _eval_ = (draft: Draft<types.IState>, k: types.TNodeId) => {
   _set_total_time(draft, k);
-  const candidates = (Object.keys(draft.data.nodes) as types.TNodeId[]).filter(
+  const candidates = draft.data.queue.filter(
     (k) => {
       const v = draft.data.nodes[k];
       return (
