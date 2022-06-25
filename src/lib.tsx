@@ -1033,9 +1033,27 @@ const _set_total_time = (state: types.IState, node_id: types.TNodeId) => {
 };
 
 const total_time_of = (state: types.IState, node_id: types.TNodeId) => {
-  const eventss: [number, -1 | 1][][] = [];
-  _total_time_of(node_id, state, utils.visit_counter_of(), eventss);
-  const events = eventss.flat();
+  const ranges_list: types.IRange[][] = [];
+  collect_ranges(node_id, state, utils.visit_counter_of(), ranges_list);
+  let n = 0;
+  for (const ranges of ranges_list) {
+    n += ranges.length;
+    if (ranges[ranges.length - 1].end === null) {
+      n -= 1;
+    }
+  }
+  n *= 2;
+  const events: [number, -1 | 1][] = Array(n);
+  let i = 0;
+  for (const ranges of ranges_list) {
+    for (const range of ranges) {
+      if (range.end !== null) {
+        events[i] = [range.start, 1];
+        events[i + 1] = [range.end, -1];
+        i += 2;
+      }
+    }
+  }
   events.sort((a, b) => (a[0] === b[0] ? b[1] - a[1] : a[0] - b[0]));
   let res = 0;
   let count = 0;
@@ -1056,27 +1074,19 @@ const total_time_of = (state: types.IState, node_id: types.TNodeId) => {
   return res;
 };
 
-const _total_time_of = (
+const collect_ranges = (
   node_id: types.TNodeId,
   state: types.IState,
   vid: number,
-  eventss: [number, -1 | 1][][],
+  ranges_list: types.IRange[][],
 ) => {
   if (utils.vids[node_id] === vid) {
     return;
   }
   utils.vids[node_id] = vid;
-  const node = state.data.nodes[node_id];
-  const events: [number, -1 | 1][] = [];
-  for (const range of node.ranges) {
-    events.push([range.start, 1]);
-    if (range.end !== null) {
-      events.push([range.end, -1]);
-    }
-  }
-  eventss.push(events);
-  for (const edge_id of node.children) {
-    _total_time_of(state.data.edges[edge_id].c, state, vid, eventss);
+  ranges_list.push(state.data.nodes[node_id].ranges);
+  for (const edge_id of state.data.nodes[node_id].children) {
+    collect_ranges(state.data.edges[edge_id].c, state, vid, ranges_list);
   }
 };
 
