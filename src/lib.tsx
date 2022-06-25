@@ -97,6 +97,55 @@ class History<T> {
   };
 }
 
+// Walker (1974)'s alias method.
+export class Multinomial {
+  i_large_of: number[];
+  thresholds: number[];
+  constructor(ws: number[]) {
+    const n = ws.length;
+    const total = sum(ws);
+    const thresholds = Array(n);
+    const i_large_of = Array(n);
+    const i_small_list = Array(n);
+    const i_large_list = Array(n);
+    let small_last = -1;
+    let large_last = -1;
+    {
+      const coef = n / total;
+      for (let i = 0; i < ws.length; ++i) {
+        const w = coef * ws[i];
+        thresholds[i] = w;
+        if (w <= 1) {
+          i_small_list[(small_last += 1)] = i;
+        } else {
+          i_large_list[(large_last += 1)] = i;
+        }
+      }
+    }
+    while (-1 < small_last && -1 < large_last) {
+      const i_small = i_small_list[small_last];
+      small_last -= 1;
+      const i_large = i_large_list[large_last];
+      i_large_of[i_small] = i_large;
+      thresholds[i_large] -= 1 - thresholds[i_small];
+      if (thresholds[i_large] <= 1) {
+        large_last -= 1;
+        i_small_list[(small_last += 1)] = i_large;
+      }
+    }
+    for (let i = 0; i < small_last + 1; ++i) {
+      thresholds[i_small_list[i]] = 1; // Address numerical errors.
+    }
+    this.i_large_of = i_large_of;
+    this.thresholds = thresholds;
+  }
+
+  sample = () => {
+    const i = Math.floor(this.thresholds.length * Math.random());
+    return Math.random() < this.thresholds[i] ? i : this.i_large_of[i];
+  };
+}
+
 const stop = (
   draft: Draft<types.IState>,
   node_id: types.TNodeId,
@@ -1861,12 +1910,12 @@ const _estimate = (
   n_mc: number,
 ) => {
   const ts = [];
-  const rng = multinomial(ratios, weights);
+  const rng = new Multinomial(weights);
   for (let i = 0; i < n_mc; i++) {
     ts.push(
       sum(
         estimates.map((x) => {
-          return rng.next().value * x;
+          return ratios[rng.sample()] * x;
         }),
       ),
     );
@@ -1991,35 +2040,6 @@ function* _todo_leafs_of(
   if (!had_strong_todo_child) {
     yield [node_id, node];
   }
-}
-
-export function* multinomial<T>(xs: T[], ws: number[]) {
-  const total = sum(ws);
-  const partitions = cumsum(ws.map((w) => w / total)).map((v) => {
-    return Math.min(v, 1);
-  });
-  partitions[partitions.length - 1] = 1;
-  while (true) {
-    const r = Math.random();
-    if (r === 0) {
-      yield xs[0];
-    } else {
-      let lo = 0;
-      let hi = partitions.length - 1;
-      while (lo + 1 < hi) {
-        const mi = (hi + lo) >> 1;
-        if (partitions[mi] < r) {
-          lo = mi;
-        } else {
-          hi = mi;
-        }
-      }
-      yield xs[lo];
-    }
-  }
-  // todo: For the stricter generators introduced in TypeScript version 3.6.
-  assert(() => [false, "Must not happen."]);
-  return 0;
 }
 
 const assert = (fn: () => [boolean, string]) => {
