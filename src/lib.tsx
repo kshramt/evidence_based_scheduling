@@ -1335,11 +1335,14 @@ const DetailsImpl = (props: { node_id: types.TNodeId }) => {
       ),
     );
   }, [dispatch, node_ids, new_edge_type, props.node_id]);
+  const hline = (
+    <hr className="my-[0.5em] border-gray-300 dark:border-gray-600 bg-gray-300 dark:bg-gray-600" />
+  );
   return (
     <div className="pt-[0.5em]">
-      <hr className="my-[0.5em]" />
       {deleteButtonOf(dispatch, props.node_id)}
-      <hr className="my-[0.5em]" />
+      {hline}
+      {hline}
       <div className="flex gap-x-[0.25em] items-baseline">
         Add:
         <select value={new_edge_type} onChange={handle_new_edge_type_change}>
@@ -1356,13 +1359,13 @@ const DetailsImpl = (props: { node_id: types.TNodeId }) => {
           Children
         </button>
       </div>
-      <hr className="my-[0.5em]" />
+      {hline}
       <ParentEdgeTable node_id={props.node_id} />
-      <hr className="my-[0.5em]" />
+      {hline}
       <ChildEdgeTable node_id={props.node_id} />
-      <hr className="my-[0.5em]" />
+      {hline}
       <RangesTable node_id={props.node_id} />
-      <hr className="my-[0.5em]" />
+      {hline}
     </div>
   );
 };

@@ -31,6 +31,9 @@ textarea {
   li {
     @apply list-item;
   }
+  input[type=number]{
+    @apply text-right;
+  }
 }
 
 @layer components {
