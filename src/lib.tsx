@@ -296,7 +296,7 @@ const done_or_dont_to_todo_action = register_save_type(
   ),
 );
 const toggle_show_children = register_save_type(
-  register_history_type(createAction<types.TNodeId>("swap_show_children")),
+  register_history_type(createAction<types.TNodeId>("toggle_show_children")),
 );
 const show_path_to_selected_node = register_save_type(
   register_history_type(
