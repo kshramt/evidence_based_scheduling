@@ -56,6 +56,7 @@ export interface IData {
   readonly nodes: INodes;
   readonly queue: TNodeId[];
   readonly showTodoOnly: boolean;
+  readonly show_strong_edge_only?: boolean;
   readonly version: number;
 }
 export const is_IData = (
@@ -72,6 +73,10 @@ export const is_IData = (
     "queue",
   ) &&
   record_if_false(typeof data.showTodoOnly === "boolean", "showTodoOnly") &&
+  record_if_false(
+    [undefined, true, false].includes(data.show_strong_edge_only),
+    "show_strong_edge_only",
+  ) &&
   record_if_false(typeof data.version === "number", "version");
 
 export interface INodes {
@@ -125,7 +130,8 @@ const is_IEdges = (
 
 export const edge_type_values = ["strong", "weak"] as const;
 export type TEdgeType = typeof edge_type_values[number];
-export const is_TEdgeType = (x: any): x is TEdgeType => edge_type_values.includes(x);
+export const is_TEdgeType = (x: any): x is TEdgeType =>
+  edge_type_values.includes(x);
 
 export interface IEdge {
   readonly c: TNodeId;
@@ -165,6 +171,6 @@ interface ICache {
   child_nodes: INodes;
 }
 
-export interface IVids{
+export interface IVids {
   [k: TNodeId]: undefined | number;
 }

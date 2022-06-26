@@ -2,7 +2,6 @@ import * as checks from "./checks";
 import * as consts from "./consts";
 import * as types from "./types";
 import * as toast from "./toast";
-import * as utils from "./utils";
 import { Draft } from "immer";
 
 export interface ITocNode {

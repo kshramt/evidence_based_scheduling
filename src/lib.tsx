@@ -211,6 +211,9 @@ const new_action = register_save_type(
 const flipShowTodoOnly = register_save_type(
   register_history_type(createAction("flipShowTodoOnly")),
 );
+const toggle_show_strong_edge_only_action = register_save_type(
+  register_history_type(createAction("toggle_show_strong_edge_only_action")),
+);
 const flipShowDetail = createAction<types.TNodeId>("flipShowDetail");
 const start_action = register_save_type(
   register_history_type(
@@ -377,6 +380,9 @@ const rootReducer = createReducer(ops.emptyStateOf(), (builder) => {
   });
   ac(flipShowTodoOnly, (state) => {
     state.data.showTodoOnly = !state.data.showTodoOnly;
+  });
+  ac(toggle_show_strong_edge_only_action, (state) => {
+    state.data.show_strong_edge_only = !state.data.show_strong_edge_only;
   });
   ac(flipShowDetail, (state, action) => {
     const node_id = action.payload;
@@ -719,6 +725,9 @@ const Menu = () => {
   const _flipShowTodoOnly = useCallback(() => {
     dispatch(flipShowTodoOnly());
   }, [dispatch]);
+  const toggle_show_strong_edge_only = useCallback(() => {
+    dispatch(toggle_show_strong_edge_only_action());
+  }, [dispatch]);
   const _smallestToTop = useCallback(() => {
     dispatch(smallestToTop());
   }, [dispatch]);
@@ -751,7 +760,14 @@ const Menu = () => {
         arial-label="Toggle the TODO-only flag."
         onClick={_flipShowTodoOnly}
       >
-        <span className="material-icons">visibility</span>
+        TODO
+      </button>
+      <button
+        className="btn-icon"
+        arial-label="Toggle the show-strong-edges-only flag."
+        onClick={toggle_show_strong_edge_only}
+      >
+        Strong
       </button>
       <button className="btn-icon" onClick={_smallestToTop}>
         Small
@@ -1104,28 +1120,42 @@ const TreeNode = (props: { node_id: types.TNodeId }) => {
     (state) => state.data.nodes[props.node_id].show_children,
   );
   const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
+  const show_strong_edge_only = useSelector(
+    (state) => state.data.show_strong_edge_only,
+  );
   const children = useSelector(
     (state) => state.data.nodes[props.node_id].children,
   );
   const edges = useSelector((state) => state.caches[props.node_id].child_edges);
   const nodes = useSelector((state) => state.caches[props.node_id].child_nodes);
-  const tree_node_list = React.useMemo(
-    () => (
+  const tree_node_list = React.useMemo(() => {
+    let edge_id_list: types.TEdgeId[] = [];
+    if (show_children) {
+      edge_id_list = children;
+      if (showTodoOnly) {
+        edge_id_list = edge_id_list.filter(
+          (edge_id) => nodes[edges[edge_id].c].status === "todo",
+        );
+      }
+      if (show_strong_edge_only) {
+        edge_id_list = edge_id_list.filter(
+          (edge_id) => edges[edge_id].t === "strong",
+        );
+      }
+    }
+    return (
       <TreeNodeList
-        node_id_list={
-          show_children
-            ? (showTodoOnly
-                ? children.filter(
-                    (edge_id) => nodes[edges[edge_id].c].status === "todo",
-                  )
-                : children
-              ).map((edge_id) => edges[edge_id].c)
-            : []
-        }
+        node_id_list={edge_id_list.map((edge_id) => edges[edge_id].c)}
       />
-    ),
-    [show_children, showTodoOnly, children, nodes, edges],
-  );
+    );
+  }, [
+    show_children,
+    showTodoOnly,
+    show_strong_edge_only,
+    children,
+    nodes,
+    edges,
+  ]);
 
   return (
     <>
