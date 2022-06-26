@@ -67,9 +67,18 @@ def _update_data_version(data):
     elif data["version"] == 11:
         return _update_data_version(_v12_of_v11(data))
     elif data["version"] == 12:
+        return _update_data_version(_v13_of_v12(data))
+    elif data["version"] == 13:
         return data
     else:
         raise Err(f"Unsupported data version: {data.get('version', 'None')}")
+
+
+def _v13_of_v12(data):
+    for k, v in data["nodes"].items():
+        del v["show_children"]
+    data["version"] = 13
+    return data
 
 
 def _v12_of_v11(data):

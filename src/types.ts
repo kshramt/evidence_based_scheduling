@@ -91,7 +91,6 @@ export interface INode {
   readonly estimate: number;
   readonly parents: TEdgeId[];
   readonly ranges: IRange[];
-  readonly show_children: boolean;
   readonly start_time: string;
   readonly status: TStatus;
   readonly style: IStyle;
@@ -114,7 +113,6 @@ const is_INode = (x: any, record_if_false: TRecordIfFalse): x is INode =>
     "parents",
   ) &&
   record_if_false(record_if_false.check_array(x.ranges, is_IRange), "ranges") &&
-  record_if_false(typeof x.show_children === "boolean", "show_children") &&
   record_if_false(typeof x.start_time === "string", "start_time") &&
   record_if_false(is_TStatus(x.status), "status") &&
   record_if_false(is_IStyle(x.style), "style") &&
@@ -137,9 +135,14 @@ export interface IEdge {
   readonly c: TNodeId;
   readonly p: TNodeId;
   readonly t: TEdgeType;
+  readonly hide?: boolean;
 }
 const is_IEdge = (x: any): x is IEdge =>
-  is_object(x) && is_TNodeId(x.c) && is_TNodeId(x.p) && is_TEdgeType(x.t);
+  is_object(x) &&
+  is_TNodeId(x.c) &&
+  is_TNodeId(x.p) &&
+  is_TEdgeType(x.t) &&
+  [undefined, true, false].includes(x.hide);
 
 interface IStyle {
   readonly height: string;

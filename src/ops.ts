@@ -33,7 +33,7 @@ export const emptyStateOf = (): types.IState => {
     nodes,
     queue: [],
     showTodoOnly: false,
-    version: 12,
+    version: 13,
   };
   data.nodes[root].text = "root";
   const caches = {
@@ -52,7 +52,6 @@ const newNodeValueOf = (parents: types.TEdgeId[]) => {
     estimate: consts.NO_ESTIMATION,
     parents,
     ranges: [] as types.IRange[],
-    show_children: false,
     start_time: new Date().toISOString(),
     status: "todo" as types.TStatus,
     style: { height: "3ex" },
@@ -112,9 +111,6 @@ export const new_ = (
       `No strong child can be added to a non-todo parent ${parent_node_id}.`,
     );
     return null;
-  }
-  if (!draft.data.nodes[parent_node_id].show_children) {
-    draft.data.nodes[parent_node_id].show_children = true;
   }
   const node_id = new_node_id_of(draft);
   const edge_id = new_edge_id_of(draft);

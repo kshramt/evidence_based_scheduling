@@ -310,6 +310,9 @@ const set_edge_type_action = register_save_type(
     ),
   ),
 );
+const toggle_edge_hide_action = register_save_type(
+  register_history_type(createAction<types.TEdgeId>("toggle_edge_hide_action")),
+);
 const add_edges_action = register_save_type(
   register_history_type(createAction<types.IEdge[]>("add_edges_action")),
 );
@@ -646,9 +649,21 @@ const rootReducer = createReducer(ops.emptyStateOf(), (builder) => {
   });
   ac(toggle_show_children, (state, action) => {
     const node_id = action.payload;
-    state.data.nodes[node_id].show_children =
-      !state.data.nodes[node_id].show_children;
-    ops.update_node_caches(node_id, state);
+    if (
+      state.data.nodes[node_id].children.every(
+        (edge_id) => !state.data.edges[edge_id].hide,
+      )
+    ) {
+      state.data.nodes[node_id].children.forEach((edge_id) => {
+        state.data.edges[edge_id].hide = true;
+        ops.update_edge_caches(edge_id, state);
+      });
+      return;
+    }
+    state.data.nodes[node_id].children.forEach((edge_id) => {
+      delete state.data.edges[edge_id].hide;
+      ops.update_edge_caches(edge_id, state);
+    });
   });
   ac(show_path_to_selected_node, (state, action) => {
     _show_path_to_selected_node(state, action.payload);
@@ -665,6 +680,14 @@ const rootReducer = createReducer(ops.emptyStateOf(), (builder) => {
     const edge = state.data.edges[action.payload.edge_id];
     edge.t = action.payload.edge_type;
     ops.update_edge_caches(action.payload.edge_id, state);
+  });
+  ac(toggle_edge_hide_action, (state, action) => {
+    if (state.data.edges[action.payload].hide) {
+      delete state.data.edges[action.payload].hide;
+    } else {
+      state.data.edges[action.payload].hide = true;
+    }
+    ops.update_edge_caches(action.payload, state);
   });
   ac(add_edges_action, (state, action) => {
     return ops.add_edges(action.payload, state);
@@ -1063,21 +1086,20 @@ const _show_path_to_selected_node = (
   node_id: types.TNodeId,
 ) => {
   while (draft.data.nodes[node_id].parents.length) {
-    let parent_node_id = null;
+    let parent_edge_id = null;
     for (const edge_id of draft.data.nodes[node_id].parents) {
-      const edge = draft.data.edges[edge_id];
-      if (edge.t === "strong") {
-        parent_node_id = edge.p;
+      if (draft.data.edges[edge_id].t === "strong") {
+        parent_edge_id = edge_id;
         break;
       }
     }
-    if (parent_node_id === null) {
+    if (parent_edge_id === null) {
       return;
     }
-    node_id = parent_node_id;
-    if (draft.data.nodes[node_id].show_children) {
-      draft.data.nodes[node_id].show_children = true;
-      ops.update_node_caches(node_id, draft);
+    node_id = draft.data.edges[parent_edge_id].p;
+    if (draft.data.edges[parent_edge_id].hide) {
+      delete draft.data.edges[parent_edge_id].hide;
+      ops.update_edge_caches(parent_edge_id, draft);
     }
   }
 };
@@ -1124,9 +1146,6 @@ const TreeNodeList = (props: types.IListProps) => {
 
 const TreeNode = (props: { node_id: types.TNodeId }) => {
   const entry = TreeEntry_of(props.node_id);
-  const show_children = useSelector(
-    (state) => state.data.nodes[props.node_id].show_children,
-  );
   const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
   const show_strong_edge_only = useSelector(
     (state) => state.data.show_strong_edge_only,
@@ -1137,33 +1156,23 @@ const TreeNode = (props: { node_id: types.TNodeId }) => {
   const edges = useSelector((state) => state.caches[props.node_id].child_edges);
   const nodes = useSelector((state) => state.caches[props.node_id].child_nodes);
   const tree_node_list = React.useMemo(() => {
-    let edge_id_list: types.TEdgeId[] = [];
-    if (show_children) {
-      edge_id_list = children;
-      if (showTodoOnly) {
-        edge_id_list = edge_id_list.filter(
-          (edge_id) => nodes[edges[edge_id].c].status === "todo",
-        );
-      }
-      if (show_strong_edge_only) {
-        edge_id_list = edge_id_list.filter(
-          (edge_id) => edges[edge_id].t === "strong",
-        );
-      }
+    let edge_id_list = children.filter((edge_id) => !edges[edge_id].hide);
+    if (showTodoOnly) {
+      edge_id_list = edge_id_list.filter(
+        (edge_id) => nodes[edges[edge_id].c].status === "todo",
+      );
+    }
+    if (show_strong_edge_only) {
+      edge_id_list = edge_id_list.filter(
+        (edge_id) => edges[edge_id].t === "strong",
+      );
     }
     return (
       <TreeNodeList
         node_id_list={edge_id_list.map((edge_id) => edges[edge_id].c)}
       />
     );
-  }, [
-    show_children,
-    showTodoOnly,
-    show_strong_edge_only,
-    children,
-    nodes,
-    edges,
-  ]);
+  }, [showTodoOnly, show_strong_edge_only, children, nodes, edges]);
 
   return (
     <>
@@ -1485,6 +1494,7 @@ const ChildEdgeRow = (props: { edge_id: types.TEdgeId }) => {
   const parent_edges = useSelector(
     (state) => state.caches[edge.c].parent_edges,
   );
+  const hide = useSelector((state) => state.data.edges[props.edge_id].hide);
   const is_deletable_edge = checks.is_deletable_edge_of_nodes_and_edges(
     edge,
     child_nodes,
@@ -1511,6 +1521,9 @@ const ChildEdgeRow = (props: { edge_id: types.TEdgeId }) => {
     },
     [props.edge_id, dispatch],
   );
+  const toggle_edge_hide = React.useCallback(() => {
+    dispatch(toggle_edge_hide_action(props.edge_id));
+  }, [props.edge_id, dispatch]);
   const text = child_nodes[edge.c].text;
   const to_tree_link = React.useMemo(
     () => (
@@ -1538,6 +1551,9 @@ const ChildEdgeRow = (props: { edge_id: types.TEdgeId }) => {
           </select>
         </td>
         <td className="p-[0.25em]">
+          <input type="radio" checked={!hide} onClick={toggle_edge_hide} />
+        </td>
+        <td className="p-[0.25em]">
           <button
             className="btn-icon"
             onClick={delete_edge}
@@ -1548,7 +1564,15 @@ const ChildEdgeRow = (props: { edge_id: types.TEdgeId }) => {
         </td>
       </tr>
     ),
-    [is_deletable_edge, edge.t, to_tree_link, delete_edge, set_edge_type],
+    [
+      is_deletable_edge,
+      edge.t,
+      hide,
+      to_tree_link,
+      delete_edge,
+      set_edge_type,
+      toggle_edge_hide,
+    ],
   );
 };
 const ChildEdgeRow_of = memoize1((edge_id: types.TEdgeId) => (
@@ -1576,6 +1600,7 @@ const ParentEdgeRow = (props: { edge_id: types.TEdgeId }) => {
   const parent_edges = useSelector(
     (state) => state.caches[edge.c].parent_edges,
   );
+  const hide = useSelector((state) => state.data.edges[props.edge_id].hide);
   const is_deletable_edge = checks.is_deletable_edge_of_nodes_and_edges(
     edge,
     child_nodes,
@@ -1602,6 +1627,9 @@ const ParentEdgeRow = (props: { edge_id: types.TEdgeId }) => {
     },
     [props.edge_id, dispatch],
   );
+  const toggle_edge_hide = React.useCallback(() => {
+    dispatch(toggle_edge_hide_action(props.edge_id));
+  }, [props.edge_id, dispatch]);
   const text = parent_nodes[edge.p].text;
   const to_tree_link = React.useMemo(
     () => (
@@ -1629,6 +1657,9 @@ const ParentEdgeRow = (props: { edge_id: types.TEdgeId }) => {
           </select>
         </td>
         <td className="p-[0.25em]">
+          <input type="radio" checked={!hide} onClick={toggle_edge_hide} />
+        </td>
+        <td className="p-[0.25em]">
           <button
             className="btn-icon"
             onClick={delete_edge}
@@ -1639,7 +1670,15 @@ const ParentEdgeRow = (props: { edge_id: types.TEdgeId }) => {
         </td>
       </tr>
     ),
-    [is_deletable_edge, edge.t, to_tree_link, delete_edge, set_edge_type],
+    [
+      is_deletable_edge,
+      edge.t,
+      hide,
+      to_tree_link,
+      delete_edge,
+      set_edge_type,
+      toggle_edge_hide,
+    ],
   );
 };
 const ParentEdgeRow_of = memoize1((edge_id: types.TEdgeId) => (
@@ -1654,13 +1693,10 @@ const EntryWrapper = (props: {
   const last_range = utils.last(ranges);
   const running = last_range && last_range.end === null;
 
-  const has_children = useSelector((state) =>
-    Boolean(state.data.nodes[props.node_id].children.length),
+  const child_edges = useSelector(
+    (state) => state.caches[props.node_id].child_edges,
   );
-  const show_children = useSelector((state) => {
-    return state.data.nodes[props.node_id].show_children;
-  });
-  const has_hidden_leaf = has_children && !show_children;
+  const has_hidden_leaf = Object.values(child_edges).some((edge) => edge.hide);
 
   const dispatch = useDispatch();
   const handle_toggle_show_children = useCallback(
