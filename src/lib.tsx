@@ -1551,7 +1551,12 @@ const ChildEdgeRow = (props: { edge_id: types.TEdgeId }) => {
           </select>
         </td>
         <td className="p-[0.25em]">
-          <input type="radio" checked={!hide} onClick={toggle_edge_hide} />
+          <input
+            type="radio"
+            checked={!hide}
+            onClick={toggle_edge_hide}
+            onChange={_suppress_missing_onChange_handler_warning}
+          />
         </td>
         <td className="p-[0.25em]">
           <button
@@ -1657,7 +1662,12 @@ const ParentEdgeRow = (props: { edge_id: types.TEdgeId }) => {
           </select>
         </td>
         <td className="p-[0.25em]">
-          <input type="radio" checked={!hide} onClick={toggle_edge_hide} />
+          <input
+            type="radio"
+            checked={!hide}
+            onClick={toggle_edge_hide}
+            onChange={_suppress_missing_onChange_handler_warning}
+          />
         </td>
         <td className="p-[0.25em]">
           <button
@@ -2379,6 +2389,8 @@ const LastRange = (props: { node_id: types.TNodeId }) => {
 const LastRange_of = memoize1((node_id: types.TNodeId) => (
   <LastRange node_id={node_id} />
 ));
+
+const _suppress_missing_onChange_handler_warning = () => {};
 
 const undoable = (
   reducer: (
