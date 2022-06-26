@@ -195,6 +195,7 @@ const add_weak_edges_from_toc = (toc: ITocNode, edges: types.IEdge[]) => {
         p: toc.id,
         c: current.parent.children[i - 1].id,
         t: "weak",
+        hide: true,
       });
       break;
     }
