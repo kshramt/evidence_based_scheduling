@@ -97,7 +97,8 @@ class History<T> {
   };
 }
 
-// Walker (1974)'s alias method.
+// Vose (1991)'s linear version of Walker (1974)'s alias method.
+// A Pactical Version of Vose's Algorithm: https://www.keithschwarz.com/darts-dice-coins/
 export class Multinomial {
   i_large_of: number[];
   thresholds: number[];
@@ -127,11 +128,14 @@ export class Multinomial {
       small_last -= 1;
       const i_large = i_large_list[large_last];
       i_large_of[i_small] = i_large;
-      thresholds[i_large] -= 1 - thresholds[i_small];
+      thresholds[i_large] = thresholds[i_large] + thresholds[i_small] - 1;
       if (thresholds[i_large] <= 1) {
         large_last -= 1;
         i_small_list[(small_last += 1)] = i_large;
       }
+    }
+    for (let i = 0; i < large_last + 1; ++i) {
+      thresholds[i_large_list[i]] = 1; // Address numerical errors.
     }
     for (let i = 0; i < small_last + 1; ++i) {
       thresholds[i_small_list[i]] = 1; // Address numerical errors.
