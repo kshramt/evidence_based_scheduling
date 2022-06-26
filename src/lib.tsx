@@ -785,14 +785,14 @@ const Menu = () => {
       TODO:
       <input
         type="radio"
-        checked={showTodoOnly}
+        checked={Boolean(showTodoOnly)}
         onClick={_flipShowTodoOnly}
         onChange={_suppress_missing_onChange_handler_warning}
       />
       Strong:
       <input
         type="radio"
-        checked={show_strong_edge_only}
+        checked={Boolean(show_strong_edge_only)}
         onClick={toggle_show_strong_edge_only}
         onChange={_suppress_missing_onChange_handler_warning}
       />
