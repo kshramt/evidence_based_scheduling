@@ -739,6 +739,10 @@ const Menu = () => {
   const root = useSelector((state) => state.data.root);
   const dispatch = useDispatch();
   const stop_all = useCallback(() => dispatch(stop_all_action()), [dispatch]);
+  const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
+  const show_strong_edge_only = useSelector(
+    (state) => state.data.show_strong_edge_only,
+  );
   const _undo = useCallback(() => {
     dispatch({ type: "undo" });
   }, [dispatch]);
@@ -765,11 +769,11 @@ const Menu = () => {
   }, [dispatch]);
   return (
     <div
-      className={`flex items-center fixed z-[999999] pl-[1em] gap-x-[0.25em] w-full top-0  bg-gray-200 dark:bg-gray-900`}
+      className={`flex items-baseline fixed z-[999999] pl-[1em] gap-x-[0.25em] w-full top-0  bg-gray-200 dark:bg-gray-900`}
       style={{ height: MENU_HEIGHT }}
     >
       <button className="btn-icon" onClick={stop_all}>
-        <span className="material-icons">{STOP_MARK}</span>
+        {STOP_MARK}
       </button>
       {NewButton_of(dispatch, root)}
       <button className="btn-icon" arial-label="Undo." onClick={_undo}>
@@ -778,20 +782,20 @@ const Menu = () => {
       <button className="btn-icon" arial-label="Redo." onClick={_redo}>
         <span className="material-icons">redo</span>
       </button>
-      <button
-        className="btn-icon"
-        arial-label="Toggle the TODO-only flag."
+      TODO:
+      <input
+        type="radio"
+        checked={showTodoOnly}
         onClick={_flipShowTodoOnly}
-      >
-        TODO
-      </button>
-      <button
-        className="btn-icon"
-        arial-label="Toggle the show-strong-edges-only flag."
+        onChange={_suppress_missing_onChange_handler_warning}
+      />
+      Strong:
+      <input
+        type="radio"
+        checked={show_strong_edge_only}
         onClick={toggle_show_strong_edge_only}
-      >
-        Strong
-      </button>
+        onChange={_suppress_missing_onChange_handler_warning}
+      />
       <button className="btn-icon" onClick={_smallestToTop}>
         Small
       </button>
