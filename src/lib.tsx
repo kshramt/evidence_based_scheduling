@@ -1087,7 +1087,12 @@ const _set_total_time = (state: types.IState, node_id: types.TNodeId) => {
 
 const total_time_of = (state: types.IState, node_id: types.TNodeId) => {
   const ranges_list: types.IRange[][] = [];
-  collect_ranges(node_id, state, utils.visit_counter_of(), ranges_list);
+  collect_ranges_from_strong_descendants(
+    node_id,
+    state,
+    utils.visit_counter_of(),
+    ranges_list,
+  );
   let n = 0;
   for (const ranges of ranges_list) {
     n += ranges.length;
@@ -1127,7 +1132,7 @@ const total_time_of = (state: types.IState, node_id: types.TNodeId) => {
   return res;
 };
 
-const collect_ranges = (
+const collect_ranges_from_strong_descendants = (
   node_id: types.TNodeId,
   state: types.IState,
   vid: number,
@@ -1141,7 +1146,15 @@ const collect_ranges = (
     ranges_list.push(state.data.nodes[node_id].ranges);
   }
   for (const edge_id of state.data.nodes[node_id].children) {
-    collect_ranges(state.data.edges[edge_id].c, state, vid, ranges_list);
+    if (state.data.edges[edge_id].t !== "strong") {
+      continue;
+    }
+    collect_ranges_from_strong_descendants(
+      state.data.edges[edge_id].c,
+      state,
+      vid,
+      ranges_list,
+    );
   }
 };
 
@@ -1832,43 +1845,46 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
     () => (
       <div
         className={utils.join(
-          "flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]",
           !cache.show_detail && "opacity-40 hover:opacity-100",
         )}
       >
-        <span onClick={on_click_total_time}>
-          {cache.total_time < 0 ? "-" : digits1(cache.total_time / 3600)}
-        </span>
-        {is_root || EstimationInputOf(props.node_id)}
-        {is_root || LastRange_of(props.node_id)}
-        {is_root || status !== "todo" || StartOrStopButtons_of(props.node_id)}
-        {is_root ||
-          status !== "todo" ||
-          !is_completable ||
-          todoToDoneButtonOf(dispatch, props.node_id)}
-        {is_root ||
-          status !== "todo" ||
-          !is_completable ||
-          todoToDontButtonOf(dispatch, props.node_id)}
-        {is_root ||
-          status === "todo" ||
-          !is_uncompletable ||
-          DoneOrDontToTodoButton_of(dispatch, props.node_id)}
-        {status === "todo" && evalButtonOf(dispatch, props.node_id)}
-        {is_root || status !== "todo" || topButtonOf(dispatch, props.node_id)}
-        {is_root ||
-          status !== "todo" ||
-          moveUpButtonOf(dispatch, props.node_id)}
-        {is_root ||
-          status !== "todo" ||
-          moveDownButtonOf(dispatch, props.node_id)}
-        {CopyNodeIdButton_of(props.node_id)}
-        {status === "todo" && NewButton_of(dispatch, props.node_id)}
-        {showDetailButtonOf(dispatch, props.node_id)}
-        {status === "todo" &&
-          0 <= cache.leaf_estimates_sum &&
-          digits1(cache.leaf_estimates_sum) + " | "}
-        {status === "todo" && cache.percentiles.map(digits1).join(" ")}
+        <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
+          <span onClick={on_click_total_time}>
+            {cache.total_time < 0 ? "-" : digits1(cache.total_time / 3600)}
+          </span>
+          {is_root || EstimationInputOf(props.node_id)}
+          {is_root || LastRange_of(props.node_id)}
+          {is_root || status !== "todo" || StartOrStopButtons_of(props.node_id)}
+          {is_root ||
+            status !== "todo" ||
+            !is_completable ||
+            todoToDoneButtonOf(dispatch, props.node_id)}
+          {is_root ||
+            status !== "todo" ||
+            !is_completable ||
+            todoToDontButtonOf(dispatch, props.node_id)}
+          {is_root ||
+            status === "todo" ||
+            !is_uncompletable ||
+            DoneOrDontToTodoButton_of(dispatch, props.node_id)}
+          {status === "todo" && evalButtonOf(dispatch, props.node_id)}
+          {is_root || status !== "todo" || topButtonOf(dispatch, props.node_id)}
+          {is_root ||
+            status !== "todo" ||
+            moveUpButtonOf(dispatch, props.node_id)}
+          {is_root ||
+            status !== "todo" ||
+            moveDownButtonOf(dispatch, props.node_id)}
+          {CopyNodeIdButton_of(props.node_id)}
+          {status === "todo" && NewButton_of(dispatch, props.node_id)}
+          {showDetailButtonOf(dispatch, props.node_id)}
+        </div>
+        <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
+          {status === "todo" &&
+            0 <= cache.leaf_estimates_sum &&
+            digits1(cache.leaf_estimates_sum) + " | "}
+          {status === "todo" && cache.percentiles.map(digits1).join(" ")}
+        </div>
       </div>
     ),
     [
