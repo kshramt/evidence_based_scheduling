@@ -23,10 +23,10 @@ import * as toast from "./toast";
 import "./lib.css";
 import * as types from "./types";
 import * as utils from "./utils";
+import * as ops from "./ops";
 
 const MENU_HEIGHT = "3rem" as const;
 const API_VERSION = "v1";
-const NO_ESTIMATION = 0;
 const START_MARK = <span className="material-icons">play_arrow</span>;
 const START_CONCURRNET_MARK = (
   <span className="material-icons">double_arrow</span>
@@ -42,6 +42,7 @@ const DONE_MARK = <span className="material-icons">done</span>;
 const DONT_MARK = <span className="material-icons">delete</span>;
 const DETAIL_MARK = <span className="material-icons">more_vert</span>;
 const COPY_MARK = <span className="material-icons">content_copy</span>;
+const TOC_MARK = <span className="material-icons">toc</span>;
 const FORWARD_MARK = <span className="material-icons">arrow_forward_ios</span>;
 const BACK_MARK = <span className="material-icons">arrow_back_ios</span>;
 
@@ -134,9 +135,7 @@ export class Multinomial {
         i_small_list[(small_last += 1)] = i_large;
       }
     }
-    for (let i = 0; i < large_last + 1; ++i) {
-      thresholds[i_large_list[i]] = 1; // Address numerical errors.
-    }
+    // Loop for large_last is not necessary since thresholds for them are greater than one and are always accepted.
     for (let i = 0; i < small_last + 1; ++i) {
       thresholds[i_small_list[i]] = 1; // Address numerical errors.
     }
@@ -155,10 +154,10 @@ const stop = (
   node_id: types.TNodeId,
   t?: number,
 ) => {
-  const last_range = last(draft.data.nodes[node_id].ranges);
+  const last_range = utils.last(draft.data.nodes[node_id].ranges);
   if (last_range && last_range.end === null) {
     last_range.end = t ?? Number(new Date()) / 1000;
-    update_node_caches(node_id, draft);
+    ops.update_node_caches(node_id, draft);
     _set_total_time(draft, node_id);
   }
 };
@@ -170,110 +169,38 @@ const stop_all = (draft: Draft<types.IState>) => {
   }
 };
 
-const new_node_id_of = (state: types.IState) =>
-  new_id_of(state) as types.TNodeId;
-const new_edge_id_of = (state: types.IState) =>
-  new_id_of(state) as types.TEdgeId;
-const new_id_of = (state: types.IState) =>
-  id_string_of_number((state.data.id_seq += 1));
-const id_string_of_number = (x: number) => x.toString(36);
-
-const emptyStateOf = (): types.IState => {
-  const id_seq = 0;
-  const root = id_string_of_number(id_seq) as types.TNodeId;
-  const nodes = {
-    [root]: newNodeValueOf([]),
-  };
-  const data = {
-    edges: {},
-    root,
-    id_seq,
-    nodes,
-    queue: [],
-    showTodoOnly: false,
-    version: 12,
-  };
-  data.nodes[root].text = "root";
-  const caches = {
-    [root]: new_cache_of(data, root),
-  };
+const doLoad = createAsyncThunk("doLoad", async () => {
+  const resp = await fetch("api/" + API_VERSION + "/get");
+  const data: any = await resp.json();
+  if (data === null) {
+    toast.add("error", "The server failed to read the data.");
+    return null;
+  }
+  const record_if_false = types.record_if_false_of();
+  if (!types.is_IData(data, record_if_false)) {
+    toast.add("error", `!is_IData: ${JSON.stringify(record_if_false.path)}`);
+    console.warn(record_if_false.path);
+    return null;
+  }
+  const caches: types.ICaches = {};
+  for (const node_id in data.nodes) {
+    if (types.is_TNodeId(node_id)) {
+      caches[node_id] = ops.new_cache_of(data, node_id);
+    }
+  }
   return {
     data,
     caches,
   };
-};
-
-const newNodeValueOf = (parents: types.TEdgeId[]) => {
-  return {
-    children: [] as types.TEdgeId[],
-    end_time: null,
-    estimate: NO_ESTIMATION,
-    parents,
-    ranges: [] as types.IRange[],
-    show_children: false,
-    start_time: new Date().toISOString(),
-    status: "todo" as types.TStatus,
-    style: { height: "3ex" },
-    text: "",
-  };
-};
-
-const new_cache_of = (data: types.IData, node_id: types.TNodeId) => {
-  const parent_edges = filter_object(data.edges, data.nodes[node_id].parents);
-  const parent_nodes = filter_object(
-    data.nodes,
-    data.nodes[node_id].parents.map((edge_id) => data.edges[edge_id].p),
-  );
-  const child_edges = filter_object(data.edges, data.nodes[node_id].children);
-  const child_nodes = filter_object(
-    data.nodes,
-    data.nodes[node_id].children.map((edge_id) => data.edges[edge_id].c),
-  );
-  return {
-    total_time: -1,
-    percentiles: [],
-    leaf_estimates_sum: -1,
-    show_detail: false,
-    parent_edges,
-    parent_nodes,
-    child_edges,
-    child_nodes,
-  };
-};
-
-const filter_object = <T extends {}>(kvs: T, ks: (keyof T)[]) => {
-  const res = {} as T;
-  for (const k of ks) {
-    res[k] = kvs[k];
-  }
-  return res;
-};
-
-const doLoad = createAsyncThunk("doLoad", async () => {
-  const resp = await fetch("api/" + API_VERSION + "/get");
-  const data: any = await resp.json();
-  const record_if_false = types.record_if_false_of();
-  if (types.is_IData(data, record_if_false)) {
-    const caches: types.ICaches = {};
-    for (const node_id in data.nodes) {
-      if (types.is_TNodeId(node_id)) {
-        caches[node_id] = new_cache_of(data, node_id);
-      }
-    }
-    return {
-      data,
-      caches,
-    };
-  } else {
-    console.warn(record_if_false.path);
-    return null;
-  }
 });
 register_history_type(doLoad.fulfilled);
 
 const eval_ = register_history_type(createAction<types.TNodeId>("eval_"));
 const delete_action = register_save_type(
   register_history_type(createAction<types.TNodeId>("delete_action")),
+);
+const parse_toc_action = register_save_type(
+  register_history_type(createAction<types.TNodeId>("parse_toc_action")),
 );
 const delete_edge_action = register_save_type(
   register_history_type(createAction<types.TEdgeId>("delete_edge_action")),
@@ -319,12 +246,12 @@ const moveUp_ = register_save_type(
 const moveDown_ = register_save_type(
   register_history_type(createAction<types.TNodeId>("moveDown_")),
 );
-const setEstimate = register_save_type(
+const set_estimate_action = register_save_type(
   register_history_type(
     createAction<{
-      k: types.TNodeId;
+      node_id: types.TNodeId;
       estimate: number;
-    }>("setEstimate"),
+    }>("set_estimate_action"),
   ),
 );
 const set_range_value_action = register_save_type(
@@ -384,7 +311,7 @@ const add_edges_action = register_save_type(
   register_history_type(createAction<types.IEdge[]>("add_edges_action")),
 );
 
-const rootReducer = createReducer(emptyStateOf(), (builder) => {
+const rootReducer = createReducer(ops.emptyStateOf(), (builder) => {
   const ac = builder.addCase;
   ac(eval_, (state, action) => {
     const k = action.payload;
@@ -415,47 +342,31 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       toast.add("error", `Node ${node_id} is not deletable.`);
     }
   });
+  ac(parse_toc_action, (state, action) => {
+    ops.make_nodes_of_toc(action.payload, state);
+  });
   ac(delete_edge_action, (state, action) => {
     const edge_id = action.payload;
-    if (checks.is_deletable_edge_of(edge_id, state)) {
-      const edge = state.data.edges[edge_id];
-      delete state.caches[edge.p].child_edges[edge_id];
-      delete state.caches[edge.p].child_nodes[edge.c];
-      delete state.caches[edge.c].parent_edges[edge_id];
-      delete state.caches[edge.c].parent_nodes[edge.p];
-      deleteAtVal(state.data.nodes[edge.p].children, edge_id);
-      deleteAtVal(state.data.nodes[edge.c].parents, edge_id);
-      delete state.data.edges[edge_id];
-    } else {
+    if (!checks.is_deletable_edge_of(edge_id, state)) {
       toast.add(
         "error",
         `Edge ${state.data.edges[edge_id]} cannot be deleted.`,
       );
-    }
-  });
-  ac(new_action, (state, action) => {
-    const parent = action.payload;
-    if (state.data.nodes[parent].status !== "todo") {
-      toast.add(
-        "error",
-        `No strong child can be added to a non-todo parent ${parent}.`,
-      );
       return;
     }
-    if (!state.data.nodes[parent].show_children) {
-      state.data.nodes[parent].show_children = true;
-    }
-    const node_id = new_node_id_of(state);
-    const edge_id = new_edge_id_of(state);
-    const node = newNodeValueOf([edge_id]);
-    const edge = { p: parent, c: node_id, t: "strong" as const };
-    state.data.nodes[node_id] = node;
-    state.data.edges[edge_id] = edge;
-    state.data.nodes[parent].children.unshift(edge_id);
-    state.data.queue.push(node_id);
-    state.caches[node_id] = new_cache_of(state.data, node_id);
-    state.caches[edge.p].child_edges[edge_id] = edge;
-    state.caches[edge.p].child_nodes[node_id] = node;
+    const edge = state.data.edges[edge_id];
+    delete state.caches[edge.p].child_edges[edge_id];
+    delete state.caches[edge.p].child_nodes[edge.c];
+    delete state.caches[edge.c].parent_edges[edge_id];
+    delete state.caches[edge.c].parent_nodes[edge.p];
+    deleteAtVal(state.data.nodes[edge.p].children, edge_id);
+    deleteAtVal(state.data.nodes[edge.c].parents, edge_id);
+    ops.update_node_caches(edge.p, state);
+    ops.update_node_caches(edge.c, state);
+    delete state.data.edges[edge_id];
+  });
+  ac(new_action, (state, action) => {
+    ops.new_(action.payload, state);
   });
   // todo: Handle doLoad.rejected.
   ac(doLoad.fulfilled, (state, action) => {
@@ -477,7 +388,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       toast.add("error", `Non-todo node ${node_id} cannot be started.`);
       return;
     }
-    const last_range = last(state.data.nodes[node_id].ranges);
+    const last_range = utils.last(state.data.nodes[node_id].ranges);
     if (!last_range || last_range.end !== null) {
       _top(state, node_id);
       assert(() => [
@@ -491,7 +402,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
         start: Number(new Date()) / 1000,
         end: null,
       });
-      update_node_caches(node_id, state);
+      ops.update_node_caches(node_id, state);
       _show_path_to_selected_node(state, node_id);
     }
   });
@@ -618,7 +529,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       for (const edge_id of state.data.nodes[action.payload].parents) {
         const node_id = state.data.edges[edge_id].p;
         moveUp(state.data.nodes[node_id].children, edge_id);
-        update_node_caches(node_id, state);
+        ops.update_node_caches(node_id, state);
       }
       moveUp(state.data.queue, action.payload);
     } else {
@@ -630,7 +541,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       for (const edge_id of state.data.nodes[action.payload].parents) {
         const node_id = state.data.edges[edge_id].p;
         moveDown(state.data.nodes[node_id].children, edge_id);
-        update_node_caches(node_id, state);
+        ops.update_node_caches(node_id, state);
       }
       moveDown(state.data.queue, action.payload);
     } else {
@@ -640,13 +551,8 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       );
     }
   });
-  ac(setEstimate, (state, action) => {
-    const node_id = action.payload.k;
-    const estimate = action.payload.estimate;
-    if (state.data.nodes[node_id].estimate !== estimate) {
-      state.data.nodes[node_id].estimate = estimate;
-    }
-    update_node_caches(node_id, state);
+  ac(set_estimate_action, (state, action) => {
+    ops.set_estimate(action.payload, state);
   });
   ac(set_range_value_action, (state, action) => {
     const range =
@@ -671,14 +577,14 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       toast.add("error", `range.end < range.start: ${JSON.stringify(action)}`);
       range[action.payload.k] = prev_seconds;
     }
-    update_node_caches(action.payload.node_id, state);
+    ops.update_node_caches(action.payload.node_id, state);
   });
   ac(delete_range_action, (state, action) => {
     state.data.nodes[action.payload.node_id].ranges.splice(
       action.payload.i_range,
       1,
     );
-    update_node_caches(action.payload.node_id, state);
+    ops.update_node_caches(action.payload.node_id, state);
   });
   ac(setTextAndResizeTextArea, (state, action) => {
     const node_id = action.payload.k;
@@ -691,7 +597,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
         node.style.height = height;
       }
     }
-    update_node_caches(node_id, state);
+    ops.update_node_caches(node_id, state);
   });
   ac(todoToDone, (state, action) => {
     const node_id = action.payload;
@@ -699,7 +605,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       stop(state, node_id);
       state.data.nodes[node_id].status = "done";
       state.data.nodes[node_id].end_time = new Date().toISOString();
-      update_node_caches(node_id, state);
+      ops.update_node_caches(node_id, state);
       _topQueue(state, node_id);
     } else {
       toast.add(
@@ -714,7 +620,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
       stop(state, node_id);
       state.data.nodes[node_id].status = "dont";
       state.data.nodes[node_id].end_time = new Date().toISOString();
-      update_node_caches(node_id, state);
+      ops.update_node_caches(node_id, state);
       _topQueue(state, node_id);
     } else {
       toast.add(
@@ -727,7 +633,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     const node_id = action.payload;
     if (checks.is_uncompletable_node_of(node_id, state)) {
       state.data.nodes[node_id].status = "todo";
-      update_node_caches(node_id, state);
+      ops.update_node_caches(node_id, state);
     } else {
       toast.add("error", `Node ${node_id} cannot be set to todo.`);
     }
@@ -736,7 +642,7 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     const node_id = action.payload;
     state.data.nodes[node_id].show_children =
       !state.data.nodes[node_id].show_children;
-    update_node_caches(node_id, state);
+    ops.update_node_caches(node_id, state);
   });
   ac(show_path_to_selected_node, (state, action) => {
     _show_path_to_selected_node(state, action.payload);
@@ -752,57 +658,10 @@ const rootReducer = createReducer(emptyStateOf(), (builder) => {
     }
     const edge = state.data.edges[action.payload.edge_id];
     edge.t = action.payload.edge_type;
-    update_edge_caches(action.payload.edge_id, state);
+    ops.update_edge_caches(action.payload.edge_id, state);
   });
   ac(add_edges_action, (state, action) => {
-    for (const edge of action.payload) {
-      if (edge.c === state.data.root) {
-        toast.add(
-          "error",
-          `No node should have the root node as its child: ${edge}`,
-        );
-        continue;
-      }
-      if (!(edge.p in state.data.nodes && edge.c in state.data.nodes)) {
-        toast.add(
-          "error",
-          `${JSON.stringify(action)}: Nodes for ${JSON.stringify(
-            edge,
-          )} does not exist.`,
-        );
-        continue;
-      }
-      if (checks.has_edge(edge.p, edge.c, state)) {
-        toast.add(
-          "error",
-          `${JSON.stringify(action)}: Edges for ${JSON.stringify(
-            edge,
-          )} already exist.`,
-        );
-        continue;
-      }
-      const edge_id = new_edge_id_of(state);
-      state.data.edges[edge_id] = edge;
-      state.data.nodes[edge.c].parents.unshift(edge_id);
-      state.data.nodes[edge.p].children.unshift(edge_id);
-      if (checks.has_cycle_of(edge_id, state)) {
-        delete state.data.edges[edge_id];
-        state.data.nodes[edge.c].parents.splice(0, 1);
-        state.data.nodes[edge.p].children.splice(0, 1);
-        toast.add(
-          "error",
-          `${JSON.stringify(action)}: Detected a cycle for ${JSON.stringify(
-            JSON.stringify(edge),
-          )}.`,
-        );
-      } else {
-        state.caches[edge.p].child_edges[edge_id] = edge;
-        state.caches[edge.p].child_nodes[edge.c] = state.data.nodes[edge.c];
-        state.caches[edge.c].parent_edges[edge_id] = edge;
-        state.caches[edge.c].parent_nodes[edge.p] = state.data.nodes[edge.p];
-        toast.add("info", `Added a edge ${edge.p} -> ${edge.c}.`);
-      }
-    }
+    return ops.add_edges(action.payload, state);
   });
 });
 
@@ -1027,15 +886,13 @@ const doFocusTextArea = (k: types.TNodeId) => () => {
 
 const _eval_ = (draft: Draft<types.IState>, k: types.TNodeId) => {
   _set_total_time(draft, k);
-  const candidates = draft.data.queue.filter(
-    (k) => {
-      const v = draft.data.nodes[k];
-      return (
-        (v.status === "done" || v.status === "dont") &&
-        v.estimate !== NO_ESTIMATION
-      );
-    },
-  );
+  const candidates = draft.data.queue.filter((k) => {
+    const v = draft.data.nodes[k];
+    return (
+      (v.status === "done" || v.status === "dont") &&
+      v.estimate !== consts.NO_ESTIMATION
+    );
+  });
   const ratios = candidates.length
     ? candidates.map((node_id) => {
         const node = draft.data.nodes[node_id];
@@ -1062,7 +919,7 @@ const _eval_ = (draft: Draft<types.IState>, k: types.TNodeId) => {
   )
     .map(([_, v]) => v)
     .filter((v) => {
-      return v.estimate !== NO_ESTIMATION;
+      return v.estimate !== consts.NO_ESTIMATION;
     })
     .map((v) => {
       return v.estimate;
@@ -1112,7 +969,7 @@ const total_time_of = (state: types.IState, node_id: types.TNodeId) => {
       }
     }
   }
-  events.sort((a, b) => (a[0] === b[0] ? b[1] - a[1] : a[0] - b[0]));
+  events.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
   let res = 0;
   let count = 0;
   let t_prev = -1;
@@ -1173,7 +1030,7 @@ const _topTree = (draft: Draft<types.IState>, node_id: types.TNodeId) => {
       const edge = draft.data.edges[edge_id];
       if (edge.t === "strong" && draft.data.nodes[edge.p].status === "todo") {
         toFront(draft.data.nodes[edge.p].children, edge_id);
-        update_node_caches(edge.p, draft);
+        ops.update_node_caches(edge.p, draft);
         node_id = edge.p;
         break;
       }
@@ -1196,27 +1053,9 @@ const _show_path_to_selected_node = (
     node_id = draft.data.edges[draft.data.nodes[node_id].parents[0]].p;
     if (!draft.data.nodes[node_id].show_children) {
       draft.data.nodes[node_id].show_children = true;
-      update_node_caches(node_id, draft);
+      ops.update_node_caches(node_id, draft);
     }
   }
-};
-
-const update_node_caches = (node_id: types.TNodeId, state: types.IState) => {
-  const node = state.data.nodes[node_id];
-  node.parents.forEach(
-    (edge_id) =>
-      (state.caches[state.data.edges[edge_id].p].child_nodes[node_id] = node),
-  );
-  node.children.forEach(
-    (edge_id) =>
-      (state.caches[state.data.edges[edge_id].c].parent_nodes[node_id] = node),
-  );
-};
-
-const update_edge_caches = (edge_id: types.TEdgeId, state: types.IState) => {
-  const edge = state.data.edges[edge_id];
-  state.caches[edge.p].child_edges[edge_id] = edge;
-  state.caches[edge.c].parent_edges[edge_id] = edge;
 };
 
 const memoize1 = <A, R>(fn: (a: A) => R) => {
@@ -1418,8 +1257,11 @@ const DetailsImpl = (props: { node_id: types.TNodeId }) => {
   );
   return (
     <div className="pt-[0.5em]">
-      {deleteButtonOf(dispatch, props.node_id)}
       {hline}
+      <div className="flex w-fit gap-x-[0.25em] items-baseline">
+        {deleteButtonOf(dispatch, props.node_id)}
+        {ParseTocButton_of(dispatch, props.node_id)}
+      </div>
       {hline}
       <div className="flex gap-x-[0.25em] items-baseline">
         Add:
@@ -1467,8 +1309,6 @@ const RangesTable = (props: { node_id: types.TNodeId }) => {
   const n = useSelector(
     (state) => state.data.nodes[props.node_id].ranges.length,
   );
-  const offset_prev = offset - rows_per_page;
-  const offset_next = offset + rows_per_page;
   const handle_offset_input = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) =>
       set_offset(Math.min(Math.max(0, parseInt(e.target.value)), n - 1)),
@@ -1773,7 +1613,7 @@ const EntryWrapper = (props: {
   children: React.ReactNode;
 }) => {
   const ranges = useSelector((state) => state.data.nodes[props.node_id].ranges);
-  const last_range = last(ranges);
+  const last_range = utils.last(ranges);
   const running = last_range && last_range.end === null;
 
   const has_children = useSelector((state) =>
@@ -1908,7 +1748,7 @@ const EntryButtons_of = memoize1((node_id: types.TNodeId) => (
 
 const StartOrStopButtons = (props: { node_id: types.TNodeId }) => {
   const ranges = useSelector((state) => state.data.nodes[props.node_id].ranges);
-  const last_range = last(ranges);
+  const last_range = utils.last(ranges);
   const running = last_range && last_range.end === null;
   const dispatch = useDispatch();
 
@@ -1966,10 +1806,6 @@ const focus = <T extends HTMLElement>(r: null | T) => {
   if (r) {
     r.focus();
   }
-};
-
-const last = <T extends {}>(a: T[]) => {
-  return a[a.length - 1];
 };
 
 const digits2 = (x: number) => {
@@ -2288,6 +2124,19 @@ const deleteButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
   </button>
 ));
 
+const ParseTocButton_of = memoize2(
+  (dispatch: AppDispatch, node_id: types.TNodeId) => (
+    <button
+      className="btn-icon"
+      onClick={() => {
+        dispatch(parse_toc_action(node_id));
+      }}
+    >
+      {TOC_MARK}
+    </button>
+  ),
+);
+
 const evalButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
   <button
     className="btn-icon"
@@ -2317,12 +2166,12 @@ const CopyNodeIdButton_of = memoize1((node_id: types.TNodeId) => (
   <CopyNodeIdButton node_id={node_id} />
 ));
 
-const setEstimateOf = memoize2(
-  (dispatch: AppDispatch, k: types.TNodeId) =>
+const set_estimate_of = memoize2(
+  (dispatch: AppDispatch, node_id: types.TNodeId) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       dispatch(
-        setEstimate({
-          k,
+        set_estimate_action({
+          node_id,
           estimate: Number(e.target.value),
         }),
       );
@@ -2341,7 +2190,7 @@ const EstimationInput = (props: { k: types.TNodeId }) => {
       type="number"
       step="any"
       value={estimate}
-      onChange={setEstimateOf(dispatch, props.k)}
+      onChange={set_estimate_of(dispatch, props.k)}
       className="w-[3em] h-[2em]"
     />
   );
