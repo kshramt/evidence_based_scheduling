@@ -1,32 +1,6 @@
 import * as types from "./types";
 import * as utils from "./utils";
 
-export const has_visible_path_of = (
-  node_id: types.TNodeId,
-  state: types.IState,
-) => {
-  return _has_visible_path_of(node_id, state, utils.visit_counter_of());
-};
-const _has_visible_path_of = (
-  node_id: types.TNodeId,
-  state: types.IState,
-  vid: number,
-): boolean => {
-  if (node_id === state.data.root) {
-    return true;
-  }
-  if (utils.vids[node_id] === vid) {
-    return false;
-  }
-  utils.vids[node_id] = vid;
-  if (!state.data.nodes[node_id].show_children) {
-    return false;
-  }
-  return state.data.nodes[node_id].parents.some((edge_id) =>
-    _has_visible_path_of(state.data.edges[edge_id].p, state, vid),
-  );
-};
-
 export const is_uncompletable_node_of = (
   node_id: types.TNodeId,
   state: types.IState,

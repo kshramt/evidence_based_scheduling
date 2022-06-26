@@ -1062,12 +1062,20 @@ const _show_path_to_selected_node = (
   draft: Draft<types.IState>,
   node_id: types.TNodeId,
 ) => {
-  if (checks.has_visible_path_of(node_id, draft)) {
-    return;
-  }
   while (draft.data.nodes[node_id].parents.length) {
-    node_id = draft.data.edges[draft.data.nodes[node_id].parents[0]].p;
-    if (!draft.data.nodes[node_id].show_children) {
+    let parent_node_id = null;
+    for (const edge_id of draft.data.nodes[node_id].parents) {
+      const edge = draft.data.edges[edge_id];
+      if (edge.t === "strong") {
+        parent_node_id = edge.p;
+        break;
+      }
+    }
+    if (parent_node_id === null) {
+      return;
+    }
+    node_id = parent_node_id;
+    if (draft.data.nodes[node_id].show_children) {
       draft.data.nodes[node_id].show_children = true;
       ops.update_node_caches(node_id, draft);
     }
