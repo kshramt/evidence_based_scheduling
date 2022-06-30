@@ -223,7 +223,7 @@ const start_action = register_save_type(
   ),
 );
 const top_action = register_save_type(
-  register_history_type(createAction<types.TNodeId>("top")),
+  register_history_type(createAction<types.TNodeId>("top_action")),
 );
 const smallestToTop = register_save_type(
   register_history_type(createAction("smallestToTop")),
@@ -782,20 +782,22 @@ const Menu = () => {
       <button className="btn-icon" arial-label="Redo." onClick={_redo}>
         <span className="material-icons">redo</span>
       </button>
-      TODO:
-      <input
-        type="radio"
-        checked={Boolean(showTodoOnly)}
-        onClick={_flipShowTodoOnly}
-        onChange={_suppress_missing_onChange_handler_warning}
-      />
-      Strong:
-      <input
-        type="radio"
-        checked={Boolean(show_strong_edge_only)}
-        onClick={toggle_show_strong_edge_only}
-        onChange={_suppress_missing_onChange_handler_warning}
-      />
+      <div onClick={_flipShowTodoOnly}>
+        TODO:{" "}
+        <input
+          type="radio"
+          checked={Boolean(showTodoOnly)}
+          onChange={_suppress_missing_onChange_handler_warning}
+        />
+      </div>
+      <div onClick={toggle_show_strong_edge_only}>
+        Strong:{" "}
+        <input
+          type="radio"
+          checked={Boolean(show_strong_edge_only)}
+          onChange={_suppress_missing_onChange_handler_warning}
+        />
+      </div>
       <button className="btn-icon" onClick={_smallestToTop}>
         Small
       </button>
@@ -1811,7 +1813,7 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
           {status === "todo" &&
             0 <= cache.leaf_estimates_sum &&
             digits1(cache.leaf_estimates_sum) + " | "}
-          {status === "todo" && cache.percentiles.map(digits1).join(" ")}
+          {status === "todo" && cache.percentiles.map(digits1).join(", ")}
         </div>
       </div>
     ),
