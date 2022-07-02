@@ -1779,11 +1779,7 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
         )}
       >
         <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
-          <span onClick={on_click_total_time}>
-            {cache.total_time < 0 ? "-" : digits1(cache.total_time / 3600)}
-          </span>
           {is_root || EstimationInputOf(props.node_id)}
-          {is_root || LastRange_of(props.node_id)}
           {is_root || status !== "todo" || StartOrStopButtons_of(props.node_id)}
           {is_root ||
             status !== "todo" ||
@@ -1808,6 +1804,10 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
           {CopyNodeIdButton_of(props.node_id)}
           {status === "todo" && NewButton_of(dispatch, props.node_id)}
           {showDetailButtonOf(dispatch, props.node_id)}
+          <span onClick={on_click_total_time}>
+            {cache.total_time < 0 ? "-" : digits1(cache.total_time / 3600)}
+          </span>
+          {is_root || LastRange_of(props.node_id)}
         </div>
         <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
           {status === "todo" &&
