@@ -126,7 +126,7 @@ const is_IEdges = (
   record_if_false: TRecordIfFalse,
 ): edges is IEdges => record_if_false.check_object(edges, is_IEdge);
 
-export const edge_type_values = ["strong", "weak"] as const;
+export const edge_type_values = ["weak", "strong"] as const;
 export type TEdgeType = typeof edge_type_values[number];
 export const is_TEdgeType = (x: any): x is TEdgeType =>
   edge_type_values.includes(x);
