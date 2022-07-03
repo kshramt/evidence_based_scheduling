@@ -419,25 +419,30 @@ const rootReducer = createReducer(ops.emptyStateOf(), (builder) => {
     _top(state, action.payload);
   });
   ac(smallestToTop, (state) => {
-    let k_min = null;
-    let estimate_min = Infinity;
-    for (const k of state.data.queue) {
-      const v = state.data.nodes[k];
-      if (
-        v.status === "todo" &&
-        v.children.filter(
-          (edge_id) =>
-            state.data.nodes[state.data.edges[edge_id].c].status === "todo",
-        ).length <= 0 &&
-        0 < v.estimate &&
-        v.estimate < estimate_min
-      ) {
-        k_min = k;
-        estimate_min = v.estimate;
+    for (let i = 0; i < state.data.queue.length - 1; ++i) {
+      let node_id_min = null;
+      let estimate_min = Infinity;
+      for (let j = i; j < state.data.queue.length; ++j) {
+        const node_id = state.data.queue[j];
+        const node = state.data.nodes[node_id];
+        if (
+          node.status === "todo" &&
+          !node.children.some(
+            (edge_id) =>
+              state.data.nodes[state.data.edges[edge_id].c].status === "todo",
+          ) &&
+          0 < node.estimate &&
+          node.estimate < estimate_min
+        ) {
+          node_id_min = node_id;
+          estimate_min = node.estimate;
+        }
       }
-    }
-    if (k_min !== null) {
-      _top(state, k_min);
+      if (node_id_min !== null && node_id_min !== state.data.queue[i]) {
+        state.data.queue.splice(state.data.queue.indexOf(node_id_min), 1);
+        state.data.queue.splice(i, 0, node_id_min);
+        break;
+      }
     }
   });
   ac(closestToTop, (state) => {
