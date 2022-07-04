@@ -1274,7 +1274,7 @@ const Details_of = memoize1((node_id: types.TNodeId) => (
 
 const DetailsImpl = (props: { node_id: types.TNodeId }) => {
   const [new_edge_type, set_new_edge_type] =
-    React.useState<types.TEdgeType>("strong");
+    React.useState<types.TEdgeType>("weak");
   const handle_new_edge_type_change = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       const v = e.target.value;
