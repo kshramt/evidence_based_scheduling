@@ -302,9 +302,7 @@ def get():
     try:
         with gzip.open(jp(DATA_DIR, DATA_BASENAME) + ".json.gz", "rt") as fp:
             data = json.load(fp)
-        data = _remove_tail_none_v1(data)
         data = _update_data_version(data)
-        data = _join_text_v1(data)
     except IOError:
         data = None
     res = flask.make_response(flask.json.jsonify(data))
@@ -318,8 +316,6 @@ def post():
 
 
 def save(data):
-    data = _split_text_v1(data)
-    data = _add_tail_none_v1(data)
     s = json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     time = datetime.datetime.now().isoformat()
     if DATA_CHECKPOINT_DIR is not None:
@@ -349,44 +345,6 @@ def _new_entry_v1(t: str) -> dict:
         "text": [""],
         "todo": [],
     }
-
-
-def _split_text_v1(data):
-    for v in data["nodes" if 12 <= data["version"] else "kvs"].values():
-        v["text"] = v["text"].split("\n")
-    return data
-
-
-def _join_text_v1(data):
-    if 12 <= data["version"]:
-        for node in data["nodes"].values():
-            node["text"] = "\n".join(node["text"])
-    else:
-        for v in data["kvs"].values():
-            v["text"] = "\n".join(v["text"])
-    return data
-
-
-def _add_tail_none_v1(x):
-    if isinstance(x, list):
-        x = [_add_tail_none_v1(v) for v in x]
-        x.append(None)
-        return x
-    elif isinstance(x, dict):
-        return {k: _add_tail_none_v1(v) for k, v in x.items()}
-    else:
-        return x
-
-
-def _remove_tail_none_v1(x):
-    if isinstance(x, list):
-        if x and x[-1] is None:
-            x = x[:-1]
-        return [_remove_tail_none_v1(v) for v in x]
-    elif isinstance(x, dict):
-        return {k: _remove_tail_none_v1(v) for k, v in x.items()}
-    else:
-        return x
 
 
 def _js_now_v1():
