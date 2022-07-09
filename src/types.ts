@@ -87,11 +87,11 @@ const is_INodes = (x: any, record_if_false: TRecordIfFalse): x is INodes =>
 
 export interface INode {
   readonly children: TEdgeId[];
-  readonly end_time: null | string;
+  readonly end_time: null | number;
   readonly estimate: number;
   readonly parents: TEdgeId[];
   readonly ranges: IRange[];
-  readonly start_time: string;
+  readonly start_time: number;
   readonly status: TStatus;
   readonly style: IStyle;
   readonly text: string;
@@ -104,7 +104,7 @@ const is_INode = (x: any, record_if_false: TRecordIfFalse): x is INode =>
     "children",
   ) &&
   record_if_false(
-    x.end_time === null || typeof x.end_time === "string",
+    x.end_time === null || typeof x.end_time === "number",
     "end_time",
   ) &&
   record_if_false(typeof x.estimate === "number", "estimate") &&
@@ -113,7 +113,7 @@ const is_INode = (x: any, record_if_false: TRecordIfFalse): x is INode =>
     "parents",
   ) &&
   record_if_false(record_if_false.check_array(x.ranges, is_IRange), "ranges") &&
-  record_if_false(typeof x.start_time === "string", "start_time") &&
+  record_if_false(typeof x.start_time === "number", "start_time") &&
   record_if_false(is_TStatus(x.status), "status") &&
   record_if_false(is_IStyle(x.style), "style") &&
   record_if_false(typeof x.text === "string", "text");

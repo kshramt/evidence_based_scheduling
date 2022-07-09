@@ -33,7 +33,7 @@ export const emptyStateOf = (): types.IState => {
     nodes,
     queue: [],
     showTodoOnly: false,
-    version: 13,
+    version: 14,
   };
   data.nodes[root].text = "root";
   const caches = {
@@ -52,7 +52,7 @@ const newNodeValueOf = (parents: types.TEdgeId[]) => {
     estimate: consts.NO_ESTIMATION,
     parents,
     ranges: [] as types.IRange[],
-    start_time: new Date().toISOString(),
+    start_time: Number(new Date()),
     status: "todo" as types.TStatus,
     style: { height: "3ex" },
     text: "",

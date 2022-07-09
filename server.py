@@ -69,9 +69,29 @@ def _update_data_version(data):
     elif data["version"] == 12:
         return _update_data_version(_v13_of_v12(data))
     elif data["version"] == 13:
+        return _update_data_version(_v14_of_v13(data))
+    elif data["version"] == 14:
         return data
     else:
         raise Err(f"Unsupported data version: {data.get('version', 'None')}")
+
+
+def _v14_of_v13(data):
+    def t_of_s(s):
+        return round(datetime.datetime.fromisoformat(s).timestamp() * 1000)
+
+    for k, v in data["nodes"].items():
+        v["start_time"] = t_of_s(v["start_time"][:-1])
+        if v["end_time"]:
+            v["end_time"] = t_of_s(v["end_time"][:-1])
+        for r in v["ranges"]:
+            if r is None:
+                continue
+            r["start"] = t_of_s(r["start"])
+            if r["end"]:
+                r["end"] = t_of_s(r["end"])
+    data["version"] = 14
+    return data
 
 
 def _v13_of_v12(data):
@@ -285,7 +305,6 @@ def get():
         data = _remove_tail_none_v1(data)
         data = _update_data_version(data)
         data = _join_text_v1(data)
-        data = _parse_datetime_v1(data)
     except IOError:
         data = None
     res = flask.make_response(flask.json.jsonify(data))
@@ -299,7 +318,6 @@ def post():
 
 
 def save(data):
-    data = _format_datetime_v1(data)
     data = _split_text_v1(data)
     data = _add_tail_none_v1(data)
     s = json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
@@ -331,26 +349,6 @@ def _new_entry_v1(t: str) -> dict:
         "text": [""],
         "todo": [],
     }
-
-
-def _format_datetime_v1(data):
-    for v in data["nodes" if 12 <= data["version"] else "kvs"].values():
-        for r in v["ranges"]:
-            for k in ["start", "end"]:
-                if r[k] is not None:
-                    r[k] = datetime.datetime.fromtimestamp(
-                        r[k], datetime.timezone.utc
-                    ).isoformat()
-    return data
-
-
-def _parse_datetime_v1(data):
-    for v in data["nodes" if 12 <= data["version"] else "kvs"].values():
-        for r in v["ranges"]:
-            for k in ["start", "end"]:
-                if r[k] is not None:
-                    r[k] = datetime.datetime.fromisoformat(r[k]).timestamp()
-    return data
 
 
 def _split_text_v1(data):

@@ -156,14 +156,14 @@ const stop = (
 ) => {
   const last_range = utils.last(draft.data.nodes[node_id].ranges);
   if (last_range && last_range.end === null) {
-    last_range.end = t ?? Number(new Date()) / 1000;
+    last_range.end = t ?? Number(new Date());
     ops.update_node_caches(node_id, draft);
     _set_total_time(draft, node_id);
   }
 };
 
 const stop_all = (draft: Draft<types.IState>) => {
-  const t = Number(new Date()) / 1000;
+  const t = Number(new Date());
   for (const node_id of draft.data.queue) {
     stop(draft, node_id, t);
   }
@@ -408,7 +408,7 @@ const rootReducer = createReducer(ops.emptyStateOf(), (builder) => {
         stop_all(state);
       }
       state.data.nodes[node_id].ranges.push({
-        start: Number(new Date()) / 1000,
+        start: Number(new Date()),
         end: null,
       });
       ops.update_node_caches(node_id, state);
@@ -571,8 +571,8 @@ const rootReducer = createReducer(ops.emptyStateOf(), (builder) => {
   ac(set_range_value_action, (state, action) => {
     const range =
       state.data.nodes[action.payload.node_id].ranges[action.payload.i_range];
-    const prev_seconds = range[action.payload.k];
-    if (prev_seconds === null) {
+    const prev_milliseconds = range[action.payload.k];
+    if (prev_milliseconds === null) {
       toast.add(
         "error",
         `range.end of the running node ${
@@ -581,15 +581,15 @@ const rootReducer = createReducer(ops.emptyStateOf(), (builder) => {
       );
       return;
     }
-    const seconds = utils.seconds_of_datetime_local(action.payload.v);
-    if (isNaN(seconds)) {
+    const milliseconds = utils.milliseconds_of_datetime_local(action.payload.v);
+    if (isNaN(milliseconds)) {
       toast.add("error", `Invalid datetime_local: ${JSON.stringify(action)}`);
       return;
     }
-    range[action.payload.k] = seconds;
+    range[action.payload.k] = milliseconds;
     if (range.end !== null && range.end < range.start) {
       toast.add("error", `range.end < range.start: ${JSON.stringify(action)}`);
-      range[action.payload.k] = prev_seconds;
+      range[action.payload.k] = prev_milliseconds;
     }
     ops.update_node_caches(action.payload.node_id, state);
   });
@@ -618,7 +618,7 @@ const rootReducer = createReducer(ops.emptyStateOf(), (builder) => {
     if (checks.is_completable_node_of(node_id, state)) {
       stop(state, node_id);
       state.data.nodes[node_id].status = "done";
-      state.data.nodes[node_id].end_time = new Date().toISOString();
+      state.data.nodes[node_id].end_time = Number(new Date());
       ops.update_node_caches(node_id, state);
       _topQueue(state, node_id);
     } else {
@@ -633,7 +633,7 @@ const rootReducer = createReducer(ops.emptyStateOf(), (builder) => {
     if (checks.is_completable_node_of(node_id, state)) {
       stop(state, node_id);
       state.data.nodes[node_id].status = "dont";
-      state.data.nodes[node_id].end_time = new Date().toISOString();
+      state.data.nodes[node_id].end_time = Number(new Date());
       ops.update_node_caches(node_id, state);
       _topQueue(state, node_id);
     } else {
@@ -946,21 +946,21 @@ const _eval_ = (draft: Draft<types.IState>, k: types.TNodeId) => {
   const ratios = candidates.length
     ? candidates.map((node_id) => {
         const node = draft.data.nodes[node_id];
-        return _set_total_time(draft, node_id) / 3600 / node.estimate;
+        return _set_total_time(draft, node_id) / (1000 * 3600) / node.estimate;
         // return draft.caches[v.start_time].total_time / 3600 / v.estimate;
       })
     : [1];
-  const now = Number(new Date()) / 1000;
+  const now = Number(new Date());
   // todo: Use distance to tweak weights.
   // todo: The sampling weight should be a function of both the leaves and the candidates.
   const weights = candidates.length
     ? candidates.map((node_id) => {
         const node = draft.data.nodes[node_id];
+        if (!node.end_time) {
+          return 0; // Must not happen.
+        }
         // 1/e per year
-        const w_t = Math.exp(
-          -(now - Date.parse(node.end_time as string) / 1000) /
-            (86400 * 365.25),
-        );
+        const w_t = Math.exp(-(now - node.end_time) / (1000 * 86400 * 365.25));
         return w_t;
       })
     : [1];
@@ -1457,9 +1457,9 @@ const RangesTableRow = (props: { node_id: types.TNodeId; i_range: number }) => {
       }),
     );
   }, [props.node_id, props.i_range, dispatch]);
-  const start_date = utils.datetime_local_of_seconds(range.start);
+  const start_date = utils.datetime_local_of_milliseconds(range.start);
   const end_date = range.end
-    ? utils.datetime_local_of_seconds(range.end)
+    ? utils.datetime_local_of_milliseconds(range.end)
     : undefined;
   return React.useMemo(
     () => (
@@ -1810,7 +1810,9 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
           {status === "todo" && NewButton_of(dispatch, props.node_id)}
           {showDetailButtonOf(dispatch, props.node_id)}
           <span onClick={on_click_total_time}>
-            {cache.total_time < 0 ? "-" : digits1(cache.total_time / 3600)}
+            {cache.total_time < 0
+              ? "-"
+              : digits1(cache.total_time / (1000 * 3600))}
           </span>
           {is_root || LastRange_of(props.node_id)}
         </div>
@@ -2393,7 +2395,7 @@ const LastRange = (props: { node_id: types.TNodeId }) => {
     <>
       {last_range &&
         last_range.end &&
-        digits2((last_range.end - last_range.start) / 3600)}
+        digits2((last_range.end - last_range.start) / (1000 * 3600))}
     </>
   );
 };
