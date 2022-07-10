@@ -16,6 +16,10 @@ textarea {
   border-width: 1px;
   border-color: gray;
 }
+li{
+  content-visibility: auto;
+  contain-intrinsic-size: auto 1em;
+}
 
 @layer base {
   html,
