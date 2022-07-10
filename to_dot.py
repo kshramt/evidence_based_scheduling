@@ -31,7 +31,7 @@ def run(args):
         if args.todo and v["status"] != "todo":
             continue
         color = color_of_status[v["status"]]
-        label = "\n".join(v["text"][:-1]).strip().split("\n")[0].strip()[:20]
+        label = v["text"].strip().split("\n")[0].strip()[:20]
         print(f"n{k}[label={json.dumps(label, ensure_ascii=False)} fontcolor={color}]")
     for k, v in data["edges"].items():
         if args.todo and (
