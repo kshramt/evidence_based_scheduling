@@ -2460,7 +2460,7 @@ const saveStateMiddlewareOf = (pred: (type_: string) => boolean) => {
           body: JSON.stringify(store.getState().data),
         }).then((r) => {
           if (!r.ok) {
-            toast.add("error", "Failed to save changes.", 10000);
+            toast.add("error", "Failed to save changes.", 50000);
           }
         });
       }
