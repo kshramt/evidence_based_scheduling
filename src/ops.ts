@@ -42,6 +42,7 @@ export const emptyStateOf = (): types.IState => {
   return {
     data,
     caches,
+    is_loading: true,
   };
 };
 

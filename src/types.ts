@@ -47,6 +47,7 @@ export interface IListProps {
 export interface IState {
   readonly data: IData;
   readonly caches: ICaches;
+  readonly is_loading: boolean;
 }
 
 export interface IData {

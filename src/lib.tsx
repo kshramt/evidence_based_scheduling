@@ -174,13 +174,13 @@ const doLoad = createAsyncThunk("doLoad", async () => {
   const data: any = await resp.json();
   if (data === null) {
     toast.add("error", "The server failed to read the data.");
-    return null;
+    return "empty";
   }
   const record_if_false = types.record_if_false_of();
   if (!types.is_IData(data, record_if_false)) {
     toast.add("error", `!is_IData: ${JSON.stringify(record_if_false.path)}`);
     console.warn(record_if_false.path);
-    return null;
+    return "error";
   }
   const caches: types.ICaches = {};
   for (const node_id in data.nodes) {
@@ -191,6 +191,7 @@ const doLoad = createAsyncThunk("doLoad", async () => {
   return {
     data,
     caches,
+    is_loading: false,
   };
 });
 register_history_type(doLoad.fulfilled);
@@ -376,7 +377,11 @@ const rootReducer = createReducer(ops.emptyStateOf(), (builder) => {
   });
   // todo: Handle doLoad.rejected.
   ac(doLoad.fulfilled, (state, action) => {
-    if (action.payload !== null) {
+    if (action.payload === "empty") {
+      state.is_loading = false;
+    } else if (action.payload === "error") {
+      state.is_loading = true;
+    } else if (action.payload !== null) {
       state = action.payload;
     }
     return state;
@@ -705,15 +710,21 @@ const App = () => {
   const [node_filter_query_slow, set_node_filter_query_slow] =
     React.useState("");
   const [node_ids, set_node_ids] = React.useState("");
+  const is_loading = useSelector((state) => state.is_loading);
   const el = React.useMemo(
-    () => (
-      <>
-        <Menu />
-        <Body />
-        {toast.component}
-      </>
-    ),
-    [],
+    () =>
+      is_loading ? (
+        <div className="flex justify-center h-[100vh] w-full items-center">
+          <div className="animate-spin h-[3rem] w-[3rem] border-4 border-blue-500 rounded-full border-t-transparent"></div>
+        </div>
+      ) : (
+        <>
+          <Menu />
+          <Body />
+          {toast.component}
+        </>
+      ),
+    [is_loading],
   );
   return (
     <set_node_filter_query_slow_context.Provider
@@ -898,23 +909,20 @@ const Body = () => {
   const root = useSelector((state) => {
     return state.data.root;
   });
-  return React.useMemo(
-    () => (
-      <div
-        className="flex w-full h-screen gap-x-8 overflow-y-hidden"
-        style={{
-          paddingTop: MENU_HEIGHT,
-        }}
-      >
-        <div className={`overflow-y-scroll pl-[1em] shrink-0`}>
-          <QueueColumn />
-        </div>
-        <div className={`overflow-y-scroll pl-[1em] shrink-0`}>
-          {TreeNode_of(root)}
-        </div>
+  return (
+    <div
+      className="flex w-full h-screen gap-x-8 overflow-y-hidden"
+      style={{
+        paddingTop: MENU_HEIGHT,
+      }}
+    >
+      <div className={`overflow-y-scroll pl-[1em] shrink-0`}>
+        <QueueColumn />
       </div>
-    ),
-    [root],
+      <div className={`overflow-y-scroll pl-[1em] shrink-0`}>
+        {TreeNode_of(root)}
+      </div>
+    </div>
   );
 };
 
