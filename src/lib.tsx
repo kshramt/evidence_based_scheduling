@@ -1322,7 +1322,7 @@ const DetailsImpl = (props: { node_id: types.TNodeId }) => {
     <hr className="my-[0.5em] border-gray-300 dark:border-gray-600 bg-gray-300 dark:bg-gray-600" />
   );
   return (
-    <div className="pt-[0.5em]">
+    <div className="pt-[0.5em] bg-gray-200 dark:bg-gray-700">
       {hline}
       <div className="flex w-fit gap-x-[0.25em] items-baseline">
         {deleteButtonOf(dispatch, props.node_id)}
