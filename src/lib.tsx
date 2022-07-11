@@ -6,14 +6,9 @@ import {
   useDispatch as _useDispatch,
   useSelector as _useSelector,
 } from "react-redux";
-import { Middleware } from "redux";
-import {
-  configureStore,
-  createAction,
-  createAsyncThunk,
-  createReducer,
-} from "@reduxjs/toolkit";
-import produce, { Draft } from "immer";
+import { createStore, applyMiddleware, Middleware } from "redux";
+import thunk, { ThunkDispatch } from "redux-thunk";
+import produce, { Draft, enablePatches } from "immer";
 // import memoize from "proxy-memoize";  // Too large overhead
 import "@fontsource/material-icons";
 
@@ -24,6 +19,9 @@ import "./lib.css";
 import * as types from "./types";
 import * as utils from "./utils";
 import * as ops from "./ops";
+import * as rtk from "./rtk";
+
+enablePatches();
 
 const MENU_HEIGHT = "3rem" as const;
 const API_VERSION = "v1";
@@ -88,7 +86,9 @@ class History<T> {
   };
 
   undo = () => {
-    this.i = Math.max(this.i - 1, 0);
+    if (1 < this.i) {
+      this.i -= 1;
+    }
     return this.value();
   };
 
@@ -169,7 +169,7 @@ const stop_all = (draft: Draft<types.IState>) => {
   }
 };
 
-const doLoad = createAsyncThunk("doLoad", async () => {
+const doLoad = rtk.async_thunk_of_of("doLoad", async () => {
   const resp = await fetch("api/" + API_VERSION + "/get");
   const data: any = await resp.json();
   if (data === null) {
@@ -196,63 +196,65 @@ const doLoad = createAsyncThunk("doLoad", async () => {
 });
 register_history_type(doLoad.fulfilled);
 
-const eval_ = register_history_type(createAction<types.TNodeId>("eval_"));
+const eval_ = register_history_type(rtk.action_of_of<types.TNodeId>("eval_"));
 const delete_action = register_save_type(
-  register_history_type(createAction<types.TNodeId>("delete_action")),
+  register_history_type(rtk.action_of_of<types.TNodeId>("delete_action")),
 );
 const parse_toc_action = register_save_type(
-  register_history_type(createAction<types.TNodeId>("parse_toc_action")),
+  register_history_type(rtk.action_of_of<types.TNodeId>("parse_toc_action")),
 );
 const delete_edge_action = register_save_type(
-  register_history_type(createAction<types.TEdgeId>("delete_edge_action")),
+  register_history_type(rtk.action_of_of<types.TEdgeId>("delete_edge_action")),
 );
 const new_action = register_save_type(
-  register_history_type(createAction<types.TNodeId>("new_action")),
+  register_history_type(rtk.action_of_of<types.TNodeId>("new_action")),
 );
 const flipShowTodoOnly = register_save_type(
-  register_history_type(createAction("flipShowTodoOnly")),
+  register_history_type(rtk.action_of_of("flipShowTodoOnly")),
 );
 const toggle_show_strong_edge_only_action = register_save_type(
-  register_history_type(createAction("toggle_show_strong_edge_only_action")),
+  register_history_type(
+    rtk.action_of_of("toggle_show_strong_edge_only_action"),
+  ),
 );
-const flipShowDetail = createAction<types.TNodeId>("flipShowDetail");
+const flipShowDetail = rtk.action_of_of<types.TNodeId>("flipShowDetail");
 const start_action = register_save_type(
   register_history_type(
-    createAction<{ node_id: types.TNodeId; is_concurrent: boolean }>(
+    rtk.action_of_of<{ node_id: types.TNodeId; is_concurrent: boolean }>(
       "start_action",
     ),
   ),
 );
 const top_action = register_save_type(
-  register_history_type(createAction<types.TNodeId>("top_action")),
+  register_history_type(rtk.action_of_of<types.TNodeId>("top_action")),
 );
 const smallestToTop = register_save_type(
-  register_history_type(createAction("smallestToTop")),
+  register_history_type(rtk.action_of_of("smallestToTop")),
 );
 const closestToTop = register_save_type(
-  register_history_type(createAction("closestToTop")),
+  register_history_type(rtk.action_of_of("closestToTop")),
 );
 const move_important_node_to_top_action = register_save_type(
-  register_history_type(createAction("move_important_node_to_top_action")),
+  register_history_type(rtk.action_of_of("move_important_node_to_top_action")),
 );
 const set_total_time = register_history_type(
-  createAction<types.TNodeId>("set_total_time"),
+  rtk.action_of_of<types.TNodeId>("set_total_time"),
 );
 const stop_action = register_save_type(
-  register_history_type(createAction<types.TNodeId>("stop_action")),
+  register_history_type(rtk.action_of_of<types.TNodeId>("stop_action")),
 );
 const stop_all_action = register_save_type(
-  register_history_type(createAction("stop_all_action")),
+  register_history_type(rtk.action_of_of("stop_all_action")),
 );
 const moveUp_ = register_save_type(
-  register_history_type(createAction<types.TNodeId>("moveUp_")),
+  register_history_type(rtk.action_of_of<types.TNodeId>("moveUp_")),
 );
 const moveDown_ = register_save_type(
-  register_history_type(createAction<types.TNodeId>("moveDown_")),
+  register_history_type(rtk.action_of_of<types.TNodeId>("moveDown_")),
 );
 const set_estimate_action = register_save_type(
   register_history_type(
-    createAction<{
+    rtk.action_of_of<{
       node_id: types.TNodeId;
       estimate: number;
     }>("set_estimate_action"),
@@ -260,7 +262,7 @@ const set_estimate_action = register_save_type(
 );
 const set_range_value_action = register_save_type(
   register_history_type(
-    createAction<{
+    rtk.action_of_of<{
       node_id: types.TNodeId;
       i_range: number;
       k: keyof types.IRange;
@@ -270,7 +272,7 @@ const set_range_value_action = register_save_type(
 );
 const delete_range_action = register_save_type(
   register_history_type(
-    createAction<{
+    rtk.action_of_of<{
       node_id: types.TNodeId;
       i_range: number;
     }>("delete_range_action"),
@@ -278,7 +280,7 @@ const delete_range_action = register_save_type(
 );
 const setTextAndResizeTextArea = register_save_type(
   register_history_type(
-    createAction<{
+    rtk.action_of_of<{
       k: types.TNodeId;
       text: string;
       height: null | string;
@@ -286,423 +288,437 @@ const setTextAndResizeTextArea = register_save_type(
   ),
 );
 const todoToDone = register_save_type(
-  register_history_type(createAction<types.TNodeId>("todoToDone")),
+  register_history_type(rtk.action_of_of<types.TNodeId>("todoToDone")),
 );
 const todoToDont = register_save_type(
-  register_history_type(createAction<types.TNodeId>("todoToDont")),
+  register_history_type(rtk.action_of_of<types.TNodeId>("todoToDont")),
 );
 const done_or_dont_to_todo_action = register_save_type(
   register_history_type(
-    createAction<types.TNodeId>("done_or_dont_to_todo_action"),
+    rtk.action_of_of<types.TNodeId>("done_or_dont_to_todo_action"),
   ),
 );
 const toggle_show_children = register_save_type(
-  register_history_type(createAction<types.TNodeId>("toggle_show_children")),
+  register_history_type(
+    rtk.action_of_of<types.TNodeId>("toggle_show_children"),
+  ),
 );
 const show_path_to_selected_node = register_save_type(
   register_history_type(
-    createAction<types.TNodeId>("show_path_to_selected_node"),
+    rtk.action_of_of<types.TNodeId>("show_path_to_selected_node"),
   ),
 );
 const set_edge_type_action = register_save_type(
   register_history_type(
-    createAction<{ edge_id: types.TEdgeId; edge_type: types.TEdgeType }>(
+    rtk.action_of_of<{ edge_id: types.TEdgeId; edge_type: types.TEdgeType }>(
       "set_edge_type_action",
     ),
   ),
 );
 const toggle_edge_hide_action = register_save_type(
-  register_history_type(createAction<types.TEdgeId>("toggle_edge_hide_action")),
+  register_history_type(
+    rtk.action_of_of<types.TEdgeId>("toggle_edge_hide_action"),
+  ),
 );
 const add_edges_action = register_save_type(
-  register_history_type(createAction<types.IEdge[]>("add_edges_action")),
+  register_history_type(rtk.action_of_of<types.IEdge[]>("add_edges_action")),
 );
 
-const rootReducer = createReducer(ops.emptyStateOf(), (builder) => {
-  const ac = builder.addCase;
-  ac(eval_, (state, action) => {
-    const k = action.payload;
-    _eval_(state, k);
-  });
-  ac(delete_action, (state, action) => {
-    const node_id = action.payload;
-    if (checks.is_deletable_node(node_id, state)) {
-      const node = state.data.nodes[node_id];
-      node.parents.forEach((edge_id) => {
-        const parent_node_id = state.data.edges[edge_id].p;
-        delete state.caches[parent_node_id].child_edges[edge_id];
-        delete state.caches[parent_node_id].child_nodes[node_id];
-        deleteAtVal(state.data.nodes[parent_node_id].children, edge_id);
-        delete state.data.edges[edge_id];
-      });
-      node.children.forEach((edge_id) => {
-        const child_node_id = state.data.edges[edge_id].c;
-        delete state.caches[child_node_id].parent_edges[edge_id];
-        delete state.caches[child_node_id].parent_nodes[node_id];
-        deleteAtVal(state.data.nodes[child_node_id].parents, edge_id);
-        delete state.data.edges[edge_id];
-      });
-      deleteAtVal(state.data.queue, node_id);
-      delete state.data.nodes[node_id];
-      delete state.caches[node_id];
-    } else {
-      toast.add("error", `Node ${node_id} is not deletable.`);
-    }
-  });
-  ac(parse_toc_action, (state, action) => {
-    ops.make_nodes_of_toc(action.payload, state);
-  });
-  ac(delete_edge_action, (state, action) => {
-    const edge_id = action.payload;
-    if (!checks.is_deletable_edge_of(edge_id, state)) {
-      toast.add(
-        "error",
-        `Edge ${state.data.edges[edge_id]} cannot be deleted.`,
-      );
-      return;
-    }
-    const edge = state.data.edges[edge_id];
-    delete state.caches[edge.p].child_edges[edge_id];
-    delete state.caches[edge.p].child_nodes[edge.c];
-    delete state.caches[edge.c].parent_edges[edge_id];
-    delete state.caches[edge.c].parent_nodes[edge.p];
-    deleteAtVal(state.data.nodes[edge.p].children, edge_id);
-    deleteAtVal(state.data.nodes[edge.c].parents, edge_id);
-    ops.update_node_caches(edge.p, state);
-    ops.update_node_caches(edge.c, state);
-    delete state.data.edges[edge_id];
-  });
-  ac(new_action, (state, action) => {
-    ops.new_(action.payload, state);
-  });
-  // todo: Handle doLoad.rejected.
-  ac(doLoad.fulfilled, (state, action) => {
-    if (action.payload === "empty") {
-      state.is_loading = false;
-    } else if (action.payload === "error") {
-      state.is_loading = true;
-    } else if (action.payload !== null) {
-      state = action.payload;
-    }
-    return state;
-  });
-  ac(flipShowTodoOnly, (state) => {
-    state.data.showTodoOnly = !state.data.showTodoOnly;
-  });
-  ac(toggle_show_strong_edge_only_action, (state) => {
-    state.data.show_strong_edge_only = !state.data.show_strong_edge_only;
-  });
-  ac(flipShowDetail, (state, action) => {
-    const node_id = action.payload;
-    state.caches[node_id].show_detail = !state.caches[node_id].show_detail;
-  });
-  ac(start_action, (state, action) => {
-    const node_id = action.payload.node_id;
-    if (state.data.nodes[node_id].status !== "todo") {
-      toast.add("error", `Non-todo node ${node_id} cannot be started.`);
-      return;
-    }
-    const last_range = utils.last(state.data.nodes[node_id].ranges);
-    if (!last_range || last_range.end !== null) {
-      _top(state, node_id);
-      assert(() => [
-        state.data.nodes[node_id].status === "todo",
-        "Must not happen",
-      ]);
-      if (!action.payload.is_concurrent) {
-        stop_all(state);
-      }
-      state.data.nodes[node_id].ranges.push({
-        start: Number(new Date()),
-        end: null,
-      });
-      ops.update_node_caches(node_id, state);
-      _show_path_to_selected_node(state, node_id);
-    }
-  });
-  ac(top_action, (state, action) => {
-    _top(state, action.payload);
-  });
-  ac(smallestToTop, (state) => {
-    for (let i = 0; i < state.data.queue.length - 1; ++i) {
-      let node_id_min = null;
-      let estimate_min = Infinity;
-      for (let j = i; j < state.data.queue.length; ++j) {
-        const node_id = state.data.queue[j];
+const root_reducer = rtk.reducer_of<types.IState>(
+  ops.emptyStateOf,
+  (builder) => {
+    builder(eval_, (state, action) => {
+      const k = action.payload;
+      _eval_(state, k);
+    });
+    builder(delete_action, (state, action) => {
+      const node_id = action.payload;
+      if (checks.is_deletable_node(node_id, state)) {
         const node = state.data.nodes[node_id];
+        node.parents.forEach((edge_id) => {
+          const parent_node_id = state.data.edges[edge_id].p;
+          delete state.caches[parent_node_id].child_edges[edge_id];
+          delete state.caches[parent_node_id].child_nodes[node_id];
+          deleteAtVal(state.data.nodes[parent_node_id].children, edge_id);
+          delete state.data.edges[edge_id];
+        });
+        node.children.forEach((edge_id) => {
+          const child_node_id = state.data.edges[edge_id].c;
+          delete state.caches[child_node_id].parent_edges[edge_id];
+          delete state.caches[child_node_id].parent_nodes[node_id];
+          deleteAtVal(state.data.nodes[child_node_id].parents, edge_id);
+          delete state.data.edges[edge_id];
+        });
+        deleteAtVal(state.data.queue, node_id);
+        delete state.data.nodes[node_id];
+        delete state.caches[node_id];
+      } else {
+        toast.add("error", `Node ${node_id} is not deletable.`);
+      }
+    });
+    builder(parse_toc_action, (state, action) => {
+      ops.make_nodes_of_toc(action.payload, state);
+    });
+    builder(delete_edge_action, (state, action) => {
+      const edge_id = action.payload;
+      if (!checks.is_deletable_edge_of(edge_id, state)) {
+        toast.add(
+          "error",
+          `Edge ${state.data.edges[edge_id]} cannot be deleted.`,
+        );
+        return;
+      }
+      const edge = state.data.edges[edge_id];
+      delete state.caches[edge.p].child_edges[edge_id];
+      delete state.caches[edge.p].child_nodes[edge.c];
+      delete state.caches[edge.c].parent_edges[edge_id];
+      delete state.caches[edge.c].parent_nodes[edge.p];
+      deleteAtVal(state.data.nodes[edge.p].children, edge_id);
+      deleteAtVal(state.data.nodes[edge.c].parents, edge_id);
+      ops.update_node_caches(edge.p, state);
+      ops.update_node_caches(edge.c, state);
+      delete state.data.edges[edge_id];
+    });
+    builder(new_action, (state, action) => {
+      ops.new_(action.payload, state);
+    });
+    // todo: Handle doLoad.rejected.
+    builder(doLoad.fulfilled, (state, action) => {
+      if (action.payload === "empty") {
+        state.is_loading = false;
+      } else if (action.payload === "error") {
+        state.is_loading = true;
+      } else if (action.payload !== null) {
+        state = action.payload;
+      }
+      return state;
+    });
+    builder(flipShowTodoOnly, (state) => {
+      state.data.showTodoOnly = !state.data.showTodoOnly;
+    });
+    builder(toggle_show_strong_edge_only_action, (state) => {
+      state.data.show_strong_edge_only = !state.data.show_strong_edge_only;
+    });
+    builder(flipShowDetail, (state, action) => {
+      const node_id = action.payload;
+      state.caches[node_id].show_detail = !state.caches[node_id].show_detail;
+    });
+    builder(start_action, (state, action) => {
+      const node_id = action.payload.node_id;
+      if (state.data.nodes[node_id].status !== "todo") {
+        toast.add("error", `Non-todo node ${node_id} cannot be started.`);
+        return;
+      }
+      const last_range = utils.last(state.data.nodes[node_id].ranges);
+      if (!last_range || last_range.end !== null) {
+        _top(state, node_id);
+        assert(() => [
+          state.data.nodes[node_id].status === "todo",
+          "Must not happen",
+        ]);
+        if (!action.payload.is_concurrent) {
+          stop_all(state);
+        }
+        state.data.nodes[node_id].ranges.push({
+          start: Number(new Date()),
+          end: null,
+        });
+        ops.update_node_caches(node_id, state);
+        _show_path_to_selected_node(state, node_id);
+      }
+    });
+    builder(top_action, (state, action) => {
+      _top(state, action.payload);
+    });
+    builder(smallestToTop, (state) => {
+      for (let i = 0; i < state.data.queue.length - 1; ++i) {
+        let node_id_min = null;
+        let estimate_min = Infinity;
+        for (let j = i; j < state.data.queue.length; ++j) {
+          const node_id = state.data.queue[j];
+          const node = state.data.nodes[node_id];
+          if (
+            node.status === "todo" &&
+            !node.children.some(
+              (edge_id) =>
+                state.data.nodes[state.data.edges[edge_id].c].status === "todo",
+            ) &&
+            0 < node.estimate &&
+            node.estimate < estimate_min
+          ) {
+            node_id_min = node_id;
+            estimate_min = node.estimate;
+          }
+        }
+        if (node_id_min !== null && node_id_min !== state.data.queue[i]) {
+          state.data.queue.splice(state.data.queue.indexOf(node_id_min), 1);
+          state.data.queue.splice(i, 0, node_id_min);
+          break;
+        }
+      }
+    });
+    builder(closestToTop, (state) => {
+      let k_min = null;
+      let due_min = ":due: 9999-12-31T23:59:59";
+      for (let k of state.data.queue) {
+        let v = state.data.nodes[k];
         if (
-          node.status === "todo" &&
-          !node.children.some(
+          v.status === "todo" &&
+          v.children.filter(
             (edge_id) =>
               state.data.nodes[state.data.edges[edge_id].c].status === "todo",
-          ) &&
-          0 < node.estimate &&
-          node.estimate < estimate_min
+          ).length <= 0
         ) {
-          node_id_min = node_id;
-          estimate_min = node.estimate;
+          while (true) {
+            let due = null;
+            for (const w of v.text.split("\n")) {
+              if (w.startsWith(":due: ")) {
+                due = w;
+              }
+            }
+            if (due !== null) {
+              if (due < due_min) {
+                k_min = k;
+                due_min = due;
+              }
+              break;
+            }
+            if (!v.parents.length) {
+              break;
+            }
+            k = state.data.edges[v.parents[0]].p;
+            v = state.data.nodes[k];
+          }
         }
       }
-      if (node_id_min !== null && node_id_min !== state.data.queue[i]) {
-        state.data.queue.splice(state.data.queue.indexOf(node_id_min), 1);
-        state.data.queue.splice(i, 0, node_id_min);
-        break;
+      if (k_min !== null) {
+        _top(
+          state,
+          todo_leafs_of(k_min, state, (edge) => true)
+            [Symbol.iterator]()
+            .next().value[0],
+        );
       }
-    }
-  });
-  ac(closestToTop, (state) => {
-    let k_min = null;
-    let due_min = ":due: 9999-12-31T23:59:59";
-    for (let k of state.data.queue) {
-      let v = state.data.nodes[k];
-      if (
-        v.status === "todo" &&
-        v.children.filter(
-          (edge_id) =>
-            state.data.nodes[state.data.edges[edge_id].c].status === "todo",
-        ).length <= 0
-      ) {
-        while (true) {
-          let due = null;
-          for (const w of v.text.split("\n")) {
-            if (w.startsWith(":due: ")) {
-              due = w;
-            }
-          }
-          if (due !== null) {
-            if (due < due_min) {
-              k_min = k;
-              due_min = due;
-            }
-            break;
-          }
-          if (!v.parents.length) {
-            break;
-          }
-          k = state.data.edges[v.parents[0]].p;
-          v = state.data.nodes[k];
+    });
+    builder(move_important_node_to_top_action, (state) => {
+      let candidate = null;
+      let n_parents_max = 0;
+      const count_parents = (node_id: types.TNodeId, vid: number) => {
+        if (utils.vids[node_id] === vid) {
+          return 0;
+        }
+        utils.vids[node_id] = vid;
+        const node = state.data.nodes[node_id];
+        if (node.status !== "todo") {
+          return 0;
+        }
+        let res = 1;
+        for (const edge_id of node.parents) {
+          res += count_parents(state.data.edges[edge_id].p, vid);
+        }
+        return res;
+      };
+      for (const node_id of state.data.queue) {
+        if (
+          state.data.nodes[node_id].status !== "todo" ||
+          state.data.nodes[node_id].children.some((edge_id) => {
+            const edge = state.data.edges[edge_id];
+            return (
+              edge.t === "strong" && state.data.nodes[edge.c].status === "todo"
+            );
+          })
+        ) {
+          continue;
+        }
+        const n_parents = count_parents(node_id, utils.visit_counter_of());
+        if (n_parents_max < n_parents) {
+          candidate = node_id;
+          n_parents_max = n_parents;
         }
       }
-    }
-    if (k_min !== null) {
-      _top(
-        state,
-        todo_leafs_of(k_min, state, (edge) => true)
-          [Symbol.iterator]()
-          .next().value[0],
+      if (candidate === null) {
+        return;
+      }
+      _top(state, candidate);
+    });
+    builder(set_total_time, (state, action) => {
+      _set_total_time(state, action.payload);
+    });
+    builder(stop_action, (state, action) => {
+      stop(state, action.payload);
+    });
+    builder(stop_all_action, (state) => {
+      stop_all(state);
+    });
+    builder(moveUp_, (state, action) => {
+      if (state.data.nodes[action.payload].status === "todo") {
+        for (const edge_id of state.data.nodes[action.payload].parents) {
+          const node_id = state.data.edges[edge_id].p;
+          moveUp(state.data.nodes[node_id].children, edge_id);
+          ops.update_node_caches(node_id, state);
+        }
+        moveUp(state.data.queue, action.payload);
+      } else {
+        toast.add(
+          "error",
+          `Non-todo node ${action.payload} cannot be moved up.`,
+        );
+      }
+    });
+    builder(moveDown_, (state, action) => {
+      if (state.data.nodes[action.payload].status === "todo") {
+        for (const edge_id of state.data.nodes[action.payload].parents) {
+          const node_id = state.data.edges[edge_id].p;
+          moveDown(state.data.nodes[node_id].children, edge_id);
+          ops.update_node_caches(node_id, state);
+        }
+        moveDown(state.data.queue, action.payload);
+      } else {
+        toast.add(
+          "error",
+          `Non-todo node ${action.payload} cannot be moved down.`,
+        );
+      }
+    });
+    builder(set_estimate_action, (state, action) => {
+      ops.set_estimate(action.payload, state);
+    });
+    builder(set_range_value_action, (state, action) => {
+      const range =
+        state.data.nodes[action.payload.node_id].ranges[action.payload.i_range];
+      const prev_milliseconds = range[action.payload.k];
+      if (prev_milliseconds === null) {
+        toast.add(
+          "error",
+          `range.end of the running node ${
+            action.payload.node_id
+          } cannot be set ${JSON.stringify(action)}.`,
+        );
+        return;
+      }
+      const milliseconds = utils.milliseconds_of_datetime_local(
+        action.payload.v,
       );
-    }
-  });
-  ac(move_important_node_to_top_action, (state) => {
-    let candidate = null;
-    let n_parents_max = 0;
-    const count_parents = (node_id: types.TNodeId, vid: number) => {
-      if (utils.vids[node_id] === vid) {
-        return 0;
+      if (isNaN(milliseconds)) {
+        toast.add("error", `Invalid datetime_local: ${JSON.stringify(action)}`);
+        return;
       }
-      utils.vids[node_id] = vid;
+      range[action.payload.k] = milliseconds;
+      if (range.end !== null && range.end < range.start) {
+        toast.add(
+          "error",
+          `range.end < range.start: ${JSON.stringify(action)}`,
+        );
+        range[action.payload.k] = prev_milliseconds;
+      }
+      ops.update_node_caches(action.payload.node_id, state);
+    });
+    builder(delete_range_action, (state, action) => {
+      state.data.nodes[action.payload.node_id].ranges.splice(
+        action.payload.i_range,
+        1,
+      );
+      ops.update_node_caches(action.payload.node_id, state);
+    });
+    builder(setTextAndResizeTextArea, (state, action) => {
+      const node_id = action.payload.k;
+      const text = action.payload.text;
+      const height = action.payload.height;
       const node = state.data.nodes[node_id];
-      if (node.status !== "todo") {
-        return 0;
+      node.text = text;
+      if (height !== null) {
+        if (node.style.height !== height) {
+          node.style.height = height;
+        }
       }
-      let res = 1;
-      for (const edge_id of node.parents) {
-        res += count_parents(state.data.edges[edge_id].p, vid);
+      ops.update_node_caches(node_id, state);
+    });
+    builder(todoToDone, (state, action) => {
+      const node_id = action.payload;
+      if (checks.is_completable_node_of(node_id, state)) {
+        stop(state, node_id);
+        state.data.nodes[node_id].status = "done";
+        state.data.nodes[node_id].end_time = Number(new Date());
+        ops.update_node_caches(node_id, state);
+        _topQueue(state, node_id);
+      } else {
+        toast.add(
+          "error",
+          `The status of node ${node_id} cannot be set to done.`,
+        );
       }
-      return res;
-    };
-    for (const node_id of state.data.queue) {
+    });
+    builder(todoToDont, (state, action) => {
+      const node_id = action.payload;
+      if (checks.is_completable_node_of(node_id, state)) {
+        stop(state, node_id);
+        state.data.nodes[node_id].status = "dont";
+        state.data.nodes[node_id].end_time = Number(new Date());
+        ops.update_node_caches(node_id, state);
+        _topQueue(state, node_id);
+      } else {
+        toast.add(
+          "error",
+          `The status of node ${node_id} cannot be set to dont.`,
+        );
+      }
+    });
+    builder(done_or_dont_to_todo_action, (state, action) => {
+      const node_id = action.payload;
+      if (checks.is_uncompletable_node_of(node_id, state)) {
+        state.data.nodes[node_id].status = "todo";
+        ops.update_node_caches(node_id, state);
+      } else {
+        toast.add("error", `Node ${node_id} cannot be set to todo.`);
+      }
+    });
+    builder(toggle_show_children, (state, action) => {
+      const node_id = action.payload;
       if (
-        state.data.nodes[node_id].status !== "todo" ||
-        state.data.nodes[node_id].children.some((edge_id) => {
-          const edge = state.data.edges[edge_id];
-          return (
-            edge.t === "strong" && state.data.nodes[edge.c].status === "todo"
-          );
-        })
+        state.data.nodes[node_id].children.every(
+          (edge_id) => !state.data.edges[edge_id].hide,
+        )
       ) {
-        continue;
+        state.data.nodes[node_id].children.forEach((edge_id) => {
+          state.data.edges[edge_id].hide = true;
+          ops.update_edge_caches(edge_id, state);
+        });
+        return;
       }
-      const n_parents = count_parents(node_id, utils.visit_counter_of());
-      if (n_parents_max < n_parents) {
-        candidate = node_id;
-        n_parents_max = n_parents;
-      }
-    }
-    if (candidate === null) {
-      return;
-    }
-    _top(state, candidate);
-  });
-  ac(set_total_time, (state, action) => {
-    _set_total_time(state, action.payload);
-  });
-  ac(stop_action, (state, action) => {
-    stop(state, action.payload);
-  });
-  ac(stop_all_action, (state) => {
-    stop_all(state);
-  });
-  ac(moveUp_, (state, action) => {
-    if (state.data.nodes[action.payload].status === "todo") {
-      for (const edge_id of state.data.nodes[action.payload].parents) {
-        const node_id = state.data.edges[edge_id].p;
-        moveUp(state.data.nodes[node_id].children, edge_id);
-        ops.update_node_caches(node_id, state);
-      }
-      moveUp(state.data.queue, action.payload);
-    } else {
-      toast.add("error", `Non-todo node ${action.payload} cannot be moved up.`);
-    }
-  });
-  ac(moveDown_, (state, action) => {
-    if (state.data.nodes[action.payload].status === "todo") {
-      for (const edge_id of state.data.nodes[action.payload].parents) {
-        const node_id = state.data.edges[edge_id].p;
-        moveDown(state.data.nodes[node_id].children, edge_id);
-        ops.update_node_caches(node_id, state);
-      }
-      moveDown(state.data.queue, action.payload);
-    } else {
-      toast.add(
-        "error",
-        `Non-todo node ${action.payload} cannot be moved down.`,
-      );
-    }
-  });
-  ac(set_estimate_action, (state, action) => {
-    ops.set_estimate(action.payload, state);
-  });
-  ac(set_range_value_action, (state, action) => {
-    const range =
-      state.data.nodes[action.payload.node_id].ranges[action.payload.i_range];
-    const prev_milliseconds = range[action.payload.k];
-    if (prev_milliseconds === null) {
-      toast.add(
-        "error",
-        `range.end of the running node ${
-          action.payload.node_id
-        } cannot be set ${JSON.stringify(action)}.`,
-      );
-      return;
-    }
-    const milliseconds = utils.milliseconds_of_datetime_local(action.payload.v);
-    if (isNaN(milliseconds)) {
-      toast.add("error", `Invalid datetime_local: ${JSON.stringify(action)}`);
-      return;
-    }
-    range[action.payload.k] = milliseconds;
-    if (range.end !== null && range.end < range.start) {
-      toast.add("error", `range.end < range.start: ${JSON.stringify(action)}`);
-      range[action.payload.k] = prev_milliseconds;
-    }
-    ops.update_node_caches(action.payload.node_id, state);
-  });
-  ac(delete_range_action, (state, action) => {
-    state.data.nodes[action.payload.node_id].ranges.splice(
-      action.payload.i_range,
-      1,
-    );
-    ops.update_node_caches(action.payload.node_id, state);
-  });
-  ac(setTextAndResizeTextArea, (state, action) => {
-    const node_id = action.payload.k;
-    const text = action.payload.text;
-    const height = action.payload.height;
-    const node = state.data.nodes[node_id];
-    node.text = text;
-    if (height !== null) {
-      if (node.style.height !== height) {
-        node.style.height = height;
-      }
-    }
-    ops.update_node_caches(node_id, state);
-  });
-  ac(todoToDone, (state, action) => {
-    const node_id = action.payload;
-    if (checks.is_completable_node_of(node_id, state)) {
-      stop(state, node_id);
-      state.data.nodes[node_id].status = "done";
-      state.data.nodes[node_id].end_time = Number(new Date());
-      ops.update_node_caches(node_id, state);
-      _topQueue(state, node_id);
-    } else {
-      toast.add(
-        "error",
-        `The status of node ${node_id} cannot be set to done.`,
-      );
-    }
-  });
-  ac(todoToDont, (state, action) => {
-    const node_id = action.payload;
-    if (checks.is_completable_node_of(node_id, state)) {
-      stop(state, node_id);
-      state.data.nodes[node_id].status = "dont";
-      state.data.nodes[node_id].end_time = Number(new Date());
-      ops.update_node_caches(node_id, state);
-      _topQueue(state, node_id);
-    } else {
-      toast.add(
-        "error",
-        `The status of node ${node_id} cannot be set to dont.`,
-      );
-    }
-  });
-  ac(done_or_dont_to_todo_action, (state, action) => {
-    const node_id = action.payload;
-    if (checks.is_uncompletable_node_of(node_id, state)) {
-      state.data.nodes[node_id].status = "todo";
-      ops.update_node_caches(node_id, state);
-    } else {
-      toast.add("error", `Node ${node_id} cannot be set to todo.`);
-    }
-  });
-  ac(toggle_show_children, (state, action) => {
-    const node_id = action.payload;
-    if (
-      state.data.nodes[node_id].children.every(
-        (edge_id) => !state.data.edges[edge_id].hide,
-      )
-    ) {
       state.data.nodes[node_id].children.forEach((edge_id) => {
-        state.data.edges[edge_id].hide = true;
+        delete state.data.edges[edge_id].hide;
         ops.update_edge_caches(edge_id, state);
       });
-      return;
-    }
-    state.data.nodes[node_id].children.forEach((edge_id) => {
-      delete state.data.edges[edge_id].hide;
-      ops.update_edge_caches(edge_id, state);
     });
-  });
-  ac(show_path_to_selected_node, (state, action) => {
-    _show_path_to_selected_node(state, action.payload);
-  });
-  ac(set_edge_type_action, (state, action) => {
-    if (!checks.is_deletable_edge_of(action.payload.edge_id, state)) {
-      toast.add(
-        "error",
-        `${action} is not applicable to Edge${
-          state.data.edges[action.payload.edge_id]
-        }.`,
-      );
-    }
-    const edge = state.data.edges[action.payload.edge_id];
-    edge.t = action.payload.edge_type;
-    ops.update_edge_caches(action.payload.edge_id, state);
-  });
-  ac(toggle_edge_hide_action, (state, action) => {
-    if (state.data.edges[action.payload].hide) {
-      delete state.data.edges[action.payload].hide;
-    } else {
-      state.data.edges[action.payload].hide = true;
-    }
-    ops.update_edge_caches(action.payload, state);
-  });
-  ac(add_edges_action, (state, action) => {
-    return ops.add_edges(action.payload, state);
-  });
-});
+    builder(show_path_to_selected_node, (state, action) => {
+      _show_path_to_selected_node(state, action.payload);
+    });
+    builder(set_edge_type_action, (state, action) => {
+      if (!checks.is_deletable_edge_of(action.payload.edge_id, state)) {
+        toast.add(
+          "error",
+          `${action} is not applicable to Edge${
+            state.data.edges[action.payload.edge_id]
+          }.`,
+        );
+      }
+      const edge = state.data.edges[action.payload.edge_id];
+      edge.t = action.payload.edge_type;
+      ops.update_edge_caches(action.payload.edge_id, state);
+    });
+    builder(toggle_edge_hide_action, (state, action) => {
+      if (state.data.edges[action.payload].hide) {
+        delete state.data.edges[action.payload].hide;
+      } else {
+        state.data.edges[action.payload].hide = true;
+      }
+      ops.update_edge_caches(action.payload, state);
+    });
+    builder(add_edges_action, (state, action) => {
+      return ops.add_edges(action.payload, state);
+    });
+  },
+);
 
 const App = () => {
   const [node_filter_query_fast, set_node_filter_query_fast] =
@@ -2416,16 +2432,15 @@ const _suppress_missing_onChange_handler_warning = () => {};
 const undoable = (
   reducer: (
     state: undefined | types.IState,
-    action: types.AnyPayloadAction,
+    action: types.TAnyPayloadAction,
   ) => types.IState,
-  noop: types.AnyPayloadAction,
   pred: (type_: string) => boolean,
 ) => {
-  const init = reducer(undefined, noop);
-  const history = new History<types.IState>(init);
-  return (state: undefined | types.IState, action: types.AnyPayloadAction) => {
+  const initial_state = reducer(undefined, { type: "" });
+  const history = new History<types.IState>(initial_state);
+  return (state: undefined | types.IState, action: types.TAnyPayloadAction) => {
     if (state === undefined) {
-      return init;
+      return initial_state;
     }
     switch (action.type) {
       case "undo": {
@@ -2480,26 +2495,19 @@ const saveStateMiddleware = saveStateMiddlewareOf((type_: string) =>
   save_type_set.has(type_),
 );
 
-const store = configureStore({
-  reducer: undoable(
-    rootReducer,
-    {
-      type: "flipShowTodoOnly",
-    },
-    (type_: string) => history_type_set.has(type_),
-  ),
-  middleware: (getDefaultMiddleware) => {
-    return getDefaultMiddleware({
-      serializableCheck: false,
-      immutableCheck: false,
-    }).concat(saveStateMiddleware);
-  },
-});
+const store = createStore(
+  undoable(root_reducer, (type_: string) => history_type_set.has(type_)),
+  applyMiddleware(thunk, saveStateMiddleware),
+);
 
-type RootState = ReturnType<typeof store.getState>;
-type AppDispatch = typeof store.dispatch;
+type AppDispatch = ThunkDispatch<
+  ReturnType<typeof store.getState>,
+  {},
+  types.TAnyPayloadAction
+>;
 const useDispatch = () => _useDispatch<AppDispatch>();
-const useSelector: TypedUseSelectorHook<RootState> = _useSelector;
+const useSelector: TypedUseSelectorHook<ReturnType<typeof store.getState>> =
+  _useSelector;
 
 type TSetStateArg<T> = T | ((prev: T) => T);
 
@@ -2527,5 +2535,5 @@ export const main = () => {
       </Provider>
     </React.StrictMode>,
   );
-  store.dispatch(doLoad());
+  (store.dispatch as AppDispatch)(doLoad());
 };

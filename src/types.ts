@@ -27,14 +27,14 @@ export const is_TNodeId = (x: any): x is TNodeId => typeof x === "string";
 export type TEdgeId = string & { readonly tag: unique symbol };
 const is_TEdgeId = (x: any): x is TEdgeId => typeof x === "string";
 
-export type AnyPayloadAction =
-  | {
-      readonly type: string;
-    }
-  | {
-      readonly type: string;
-      readonly payload: any;
-    };
+export type TActionWithoutPayload = { type: string };
+export type TActionWithPayload<Payload> = {
+  type: string;
+  payload: Payload;
+};
+export type TAnyPayloadAction =
+  | TActionWithoutPayload
+  | TActionWithPayload<any>;
 
 const status_values = ["done", "dont", "todo"] as const;
 export type TStatus = typeof status_values[number];
