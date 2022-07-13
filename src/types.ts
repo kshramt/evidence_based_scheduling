@@ -1,3 +1,97 @@
+import * as toast from "./toast";
+import * as immer from "immer";
+
+import * as types_prev from "./types14";
+import type { TEdgeId, TNodeId } from "./types14";
+import { is_TEdgeId, is_TNodeId } from "./types14";
+
+export type { TEdgeId, TNodeId } from "./types14";
+export { is_TEdgeId, is_TNodeId } from "./types14";
+
+export const VERSION = 15 as const;
+
+export const parse_data = (
+  x: any,
+):
+  | {
+      success: true;
+      data: IData;
+      patches: immer.Patch[];
+      reverse_patches: immer.Patch[];
+    }
+  | { success: false } => {
+  const record_if_false = record_if_false_of();
+  if (is_IData(x, record_if_false)) {
+    return { success: true, data: x, patches: [], reverse_patches: [] };
+  }
+  const parsed_prev = types_prev.parse_data(x);
+  if (!parsed_prev.success) {
+    toast.add("error", `!is_IData: ${JSON.stringify(record_if_false.path)}`);
+    console.warn("!is_IData", record_if_false.path);
+    return { success: false };
+  }
+  {
+    const converted = current_of_prev(parsed_prev.data);
+    if (!converted.success) {
+      return { success: false };
+    }
+    return {
+      success: true,
+      data: converted.data,
+      patches: parsed_prev.patches.concat(converted.patches),
+      reverse_patches: parsed_prev.reverse_patches.concat(
+        converted.reverse_patches,
+      ),
+    };
+  }
+};
+
+const current_of_prev = (
+  data_prev: types_prev.IData,
+):
+  | { success: false }
+  | {
+      success: true;
+      data: IData;
+      patches: immer.Patch[];
+      reverse_patches: immer.Patch[];
+    } => {
+  const [data, patches, reverse_patches] = immer.produceWithPatches(
+    data_prev,
+    (draft) => {
+      // @ts-expect-error
+      draft.version = VERSION;
+      const queue: TOrderedTNodeIds = {};
+      for (let i = 0; i < draft.queue.length; ++i) {
+        queue[draft.queue[i]] = i;
+      }
+      // @ts-expect-error
+      draft.queue = queue;
+      for (const node of Object.values(draft.nodes)) {
+        const children: TOrderedTEdgeIds = {};
+        for (let i = 0; i < node.children.length; ++i) {
+          children[node.children[i]] = i;
+        }
+        // @ts-expect-error
+        node.children = children;
+        const parents: TOrderedTEdgeIds = {};
+        for (let i = 0; i < node.parents.length; ++i) {
+          parents[node.parents[i]] = i;
+        }
+        // @ts-expect-error
+        node.parents = parents;
+      }
+    },
+  );
+  const record_if_false = record_if_false_of();
+  if (!is_IData(data, record_if_false)) {
+    toast.add("error", `!is_IData: ${JSON.stringify(record_if_false.path)}`);
+    console.warn("!is_IData", record_if_false.path);
+    return { success: false };
+  }
+  return { success: true, data, patches, reverse_patches };
+};
+
 const is_object = (x: any) =>
   x && typeof x === "object" && x.constructor === Object;
 
@@ -22,27 +116,21 @@ export const record_if_false_of = () => {
 };
 type TRecordIfFalse = ReturnType<typeof record_if_false_of>;
 
-export type TNodeId = string & { readonly tag: unique symbol };
-export const is_TNodeId = (x: any): x is TNodeId => typeof x === "string";
-export type TEdgeId = string & { readonly tag: unique symbol };
-const is_TEdgeId = (x: any): x is TEdgeId => typeof x === "string";
+// export type TNodeId = string & { readonly tag: unique symbol };
+// export const is_TNodeId = (x: any): x is TNodeId => typeof x === "string";
+// export type TEdgeId = string & { readonly tag: unique symbol };
+// const is_TEdgeId = (x: any): x is TEdgeId => typeof x === "string";
 
 export type TActionWithoutPayload = { type: string };
 export type TActionWithPayload<Payload> = {
   type: string;
   payload: Payload;
 };
-export type TAnyPayloadAction =
-  | TActionWithoutPayload
-  | TActionWithPayload<any>;
+export type TAnyPayloadAction = TActionWithoutPayload | TActionWithPayload<any>;
 
 const status_values = ["done", "dont", "todo"] as const;
 export type TStatus = typeof status_values[number];
 const is_TStatus = (x: any): x is TStatus => status_values.includes(x);
-
-export interface IListProps {
-  readonly node_id_list: TNodeId[];
-}
 
 export interface IState {
   readonly data: IData;
@@ -55,10 +143,10 @@ export interface IData {
   readonly root: TNodeId;
   id_seq: number;
   readonly nodes: INodes;
-  readonly queue: TNodeId[];
+  readonly queue: TOrderedTNodeIds;
   readonly showTodoOnly: boolean;
   readonly show_strong_edge_only?: boolean;
-  readonly version: number;
+  readonly version: typeof VERSION;
 }
 export const is_IData = (
   data: any,
@@ -69,16 +157,13 @@ export const is_IData = (
   record_if_false(is_TNodeId(data.root), "root") &&
   record_if_false(typeof data.id_seq === "number", "id_seq") &&
   record_if_false(is_INodes(data.nodes, record_if_false), "nodes") &&
-  record_if_false(
-    record_if_false.check_array(data.queue, is_TNodeId),
-    "queue",
-  ) &&
+  record_if_false(is_TOrderedTNodeIds(data.queue), "queue") &&
   record_if_false(typeof data.showTodoOnly === "boolean", "showTodoOnly") &&
   record_if_false(
     [undefined, true, false].includes(data.show_strong_edge_only),
     "show_strong_edge_only",
   ) &&
-  record_if_false(typeof data.version === "number", "version");
+  record_if_false(data.version === VERSION, "version");
 
 export interface INodes {
   [k: TNodeId]: INode;
@@ -87,10 +172,10 @@ const is_INodes = (x: any, record_if_false: TRecordIfFalse): x is INodes =>
   record_if_false.check_object(x, (v) => is_INode(v, record_if_false));
 
 export interface INode {
-  readonly children: TEdgeId[];
+  readonly children: TOrderedTEdgeIds;
   readonly end_time: null | number;
   readonly estimate: number;
-  readonly parents: TEdgeId[];
+  readonly parents: TOrderedTEdgeIds;
   readonly ranges: IRange[];
   readonly start_time: number;
   readonly status: TStatus;
@@ -99,20 +184,13 @@ export interface INode {
 }
 const is_INode = (x: any, record_if_false: TRecordIfFalse): x is INode =>
   record_if_false(is_object(x), "is_object") &&
-  record_if_false(Array.isArray(x.children), "children") &&
-  record_if_false(
-    record_if_false.check_array(x.children, is_TEdgeId),
-    "children",
-  ) &&
+  record_if_false(is_TOrderedTEdgeIds(x.children), "children") &&
   record_if_false(
     x.end_time === null || typeof x.end_time === "number",
     "end_time",
   ) &&
   record_if_false(typeof x.estimate === "number", "estimate") &&
-  record_if_false(
-    record_if_false.check_array(x.parents, is_TEdgeId),
-    "parents",
-  ) &&
+  record_if_false(is_TOrderedTEdgeIds(x.parents), "parents") &&
   record_if_false(record_if_false.check_array(x.ranges, is_IRange), "ranges") &&
   record_if_false(typeof x.start_time === "number", "start_time") &&
   record_if_false(is_TStatus(x.status), "status") &&
@@ -174,6 +252,19 @@ interface ICache {
   child_edges: IEdges;
   child_nodes: INodes;
 }
+
+export type TOrderedTNodeIds = Record<TNodeId, number>;
+const is_TOrderedTNodeIds = (x: any): x is TOrderedTNodeIds =>
+  is_object(x) &&
+  Object.entries(x).every(
+    (kv) => is_TNodeId(kv[0]) && typeof kv[1] === "number",
+  );
+export type TOrderedTEdgeIds = Record<TEdgeId, number>;
+const is_TOrderedTEdgeIds = (x: any): x is TOrderedTEdgeIds =>
+  is_object(x) &&
+  Object.entries(x).every(
+    (kv) => is_TEdgeId(kv[0]) && typeof kv[1] === "number",
+  );
 
 export interface IVids {
   [k: TNodeId]: undefined | number;

@@ -17,7 +17,7 @@ const new_node_id_of = (state: types.IState) =>
 const new_edge_id_of = (state: types.IState) =>
   new_id_of(state) as types.TEdgeId;
 const new_id_of = (state: types.IState) =>
-  id_string_of_number((state.data.id_seq += 1));
+  id_string_of_number(++state.data.id_seq);
 const id_string_of_number = (x: number) => x.toString(36);
 
 export const emptyStateOf = (): types.IState => {
@@ -31,9 +31,9 @@ export const emptyStateOf = (): types.IState => {
     root,
     id_seq,
     nodes,
-    queue: [],
+    queue: {},
     showTodoOnly: false,
-    version: 14,
+    version: types.VERSION,
   };
   data.nodes[root].text = "root";
   const caches = {
@@ -46,9 +46,13 @@ export const emptyStateOf = (): types.IState => {
   };
 };
 
-const newNodeValueOf = (parents: types.TEdgeId[]) => {
+const newNodeValueOf = (parent_edge_ids: types.TEdgeId[]) => {
+  const parents: types.TOrderedTEdgeIds = {};
+  for (let i = 0; i < parent_edge_ids.length; ++i) {
+    parents[parent_edge_ids[i]] = i;
+  }
   return {
-    children: [] as types.TEdgeId[],
+    children: {},
     end_time: null,
     estimate: consts.NO_ESTIMATION,
     parents,
@@ -61,15 +65,25 @@ const newNodeValueOf = (parents: types.TEdgeId[]) => {
 };
 
 export const new_cache_of = (data: types.IData, node_id: types.TNodeId) => {
-  const parent_edges = filter_object(data.edges, data.nodes[node_id].parents);
+  const parent_edges = filter_object(
+    data.edges,
+    keys_of(data.nodes[node_id].parents),
+  );
   const parent_nodes = filter_object(
     data.nodes,
-    data.nodes[node_id].parents.map((edge_id) => data.edges[edge_id].p),
+    keys_of(data.nodes[node_id].parents).map(
+      (edge_id) => data.edges[edge_id].p,
+    ),
   );
-  const child_edges = filter_object(data.edges, data.nodes[node_id].children);
+  const child_edges = filter_object(
+    data.edges,
+    keys_of(data.nodes[node_id].children),
+  );
   const child_nodes = filter_object(
     data.nodes,
-    data.nodes[node_id].children.map((edge_id) => data.edges[edge_id].c),
+    keys_of(data.nodes[node_id].children).map(
+      (edge_id) => data.edges[edge_id].c,
+    ),
   );
   return {
     total_time: -1,
@@ -119,8 +133,8 @@ export const new_ = (
   const edge = { p: parent_node_id, c: node_id, t: "strong" as const };
   draft.data.nodes[node_id] = node;
   draft.data.edges[edge_id] = edge;
-  draft.data.nodes[parent_node_id].children.unshift(edge_id);
-  draft.data.queue.push(node_id);
+  draft.data.nodes[parent_node_id].children[edge_id] = -Number(new Date());
+  draft.data.queue[node_id] = Number(new Date());
   draft.caches[node_id] = new_cache_of(draft.data, node_id);
   draft.caches[edge.p].child_edges[edge_id] = edge;
   draft.caches[edge.p].child_nodes[node_id] = node;
@@ -146,12 +160,12 @@ export const add_edges = (edges: types.IEdge[], draft: Draft<types.IState>) => {
     }
     const edge_id = new_edge_id_of(draft);
     draft.data.edges[edge_id] = edge;
-    draft.data.nodes[edge.c].parents.unshift(edge_id);
-    draft.data.nodes[edge.p].children.unshift(edge_id);
+    draft.data.nodes[edge.c].parents[edge_id] = -Number(new Date());
+    draft.data.nodes[edge.p].children[edge_id] = -Number(new Date());
     if (checks.has_cycle_of(edge_id, draft)) {
       delete draft.data.edges[edge_id];
-      draft.data.nodes[edge.c].parents.splice(0, 1);
-      draft.data.nodes[edge.p].children.splice(0, 1);
+      delete draft.data.nodes[edge.c].parents[edge_id];
+      delete draft.data.nodes[edge.p].children[edge_id];
       toast.add(
         "error",
         `Detected a cycle for ${JSON.stringify(JSON.stringify(edge))}.`,
@@ -171,7 +185,7 @@ export const make_nodes_of_toc = (
 ) => {
   if (
     draft.data.nodes[node_id].status !== "todo" ||
-    draft.data.nodes[node_id].children.length !== 0
+    keys_of(draft.data.nodes[node_id].children).length !== 0
   ) {
     toast.add("error", "TOC cannot be created for used nodes.");
     return;
@@ -332,14 +346,12 @@ export const update_node_caches = (
   state: types.IState,
 ) => {
   const node = state.data.nodes[node_id];
-  node.parents.forEach(
-    (edge_id) =>
-      (state.caches[state.data.edges[edge_id].p].child_nodes[node_id] = node),
-  );
-  node.children.forEach(
-    (edge_id) =>
-      (state.caches[state.data.edges[edge_id].c].parent_nodes[node_id] = node),
-  );
+  for (const edge_id of keys_of(node.parents)) {
+    state.caches[state.data.edges[edge_id].p].child_nodes[node_id] = node;
+  }
+  for (const edge_id of keys_of(node.children)) {
+    state.caches[state.data.edges[edge_id].c].parent_nodes[node_id] = node;
+  }
 };
 
 export const update_edge_caches = (
@@ -350,3 +362,74 @@ export const update_edge_caches = (
   state.caches[edge.p].child_edges[edge_id] = edge;
   state.caches[edge.c].parent_edges[edge_id] = edge;
 };
+
+export function keys_of<K extends string | number | symbol>(
+  kvs: Record<K, number>,
+) {
+  return Object.keys(kvs) as K[];
+}
+
+export function sorted_keys_of<K extends string | number | symbol>(
+  kvs: Record<K, number>,
+) {
+  const ks = keys_of(kvs);
+  ks.sort((a, b) => kvs[a] - kvs[b]);
+  return ks;
+}
+
+export function move_up<K extends string | number | symbol>(
+  kvs: Record<K, number>,
+  k: K,
+) {
+  const ks = sorted_keys_of(kvs);
+  const i = ks.indexOf(k);
+  if (i < 1) {
+    return;
+  }
+  move_before(kvs, i, i - 1, ks);
+}
+
+export function move_to_front<K extends string | number | symbol>(
+  kvs: Record<K, number>,
+  k: K,
+) {
+  const ks = sorted_keys_of(kvs);
+  const i = ks.indexOf(k);
+  if (i < 1) {
+    return;
+  }
+  move_before(kvs, i, 0, ks);
+}
+
+export function move_down<K extends string | number | symbol>(
+  kvs: Record<K, number>,
+  k: K,
+) {
+  const ks = sorted_keys_of(kvs);
+  const i = ks.indexOf(k);
+  if (i < 0 || ks.length <= i + 1) {
+    return;
+  }
+  move_before(kvs, i, i + 2, ks);
+}
+
+export function move_before<K extends string | number | symbol>(
+  kvs: Record<K, number>,
+  src: number,
+  dst: number,
+  ks?: K[],
+) {
+  if (ks === undefined) {
+    ks = sorted_keys_of(kvs);
+  }
+  const n = ks.length;
+  if (src < 0 || n <= src || dst < 0 || n < dst || src === dst) {
+    return;
+  }
+  kvs[ks[src]] =
+    dst === 0
+      ? -Number(new Date())
+      : dst === n
+      ? Number(new Date())
+      : (kvs[ks[dst]] + kvs[ks[dst - 1]]) / 2;
+}

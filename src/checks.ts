@@ -1,3 +1,4 @@
+import * as ops from "./ops";
 import * as types from "./types";
 import * as utils from "./utils";
 
@@ -5,8 +6,12 @@ export const is_uncompletable_node_of = (
   node_id: types.TNodeId,
   state: types.IState,
 ) => {
+  const node = state.data.nodes[node_id];
+  if (node === undefined) {
+    return false;
+  }
   return is_uncompletable_node_of_nodes_and_edges(
-    state.data.nodes[node_id].parents,
+    ops.keys_of(node.parents),
     state.data.nodes,
     state.data.edges,
   );
@@ -19,7 +24,7 @@ export const is_uncompletable_node_of_nodes_and_edges = (
 ) => {
   return parents.some((edge_id) => {
     const edge = edges[edge_id];
-    return edge.t === "strong" && nodes[edge.p].status === "todo";
+    return edge?.t === "strong" && nodes[edge.p]?.status === "todo";
   });
 };
 
@@ -27,8 +32,12 @@ export const is_completable_node_of = (
   node_id: types.TNodeId,
   state: types.IState,
 ) => {
+  const node = state.data.nodes[node_id];
+  if (node === undefined) {
+    return false;
+  }
   return is_completable_node_of_nodes_and_edges(
-    state.data.nodes[node_id].children,
+    ops.keys_of(node.children),
     state.data.nodes,
     state.data.edges,
   );
@@ -40,7 +49,7 @@ export const is_completable_node_of_nodes_and_edges = (
 ) => {
   return !children.some((edge_id) => {
     const edge = edges[edge_id];
-    return edge.t === "strong" && nodes[edge.c].status === "todo";
+    return edge?.t === "strong" && nodes[edge.c]?.status === "todo";
   });
 };
 
@@ -48,20 +57,28 @@ export const is_deletable_node = (
   node_id: types.TNodeId,
   state: types.IState,
 ) => {
-  return (
-    node_id !== state.data.root &&
-    state.data.nodes[node_id].children.every((edge_id) =>
-      is_deletable_edge_of(edge_id, state),
-    )
-  );
+  if (node_id === state.data.root) {
+    return false;
+  }
+  const children = state.data.nodes[node_id]?.children;
+  if (!children) {
+    return false;
+  }
+  return ops
+    .keys_of(children)
+    .every((edge_id) => is_deletable_edge_of(edge_id, state));
 };
 
 export const is_deletable_edge_of = (
   edge_id: types.TEdgeId,
   state: types.IState,
 ) => {
+  const edge = state.data.edges[edge_id];
+  if (edge === undefined) {
+    return false;
+  }
   return is_deletable_edge_of_nodes_and_edges(
-    state.data.edges[edge_id],
+    edge,
     state.data.nodes,
     state.data.edges,
   );
@@ -75,8 +92,8 @@ export const is_deletable_edge_of_nodes_and_edges = (
     return true;
   }
   let count = 0;
-  for (const parent_edge_id of nodes[edge.c].parents) {
-    if (edges[parent_edge_id].t === "strong") {
+  for (const parent_edge_id of ops.keys_of(nodes[edge.c].parents)) {
+    if (edges[parent_edge_id]?.t === "strong") {
       count += 1;
       if (1 < count) {
         return true;
@@ -92,7 +109,9 @@ export const has_multiple_edges = (
   state: types.IState,
 ) => {
   let count = 0;
-  for (const parent_edge_id of state.data.nodes[child_node_id].parents) {
+  for (const parent_edge_id of ops.keys_of(
+    state.data.nodes[child_node_id].parents,
+  )) {
     if (state.data.edges[parent_edge_id].p === parent_node_id) {
       count += 1;
       if (1 < count) {
@@ -108,9 +127,9 @@ export const has_edge = (
   c: types.TNodeId,
   state: types.IState,
 ) => {
-  return state.data.nodes[c].parents.some(
-    (edge_id) => state.data.edges[edge_id].p === p,
-  );
+  return ops
+    .keys_of(state.data.nodes[c].parents)
+    .some((edge_id) => state.data.edges[edge_id].p === p);
 };
 
 export const has_cycle_of = (edge_id: types.TEdgeId, state: types.IState) => {
@@ -132,7 +151,7 @@ const _has_cycle_of = (
     return false;
   }
   utils.vids[node_id] = vid;
-  return state.data.nodes[node_id].parents.some((edge_id) =>
+  return ops.keys_of(state.data.nodes[node_id].parents).some((edge_id) =>
     _has_cycle_of(state.data.edges[edge_id].p, state, vid, origin_node_id),
   );
 };

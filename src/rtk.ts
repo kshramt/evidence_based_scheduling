@@ -1,4 +1,4 @@
-import * as types from "./types"
+import * as types from "./types";
 
 import * as immer from "immer";
 
@@ -95,8 +95,16 @@ export const reducer_of = <State>(
           state,
           (draft) => reduce(draft, action),
           (patches, reverse_patches) => {
-            console.log(patches);
-            console.log(reverse_patches);
+            console.log(
+              patches.filter(
+                (p) => p.path.length === 0 || p.path[0] === "data",
+              ),
+            );
+            console.log(
+              reverse_patches.filter(
+                (p) => p.path.length === 0 || p.path[0] === "data",
+              ),
+            );
           },
         )
       : state;

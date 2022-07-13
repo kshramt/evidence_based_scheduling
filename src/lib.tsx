@@ -72,7 +72,7 @@ class History<T> {
     if (this.buf[this.i] === v) {
       return this;
     }
-    this.i += 1;
+    ++this.i;
     if (this.buf.length <= this.i) {
       this.buf.push(v);
       this.capacity = this.buf.length;
@@ -87,7 +87,7 @@ class History<T> {
 
   undo = () => {
     if (1 < this.i) {
-      this.i -= 1;
+      --this.i;
     }
     return this.value();
   };
@@ -118,21 +118,21 @@ export class Multinomial {
         const w = coef * ws[i];
         thresholds[i] = w;
         if (w <= 1) {
-          i_small_list[(small_last += 1)] = i;
+          i_small_list[++small_last] = i;
         } else {
-          i_large_list[(large_last += 1)] = i;
+          i_large_list[++large_last] = i;
         }
       }
     }
     while (-1 < small_last && -1 < large_last) {
       const i_small = i_small_list[small_last];
-      small_last -= 1;
+      --small_last;
       const i_large = i_large_list[large_last];
       i_large_of[i_small] = i_large;
       thresholds[i_large] = thresholds[i_large] + thresholds[i_small] - 1;
       if (thresholds[i_large] <= 1) {
-        large_last -= 1;
-        i_small_list[(small_last += 1)] = i_large;
+        --large_last;
+        i_small_list[++small_last] = i_large;
       }
     }
     // Loop for large_last is not necessary since thresholds for them are greater than one and are always accepted.
@@ -164,7 +164,7 @@ const stop = (
 
 const stop_all = (draft: Draft<types.IState>) => {
   const t = Number(new Date());
-  for (const node_id of draft.data.queue) {
+  for (const node_id of ops.keys_of(draft.data.queue)) {
     stop(draft, node_id, t);
   }
 };
@@ -176,20 +176,18 @@ const doLoad = rtk.async_thunk_of_of("doLoad", async () => {
     toast.add("error", "The server failed to read the data.");
     return "empty";
   }
-  const record_if_false = types.record_if_false_of();
-  if (!types.is_IData(data, record_if_false)) {
-    toast.add("error", `!is_IData: ${JSON.stringify(record_if_false.path)}`);
-    console.warn(record_if_false.path);
+  const parsed_data = types.parse_data(data);
+  if (!parsed_data.success) {
     return "error";
   }
   const caches: types.ICaches = {};
-  for (const node_id in data.nodes) {
+  for (const node_id in parsed_data.data.nodes) {
     if (types.is_TNodeId(node_id)) {
-      caches[node_id] = ops.new_cache_of(data, node_id);
+      caches[node_id] = ops.new_cache_of(parsed_data.data, node_id);
     }
   }
   return {
-    data,
+    data: parsed_data.data,
     caches,
     is_loading: false,
   };
@@ -335,21 +333,21 @@ const root_reducer = rtk.reducer_of<types.IState>(
       const node_id = action.payload;
       if (checks.is_deletable_node(node_id, state)) {
         const node = state.data.nodes[node_id];
-        node.parents.forEach((edge_id) => {
+        for (const edge_id of ops.keys_of(node.parents)) {
           const parent_node_id = state.data.edges[edge_id].p;
           delete state.caches[parent_node_id].child_edges[edge_id];
           delete state.caches[parent_node_id].child_nodes[node_id];
-          deleteAtVal(state.data.nodes[parent_node_id].children, edge_id);
+          delete state.data.nodes[parent_node_id].children[edge_id];
           delete state.data.edges[edge_id];
-        });
-        node.children.forEach((edge_id) => {
+        }
+        for (const edge_id of ops.keys_of(node.children)) {
           const child_node_id = state.data.edges[edge_id].c;
           delete state.caches[child_node_id].parent_edges[edge_id];
           delete state.caches[child_node_id].parent_nodes[node_id];
-          deleteAtVal(state.data.nodes[child_node_id].parents, edge_id);
+          delete state.data.nodes[child_node_id].parents[edge_id];
           delete state.data.edges[edge_id];
-        });
-        deleteAtVal(state.data.queue, node_id);
+        }
+        delete state.data.queue[node_id];
         delete state.data.nodes[node_id];
         delete state.caches[node_id];
       } else {
@@ -373,8 +371,8 @@ const root_reducer = rtk.reducer_of<types.IState>(
       delete state.caches[edge.p].child_nodes[edge.c];
       delete state.caches[edge.c].parent_edges[edge_id];
       delete state.caches[edge.c].parent_nodes[edge.p];
-      deleteAtVal(state.data.nodes[edge.p].children, edge_id);
-      deleteAtVal(state.data.nodes[edge.c].parents, edge_id);
+      delete state.data.nodes[edge.p].children[edge_id];
+      delete state.data.nodes[edge.c].parents[edge_id];
       ops.update_node_caches(edge.p, state);
       ops.update_node_caches(edge.c, state);
       delete state.data.edges[edge_id];
@@ -431,70 +429,75 @@ const root_reducer = rtk.reducer_of<types.IState>(
       _top(state, action.payload);
     });
     builder(smallestToTop, (state) => {
-      for (let i = 0; i < state.data.queue.length - 1; ++i) {
-        let node_id_min = null;
+      const node_ids = ops.sorted_keys_of(state.data.queue);
+      for (let dst = 0; dst < node_ids.length - 1; ++dst) {
+        let src_min = null;
         let estimate_min = Infinity;
-        for (let j = i; j < state.data.queue.length; ++j) {
-          const node_id = state.data.queue[j];
+        for (let src = dst; src < node_ids.length; ++src) {
+          const node_id = node_ids[src];
           const node = state.data.nodes[node_id];
           if (
             node.status === "todo" &&
-            !node.children.some(
-              (edge_id) =>
-                state.data.nodes[state.data.edges[edge_id].c].status === "todo",
-            ) &&
+            !ops
+              .keys_of(node.children)
+              .some(
+                (edge_id) =>
+                  state.data.nodes[state.data.edges[edge_id].c].status ===
+                  "todo",
+              ) &&
             0 < node.estimate &&
             node.estimate < estimate_min
           ) {
-            node_id_min = node_id;
+            src_min = src;
             estimate_min = node.estimate;
           }
         }
-        if (node_id_min !== null && node_id_min !== state.data.queue[i]) {
-          state.data.queue.splice(state.data.queue.indexOf(node_id_min), 1);
-          state.data.queue.splice(i, 0, node_id_min);
+        if (src_min !== null && src_min !== dst) {
+          ops.move_before(state.data.queue, src_min, dst, node_ids);
           break;
         }
       }
     });
     builder(closestToTop, (state) => {
-      let k_min = null;
+      let node_id_min = null;
       let due_min = ":due: 9999-12-31T23:59:59";
-      for (let k of state.data.queue) {
-        let v = state.data.nodes[k];
+      for (let node_id of ops.keys_of(state.data.queue)) {
+        let node = state.data.nodes[node_id];
         if (
-          v.status === "todo" &&
-          v.children.filter(
-            (edge_id) =>
-              state.data.nodes[state.data.edges[edge_id].c].status === "todo",
-          ).length <= 0
+          node.status === "todo" &&
+          ops
+            .keys_of(node.children)
+            .filter(
+              (edge_id) =>
+                state.data.nodes[state.data.edges[edge_id].c].status === "todo",
+            ).length <= 0
         ) {
           while (true) {
             let due = null;
-            for (const w of v.text.split("\n")) {
+            for (const w of node.text.split("\n")) {
               if (w.startsWith(":due: ")) {
                 due = w;
               }
             }
             if (due !== null) {
               if (due < due_min) {
-                k_min = k;
+                node_id_min = node_id;
                 due_min = due;
               }
               break;
             }
-            if (!v.parents.length) {
+            if (!ops.keys_of(node.parents).length) {
               break;
             }
-            k = state.data.edges[v.parents[0]].p;
-            v = state.data.nodes[k];
+            node_id = state.data.edges[ops.sorted_keys_of(node.parents)[0]].p;
+            node = state.data.nodes[node_id];
           }
         }
       }
-      if (k_min !== null) {
+      if (node_id_min !== null) {
         _top(
           state,
-          todo_leafs_of(k_min, state, (edge) => true)
+          todo_leafs_of(node_id_min, state, (edge) => true)
             [Symbol.iterator]()
             .next().value[0],
         );
@@ -513,15 +516,15 @@ const root_reducer = rtk.reducer_of<types.IState>(
           return 0;
         }
         let res = 1;
-        for (const edge_id of node.parents) {
+        for (const edge_id of ops.keys_of(node.parents)) {
           res += count_parents(state.data.edges[edge_id].p, vid);
         }
         return res;
       };
-      for (const node_id of state.data.queue) {
+      for (const node_id of ops.keys_of(state.data.queue)) {
         if (
           state.data.nodes[node_id].status !== "todo" ||
-          state.data.nodes[node_id].children.some((edge_id) => {
+          ops.keys_of(state.data.nodes[node_id].children).some((edge_id) => {
             const edge = state.data.edges[edge_id];
             return (
               edge.t === "strong" && state.data.nodes[edge.c].status === "todo"
@@ -552,12 +555,14 @@ const root_reducer = rtk.reducer_of<types.IState>(
     });
     builder(moveUp_, (state, action) => {
       if (state.data.nodes[action.payload].status === "todo") {
-        for (const edge_id of state.data.nodes[action.payload].parents) {
+        for (const edge_id of ops.keys_of(
+          state.data.nodes[action.payload].parents,
+        )) {
           const node_id = state.data.edges[edge_id].p;
-          moveUp(state.data.nodes[node_id].children, edge_id);
+          ops.move_up(state.data.nodes[node_id].children, edge_id);
           ops.update_node_caches(node_id, state);
         }
-        moveUp(state.data.queue, action.payload);
+        ops.move_up(state.data.queue, action.payload);
       } else {
         toast.add(
           "error",
@@ -567,12 +572,14 @@ const root_reducer = rtk.reducer_of<types.IState>(
     });
     builder(moveDown_, (state, action) => {
       if (state.data.nodes[action.payload].status === "todo") {
-        for (const edge_id of state.data.nodes[action.payload].parents) {
+        for (const edge_id of ops.keys_of(
+          state.data.nodes[action.payload].parents,
+        )) {
           const node_id = state.data.edges[edge_id].p;
-          moveDown(state.data.nodes[node_id].children, edge_id);
+          ops.move_down(state.data.nodes[node_id].children, edge_id);
           ops.update_node_caches(node_id, state);
         }
-        moveDown(state.data.queue, action.payload);
+        ops.move_down(state.data.queue, action.payload);
       } else {
         toast.add(
           "error",
@@ -675,20 +682,20 @@ const root_reducer = rtk.reducer_of<types.IState>(
     builder(toggle_show_children, (state, action) => {
       const node_id = action.payload;
       if (
-        state.data.nodes[node_id].children.every(
-          (edge_id) => !state.data.edges[edge_id].hide,
-        )
+        ops
+          .keys_of(state.data.nodes[node_id].children)
+          .every((edge_id) => !state.data.edges[edge_id].hide)
       ) {
-        state.data.nodes[node_id].children.forEach((edge_id) => {
+        for (const edge_id of ops.keys_of(state.data.nodes[node_id].children)) {
           state.data.edges[edge_id].hide = true;
           ops.update_edge_caches(edge_id, state);
-        });
+        }
         return;
       }
-      state.data.nodes[node_id].children.forEach((edge_id) => {
+      for (const edge_id of ops.keys_of(state.data.nodes[node_id].children)) {
         delete state.data.edges[edge_id].hide;
         ops.update_edge_caches(edge_id, state);
-      });
+      }
     });
     builder(show_path_to_selected_node, (state, action) => {
       _show_path_to_selected_node(state, action.payload);
@@ -737,7 +744,6 @@ const App = () => {
         <>
           <Menu />
           <Body />
-          {toast.component}
         </>
       ),
     [is_loading],
@@ -758,6 +764,7 @@ const App = () => {
                 value={node_filter_query_fast}
               >
                 {el}
+                {toast.component}
               </node_filter_query_fast_context.Provider>
             </node_filter_query_slow_context.Provider>
           </node_ids_context.Provider>
@@ -960,8 +967,8 @@ const doFocusTextArea = (k: types.TNodeId) => () => {
 
 const _eval_ = (draft: Draft<types.IState>, k: types.TNodeId) => {
   _set_total_time(draft, k);
-  const candidates = draft.data.queue.filter((k) => {
-    const v = draft.data.nodes[k];
+  const candidates = ops.keys_of(draft.data.queue).filter((node_id) => {
+    const v = draft.data.nodes[node_id];
     return (
       (v.status === "done" || v.status === "dont") &&
       v.estimate !== consts.NO_ESTIMATION
@@ -1028,7 +1035,7 @@ const total_time_of = (state: types.IState, node_id: types.TNodeId) => {
   for (const ranges of ranges_list) {
     n += ranges.length;
     if (ranges[ranges.length - 1].end === null) {
-      n -= 1;
+      --n;
     }
   }
   n *= 2;
@@ -1076,7 +1083,7 @@ const collect_ranges_from_strong_descendants = (
   if (state.data.nodes[node_id].ranges.length) {
     ranges_list.push(state.data.nodes[node_id].ranges);
   }
-  for (const edge_id of state.data.nodes[node_id].children) {
+  for (const edge_id of ops.keys_of(state.data.nodes[node_id].children)) {
     if (state.data.edges[edge_id].t !== "strong") {
       continue;
     }
@@ -1099,11 +1106,13 @@ const _top = (draft: Draft<types.IState>, node_id: types.TNodeId) => {
 };
 
 const _topTree = (draft: Draft<types.IState>, node_id: types.TNodeId) => {
-  while (draft.data.nodes[node_id].parents.length) {
-    for (const edge_id of draft.data.nodes[node_id].parents) {
+  while (ops.keys_of(draft.data.nodes[node_id].parents).length) {
+    for (const edge_id of ops.sorted_keys_of(
+      draft.data.nodes[node_id].parents,
+    )) {
       const edge = draft.data.edges[edge_id];
       if (edge.t === "strong" && draft.data.nodes[edge.p].status === "todo") {
-        toFront(draft.data.nodes[edge.p].children, edge_id);
+        ops.move_to_front(draft.data.nodes[edge.p].children, edge_id);
         ops.update_node_caches(edge.p, draft);
         node_id = edge.p;
         break;
@@ -1112,17 +1121,19 @@ const _topTree = (draft: Draft<types.IState>, node_id: types.TNodeId) => {
   }
 };
 
-const _topQueue = (draft: Draft<types.IState>, k: types.TNodeId) => {
-  toFront(draft.data.queue, k);
+const _topQueue = (draft: Draft<types.IState>, node_id: types.TNodeId) => {
+  return ops.move_to_front(draft.data.queue, node_id);
 };
 
 const _show_path_to_selected_node = (
   draft: Draft<types.IState>,
   node_id: types.TNodeId,
 ) => {
-  while (draft.data.nodes[node_id].parents.length) {
+  while (ops.keys_of(draft.data.nodes[node_id].parents).length) {
     let parent_edge_id = null;
-    for (const edge_id of draft.data.nodes[node_id].parents) {
+    for (const edge_id of ops.sorted_keys_of(
+      draft.data.nodes[node_id].parents,
+    )) {
       if (draft.data.edges[edge_id].t === "strong") {
         parent_edge_id = edge_id;
         break;
@@ -1165,10 +1176,11 @@ const memoize2 = <A, B, R>(fn: (a: A, b: B) => R) => {
 
 const QueueColumn = () => {
   const queue = useSelector((state) => state.data.queue);
-  return queue.length ? <ol>{queue.map(QueueNode_of)}</ol> : null;
+  const node_ids = ops.sorted_keys_of(queue);
+  return node_ids.length ? <ol>{node_ids.map(QueueNode_of)}</ol> : null;
 };
 
-const TreeNodeList = (props: types.IListProps) => {
+const TreeNodeList = (props: { node_id_list: types.TNodeId[] }) => {
   // spacing="0.5rem" paddingLeft="1rem"
   return props.node_id_list.length ? (
     <ol className="pt-[1em]">
@@ -1191,7 +1203,9 @@ const TreeNode = (props: { node_id: types.TNodeId }) => {
   const edges = useSelector((state) => state.caches[props.node_id].child_edges);
   const nodes = useSelector((state) => state.caches[props.node_id].child_nodes);
   const tree_node_list = React.useMemo(() => {
-    let edge_id_list = children.filter((edge_id) => !edges[edge_id].hide);
+    let edge_id_list = ops
+      .sorted_keys_of(children)
+      .filter((edge_id) => !edges[edge_id].hide);
     if (showTodoOnly) {
       edge_id_list = edge_id_list.filter(
         (edge_id) => nodes[edges[edge_id].c].status === "todo",
@@ -1518,7 +1532,7 @@ const ChildEdgeTable = (props: { node_id: types.TNodeId }) => {
   return (
     <table className="table-auto">
       <tbody className="block max-h-[10em] overflow-y-scroll">
-        {children.map(ChildEdgeRow_of)}
+        {ops.sorted_keys_of(children).map(ChildEdgeRow_of)}
       </tbody>
     </table>
   );
@@ -1626,7 +1640,7 @@ const ParentEdgeTable = (props: { node_id: types.TNodeId }) => {
   return (
     <table className="table-auto">
       <tbody className="block max-h-[10em] overflow-y-scroll">
-        {parents.map(ParentEdgeRow_of)}
+        {ops.sorted_keys_of(parents).map(ParentEdgeRow_of)}
       </tbody>
     </table>
   );
@@ -1776,7 +1790,7 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
     (state) => state.data.nodes[props.node_id].children,
   );
   const is_completable = checks.is_completable_node_of_nodes_and_edges(
-    children,
+    ops.keys_of(children),
     cache.child_nodes,
     cache.child_edges,
   );
@@ -1785,7 +1799,7 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
     (state) => state.data.nodes[props.node_id].parents,
   );
   const is_uncompletable = checks.is_uncompletable_node_of_nodes_and_edges(
-    parents,
+    ops.keys_of(parents),
     cache.parent_nodes,
     cache.parent_edges,
   );
@@ -1937,37 +1951,6 @@ const digits1 = (x: number) => {
   return Math.round(x * 10) / 10;
 };
 
-const toFront = <T extends {}>(a: T[], x: T) => {
-  const i = a.indexOf(x);
-  if (i !== -1) {
-    a.splice(i, 1);
-    a.unshift(x);
-  }
-  return a;
-};
-const moveUp = <T extends {}>(a: T[], x: T) => {
-  const i = a.indexOf(x);
-  if (i > 0) {
-    [a[i - 1], a[i]] = [a[i], a[i - 1]];
-  }
-  return a;
-};
-
-const moveDown = <T extends {}>(a: T[], x: T) => {
-  const i = a.indexOf(x);
-  if (-1 < i && i < a.length - 1) {
-    [a[i], a[i + 1]] = [a[i + 1], a[i]];
-  }
-  return a;
-};
-
-const deleteAtVal = <T extends {}>(a: T[], x: T) => {
-  const i = a.indexOf(x);
-  if (i !== -1) {
-    a.splice(i, 1);
-  }
-};
-
 export const cumsum = (xs: number[]) => {
   const ret = [0];
   xs.reduce((total, current, i) => {
@@ -2006,7 +1989,7 @@ function* _todo_leafs_of(
     return;
   }
   let had_strong_todo_child = false;
-  for (const edge_id of node.children) {
+  for (const edge_id of ops.keys_of(node.children)) {
     const edge = state.data.edges[edge_id];
     if (!edge_filter(edge)) {
       continue;
@@ -2100,7 +2083,9 @@ const NewButton_of = memoize2((dispatch: AppDispatch, k: types.TNodeId) => {
   ) => {
     const state = getState();
     dispatch(
-      doFocusTextArea(state.data.edges[state.data.nodes[k].children[0]].c),
+      doFocusTextArea(
+        state.data.edges[ops.sorted_keys_of(state.data.nodes[k].children)[0]].c,
+      ),
     );
   };
   return (
