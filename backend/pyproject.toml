@@ -1,0 +1,31 @@
+[tool.isort]
+profile = 'black'
+multi_line_output = 3
+
+[tool.mypy]
+# plugins = "numpy.typing.mypy_plugin"
+
+[[tool.mypy.overrides]]
+module = []
+ignore_missing_imports = true
+
+[tool.poetry.dependencies]
+python = ">=3.9.5,<3.11"
+fastapi = {extras = ["standard"], version = "^0.79.0"}
+
+[tool.poetry.dev-dependencies]
+black = "^22.6.0"
+pyflakes = "^2.4.0"
+isort = "^5.10.1"
+mypy = "^0.961"
+jupyterlab-code-formatter = "^1.4.11"
+
+[tool.poetry]
+name = "src"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
