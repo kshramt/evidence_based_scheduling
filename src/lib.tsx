@@ -8,7 +8,7 @@ import {
 } from "react-redux";
 import { createStore, applyMiddleware, Middleware } from "redux";
 import thunk, { ThunkDispatch } from "redux-thunk";
-import produce, { Draft, enablePatches } from "immer";
+import * as immer from "immer";
 // import memoize from "proxy-memoize";  // Too large overhead
 import "@fontsource/material-icons";
 
@@ -20,8 +20,7 @@ import * as types from "./types";
 import * as utils from "./utils";
 import * as ops from "./ops";
 import * as rtk from "./rtk";
-
-enablePatches();
+import * as undoable from "./undoable";
 
 const MENU_HEIGHT = "3rem" as const;
 const API_VERSION = "v1";
@@ -55,48 +54,6 @@ const register_save_type = <T extends {}>(x: T) => {
   save_type_set.add(x.toString());
   return x;
 };
-
-class History<T> {
-  capacity: number;
-  i: number;
-  buf: T[];
-  constructor(init: T) {
-    this.capacity = 1;
-    this.i = 0;
-    this.buf = [init];
-  }
-
-  value = () => this.buf[this.i];
-
-  push = (v: T) => {
-    if (this.buf[this.i] === v) {
-      return this;
-    }
-    ++this.i;
-    if (this.buf.length <= this.i) {
-      this.buf.push(v);
-      this.capacity = this.buf.length;
-    } else {
-      this.buf[this.i] = v;
-      if (this.capacity < this.i) {
-        this.capacity = this.i;
-      }
-    }
-    return this;
-  };
-
-  undo = () => {
-    if (1 < this.i) {
-      --this.i;
-    }
-    return this.value();
-  };
-
-  redo = () => {
-    this.i = Math.min(this.i + 1, this.capacity - 1);
-    return this.value();
-  };
-}
 
 // Vose (1991)'s linear version of Walker (1974)'s alias method.
 // A Pactical Version of Vose's Algorithm: https://www.keithschwarz.com/darts-dice-coins/
@@ -150,7 +107,7 @@ export class Multinomial {
 }
 
 const stop = (
-  draft: Draft<types.IState>,
+  draft: immer.Draft<types.IState>,
   node_id: types.TNodeId,
   t?: number,
 ) => {
@@ -162,7 +119,7 @@ const stop = (
   }
 };
 
-const stop_all = (draft: Draft<types.IState>) => {
+const stop_all = (draft: immer.Draft<types.IState>) => {
   const t = Number(new Date());
   for (const node_id of ops.keys_of(draft.data.queue)) {
     stop(draft, node_id, t);
@@ -196,7 +153,6 @@ const doLoad = rtk.async_thunk_of_of("doLoad", async () => {
     is_error: false,
   };
 });
-register_history_type(doLoad.fulfilled);
 
 const eval_ = register_history_type(rtk.action_of_of<types.TNodeId>("eval_"));
 const delete_action = register_save_type(
@@ -326,7 +282,7 @@ const add_edges_action = register_save_type(
   register_history_type(rtk.action_of_of<types.IEdge[]>("add_edges_action")),
 );
 
-const root_reducer = rtk.reducer_of<types.IState>(
+const root_reducer = rtk.reducer_with_patches_of<types.IState>(
   ops.emptyStateOf,
   (builder) => {
     builder(eval_, (state, action) => {
@@ -793,10 +749,10 @@ const Menu = () => {
     (state) => state.data.show_strong_edge_only,
   );
   const _undo = useCallback(() => {
-    dispatch({ type: "undo" });
+    dispatch({ type: undoable.UNDO_TYPE });
   }, [dispatch]);
   const _redo = useCallback(() => {
-    dispatch({ type: "redo" });
+    dispatch({ type: undoable.REDO_TYPE });
   }, [dispatch]);
   const _flipShowTodoOnly = useCallback(() => {
     dispatch(flipShowTodoOnly());
@@ -969,7 +925,7 @@ const doFocusTextArea = (k: types.TNodeId) => () => {
   setTimeout(() => focus(textAreaRefOf(k).current), 50);
 };
 
-const _eval_ = (draft: Draft<types.IState>, k: types.TNodeId) => {
+const _eval_ = (draft: immer.Draft<types.IState>, k: types.TNodeId) => {
   _set_total_time(draft, k);
   const candidates = ops.keys_of(draft.data.queue).filter((node_id) => {
     const v = draft.data.nodes[node_id];
@@ -1100,7 +1056,7 @@ const collect_ranges_from_strong_descendants = (
   }
 };
 
-const _top = (draft: Draft<types.IState>, node_id: types.TNodeId) => {
+const _top = (draft: immer.Draft<types.IState>, node_id: types.TNodeId) => {
   if (draft.data.nodes[node_id].status === "todo") {
     _topTree(draft, node_id);
     _topQueue(draft, node_id);
@@ -1109,7 +1065,7 @@ const _top = (draft: Draft<types.IState>, node_id: types.TNodeId) => {
   }
 };
 
-const _topTree = (draft: Draft<types.IState>, node_id: types.TNodeId) => {
+const _topTree = (draft: immer.Draft<types.IState>, node_id: types.TNodeId) => {
   while (ops.keys_of(draft.data.nodes[node_id].parents).length) {
     for (const edge_id of ops.sorted_keys_of(
       draft.data.nodes[node_id].parents,
@@ -1125,12 +1081,15 @@ const _topTree = (draft: Draft<types.IState>, node_id: types.TNodeId) => {
   }
 };
 
-const _topQueue = (draft: Draft<types.IState>, node_id: types.TNodeId) => {
+const _topQueue = (
+  draft: immer.Draft<types.IState>,
+  node_id: types.TNodeId,
+) => {
   return ops.move_to_front(draft.data.queue, node_id);
 };
 
 const _show_path_to_selected_node = (
-  draft: Draft<types.IState>,
+  draft: immer.Draft<types.IState>,
   node_id: types.TNodeId,
 ) => {
   while (ops.keys_of(draft.data.nodes[node_id].parents).length) {
@@ -2338,7 +2297,7 @@ const TextAreaImpl = (props: { node_id: types.TNodeId }) => {
       }
       if (h !== style.height) {
         setStyle(
-          produce(style, (draft) => {
+          immer.produce(style, (draft) => {
             draft.height = h;
           }),
         );
@@ -2418,46 +2377,23 @@ const LastRange_of = memoize1((node_id: types.TNodeId) => (
 
 const _suppress_missing_onChange_handler_warning = () => {};
 
-const undoable = (
-  reducer: (
+register_save_type(undoable.UNDO_TYPE);
+register_save_type(undoable.REDO_TYPE);
+
+const reducer_of_reducer_with_patches = (
+  reducer_with_patches: (
     state: undefined | types.IState,
     action: types.TAnyPayloadAction,
-  ) => types.IState,
-  pred: (type_: string) => boolean,
+  ) => {
+    state: types.IState;
+    patches: immer.Patch[];
+    reverse_patches: immer.Patch[];
+  },
 ) => {
-  const initial_state = reducer(undefined, { type: "" });
-  const history = new History<types.IState>(initial_state);
   return (state: undefined | types.IState, action: types.TAnyPayloadAction) => {
-    if (state === undefined) {
-      return initial_state;
-    }
-    switch (action.type) {
-      case "undo": {
-        const prev = history.undo();
-        if (prev !== state) {
-          state = prev;
-        }
-        return state;
-      }
-      case "redo": {
-        const next = history.redo();
-        if (next !== state) {
-          state = next;
-        }
-        return state;
-      }
-      default: {
-        const next = reducer(state, action);
-        if (pred(action.type)) {
-          history.push(next);
-        }
-        return next;
-      }
-    }
+    return reducer_with_patches(state, action).state;
   };
 };
-register_save_type("undo");
-register_save_type("redo");
 
 const saveStateMiddlewareOf = (pred: (type_: string) => boolean) => {
   const saveStateMiddleware: Middleware<{}, types.IState> =
@@ -2485,7 +2421,10 @@ const saveStateMiddleware = saveStateMiddlewareOf((type_: string) =>
 );
 
 const store = createStore(
-  undoable(root_reducer, (type_: string) => history_type_set.has(type_)),
+  reducer_of_reducer_with_patches(
+    undoable.undoable_of(root_reducer, history_type_set),
+  ),
+  // undoable_of(root_reducer, (type_: string) => history_type_set.has(type_)),
   applyMiddleware(thunk, saveStateMiddleware),
 );
 

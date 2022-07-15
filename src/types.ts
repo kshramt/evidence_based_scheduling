@@ -8,6 +8,8 @@ import { is_TEdgeId, is_TNodeId } from "./types14";
 export type { TEdgeId, TNodeId } from "./types14";
 export { is_TEdgeId, is_TNodeId } from "./types14";
 
+immer.enablePatches();
+
 export const VERSION = 15 as const;
 
 export const parse_data = (

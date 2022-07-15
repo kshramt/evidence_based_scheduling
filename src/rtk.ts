@@ -91,23 +91,42 @@ export const reducer_of = <State>(
     }
     const reduce = map[action.type];
     return reduce
-      ? immer.produce(
-          state,
-          (draft) => reduce(draft, action),
-          (patches, reverse_patches) => {
-            console.log(
-              patches.filter(
-                (p) => p.path.length === 0 || p.path[0] === "data",
-              ),
-            );
-            console.log(
-              reverse_patches.filter(
-                (p) => p.path.length === 0 || p.path[0] === "data",
-              ),
-            );
-          },
-        )
+      ? immer.produce(state, (draft) => reduce(draft, action))
       : state;
+  };
+  return reducer;
+};
+
+export const reducer_with_patches_of = <State>(
+  initial_state_of: () => State,
+  ctor: (
+    builder: <Payload, Type extends string>(
+      action_of: TActionOf<Payload>,
+      reduce: TReduce<State, Payload>,
+    ) => void,
+  ) => void,
+) => {
+  const map: Record<string, TReduce<State, any> | TReduce<State, void>> = {};
+  ctor((action_of, reduce) => {
+    map[action_of.type] = reduce;
+  });
+
+  const reducer = (
+    state: undefined | State,
+    action: types.TAnyPayloadAction,
+  ) => {
+    if (state === undefined) {
+      return { state: initial_state_of(), patches: [], reverse_patches: [] };
+    }
+    const reduce = map[action.type];
+    if (!reduce) {
+      return { state, patches: [], reverse_patches: [] };
+    }
+    const [new_state, patches, reverse_patches] = immer.produceWithPatches(
+      state,
+      (draft) => reduce(draft, action),
+    );
+    return { state: new_state, patches, reverse_patches };
   };
   return reducer;
 };
