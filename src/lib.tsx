@@ -803,9 +803,6 @@ const Menu = () => {
   const move_important_node_to_top = useCallback(() => {
     dispatch(move_important_node_to_top_action());
   }, [dispatch]);
-  const _load = useCallback(() => {
-    dispatch(doLoad());
-  }, [dispatch]);
   return (
     <div
       className={`flex items-baseline fixed z-[999999] pl-[1em] gap-x-[0.25em] w-full top-0  bg-gray-200 dark:bg-gray-900`}
@@ -845,9 +842,6 @@ const Menu = () => {
       </button>
       <button className="btn-icon" onClick={move_important_node_to_top}>
         Important
-      </button>
-      <button className="btn-icon" arial-label="Sync." onClick={_load}>
-        <span className="material-icons">refresh</span>
       </button>
       <NodeFilterQueryInput />
       <NodeIdsInput />
