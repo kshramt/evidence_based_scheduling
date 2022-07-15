@@ -136,6 +136,7 @@ export interface IState {
   readonly data: IData;
   readonly caches: ICaches;
   readonly is_loading: boolean;
+  readonly is_error: boolean;
 }
 
 export interface IData {

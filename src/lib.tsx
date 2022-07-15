@@ -171,6 +171,9 @@ const stop_all = (draft: Draft<types.IState>) => {
 
 const doLoad = rtk.async_thunk_of_of("doLoad", async () => {
   const resp = await fetch("api/" + API_VERSION + "/get");
+  if (!resp.ok) {
+    return "error";
+  }
   const data: any = await resp.json();
   if (data === null) {
     toast.add("error", "The server failed to read the data.");
@@ -190,6 +193,7 @@ const doLoad = rtk.async_thunk_of_of("doLoad", async () => {
     data: parsed_data.data,
     caches,
     is_loading: false,
+    is_error: false,
   };
 });
 register_history_type(doLoad.fulfilled);
@@ -385,7 +389,7 @@ const root_reducer = rtk.reducer_of<types.IState>(
       if (action.payload === "empty") {
         state.is_loading = false;
       } else if (action.payload === "error") {
-        state.is_loading = true;
+        state.is_error = true;
       } else if (action.payload !== null) {
         state = action.payload;
       }
@@ -734,9 +738,15 @@ const App = () => {
     React.useState("");
   const [node_ids, set_node_ids] = React.useState("");
   const is_loading = useSelector((state) => state.is_loading);
+  const is_error = useSelector((state) => state.is_error);
   const el = React.useMemo(
     () =>
-      is_loading ? (
+      is_error ? (
+        <div className="flex justify-center h-[100vh] w-full items-center">
+          An error occured while loading the page.{" "}
+          <a href=".">Please reload the page.</a>
+        </div>
+      ) : is_loading ? (
         <div className="flex justify-center h-[100vh] w-full items-center">
           <div className="animate-spin h-[3rem] w-[3rem] border-4 border-blue-500 rounded-full border-t-transparent"></div>
         </div>
@@ -746,7 +756,7 @@ const App = () => {
           <Body />
         </>
       ),
-    [is_loading],
+    [is_error, is_loading],
   );
   return (
     <set_node_filter_query_slow_context.Provider

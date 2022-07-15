@@ -30,10 +30,11 @@ def root():
 
 @app.route("/api/v1/get")
 def get():
-    try:
-        with gzip.open(pathlib.Path(DATA_DIR, DATA_BASENAME + ".json.gz"), "rt") as fp:
+    path = pathlib.Path(DATA_DIR, DATA_BASENAME + ".json.gz")
+    if path.exists():
+        with gzip.open(path, "rt") as fp:
             data = json.load(fp)
-    except IOError:
+    else:
         data = None
     res = flask.make_response(flask.json.jsonify(data))
     res.headers["Cache-Control"] = "no-store"
