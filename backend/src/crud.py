@@ -10,13 +10,11 @@ logger = logging.getLogger(__name__)
 
 
 async def get_user(db: Session, user_id: int):
-    return await db.execute(
-        select(models.User).filter(models.User.id == user_id).first()
-    )
+    return await db.scalar(select(models.User).filter(models.User.id == user_id))
 
 
 async def read_users(db: Session, offset: int = 0, limit: int = 100):
-    return (await db.execute(select(models.User).offset(offset).limit(limit))).all()
+    return (await db.scalars(select(models.User).offset(offset).limit(limit))).all()
 
 
 async def create_user(db: Session, user: schemas.UserCreate, commit=True):
@@ -39,14 +37,12 @@ async def create_session_for_user(
     return db_session
 
 
-async def get_sessions(db: Session, offset: int = 0, limit: int = 100):
-    return (await db.execute(select(models.Session).offset(offset).limit(limit))).all()
+async def read_sessions(db: Session, offset: int = 0, limit: int = 100):
+    return (await db.scalars(select(models.Session).offset(offset).limit(limit))).all()
 
 
 async def read_sessions_for_user(db: Session, user_id: int):
-    db_user = await db.execute(
-        select(models.User).filter(models.User.id == user_id).first()
-    )
+    db_user = await db.scalar(select(models.User).filter(models.User.id == user_id))
     if db_user is None:
         return []
     return db_user.sessions

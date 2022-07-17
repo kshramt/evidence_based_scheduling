@@ -31,5 +31,7 @@ Base = sqlalchemy.orm.declarative_base()
 @sqlalchemy.event.listens_for(engine.sync_engine, "connect")
 def on_engine_connect(dbapi_connection, connection_record):
     cursor = dbapi_connection.cursor()
-    cursor.execute("pragma foreign_keys=ON")
-    cursor.close()
+    try:
+        cursor.execute("pragma foreign_keys=ON")
+    finally:
+        cursor.close()

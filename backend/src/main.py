@@ -10,9 +10,12 @@ from . import crud, database, models, schemas
 
 logger = logging.getLogger(__name__)
 
+
 async def create_all():
     async with database.engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
+
+
 asyncio.create_task(create_all())
 
 app = fastapi.FastAPI()
@@ -44,7 +47,9 @@ async def read_user(user_id: int, db: Session = Depends(get_db)):
 
 
 @app.post("/users/{user_id}/sessions/", response_model=schemas.Session)
-async def create_session_for_user(session: schemas.SessionCreate, user_id: int, db: Session = Depends(get_db)):
+async def create_session_for_user(
+    session: schemas.SessionCreate, user_id: int, db: Session = Depends(get_db)
+):
     return await crud.create_session_for_user(db, session=session, user_id=user_id)
 
 
@@ -57,7 +62,7 @@ async def read_sessions_for_user(user_id: int, db: Session = Depends(get_db)):
 async def read_sessions(
     offset: int = 0, limit: int = 100, db: Session = Depends(get_db)
 ):
-    return await crud.get_sessions(db, offset=offset, limit=limit)
+    return await crud.read_sessions(db, offset=offset, limit=limit)
 
 
 @app.get("/users/{user_id}/datas/{data_id}/")
@@ -78,11 +83,13 @@ def _set_handlers(logger, paths, level_stderr=logging.INFO, level_path=logging.D
     #     rename_fields=dict(asctime="timestamp", levelname="severity")
     # )
     import time
+
     fmt.converter = time.gmtime
     fmt.default_time_format = "%Y-%m-%dT%H:%M:%S"
     fmt.default_msec_format = "%s.%03dZ"
 
     import sys
+
     hdl = logging.StreamHandler(sys.stderr)
     hdl.setFormatter(fmt)
     hdl.setLevel(level_stderr)
@@ -90,6 +97,7 @@ def _set_handlers(logger, paths, level_stderr=logging.INFO, level_path=logging.D
     logger.addHandler(hdl)
 
     import pathlib
+
     for path in paths:
         path = pathlib.Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -103,4 +111,3 @@ def _set_handlers(logger, paths, level_stderr=logging.INFO, level_path=logging.D
 
 
 _set_handlers(logging.getLogger(), ["app.log"])
-logger.info(logging.basicConfig)
