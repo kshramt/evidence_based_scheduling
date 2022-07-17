@@ -15,7 +15,6 @@ engine = sqlalchemy.ext.asyncio.create_async_engine(
     SQLALCHEMY_DATABASE_URL,
     connect_args=dict(check_same_thread=False),
     future=True,
-    echo=True,
 )
 SessionLocal = sqlalchemy.orm.sessionmaker(
     autocommit=False,

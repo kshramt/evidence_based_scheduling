@@ -63,3 +63,44 @@ async def read_sessions(
 @app.get("/users/{user_id}/datas/{data_id}/")
 async def get_data(user_id: int, data_id: int = fastapi.Path(ge=-1)):
     return dict(user_id=user_id, data_id=data_id)
+
+
+def _set_handlers(logger, paths, level_stderr=logging.INFO, level_path=logging.DEBUG):
+    fmt = logging.Formatter(
+        # "%(levelname)s\t%(process)d\t%(asctime)s\t%(pathname)s\t%(funcName)s\t%(lineno)d\t%(message)s"
+        # "%(levelname)s\t%(asctime)s\t%(pathname)s\t%(funcName)s\t%(lineno)d\t%(message)s"
+        "%(levelname)s\t%(asctime)s\t%(name)s\t%(funcName)s\t%(lineno)d\t%(message)s"
+    )
+    # import pythonjsonlogger.jsonlogger
+    # fmt = pythonjsonlogger.jsonlogger.JsonFormatter(
+    #     "%(levelname) %(asctime) %(message) %(processName) %(process) %(threadName) %(thread) %(pathname) %(module) %(funcName) %(lineno)",
+    #     json_ensure_ascii=False,
+    #     rename_fields=dict(asctime="timestamp", levelname="severity")
+    # )
+    import time
+    fmt.converter = time.gmtime
+    fmt.default_time_format = "%Y-%m-%dT%H:%M:%S"
+    fmt.default_msec_format = "%s.%03dZ"
+
+    import sys
+    hdl = logging.StreamHandler(sys.stderr)
+    hdl.setFormatter(fmt)
+    hdl.setLevel(level_stderr)
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(hdl)
+
+    import pathlib
+    for path in paths:
+        path = pathlib.Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        hdl_ = logging.FileHandler(path)
+        hdl_.setFormatter(fmt)
+        hdl_.setLevel(level_path)
+        logger.addHandler(hdl_)
+
+    logger.info(dict(log_files=paths))
+    return logger
+
+
+_set_handlers(logging.getLogger(), ["app.log"])
+logger.info(logging.basicConfig)
