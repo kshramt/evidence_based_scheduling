@@ -1,3 +1,4 @@
+import logging
 import os
 import pathlib
 from typing import Final
@@ -5,6 +6,9 @@ from typing import Final
 import sqlalchemy.engine
 import sqlalchemy.ext.asyncio
 import sqlalchemy.orm
+import sqlalchemy
+
+logger = logging.getLogger(__name__)
 
 DATA_DIR: Final = pathlib.Path(os.environ.get("DATA_DIR", "data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)

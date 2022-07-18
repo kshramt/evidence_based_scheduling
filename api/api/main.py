@@ -6,7 +6,10 @@ import fastapi.middleware.gzip
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from . import crud, database, models, schemas
+from . import crud
+from . import database
+from . import models
+from . import schemas
 
 logger = logging.getLogger(__name__)
 
