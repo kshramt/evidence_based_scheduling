@@ -22,6 +22,7 @@ pyflakes = "^2.4.0"
 isort = "^5.10.1"
 mypy = "^0.961"
 jupyterlab-code-formatter = "^1.4.11"
+alembic = "^1.8.1"
 
 [tool.poetry]
 name = "src"
