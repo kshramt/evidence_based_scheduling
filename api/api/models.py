@@ -12,6 +12,8 @@ class User(Base):
 
     sessions = sqlalchemy.orm.relationship("Session", back_populates="user")
 
+    __mapper_args__ = {"eager_defaults": True}
+
 
 class Snapshot(Base):
     __tablename__ = "snapshot"
@@ -30,6 +32,7 @@ class Snapshot(Base):
     version_id = Column(Integer, index=True, nullable=False)
     data = Column(String, nullable=False)
 
+    __mapper_args__ = {"eager_defaults": True}
     # __table_args__ = (Index("index_user_id_version_id", "user_id", "version_id"),)
 
 
@@ -50,6 +53,8 @@ class Session(Base):
 
     user = sqlalchemy.orm.relationship("User", back_populates="sessions")
 
+    __mapper_args__ = {"eager_defaults": True}
+
 
 class Patches(Base):
     __tablename__ = "patchess"
@@ -63,3 +68,5 @@ class Patches(Base):
     )
     version_id = Column(Integer, index=True, nullable=False)
     patches = Column(String, nullable=False)
+
+    __mapper_args__ = {"eager_defaults": True}
