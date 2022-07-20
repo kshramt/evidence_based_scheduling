@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import json
 
 import fastapi
 import fastapi.middleware.gzip
@@ -32,13 +33,19 @@ async def get_db():
 
 @app.post("/users/", response_model=schemas.User)
 async def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    res = await crud.create_user(db=db, user=user)
-    return res
+    db_user = await crud.create_user(db=db, user=user, commit=False)
+    await db.flush()
+    db_snapshot = await crud.create_snapshot(
+        db, db_user.id, 0, json.dumps(dict(data=None), ensure_ascii=False), commit=False
+    )
+    await db.commit()
+    await db.refresh(db_user)
+    return db_user
 
 
 @app.get("/users/", response_model=list[schemas.User])
-async def read_users(offset: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return await crud.read_users(db, offset=offset, limit=limit)
+async def get_users(offset: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return await crud.get_users(db, offset=offset, limit=limit)
 
 
 @app.get("/users/{user_id}/", response_model=schemas.User)
@@ -53,19 +60,20 @@ async def read_user(user_id: int, db: Session = Depends(get_db)):
 async def create_session_for_user(
     session: schemas.SessionCreate, user_id: int, db: Session = Depends(get_db)
 ):
-    return await crud.create_session_for_user(db, session=session, user_id=user_id)
+    res = await crud.create_session_for_user(db, session=session, user_id=user_id)
+    return res
 
 
 @app.get("/users/{user_id}/sessions/", response_model=list[schemas.Session])
-async def read_sessions_for_user(user_id: int, db: Session = Depends(get_db)):
-    return await crud.read_sessions_for_user(db, user_id=user_id)
+async def get_sessions_for_user(user_id: int, db: Session = Depends(get_db)):
+    return await crud.get_sessions_for_user(db, user_id=user_id)
 
 
 @app.get("/sessions/", response_model=list[schemas.Session])
-async def read_sessions(
+async def get_sessions(
     offset: int = 0, limit: int = 100, db: Session = Depends(get_db)
 ):
-    return await crud.read_sessions(db, offset=offset, limit=limit)
+    return await crud.get_sessions(db, offset=offset, limit=limit)
 
 
 @app.get("/users/{user_id}/datas/{data_id}/")
