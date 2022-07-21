@@ -357,6 +357,9 @@ const root_reducer = rtk.reducer_with_patches_of<types.IState>(
         const start_time_and_node_id_list: [number, types.TNodeId][] = [];
         for (const node_id of ops.keys_of(state.data.queue)) {
           const node = state.data.nodes[node_id];
+          if (node.status !== "todo") {
+            continue;
+          }
           for (const range of node.ranges) {
             start_time_and_node_id_list.push([range.start, node_id]);
           }
