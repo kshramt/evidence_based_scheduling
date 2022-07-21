@@ -14,6 +14,7 @@ import "@fontsource/material-icons";
 
 import * as checks from "./checks";
 import * as consts from "./consts";
+import * as nap from "./next_action_predictor";
 import * as toast from "./toast";
 import "./lib.css";
 import * as types from "./types";
@@ -54,6 +55,8 @@ const register_save_type = <T extends {}>(x: T) => {
   save_type_set.add(x.toString());
   return x;
 };
+
+const next_action_predictor = new nap.TriGramPredictor<types.TNodeId>(0.8);
 
 // Vose (1991)'s linear version of Walker (1974)'s alias method.
 // A Pactical Version of Vose's Algorithm: https://www.keithschwarz.com/darts-dice-coins/
@@ -151,6 +154,7 @@ const doLoad = rtk.async_thunk_of_of("doLoad", async () => {
     caches,
     is_loading: false,
     is_error: false,
+    predicted_next_nodes: [],
   };
 });
 
@@ -349,6 +353,20 @@ const root_reducer = rtk.reducer_with_patches_of<types.IState>(
       } else if (action.payload !== null) {
         state = action.payload;
       }
+      {
+        const start_time_and_node_id_list: [number, types.TNodeId][] = [];
+        for (const node_id of ops.keys_of(state.data.queue)) {
+          const node = state.data.nodes[node_id];
+          for (const range of node.ranges) {
+            start_time_and_node_id_list.push([range.start, node_id]);
+          }
+        }
+        start_time_and_node_id_list.sort((a, b) => a[0] - b[0]);
+        for (const [_, node_id] of start_time_and_node_id_list) {
+          next_action_predictor.fit(node_id);
+        }
+        set_predicted_next_nodes(state);
+      }
       return state;
     });
     builder(flipShowTodoOnly, (state) => {
@@ -384,6 +402,8 @@ const root_reducer = rtk.reducer_with_patches_of<types.IState>(
         ops.update_node_caches(node_id, state);
         _show_path_to_selected_node(state, node_id);
       }
+      next_action_predictor.fit(node_id);
+      set_predicted_next_nodes(state);
     });
     builder(top_action, (state, action) => {
       _top(state, action.payload);
@@ -686,6 +706,12 @@ const root_reducer = rtk.reducer_with_patches_of<types.IState>(
     });
   },
 );
+
+const set_predicted_next_nodes = (state: immer.Draft<types.IState>) => {
+  state.predicted_next_nodes = next_action_predictor
+    .predict()
+    .filter((node_id) => state.data.nodes[node_id].status === "todo");
+};
 
 const App = () => {
   const [node_filter_query_fast, set_node_filter_query_fast] =
@@ -1138,9 +1164,46 @@ const memoize2 = <A, B, R>(fn: (a: A, b: B) => R) => {
 };
 
 const QueueColumn = () => {
+  return (
+    <>
+      <PredictedNextNodes />
+      <QueueNodes />
+    </>
+  );
+};
+
+const PredictedNextNodes = () => {
+  const predicted_next_nodes = useSelector(
+    (state) => state.predicted_next_nodes,
+  );
+  return (
+    <>
+      {predicted_next_nodes.length ? (
+        <ol>
+          {predicted_next_nodes.slice(0, 3).map((node_id) => (
+            <PredictedNextNode node_id={node_id} key={node_id} />
+          ))}
+        </ol>
+      ) : null}
+    </>
+  );
+};
+const PredictedNextNode = (props: { node_id: types.TNodeId }) => {
+  const text = useSelector((state) => state.data.nodes[props.node_id].text);
+  const dispatch = useDispatch();
+  const start_button = StartButton_of(dispatch, props.node_id);
+  return (
+    <div className="py-[0.125em]">
+      {start_button}{" "}
+      <ToTreeLink node_id={props.node_id}>{text.slice(0, 30)}</ToTreeLink>
+    </div>
+  );
+};
+
+const QueueNodes = () => {
   const queue = useSelector((state) => state.data.queue);
   const node_ids = ops.sorted_keys_of(queue);
-  return node_ids.length ? <ol>{node_ids.map(QueueNode_of)}</ol> : null;
+  return <>{node_ids.length ? <ol>{node_ids.map(QueueNode_of)}</ol> : null}</>;
 };
 
 const TreeNodeList = (props: { node_id_list: types.TNodeId[] }) => {

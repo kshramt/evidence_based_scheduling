@@ -139,6 +139,7 @@ export interface IState {
   readonly caches: ICaches;
   readonly is_loading: boolean;
   readonly is_error: boolean;
+  readonly predicted_next_nodes: TNodeId[];
 }
 
 export interface IData {
