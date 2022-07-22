@@ -44,7 +44,3 @@ export const milliseconds_of_datetime_local = (datetime_local: string) => {
   const date = new Date(datetime_local);
   return Number(date);
 };
-
-export const last = <T extends {}>(a: T[]) => {
-  return a[a.length - 1];
-};

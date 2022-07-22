@@ -117,7 +117,7 @@ const stop = (
   node_id: types.TNodeId,
   t?: number,
 ) => {
-  const last_range = utils.last(draft.data.nodes[node_id].ranges);
+  const last_range = draft.data.nodes[node_id].ranges.at(-1);
   if (last_range && last_range.end === null) {
     last_range.end = t ?? Number(new Date());
     ops.update_node_caches(node_id, draft);
@@ -392,7 +392,7 @@ const root_reducer = rtk.reducer_with_patches_of<types.IState>(
         toast.add("error", `Non-todo node ${node_id} cannot be started.`);
         return;
       }
-      const last_range = utils.last(state.data.nodes[node_id].ranges);
+      const last_range = state.data.nodes[node_id].ranges.at(-1);
       if (!last_range || last_range.end !== null) {
         _top(state, node_id);
         assert(() => [
@@ -721,7 +721,7 @@ const set_predicted_next_nodes = (state: immer.Draft<types.IState>) => {
     if (node.status !== "todo") {
       return false;
     }
-    const last_range = utils.last(node.ranges);
+    const last_range = node.ranges.at(-1);
     return !last_range || last_range.end !== null;
   };
   let predicted = next_action_predictor3
@@ -1796,7 +1796,7 @@ const EntryWrapper = (props: {
   children: React.ReactNode;
 }) => {
   const ranges = useSelector((state) => state.data.nodes[props.node_id].ranges);
-  const last_range = utils.last(ranges);
+  const last_range = ranges.at(-1);
   const running = last_range && last_range.end === null;
 
   const child_edges = useSelector(
@@ -1930,7 +1930,7 @@ const EntryButtons_of = memoize1((node_id: types.TNodeId) => (
 
 const StartOrStopButtons = (props: { node_id: types.TNodeId }) => {
   const ranges = useSelector((state) => state.data.nodes[props.node_id].ranges);
-  const last_range = utils.last(ranges);
+  const last_range = ranges.at(-1);
   const running = last_range && last_range.end === null;
   const dispatch = useDispatch();
 
