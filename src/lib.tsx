@@ -58,8 +58,8 @@ const register_save_type = <T extends {}>(x: T) => {
   return x;
 };
 
-const next_action_predictor3 = new nap.TriGramPredictor<types.TNodeId>(0.8);
-const next_action_predictor2 = new nap.BiGramPredictor<types.TNodeId>(0.8);
+const next_action_predictor3 = new nap.TriGramPredictor<types.TNodeId>(0.9);
+const next_action_predictor2 = new nap.BiGramPredictor<types.TNodeId>(0.9);
 
 // Vose (1991)'s linear version of Walker (1974)'s alias method.
 // A Pactical Version of Vose's Algorithm: https://www.keithschwarz.com/darts-dice-coins/
@@ -724,11 +724,18 @@ const set_predicted_next_nodes = (state: immer.Draft<types.IState>) => {
     const last_range = utils.last(node.ranges);
     return !last_range || last_range.end !== null;
   };
-  let predicted = next_action_predictor3.predict().filter(cond);
+  let predicted = next_action_predictor3
+    .predict()
+    .filter(cond)
+    .slice(0, N_PREDICTED);
   if (predicted.length < N_PREDICTED) {
-    predicted = predicted.concat(next_action_predictor2.predict().filter(cond));
+    predicted = predicted.concat(
+      next_action_predictor2.predict().filter((node_id) => {
+        return cond(node_id) && predicted.indexOf(node_id) === -1;
+      }),
+    );
   }
-  state.predicted_next_nodes = predicted;
+  state.predicted_next_nodes = predicted.slice(0, N_PREDICTED);
 };
 
 const App = () => {
@@ -1195,15 +1202,11 @@ const PredictedNextNodes = () => {
     (state) => state.predicted_next_nodes,
   );
   return (
-    <>
-      {predicted_next_nodes.length ? (
-        <ol>
-          {predicted_next_nodes.slice(0, N_PREDICTED).map((node_id) => (
-            <PredictedNextNode node_id={node_id} key={node_id} />
-          ))}
-        </ol>
-      ) : null}
-    </>
+    <ol>
+      {predicted_next_nodes.map((node_id) => (
+        <PredictedNextNode node_id={node_id} key={node_id} />
+      ))}
+    </ol>
   );
 };
 const PredictedNextNode = (props: { node_id: types.TNodeId }) => {
@@ -1221,7 +1224,7 @@ const PredictedNextNode = (props: { node_id: types.TNodeId }) => {
 const QueueNodes = () => {
   const queue = useSelector((state) => state.data.queue);
   const node_ids = ops.sorted_keys_of(queue);
-  return <>{node_ids.length ? <ol>{node_ids.map(QueueNode_of)}</ol> : null}</>;
+  return <ol>{node_ids.map(QueueNode_of)}</ol>;
 };
 
 const TreeNodeList = (props: { node_id_list: types.TNodeId[] }) => {
