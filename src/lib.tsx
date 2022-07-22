@@ -731,7 +731,7 @@ const set_predicted_next_nodes = (state: immer.Draft<types.IState>) => {
   if (predicted.length < N_PREDICTED) {
     predicted = predicted.concat(
       next_action_predictor2.predict().filter((node_id) => {
-        return cond(node_id) && predicted.indexOf(node_id) === -1;
+        return cond(node_id) && !predicted.includes(node_id);
       }),
     );
   }
