@@ -44,6 +44,8 @@ const TOC_MARK = <span className="material-icons">toc</span>;
 const FORWARD_MARK = <span className="material-icons">arrow_forward_ios</span>;
 const BACK_MARK = <span className="material-icons">arrow_back_ios</span>;
 
+const N_PREDICTED = 5;
+
 const history_type_set = new Set<string>();
 const register_history_type = <T extends {}>(x: T) => {
   history_type_set.add(x.toString());
@@ -56,7 +58,8 @@ const register_save_type = <T extends {}>(x: T) => {
   return x;
 };
 
-const next_action_predictor = new nap.TriGramPredictor<types.TNodeId>(0.8);
+const next_action_predictor3 = new nap.TriGramPredictor<types.TNodeId>(0.8);
+const next_action_predictor2 = new nap.BiGramPredictor<types.TNodeId>(0.8);
 
 // Vose (1991)'s linear version of Walker (1974)'s alias method.
 // A Pactical Version of Vose's Algorithm: https://www.keithschwarz.com/darts-dice-coins/
@@ -366,7 +369,8 @@ const root_reducer = rtk.reducer_with_patches_of<types.IState>(
         }
         start_time_and_node_id_list.sort((a, b) => a[0] - b[0]);
         for (const [_, node_id] of start_time_and_node_id_list) {
-          next_action_predictor.fit(node_id);
+          next_action_predictor3.fit(node_id);
+          next_action_predictor2.fit(node_id);
         }
         set_predicted_next_nodes(state);
       }
@@ -405,7 +409,8 @@ const root_reducer = rtk.reducer_with_patches_of<types.IState>(
         ops.update_node_caches(node_id, state);
         _show_path_to_selected_node(state, node_id);
       }
-      next_action_predictor.fit(node_id);
+      next_action_predictor3.fit(node_id);
+      next_action_predictor2.fit(node_id);
       set_predicted_next_nodes(state);
     });
     builder(top_action, (state, action) => {
@@ -711,9 +716,19 @@ const root_reducer = rtk.reducer_with_patches_of<types.IState>(
 );
 
 const set_predicted_next_nodes = (state: immer.Draft<types.IState>) => {
-  state.predicted_next_nodes = next_action_predictor
-    .predict()
-    .filter((node_id) => state.data.nodes[node_id].status === "todo");
+  const cond = (node_id: types.TNodeId) => {
+    const node = state.data.nodes[node_id];
+    if (node.status !== "todo") {
+      return false;
+    }
+    const last_range = utils.last(node.ranges);
+    return !last_range || last_range.end !== null;
+  };
+  let predicted = next_action_predictor3.predict().filter(cond);
+  if (predicted.length < N_PREDICTED) {
+    predicted = predicted.concat(next_action_predictor2.predict().filter(cond));
+  }
+  state.predicted_next_nodes = predicted;
 };
 
 const App = () => {
@@ -1183,7 +1198,7 @@ const PredictedNextNodes = () => {
     <>
       {predicted_next_nodes.length ? (
         <ol>
-          {predicted_next_nodes.slice(0, 3).map((node_id) => (
+          {predicted_next_nodes.slice(0, N_PREDICTED).map((node_id) => (
             <PredictedNextNode node_id={node_id} key={node_id} />
           ))}
         </ol>

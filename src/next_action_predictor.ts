@@ -71,3 +71,43 @@ export class TriGramPredictor<K> {
   };
   default_count_of = () => 0;
 }
+
+export class BiGramPredictor<K> {
+  counts: DefaultMap<K, DefaultMap<K, number>>;
+  decay: number;
+  buf: K[];
+  i: number;
+  n: number;
+  constructor(decay: number) {
+    this.decay = decay;
+    this.counts = new DefaultMap(
+      (k: K) => new DefaultMap(this.default_count_of),
+    );
+    this.buf = [];
+    this.i = -1;
+    this.n = 2;
+  }
+  fit = (k: K) => {
+    this.i = (this.i + 1) % this.n;
+    this.buf[this.i] = k;
+    if (this.buf.length < this.n) {
+      return this;
+    }
+    const counts = this.counts.get(this.buf[(this.i + 1) % this.n]);
+    for (const [kk, vv] of counts) {
+      counts.set(kk, this.decay * vv);
+    }
+    counts.set(k, counts.get(k) + 1);
+    return this;
+  };
+  predict = () => {
+    const kvs = Array.from(
+      this.buf.length < this.n
+        ? new DefaultMap<K, number>(this.default_count_of)
+        : this.counts.get(this.buf[(this.i + 0) % this.n]),
+    );
+    kvs.sort((a, b) => b[1] - a[1]);
+    return kvs.map((kv) => kv[0]);
+  };
+  default_count_of = () => 0;
+}
