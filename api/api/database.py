@@ -3,10 +3,10 @@ import os
 import pathlib
 from typing import Final
 
+import sqlalchemy
 import sqlalchemy.engine
 import sqlalchemy.ext.asyncio
 import sqlalchemy.orm
-import sqlalchemy
 
 logger = logging.getLogger(__name__)
 
@@ -49,3 +49,16 @@ def on_engine_connect(dbapi_connection, connection_record):
         cursor.execute("pragma foreign_keys=ON")
     finally:
         cursor.close()
+
+
+@sqlalchemy.event.listens_for(engine.sync_engine, "connect")
+def do_connect(dbapi_connection, connection_record):
+    # disable pysqlite's emitting of the BEGIN statement entirely.
+    # also stops it from emitting COMMIT before any DDL.
+    dbapi_connection.isolation_level = None
+
+
+@sqlalchemy.event.listens_for(engine.sync_engine, "begin")
+def do_begin(conn):
+    # emit our own BEGIN
+    conn.exec_driver_sql("BEGIN")
