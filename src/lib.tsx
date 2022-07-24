@@ -662,11 +662,18 @@ const root_reducer = rtk.reducer_with_patches_of<types.IState>(
     });
     builder(done_or_dont_to_todo_action, (state, action) => {
       const node_id = action.payload;
-      if (checks.is_uncompletable_node_of(node_id, state)) {
-        state.data.nodes[node_id].status = "todo";
-        ops.update_node_caches(node_id, state);
-      } else {
+      if (!checks.is_uncompletable_node_of(node_id, state)) {
         toast.add("error", `Node ${node_id} cannot be set to todo.`);
+        return;
+      }
+      state.data.nodes[node_id].status = "todo";
+      ops.update_node_caches(node_id, state);
+      for (const edge_id of ops.keys_of(state.data.nodes[node_id].parents)) {
+        ops.move_to_front(
+          state.data.nodes[state.data.edges[edge_id].p].children,
+          edge_id,
+        );
+        ops.update_node_caches(state.data.edges[edge_id].p, state);
       }
     });
     builder(toggle_show_children, (state, action) => {
