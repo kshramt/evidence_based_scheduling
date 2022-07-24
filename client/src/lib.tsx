@@ -23,7 +23,6 @@ import * as rtk from "./rtk";
 import * as undoable from "./undoable";
 
 const MENU_HEIGHT = "3rem" as const;
-const API_VERSION = "v1";
 const START_MARK = <span className="material-icons">play_arrow</span>;
 const START_CONCURRNET_MARK = (
   <span className="material-icons">double_arrow</span>
@@ -42,6 +41,8 @@ const COPY_MARK = <span className="material-icons">content_copy</span>;
 const TOC_MARK = <span className="material-icons">toc</span>;
 const FORWARD_MARK = <span className="material-icons">arrow_forward_ios</span>;
 const BACK_MARK = <span className="material-icons">arrow_back_ios</span>;
+
+const USER_ID = "1";
 
 const history_type_set = new Set<string>();
 const register_history_type = <T extends {}>(x: T) => {
@@ -127,7 +128,7 @@ const stop_all = (draft: immer.Draft<types.IState>) => {
 };
 
 const doLoad = rtk.async_thunk_of_of("doLoad", async () => {
-  const resp = await fetch("api/" + API_VERSION + "/get");
+  const resp = await fetch(`/users/${USER_ID}/datas/-1`);
   if (!resp.ok) {
     return "error";
   }
@@ -2400,7 +2401,7 @@ const saveStateMiddlewareOf = (pred: (type_: string) => boolean) => {
     (store) => (next_dispatch) => (action) => {
       const ret = next_dispatch(action);
       if (pred(action.type)) {
-        fetch("api/" + API_VERSION + "/post", {
+        fetch(`/users/${USER_ID}/patches`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json; charset=utf-8",
