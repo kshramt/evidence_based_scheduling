@@ -2332,10 +2332,16 @@ const evalButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
 const CopyNodeIdButton = (props: { node_id: types.TNodeId }) => {
   const clipboard = utils.useClipboard(props.node_id);
   const set_node_ids = React.useContext(set_node_ids_context);
-  const handle_click = React.useCallback(() => {
-    clipboard.copy();
-    set_node_ids((node_ids: string) => props.node_id + " " + node_ids);
-  }, [props.node_id, set_node_ids, clipboard]);
+  const handle_click = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      clipboard.copy();
+      const multi = e.ctrlKey;
+      set_node_ids((node_ids: string) =>
+        multi ? props.node_id + " " + node_ids : props.node_id,
+      );
+    },
+    [props.node_id, set_node_ids, clipboard],
+  );
   return (
     <button className="btn-icon" onClick={handle_click}>
       {clipboard.is_copied ? DONE_MARK : COPY_MARK}
