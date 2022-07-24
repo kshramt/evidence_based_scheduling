@@ -726,6 +726,9 @@ const move_down_to_boundary = (
     const children = state.data.nodes[state.data.edges[edge_id].p].children;
     const edge_ids = ops.sorted_keys_of(children);
     const i_edge = edge_ids.indexOf(edge_id);
+    if (i_edge + 1 === edge_ids.length) {
+      return;
+    }
     let i_seek = i_edge + 1;
     for (; i_seek < edge_ids.length; ++i_seek) {
       if (
@@ -736,7 +739,15 @@ const move_down_to_boundary = (
         break;
       }
     }
-    if (i_seek < edge_ids.length && i_edge + 1 < i_seek) {
+    if (
+      i_seek + 1 === edge_ids.length &&
+      !is_different(
+        state.data.nodes[state.data.edges[edge_ids[i_seek]].c].status,
+      )
+    ) {
+      ++i_seek;
+    }
+    if (i_seek <= edge_ids.length && i_edge + 1 < i_seek) {
       ops.move_before(children, i_edge, i_seek, edge_ids);
       ops.update_node_caches(state.data.edges[edge_id].p, state);
     }
