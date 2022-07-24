@@ -65,9 +65,6 @@ export const undoable_of = (
     state: undefined | types.IState,
     action: types.TAnyPayloadAction,
   ) => {
-    if (process.env.NODE_ENV === "development") {
-      console.log("history.buf", history.buf);
-    }
     if (state === undefined) {
       return reducer_with_patches(state, action);
     }

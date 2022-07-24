@@ -44,6 +44,7 @@ export const emptyStateOf = (): types.IState => {
     caches,
     is_loading: true,
     is_error: false,
+    predicted_next_nodes: [],
   };
 };
 
