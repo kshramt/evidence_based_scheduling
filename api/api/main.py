@@ -28,7 +28,11 @@ app.add_middleware(fastapi.middleware.gzip.GZipMiddleware)
 
 async def get_db():
     async with database.SessionLocal() as db:
-        yield db
+        try:
+            yield db
+        except:
+            await db.rollback()
+            raise
 
 
 @app.post("/users/", response_model=schemas.User)
