@@ -1,3 +1,4 @@
+from typing import Any
 import pydantic
 
 
@@ -12,39 +13,37 @@ class UserCreate(UserBase):
 class User(UserBase):
     id: int
     enabled: bool
+    current_patch_id: int
 
     class Config:
         orm_mode = True
 
 
-class SessionBase(pydantic.BaseModel):
-    pass
-
-
-class SessionCreate(SessionBase):
-    pass
-
-
-class Session(SessionBase):
-    id: int
+class PatchBase(pydantic.BaseModel):
+    parent_id: int
     user_id: int
-
-    class Config:
-        orm_mode = True
+    patch: str
 
 
-class PatchesBase(pydantic.BaseModel):
-    version_id: int
-    patches: str
-
-
-class PatchesCreate(PatchesBase):
+class PatchCreate(PatchBase):
     pass
 
 
-class Patches(PatchesBase):
+class Patch(PatchBase):
     id: int
-    session_id: int
 
     class Config:
         orm_mode = True
+
+
+class DataBase(pydantic.BaseModel):
+    pass
+
+
+class Data(DataBase):
+    id: int
+    data: dict[str, Any]
+
+
+class IntValue(pydantic.BaseModel):
+    value: int

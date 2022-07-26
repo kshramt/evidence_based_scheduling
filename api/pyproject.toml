@@ -6,7 +6,14 @@ multi_line_output = 3
 # plugins = "numpy.typing.mypy_plugin"
 
 [[tool.mypy.overrides]]
-module = []
+module = [
+  "sqlalchemy",
+  "sqlalchemy.engine",
+  "sqlalchemy.ext",
+  "sqlalchemy.ext.asyncio",
+  "sqlalchemy.orm",
+  "jsonpatch",
+]
 ignore_missing_imports = true
 
 [tool.poetry.dependencies]
@@ -15,6 +22,7 @@ fastapi = "^0.79.0"
 uvicorn = "^0.18.2"
 SQLAlchemy = "^1.4.39"
 aiosqlite = "^0.17.0"
+jsonpatch = "^1.32"
 
 [tool.poetry.dev-dependencies]
 black = "^22.6.0"

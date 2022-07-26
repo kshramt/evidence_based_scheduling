@@ -1,10 +1,11 @@
+import json
 import logging
 
-from sqlalchemy import select
+import jsonpatch
+from sqlalchemy import and_, func, join, select
 from sqlalchemy.orm import Session
 
-from . import models
-from . import schemas
+from . import models, schemas
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,7 @@ async def get_users(db: Session, offset: int = 0, limit: int = 100):
 
 
 async def create_user(db: Session, user: schemas.UserCreate, commit=True):
-    db_user = models.User()
+    db_user = models.User(current_patch_id=0)
     db.add(db_user)
     if commit:
         await db.commit()
@@ -26,32 +27,58 @@ async def create_user(db: Session, user: schemas.UserCreate, commit=True):
     return db_user
 
 
-async def create_session_for_user(
-    db: Session, session: schemas.SessionCreate, user_id: int, commit=True
+async def get_patch(db: Session, patch_id: int):
+    return await db.scalar(select(models.Patch).filter(models.Patch.id == patch_id))
+
+
+async def get_patches(db: Session, offset: int = 0, limit: int = 100):
+    return (await db.scalars(select(models.Patch).offset(offset).limit(limit))).all()
+
+
+async def create_patch(
+    db: Session, patch: schemas.PatchCreate, snapshot=None, commit=True
 ):
-    db_session = models.Session(**session.dict(), user_id=user_id)
-    db.add(db_session)
+    db_patch = models.Patch(**patch.dict(), snapshot=snapshot)
+    db.add(db_patch)
     if commit:
         await db.commit()
-        await db.refresh(db_session)
-    return db_session
+        await db.refresh(db_patch)
+    return db_patch
 
 
-async def get_sessions(db: Session, offset: int = 0, limit: int = 100):
-    return (await db.scalars(select(models.Session).offset(offset).limit(limit))).all()
+async def get_current_patch_id(db: Session, user_id: int):
+    return await db.scalar(
+        select(models.User.current_patch_id).filter(models.User.id == user_id)
+    )
 
 
-async def get_sessions_for_user(db: Session, user_id: int):
-    db_user = await db.scalar(select(models.User).filter(models.User.id == user_id))
-    if db_user is None:
-        return []
-    return db_user.sessions
+async def get_data(db: Session, patch_id: int):
+    select_cols = (
+        models.Patch.id,
+        models.Patch.parent_id,
+        models.Patch.patch,
+        models.Patch.snapshot,
+    )
 
+    branch = select(select_cols).where(models.Patch.id == patch_id).cte(recursive=True)
 
-async def create_snapshot(db: Session, user_id: int, version_id: int, data: str, commit=True):
-    db_snapshot = models.Snapshot(user_id=user_id, version_id=version_id, data=data)
-    db.add(db_snapshot)
-    if commit:
-        await db.commit()
-        await db.refresh(db_snapshot)
-    return db_snapshot
+    # There should be no duplications.
+    branch = branch.union_all(
+        select(select_cols).select_from(
+            join(
+                branch,
+                models.Patch,
+                and_(branch.c.snapshot == None, branch.c.parent_id == models.Patch.id),
+            )
+        )
+    )
+    stmt = select((func.coalesce(branch.c.snapshot, branch.c.patch),)).order_by(
+        branch.c.id
+    )
+    ss = (await db.scalars(stmt)).all()
+    if not ss:
+        return None
+    res = json.loads(ss[0])
+    for patch in ss[1:]:
+        jsonpatch.apply_patch(res, patch, in_place=True)
+    return res
