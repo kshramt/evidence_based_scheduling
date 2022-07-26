@@ -630,41 +630,50 @@ const root_reducer = rtk.reducer_with_patches_of<types.IState>(
     });
     builder(todoToDone, (state, action) => {
       const node_id = action.payload;
-      if (checks.is_completable_node_of(node_id, state)) {
-        stop(state, node_id);
-        state.data.nodes[node_id].status = "done";
-        state.data.nodes[node_id].end_time = Number(new Date());
-        ops.update_node_caches(node_id, state);
-        _topQueue(state, node_id);
-      } else {
+      if (!checks.is_completable_node_of(node_id, state)) {
         toast.add(
           "error",
           `The status of node ${node_id} cannot be set to done.`,
         );
+        return;
       }
+      stop(state, node_id);
+      state.data.nodes[node_id].status = "done";
+      state.data.nodes[node_id].end_time = Number(new Date());
+      ops.update_node_caches(node_id, state);
+      move_down_to_boundary(state, node_id, (status) => status !== "todo");
+      _topQueue(state, node_id);
     });
     builder(todoToDont, (state, action) => {
       const node_id = action.payload;
-      if (checks.is_completable_node_of(node_id, state)) {
-        stop(state, node_id);
-        state.data.nodes[node_id].status = "dont";
-        state.data.nodes[node_id].end_time = Number(new Date());
-        ops.update_node_caches(node_id, state);
-        _topQueue(state, node_id);
-      } else {
+      if (!checks.is_completable_node_of(node_id, state)) {
         toast.add(
           "error",
           `The status of node ${node_id} cannot be set to dont.`,
         );
+        return;
       }
+      stop(state, node_id);
+      state.data.nodes[node_id].status = "dont";
+      state.data.nodes[node_id].end_time = Number(new Date());
+      ops.update_node_caches(node_id, state);
+      move_down_to_boundary(state, node_id, (status) => status === "dont");
+      _topQueue(state, node_id);
     });
     builder(done_or_dont_to_todo_action, (state, action) => {
       const node_id = action.payload;
-      if (checks.is_uncompletable_node_of(node_id, state)) {
-        state.data.nodes[node_id].status = "todo";
-        ops.update_node_caches(node_id, state);
-      } else {
+      if (!checks.is_uncompletable_node_of(node_id, state)) {
         toast.add("error", `Node ${node_id} cannot be set to todo.`);
+        return;
+      }
+      state.data.nodes[node_id].status = "todo";
+      ops.update_node_caches(node_id, state);
+      for (const edge_id of ops.keys_of(state.data.nodes[node_id].parents)) {
+        ops.move_to_front(
+          state.data.nodes[state.data.edges[edge_id].p].children,
+          edge_id,
+        );
+        ops.update_node_caches(state.data.edges[edge_id].p, state);
       }
     });
     builder(toggle_show_children, (state, action) => {
@@ -714,6 +723,43 @@ const root_reducer = rtk.reducer_with_patches_of<types.IState>(
     });
   },
 );
+
+const move_down_to_boundary = (
+  state: immer.Draft<types.IState>,
+  node_id: types.TNodeId,
+  is_different: (status: types.TStatus) => boolean,
+) => {
+  for (const edge_id of ops.keys_of(state.data.nodes[node_id].parents)) {
+    const children = state.data.nodes[state.data.edges[edge_id].p].children;
+    const edge_ids = ops.sorted_keys_of(children);
+    const i_edge = edge_ids.indexOf(edge_id);
+    if (i_edge + 1 === edge_ids.length) {
+      return;
+    }
+    let i_seek = i_edge + 1;
+    for (; i_seek < edge_ids.length; ++i_seek) {
+      if (
+        is_different(
+          state.data.nodes[state.data.edges[edge_ids[i_seek]].c].status,
+        )
+      ) {
+        break;
+      }
+    }
+    if (
+      i_seek + 1 === edge_ids.length &&
+      !is_different(
+        state.data.nodes[state.data.edges[edge_ids[i_seek]].c].status,
+      )
+    ) {
+      ++i_seek;
+    }
+    if (i_seek <= edge_ids.length && i_edge + 1 < i_seek) {
+      ops.move_before(children, i_edge, i_seek, edge_ids);
+      ops.update_node_caches(state.data.edges[edge_id].p, state);
+    }
+  }
+};
 
 const set_predicted_next_nodes = (state: immer.Draft<types.IState>) => {
   const cond = (node_id: types.TNodeId) => {
@@ -2304,10 +2350,16 @@ const evalButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
 const CopyNodeIdButton = (props: { node_id: types.TNodeId }) => {
   const clipboard = utils.useClipboard(props.node_id);
   const set_node_ids = React.useContext(set_node_ids_context);
-  const handle_click = React.useCallback(() => {
-    clipboard.copy();
-    set_node_ids((node_ids: string) => props.node_id + " " + node_ids);
-  }, [props.node_id, set_node_ids, clipboard]);
+  const handle_click = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      clipboard.copy();
+      const multi = e.ctrlKey;
+      set_node_ids((node_ids: string) =>
+        multi ? props.node_id + " " + node_ids : props.node_id,
+      );
+    },
+    [props.node_id, set_node_ids, clipboard],
+  );
   return (
     <button className="btn-icon" onClick={handle_click}>
       {clipboard.is_copied ? DONE_MARK : COPY_MARK}

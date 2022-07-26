@@ -158,6 +158,19 @@ async def put_id_of_data_of_user(
     return patch_id_value
 
 
+@with_path_of(app.get, "/users/{user_id}/data/id", response_model=schemas.IntValue)
+async def get_id_of_data_of_user(
+    user_id: int,
+    resp: Response,
+    db: Session = Depends(get_db),
+):
+    user = await _get_user(db=db, user_id=user_id)
+    res = schemas.IntValue(value=user.current_patch_id)
+
+    resp.headers["etag"] = str(res.value)
+    return res
+
+
 def _set_handlers(logger, paths, level_stderr=logging.INFO, level_path=logging.DEBUG):
     fmt = logging.Formatter(
         # "%(levelname)s\t%(process)d\t%(asctime)s\t%(pathname)s\t%(funcName)s\t%(lineno)d\t%(message)s"
