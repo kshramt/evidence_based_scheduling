@@ -1,6 +1,6 @@
 import datetime
 
-from sqlalchemy import Column, Integer, String, Index, Boolean, DateTime, CheckConstraint
+from sqlalchemy import Column, Integer, String, Index, Boolean, CheckConstraint
 import sqlalchemy
 import sqlalchemy.orm
 

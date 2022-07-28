@@ -1,10 +1,13 @@
-from typing import Any
+from typing import Generic, TypeVar
 import asyncio
 import logging
 
 import fastapi
+import pydantic
+import pydantic.generics
 import fastapi.middleware.gzip
-from fastapi import Depends, HTTPException, Response, Header
+import fastapi.middleware.cors
+from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from . import crud
@@ -19,6 +22,52 @@ INITIAL_PATCH = '[{"op": "replace", "path": "", "value": {"data": null}}]'
 INITIAL_SNAPSHOT = '{"data": null}'
 
 
+THeader = TypeVar("THeader")
+TBody = TypeVar("TBody")
+
+
+class HB(pydantic.generics.GenericModel, Generic[THeader, TBody]):
+    header: THeader
+    body: TBody
+
+
+TEtag = int | str
+
+
+class EmptyBody(pydantic.BaseModel):
+    pass
+
+
+class EmptyHeader(pydantic.BaseModel):
+    pass
+
+
+class EmptyReq(pydantic.BaseModel):
+    header: EmptyHeader
+    body: EmptyBody
+
+
+class EtagHeader(pydantic.BaseModel):
+    etag: TEtag
+
+
+class PathHeader(pydantic.BaseModel):
+    path: str
+
+
+class EtagPathHeader(pydantic.BaseModel):
+    etag: TEtag
+    path: str
+
+
+class IfMatchHeader(pydantic.BaseModel):
+    if_match: TEtag
+
+
+class StatusCodeHeader(pydantic.BaseModel):
+    status_code: int
+
+
 async def create_all():
     async with database.engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
@@ -28,6 +77,13 @@ asyncio.create_task(create_all())
 
 app = fastapi.FastAPI()
 app.add_middleware(fastapi.middleware.gzip.GZipMiddleware)
+# app.add_middleware(
+#     fastapi.middleware.cors.CORSMiddleware,
+#     allow_origins=["*"],
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
 
 
 def with_path_of(app, path: str, *args, **kwargs):
@@ -48,10 +104,12 @@ async def get_db():
             raise
 
 
-@with_path_of(app.post, "/users", response_model=schemas.User)
-async def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+@with_path_of(app.post, "/users", response_model=HB[PathHeader, schemas.User])
+async def create_user(
+    req: HB[EmptyHeader, schemas.UserCreate], db: Session = Depends(get_db)
+):
     await db.execute("pragma defer_foreign_keys=ON")
-    db_user = await crud.create_user(db=db, user=user, commit=False)
+    db_user = await crud.create_user(db=db, user=req.body, commit=False)
     await db.flush()
     db_patch = await crud.create_patch(
         db=db,
@@ -64,17 +122,19 @@ async def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_patch.parent_id = db_patch.id
     await db.commit()
     await db.refresh(db_user)
-    return db_user
+    return HB(header=PathHeader(path=get_user.path_of(db_user.id)), body=db_user)
 
 
-@app.get("/users", response_model=list[schemas.User])
+@app.get("/users", response_model=HB[EmptyHeader, list[schemas.User]])
 async def get_users(offset: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return await crud.get_users(db, offset=offset, limit=limit)
+    return HB(
+        header=EmptyHeader(), body=await crud.get_users(db, offset=offset, limit=limit)
+    )
 
 
-@app.get("/users/{user_id}", response_model=schemas.User)
+@app.get("/users/{user_id}", response_model=HB[EmptyHeader, schemas.User])
 async def get_user(user_id: int, db: Session = Depends(get_db)):
-    return await _get_user(db=db, user_id=user_id)
+    return HB(header=EmptyHeader(), body=await _get_user(db=db, user_id=user_id))
 
 
 async def _get_user(db: Session, user_id: int):
@@ -84,91 +144,122 @@ async def _get_user(db: Session, user_id: int):
     return db_user
 
 
-@app.get("/patches", response_model=list[schemas.Patch])
+@app.get("/patches", response_model=HB[EmptyHeader, list[schemas.Patch]])
 async def get_patches(offset: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return await crud.get_patches(db, offset=offset, limit=limit)
+    return HB(
+        header=EmptyHeader(),
+        body=await crud.get_patches(db, offset=offset, limit=limit),
+    )
 
 
-@with_path_of(app.get, "/patches/{patch_id}", response_model=schemas.Patch)
+@with_path_of(
+    app.get, "/patches/{patch_id}", response_model=HB[EmptyHeader, schemas.Patch]
+)
 async def get_patch(patch_id: int, db: Session = Depends(get_db)):
     db_patch = await crud.get_patch(db, patch_id=patch_id)
     if db_patch is None:
         raise HTTPException(status_code=404, detail="Patch not found.")
-    return db_patch
+    return HB(header=EmptyHeader(), body=db_patch)
 
 
-@with_path_of(app.post, "/patches", response_model=schemas.Patch)
+@with_path_of(app.post, "/patches", response_model=HB[PathHeader, schemas.Patch])
 async def create_patch(
-    patch: schemas.PatchCreate, resp: Response, db: Session = Depends(get_db)
+    req: HB[EmptyHeader, schemas.PatchCreate], db: Session = Depends(get_db)
 ):
-    db_parent_patch = await crud.get_patch(db, patch_id=patch.parent_id)
+    db_parent_patch = await crud.get_patch(db, patch_id=req.body.parent_id)
     if db_parent_patch is None:
         raise HTTPException(status_code=400, detail="The parent patch should exist.")
-    if db_parent_patch.user_id != patch.user_id:
+    if db_parent_patch.user_id != req.body.user_id:
         raise HTTPException(status_code=400, detail="The parent patch should exist.")
-    db_patch = await crud.create_patch(db=db, patch=patch)
-    resp.headers["content-location"] = get_patch.path_of(patch_id=db_patch.id)
-    return db_patch
+    db_patch = await crud.create_patch(db=db, patch=req.body)
+    return HB(
+        header=PathHeader(path=get_patch.path_of(patch_id=db_patch.id)), body=db_patch
+    )
 
 
-@with_path_of(app.get, "/users/{user_id}/data", response_model=schemas.Data)
-async def get_data_of_user(user_id: int, resp: Response, db: Session = Depends(get_db)):
+@with_path_of(
+    app.get, "/users/{user_id}/data", response_model=HB[EtagPathHeader, schemas.Data]
+)
+async def get_data_of_user(user_id: int, db: Session = Depends(get_db)):
     patch_id = await crud.get_current_patch_id(db=db, user_id=user_id)
     if patch_id is None:
         raise HTTPException(status_code=404, detail="User not found.")
-    resp.headers["content-location"] = get_data.path_of(patch_id=patch_id)
-    return await _get_data(db=db, patch_id=patch_id)
+    return HB(
+        header=EtagPathHeader(etag=patch_id, path=get_data.path_of(patch_id=patch_id)),
+        body=await _get_data(db=db, patch_id=patch_id),
+    )
 
 
-@with_path_of(app.get, "/data/{patch_id}", response_model=schemas.Data)
+@with_path_of(
+    app.get,
+    "/data/{patch_id}",
+    response_model=HB[EtagHeader, schemas.Data],
+)
 async def get_data(patch_id: int, db: Session = Depends(get_db)):
-    return await _get_data(db=db, patch_id=patch_id)
+    return HB(
+        header=EtagHeader(etag=patch_id),
+        body=await _get_data(db=db, patch_id=patch_id),
+    )
 
 
 async def _get_data(db: Session, patch_id: int):
     data = await crud.get_data(db=db, patch_id=patch_id)
     if data is None:
         raise HTTPException(status_code=404, detail="Data not found.")
-    return schemas.Data(id=patch_id, data=data)
+    return data
 
 
-@with_path_of(app.put, "/users/{user_id}/data/id", response_model=schemas.IntValue)
+@with_path_of(
+    app.put,
+    "/users/{user_id}/data/id",
+    response_model=HB[EtagPathHeader, schemas.IntValue],
+)
 async def put_id_of_data_of_user(
     user_id: int,
-    patch_id_value: schemas.IntValue,
-    resp: Response,
-    if_match: None | int = Header(default=None),
+    req: HB[IfMatchHeader | EmptyHeader, schemas.IntValue],
     db: Session = Depends(get_db),
 ):
     user = await _get_user(db=db, user_id=user_id)
-
-    if if_match is not None and if_match != user.current_patch_id:
+    if (
+        isinstance(req.header, IfMatchHeader)
+        and req.header.if_match != user.current_patch_id
+    ):
         raise HTTPException(status_code=412, detail="Data have been changed.")
 
-    patch = await crud.get_patch(db=db, patch_id=patch_id_value.value)
+    patch = await crud.get_patch(db=db, patch_id=req.body.value)
     if patch is None:
         raise HTTPException(status_code=400, detail="The patch should exist.")
     if patch.user_id != user_id:
         raise HTTPException(status_code=400, detail="The patch should exist.")
 
-    user.current_patch_id = patch_id_value.value
+    user.current_patch_id = req.body.value
     await db.commit()
 
-    resp.headers["etag"] = str(patch_id_value.value)
-    return patch_id_value
+    return HB(
+        header=EtagPathHeader(
+            etag=req.body.value, path=get_data.path_of(patch_id=req.body.value)
+        ),
+        body=schemas.IntValue(value=req.body.value),
+    )
 
 
-@with_path_of(app.get, "/users/{user_id}/data/id", response_model=schemas.IntValue)
+@with_path_of(
+    app.get,
+    "/users/{user_id}/data/id",
+    response_model=HB[EtagPathHeader, schemas.IntValue],
+)
 async def get_id_of_data_of_user(
     user_id: int,
-    resp: Response,
     db: Session = Depends(get_db),
 ):
     user = await _get_user(db=db, user_id=user_id)
-    res = schemas.IntValue(value=user.current_patch_id)
-
-    resp.headers["etag"] = str(res.value)
-    return res
+    return HB(
+        header=EtagPathHeader(
+            etag=user.current_patch_id,
+            path=get_data.path_of(patch_id=user.current_patch_id),
+        ),
+        body=schemas.IntValue(value=user.current_patch_id),
+    )
 
 
 def _set_handlers(logger, paths, level_stderr=logging.INFO, level_path=logging.DEBUG):

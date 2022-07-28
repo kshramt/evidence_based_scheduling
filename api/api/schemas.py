@@ -41,9 +41,9 @@ class DataBase(pydantic.BaseModel):
 
 
 class Data(DataBase):
-    id: int
-    data: dict[str, Any]
+    data: None | dict[str, Any] = pydantic.Field(...)
 
 
 class IntValue(pydantic.BaseModel):
     value: int
+
