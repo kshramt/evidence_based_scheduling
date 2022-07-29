@@ -1258,10 +1258,10 @@ const PredictedNextNodes = () => {
 const PredictedNextNode = (props: { node_id: types.TNodeId }) => {
   const text = useSelector((state) => state.data.nodes[props.node_id].text);
   const dispatch = useDispatch();
-  const start_button = StartButton_of(dispatch, props.node_id);
   return (
-    <div className="py-[0.125em]">
-      {start_button}{" "}
+    <div className="flex w-fit gap-x-[0.25em] items-baseline py-[0.125em]">
+      {StartButton_of(dispatch, props.node_id)}
+      {StartConcurrentButton_of(dispatch, props.node_id)}
       <ToTreeLink node_id={props.node_id}>{text.slice(0, 30)}</ToTreeLink>
     </div>
   );
