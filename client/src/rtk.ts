@@ -3,7 +3,7 @@ import * as types from "./types";
 import * as immer from "immer";
 
 type IfVoid<P, T, F> = [void] extends [P] ? T : F;
-type TReduce<State, Payload> = (
+export type TReduce<State, Payload> = (
   state: immer.Draft<State>,
   action: ReturnType<TActionOf<Payload>>,
 ) =>
@@ -21,7 +21,7 @@ type TActionOfWithPayload<Payload> = {
   toString: () => string;
   type: string;
 };
-type TActionOf<Payload> = IfVoid<
+export type TActionOf<Payload> = IfVoid<
   Payload,
   TActionOfWithoutPayload,
   TActionOfWithPayload<Payload>
@@ -100,7 +100,7 @@ export const reducer_of = <State>(
 export const reducer_with_patches_of = <State>(
   initial_state_of: () => State,
   ctor: (
-    builder: <Payload, Type extends string>(
+    builder: <Payload>(
       action_of: TActionOf<Payload>,
       reduce: TReduce<State, Payload>,
     ) => void,

@@ -137,8 +137,6 @@ const is_TStatus = (x: any): x is TStatus => status_values.includes(x);
 export interface IState {
   readonly data: IData;
   readonly caches: ICaches;
-  readonly is_loading: boolean;
-  readonly is_error: boolean;
   readonly predicted_next_nodes: TNodeId[];
 }
 
