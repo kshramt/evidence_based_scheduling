@@ -1,19 +1,16 @@
-from typing import Generic, TypeVar
 import asyncio
 import logging
+from typing import Generic, TypeVar
 
 import fastapi
+import fastapi.middleware.cors
+import fastapi.middleware.gzip
 import pydantic
 import pydantic.generics
-import fastapi.middleware.gzip
-import fastapi.middleware.cors
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from . import crud
-from . import database
-from . import models
-from . import schemas
+from . import crud, database, models, schemas
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +119,9 @@ async def create_user(
     db_patch.parent_id = db_patch.id
     await db.commit()
     await db.refresh(db_user)
-    return HB(header=PathHeader(path=get_user.path_of(db_user.id)), body=db_user)
+    return HB(
+        header=PathHeader(path=get_user.path_of(user_id=db_user.id)), body=db_user
+    )
 
 
 @app.get("/users", response_model=HB[EmptyHeader, list[schemas.User]])
@@ -132,7 +131,7 @@ async def get_users(offset: int = 0, limit: int = 100, db: Session = Depends(get
     )
 
 
-@app.get("/users/{user_id}", response_model=HB[EmptyHeader, schemas.User])
+@with_path_of(app.get, "/users/{user_id}", response_model=HB[EmptyHeader, schemas.User])
 async def get_user(user_id: int, db: Session = Depends(get_db)):
     return HB(header=EmptyHeader(), body=await _get_user(db=db, user_id=user_id))
 

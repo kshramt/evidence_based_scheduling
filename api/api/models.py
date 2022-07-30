@@ -1,8 +1,8 @@
 import datetime
 
-from sqlalchemy import Column, Integer, String, Index, Boolean, CheckConstraint
 import sqlalchemy
 import sqlalchemy.orm
+from sqlalchemy import Boolean, CheckConstraint, Column, Integer, String
 
 from .database import Base
 
@@ -36,6 +36,7 @@ class User(MixIn, Base):
     current_patch_id = Column(
         Integer,
         ForeignKey("patches.id", deferrable=True, initially="IMMEDIATE"),
+        index=True,
         nullable=False,
     )
     created_at = created_at_of()
@@ -44,17 +45,24 @@ class User(MixIn, Base):
 
 class Patch(MixIn, Base):
     __tablename__ = "patches"
-    __table_args__ = (CheckConstraint("(id != parent_id) or (snapshot is not null)", name="root_node_should_have_snapshot"),)
+    __table_args__ = (
+        CheckConstraint(
+            "(id != parent_id) or (snapshot is not null)",
+            name="root_node_should_have_snapshot",
+        ),
+    )
 
     id = Column(Integer, primary_key=True, index=True, nullable=False)
     user_id = Column(
         Integer,
         ForeignKey("users.id", deferrable=True, initially="IMMEDIATE"),
+        index=True,
         nullable=False,
     )
     parent_id = Column(
         Integer,
         ForeignKey("patches.id", deferrable=True, initially="IMMEDIATE"),
+        index=True,
         nullable=False,
     )  # The root node has a self link.
     patch = Column(String, nullable=False)
