@@ -13,42 +13,42 @@
  */
 
 import { exists, mapValues } from '../runtime';
-import {
-    Etag,
-    EtagFromJSON,
-    EtagFromJSONTyped,
-    EtagToJSON,
-} from './Etag';
-
 /**
  * 
  * @export
- * @interface EtagHeader
+ * @interface EtagPathHeader
  */
-export interface EtagHeader {
+export interface EtagPathHeader {
     /**
      * 
-     * @type {Etag}
-     * @memberof EtagHeader
+     * @type {number}
+     * @memberof EtagPathHeader
      */
-    etag: Etag;
+    etag: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof EtagPathHeader
+     */
+    path: string;
 }
 
-export function EtagHeaderFromJSON(json: any): EtagHeader {
-    return EtagHeaderFromJSONTyped(json, false);
+export function EtagPathHeaderFromJSON(json: any): EtagPathHeader {
+    return EtagPathHeaderFromJSONTyped(json, false);
 }
 
-export function EtagHeaderFromJSONTyped(json: any, ignoreDiscriminator: boolean): EtagHeader {
+export function EtagPathHeaderFromJSONTyped(json: any, ignoreDiscriminator: boolean): EtagPathHeader {
     if ((json === undefined) || (json === null)) {
         return json;
     }
     return {
         
-        'etag': EtagFromJSON(json['etag']),
+        'etag': json['etag'],
+        'path': json['path'],
     };
 }
 
-export function EtagHeaderToJSON(value?: EtagHeader | null): any {
+export function EtagPathHeaderToJSON(value?: EtagPathHeader | null): any {
     if (value === undefined) {
         return undefined;
     }
@@ -57,7 +57,8 @@ export function EtagHeaderToJSON(value?: EtagHeader | null): any {
     }
     return {
         
-        'etag': EtagToJSON(value.etag),
+        'etag': value.etag,
+        'path': value.path,
     };
 }
 

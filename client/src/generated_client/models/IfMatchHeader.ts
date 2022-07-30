@@ -13,48 +13,35 @@
  */
 
 import { exists, mapValues } from '../runtime';
-import {
-    IfMatch,
-    IfMatchFromJSON,
-    IfMatchFromJSONTyped,
-    IfMatchToJSON,
-} from './IfMatch';
-import {
-    IfMatchHeader,
-    IfMatchHeaderFromJSON,
-    IfMatchHeaderFromJSONTyped,
-    IfMatchHeaderToJSON,
-} from './IfMatchHeader';
-
 /**
  * 
  * @export
- * @interface Header
+ * @interface IfMatchHeader
  */
-export interface Header {
+export interface IfMatchHeader {
     /**
      * 
-     * @type {IfMatch}
-     * @memberof Header
+     * @type {number}
+     * @memberof IfMatchHeader
      */
-    if_match: IfMatch;
+    if_match: number;
 }
 
-export function HeaderFromJSON(json: any): Header {
-    return HeaderFromJSONTyped(json, false);
+export function IfMatchHeaderFromJSON(json: any): IfMatchHeader {
+    return IfMatchHeaderFromJSONTyped(json, false);
 }
 
-export function HeaderFromJSONTyped(json: any, ignoreDiscriminator: boolean): Header {
+export function IfMatchHeaderFromJSONTyped(json: any, ignoreDiscriminator: boolean): IfMatchHeader {
     if ((json === undefined) || (json === null)) {
         return json;
     }
     return {
         
-        'if_match': IfMatchFromJSON(json['if_match']),
+        'if_match': json['if_match'],
     };
 }
 
-export function HeaderToJSON(value?: Header | null): any {
+export function IfMatchHeaderToJSON(value?: IfMatchHeader | null): any {
     if (value === undefined) {
         return undefined;
     }
@@ -63,7 +50,7 @@ export function HeaderToJSON(value?: Header | null): any {
     }
     return {
         
-        'if_match': IfMatchToJSON(value.if_match),
+        'if_match': value.if_match,
     };
 }
 

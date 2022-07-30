@@ -22,7 +22,8 @@ import * as utils from "./utils";
 import * as ops from "./ops";
 import * as rtk from "./rtk";
 import * as undoable from "./undoable";
-import * as Client from "./client";
+import * as client from "./client";
+import * as saver from "./saver";
 
 const MENU_HEIGHT = "3rem" as const;
 const START_MARK = <span className="material-icons">play_arrow</span>;
@@ -46,11 +47,6 @@ const BACK_MARK = <span className="material-icons">arrow_back_ios</span>;
 
 const USER_ID = 1;
 const N_PREDICTED = 5;
-
-const client = new Client.DefaultApi(
-  // new Client.Configuration({ basePath: "http://127.0.0.1:5002" }),
-  new Client.Configuration({ basePath: window.location.origin }),
-);
 
 const history_type_set = new Set<string>();
 const register_history_type = <T extends {}>(x: T) => {
@@ -2515,11 +2511,14 @@ export const main = () => {
     </React.StrictMode>,
   );
 
-  client
+  client.client
     .getDataOfUserUsersUserIdDataGet({
       userId: USER_ID,
     })
     .then((res) => {
+      saver.set_parent_id(res.header.etag);
+      saver.set_origin_id(res.header.etag);
+
       let state: types.IState;
       let patches: immer.Patch[];
       let reverse_patches: immer.Patch[];
@@ -2551,6 +2550,8 @@ export const main = () => {
         patches = parsed_data.patches;
         reverse_patches = parsed_data.reverse_patches;
       }
+      saver.push_patches(USER_ID, patches);
+
       const start_time_and_node_id_list: [number, types.TNodeId][] = [];
       for (const node_id of ops.keys_of(state.data.queue)) {
         const node = state.data.nodes[node_id];
@@ -2567,13 +2568,17 @@ export const main = () => {
         next_action_predictor2.fit(node_id);
       }
       set_predicted_next_nodes(state);
+
       const root_reducer = rtk.reducer_with_patches_of<types.IState>(
         () => state,
         root_reducer_def,
       );
       const store = createStore(
         reducer_of_reducer_with_patches(
-          undoable.undoable_of(root_reducer, history_type_set),
+          saver.patch_saver_of(
+            undoable.undoable_of(root_reducer, history_type_set),
+            USER_ID,
+          ),
         ),
         applyMiddleware(thunk, saveStateMiddleware),
       );

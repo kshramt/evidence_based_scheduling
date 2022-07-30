@@ -1,7 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export * from './Data';
-export * from './Etag';
 export * from './EtagHeader';
 export * from './EtagPathHeader';
 export * from './HBEmptyHeaderListApiSchemasPatch';
@@ -13,12 +12,11 @@ export * from './HBEmptyHeaderUserCreate';
 export * from './HBEtagHeaderData';
 export * from './HBEtagPathHeaderData';
 export * from './HBEtagPathHeaderIntValue';
-export * from './HBPathHeaderPatch';
+export * from './HBEtagPathHeaderPatch';
 export * from './HBPathHeaderUser';
 export * from './HBUnionIfMatchHeaderEmptyHeaderIntValue';
 export * from './HTTPValidationError';
 export * from './Header';
-export * from './IfMatch';
 export * from './IfMatchHeader';
 export * from './IntValue';
 export * from './LocationInner';

@@ -42,9 +42,9 @@ import {
     HBEtagPathHeaderIntValue,
     HBEtagPathHeaderIntValueFromJSON,
     HBEtagPathHeaderIntValueToJSON,
-    HBPathHeaderPatch,
-    HBPathHeaderPatchFromJSON,
-    HBPathHeaderPatchToJSON,
+    HBEtagPathHeaderPatch,
+    HBEtagPathHeaderPatchFromJSON,
+    HBEtagPathHeaderPatchToJSON,
     HBPathHeaderUser,
     HBPathHeaderUserFromJSON,
     HBPathHeaderUserToJSON,
@@ -107,7 +107,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Create Patch
      */
-    async createPatchPatchesPostRaw(requestParameters: CreatePatchPatchesPostRequest, initOverrides?: RequestInit | runtime.InitOverideFunction): Promise<runtime.ApiResponse<HBPathHeaderPatch>> {
+    async createPatchPatchesPostRaw(requestParameters: CreatePatchPatchesPostRequest, initOverrides?: RequestInit | runtime.InitOverideFunction): Promise<runtime.ApiResponse<HBEtagPathHeaderPatch>> {
         if (requestParameters.hBEmptyHeaderPatchCreate === null || requestParameters.hBEmptyHeaderPatchCreate === undefined) {
             throw new runtime.RequiredError('hBEmptyHeaderPatchCreate','Required parameter requestParameters.hBEmptyHeaderPatchCreate was null or undefined when calling createPatchPatchesPost.');
         }
@@ -126,13 +126,13 @@ export class DefaultApi extends runtime.BaseAPI {
             body: HBEmptyHeaderPatchCreateToJSON(requestParameters.hBEmptyHeaderPatchCreate),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => HBPathHeaderPatchFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => HBEtagPathHeaderPatchFromJSON(jsonValue));
     }
 
     /**
      * Create Patch
      */
-    async createPatchPatchesPost(requestParameters: CreatePatchPatchesPostRequest, initOverrides?: RequestInit | runtime.InitOverideFunction): Promise<HBPathHeaderPatch> {
+    async createPatchPatchesPost(requestParameters: CreatePatchPatchesPostRequest, initOverrides?: RequestInit | runtime.InitOverideFunction): Promise<HBEtagPathHeaderPatch> {
         const response = await this.createPatchPatchesPostRaw(requestParameters, initOverrides);
         return await response.value();
     }

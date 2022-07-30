@@ -13,42 +13,35 @@
  */
 
 import { exists, mapValues } from '../runtime';
-import {
-    IfMatch,
-    IfMatchFromJSON,
-    IfMatchFromJSONTyped,
-    IfMatchToJSON,
-} from './IfMatch';
-
 /**
  * 
  * @export
- * @interface IfMatchHeader
+ * @interface EtagHeader
  */
-export interface IfMatchHeader {
+export interface EtagHeader {
     /**
      * 
-     * @type {IfMatch}
-     * @memberof IfMatchHeader
+     * @type {number}
+     * @memberof EtagHeader
      */
-    if_match: IfMatch;
+    etag: number;
 }
 
-export function IfMatchHeaderFromJSON(json: any): IfMatchHeader {
-    return IfMatchHeaderFromJSONTyped(json, false);
+export function EtagHeaderFromJSON(json: any): EtagHeader {
+    return EtagHeaderFromJSONTyped(json, false);
 }
 
-export function IfMatchHeaderFromJSONTyped(json: any, ignoreDiscriminator: boolean): IfMatchHeader {
+export function EtagHeaderFromJSONTyped(json: any, ignoreDiscriminator: boolean): EtagHeader {
     if ((json === undefined) || (json === null)) {
         return json;
     }
     return {
         
-        'if_match': IfMatchFromJSON(json['if_match']),
+        'etag': json['etag'],
     };
 }
 
-export function IfMatchHeaderToJSON(value?: IfMatchHeader | null): any {
+export function EtagHeaderToJSON(value?: EtagHeader | null): any {
     if (value === undefined) {
         return undefined;
     }
@@ -57,7 +50,7 @@ export function IfMatchHeaderToJSON(value?: IfMatchHeader | null): any {
     }
     return {
         
-        'if_match': IfMatchToJSON(value.if_match),
+        'etag': value.etag,
     };
 }
 

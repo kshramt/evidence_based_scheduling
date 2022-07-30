@@ -3,7 +3,6 @@ apis/DefaultApi.ts
 apis/index.ts
 index.ts
 models/Data.ts
-models/Etag.ts
 models/EtagHeader.ts
 models/EtagPathHeader.ts
 models/HBEmptyHeaderListApiSchemasPatch.ts
@@ -15,12 +14,11 @@ models/HBEmptyHeaderUserCreate.ts
 models/HBEtagHeaderData.ts
 models/HBEtagPathHeaderData.ts
 models/HBEtagPathHeaderIntValue.ts
-models/HBPathHeaderPatch.ts
+models/HBEtagPathHeaderPatch.ts
 models/HBPathHeaderUser.ts
 models/HBUnionIfMatchHeaderEmptyHeaderIntValue.ts
 models/HTTPValidationError.ts
 models/Header.ts
-models/IfMatch.ts
 models/IfMatchHeader.ts
 models/IntValue.ts
 models/LocationInner.ts

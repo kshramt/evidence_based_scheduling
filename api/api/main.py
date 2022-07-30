@@ -28,9 +28,6 @@ class HB(pydantic.generics.GenericModel, Generic[THeader, TBody]):
     body: TBody
 
 
-TEtag = int | str
-
-
 class EmptyBody(pydantic.BaseModel):
     pass
 
@@ -45,7 +42,7 @@ class EmptyReq(pydantic.BaseModel):
 
 
 class EtagHeader(pydantic.BaseModel):
-    etag: TEtag
+    etag: int
 
 
 class PathHeader(pydantic.BaseModel):
@@ -53,12 +50,12 @@ class PathHeader(pydantic.BaseModel):
 
 
 class EtagPathHeader(pydantic.BaseModel):
-    etag: TEtag
+    etag: int
     path: str
 
 
 class IfMatchHeader(pydantic.BaseModel):
-    if_match: TEtag
+    if_match: int
 
 
 class StatusCodeHeader(pydantic.BaseModel):
@@ -161,7 +158,7 @@ async def get_patch(patch_id: int, db: Session = Depends(get_db)):
     return HB(header=EmptyHeader(), body=db_patch)
 
 
-@with_path_of(app.post, "/patches", response_model=HB[PathHeader, schemas.Patch])
+@with_path_of(app.post, "/patches", response_model=HB[EtagPathHeader, schemas.Patch])
 async def create_patch(
     req: HB[EmptyHeader, schemas.PatchCreate], db: Session = Depends(get_db)
 ):
@@ -172,7 +169,10 @@ async def create_patch(
         raise HTTPException(status_code=400, detail="The parent patch should exist.")
     db_patch = await crud.create_patch(db=db, patch=req.body)
     return HB(
-        header=PathHeader(path=get_patch.path_of(patch_id=db_patch.id)), body=db_patch
+        header=EtagPathHeader(
+            etag=db_patch.id, path=get_patch.path_of(patch_id=db_patch.id)
+        ),
+        body=db_patch,
     )
 
 

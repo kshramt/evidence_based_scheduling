@@ -14,54 +14,54 @@
 
 import { exists, mapValues } from '../runtime';
 import {
+    EtagPathHeader,
+    EtagPathHeaderFromJSON,
+    EtagPathHeaderFromJSONTyped,
+    EtagPathHeaderToJSON,
+} from './EtagPathHeader';
+import {
     Patch,
     PatchFromJSON,
     PatchFromJSONTyped,
     PatchToJSON,
 } from './Patch';
-import {
-    PathHeader,
-    PathHeaderFromJSON,
-    PathHeaderFromJSONTyped,
-    PathHeaderToJSON,
-} from './PathHeader';
 
 /**
  * 
  * @export
- * @interface HBPathHeaderPatch
+ * @interface HBEtagPathHeaderPatch
  */
-export interface HBPathHeaderPatch {
+export interface HBEtagPathHeaderPatch {
     /**
      * 
-     * @type {PathHeader}
-     * @memberof HBPathHeaderPatch
+     * @type {EtagPathHeader}
+     * @memberof HBEtagPathHeaderPatch
      */
-    header: PathHeader;
+    header: EtagPathHeader;
     /**
      * 
      * @type {Patch}
-     * @memberof HBPathHeaderPatch
+     * @memberof HBEtagPathHeaderPatch
      */
     body: Patch;
 }
 
-export function HBPathHeaderPatchFromJSON(json: any): HBPathHeaderPatch {
-    return HBPathHeaderPatchFromJSONTyped(json, false);
+export function HBEtagPathHeaderPatchFromJSON(json: any): HBEtagPathHeaderPatch {
+    return HBEtagPathHeaderPatchFromJSONTyped(json, false);
 }
 
-export function HBPathHeaderPatchFromJSONTyped(json: any, ignoreDiscriminator: boolean): HBPathHeaderPatch {
+export function HBEtagPathHeaderPatchFromJSONTyped(json: any, ignoreDiscriminator: boolean): HBEtagPathHeaderPatch {
     if ((json === undefined) || (json === null)) {
         return json;
     }
     return {
         
-        'header': PathHeaderFromJSON(json['header']),
+        'header': EtagPathHeaderFromJSON(json['header']),
         'body': PatchFromJSON(json['body']),
     };
 }
 
-export function HBPathHeaderPatchToJSON(value?: HBPathHeaderPatch | null): any {
+export function HBEtagPathHeaderPatchToJSON(value?: HBEtagPathHeaderPatch | null): any {
     if (value === undefined) {
         return undefined;
     }
@@ -70,7 +70,7 @@ export function HBPathHeaderPatchToJSON(value?: HBPathHeaderPatch | null): any {
     }
     return {
         
-        'header': PathHeaderToJSON(value.header),
+        'header': EtagPathHeaderToJSON(value.header),
         'body': PatchToJSON(value.body),
     };
 }

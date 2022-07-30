@@ -14,48 +14,41 @@
 
 import { exists, mapValues } from '../runtime';
 import {
-    Etag,
-    EtagFromJSON,
-    EtagFromJSONTyped,
-    EtagToJSON,
-} from './Etag';
+    IfMatchHeader,
+    IfMatchHeaderFromJSON,
+    IfMatchHeaderFromJSONTyped,
+    IfMatchHeaderToJSON,
+} from './IfMatchHeader';
 
 /**
  * 
  * @export
- * @interface EtagPathHeader
+ * @interface Header
  */
-export interface EtagPathHeader {
+export interface Header {
     /**
      * 
-     * @type {Etag}
-     * @memberof EtagPathHeader
+     * @type {number}
+     * @memberof Header
      */
-    etag: Etag;
-    /**
-     * 
-     * @type {string}
-     * @memberof EtagPathHeader
-     */
-    path: string;
+    if_match: number;
 }
 
-export function EtagPathHeaderFromJSON(json: any): EtagPathHeader {
-    return EtagPathHeaderFromJSONTyped(json, false);
+export function HeaderFromJSON(json: any): Header {
+    return HeaderFromJSONTyped(json, false);
 }
 
-export function EtagPathHeaderFromJSONTyped(json: any, ignoreDiscriminator: boolean): EtagPathHeader {
+export function HeaderFromJSONTyped(json: any, ignoreDiscriminator: boolean): Header {
     if ((json === undefined) || (json === null)) {
         return json;
     }
     return {
         
-        'etag': EtagFromJSON(json['etag']),
-        'path': json['path'],
+        'if_match': json['if_match'],
     };
 }
 
-export function EtagPathHeaderToJSON(value?: EtagPathHeader | null): any {
+export function HeaderToJSON(value?: Header | null): any {
     if (value === undefined) {
         return undefined;
     }
@@ -64,8 +57,7 @@ export function EtagPathHeaderToJSON(value?: EtagPathHeader | null): any {
     }
     return {
         
-        'etag': EtagToJSON(value.etag),
-        'path': value.path,
+        'if_match': value.if_match,
     };
 }
 
