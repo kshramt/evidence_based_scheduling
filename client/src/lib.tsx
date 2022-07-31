@@ -6,7 +6,7 @@ import {
   useDispatch as _useDispatch,
   useSelector as _useSelector,
 } from "react-redux";
-import { createStore, applyMiddleware, Middleware } from "redux";
+import { createStore, applyMiddleware } from "redux";
 import thunk, { ThunkDispatch } from "redux-thunk";
 import * as immer from "immer";
 // import memoize from "proxy-memoize";  // Too large overhead
@@ -719,6 +719,7 @@ const App = () => {
                 <Menu />
                 <Body />
                 {toast.component}
+                <saver.Component user_id={USER_ID} />
               </node_filter_query_fast_context.Provider>
             </node_filter_query_slow_context.Provider>
           </node_ids_context.Provider>
@@ -2446,8 +2447,10 @@ const node_ids_context = React.createContext("");
 
 const error_element = (
   <div className="flex justify-center h-[100vh] w-full items-center">
-    An error occured while loading the page.{" "}
-    <a href=".">Please reload the page.</a>
+    <span>
+      An error occured while loading the page.{" "}
+      <a href=".">Please reload the page.</a>
+    </span>
   </div>
 );
 
@@ -2463,23 +2466,21 @@ export const main = () => {
   );
 
   client.client
-    .getDataOfUserUsersUserIdDataGet({
-      userId: USER_ID,
-    })
+    .getDataOfUserUsersUserIdDataGet(USER_ID)
     .then((res) => {
-      saver.set_parent_id(res.header.etag);
-      saver.set_origin_id(res.header.etag);
+      saver.set_parent_id(res.etag);
+      saver.set_origin_id(res.etag);
 
       let state: types.IState;
       let patches: immer.Patch[];
-      let reverse_patches: immer.Patch[];
+      // let reverse_patches: immer.Patch[];
       if (res.body.data === null) {
         state = ops.emptyStateOf();
         const produced = immer.produceWithPatches(res.body, (draft) => {
           draft.data = state.data;
         });
         patches = produced[1];
-        reverse_patches = produced[2];
+        // reverse_patches = produced[2];
       } else {
         const parsed_data = types.parse_data(res.body.data);
         if (!parsed_data.success) {
@@ -2500,7 +2501,7 @@ export const main = () => {
           n_unsaved_patches: 0,
         };
         patches = parsed_data.patches;
-        reverse_patches = parsed_data.reverse_patches;
+        // reverse_patches = parsed_data.reverse_patches;
       }
       saver.push_patches(USER_ID, patches);
 

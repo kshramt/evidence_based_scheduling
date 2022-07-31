@@ -2,7 +2,6 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export type Data = {
-    data: any;
+export type EmptyHeader = {
 };
 

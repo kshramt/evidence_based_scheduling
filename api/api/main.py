@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Generic, TypeVar
+from typing import Generic, Literal, TypeVar
 
 import fastapi
 import fastapi.middleware.cors
@@ -49,17 +49,20 @@ class PathHeader(pydantic.BaseModel):
     path: str
 
 
-class EtagPathHeader(pydantic.BaseModel):
-    etag: int
-    path: str
+class EtagPathHeader(EtagHeader, PathHeader):
+    pass
+
+
+class EtagPathStatusCode200Header(EtagPathHeader):
+    status_code: Literal[200] = 200
 
 
 class IfMatchHeader(pydantic.BaseModel):
     if_match: int
 
 
-class StatusCodeHeader(pydantic.BaseModel):
-    status_code: int
+class StatusCode412Header(pydantic.BaseModel):
+    status_code: Literal[412] = 412
 
 
 async def create_all():
@@ -98,10 +101,17 @@ async def get_db():
             raise
 
 
-@with_path_of(app.post, "/users", response_model=HB[PathHeader, schemas.User])
-async def create_user(
-    req: HB[EmptyHeader, schemas.UserCreate], db: Session = Depends(get_db)
-):
+class create_userReq(pydantic.BaseModel):
+    body: schemas.UserCreate
+
+
+class create_userRes(pydantic.BaseModel):
+    path: str
+    body: schemas.User
+
+
+@with_path_of(app.post, "/users", response_model=create_userRes)
+async def create_user(req: create_userReq, db: Session = Depends(get_db)):
     await db.execute("pragma defer_foreign_keys=ON")
     db_user = await crud.create_user(db=db, user=req.body, commit=False)
     await db.flush()
@@ -116,9 +126,7 @@ async def create_user(
     db_patch.parent_id = db_patch.id
     await db.commit()
     await db.refresh(db_user)
-    return HB(
-        header=PathHeader(path=get_user.path_of(user_id=db_user.id)), body=db_user
-    )
+    return create_userRes(path=get_user.path_of(user_id=db_user.id), body=db_user)
 
 
 @app.get("/users", response_model=HB[EmptyHeader, list[schemas.User]])
@@ -158,33 +166,45 @@ async def get_patch(patch_id: int, db: Session = Depends(get_db)):
     return HB(header=EmptyHeader(), body=db_patch)
 
 
-@with_path_of(app.post, "/patches", response_model=HB[EtagPathHeader, schemas.Patch])
-async def create_patch(
-    req: HB[EmptyHeader, schemas.PatchCreate], db: Session = Depends(get_db)
-):
+class create_patchReq(pydantic.BaseModel):
+    body: schemas.PatchCreate
+
+
+class create_patchRes(pydantic.BaseModel):
+    etag: int
+    path: str
+    body: schemas.Patch
+
+
+@with_path_of(app.post, "/patches", response_model=create_patchRes)
+async def create_patch(req: create_patchReq, db: Session = Depends(get_db)):
     db_parent_patch = await crud.get_patch(db, patch_id=req.body.parent_id)
     if db_parent_patch is None:
         raise HTTPException(status_code=400, detail="The parent patch should exist.")
     if db_parent_patch.user_id != req.body.user_id:
         raise HTTPException(status_code=400, detail="The parent patch should exist.")
     db_patch = await crud.create_patch(db=db, patch=req.body)
-    return HB(
-        header=EtagPathHeader(
-            etag=db_patch.id, path=get_patch.path_of(patch_id=db_patch.id)
-        ),
+    return create_patchRes(
+        etag=db_patch.id,
+        path=get_patch.path_of(patch_id=db_patch.id),
         body=db_patch,
     )
 
 
-@with_path_of(
-    app.get, "/users/{user_id}/data", response_model=HB[EtagPathHeader, schemas.Data]
-)
+class get_data_of_userRes(pydantic.BaseModel):
+    etag: int
+    path: str
+    body: schemas.Data
+
+
+@with_path_of(app.get, "/users/{user_id}/data", response_model=get_data_of_userRes)
 async def get_data_of_user(user_id: int, db: Session = Depends(get_db)):
     patch_id = await crud.get_current_patch_id(db=db, user_id=user_id)
     if patch_id is None:
         raise HTTPException(status_code=404, detail="User not found.")
-    return HB(
-        header=EtagPathHeader(etag=patch_id, path=get_data.path_of(patch_id=patch_id)),
+    return get_data_of_userRes(
+        etag=patch_id,
+        path=get_data.path_of(patch_id=patch_id),
         body=await _get_data(db=db, patch_id=patch_id),
     )
 
@@ -208,22 +228,56 @@ async def _get_data(db: Session, patch_id: int):
     return data
 
 
+class put_id_of_data_of_userReqWithIfMatch(pydantic.BaseModel):
+    if_match: int
+    body: schemas.IntValue
+
+
+class put_id_of_data_of_userReqWithoutIfMatch(pydantic.BaseModel):
+    body: schemas.IntValue
+
+
+class put_id_of_data_of_userRes200(pydantic.BaseModel):
+    etag: int
+    path: str
+    status_code: Literal[200]
+    body: schemas.IntValue
+
+
+class put_id_of_data_of_userRes412Body(pydantic.BaseModel):
+    updated_at: str
+
+
+class put_id_of_data_of_userRes412(pydantic.BaseModel):
+    status_code: Literal[412]
+    body: put_id_of_data_of_userRes412Body
+
+
 @with_path_of(
     app.put,
     "/users/{user_id}/data/id",
-    response_model=HB[EtagPathHeader, schemas.IntValue],
+    response_model=put_id_of_data_of_userRes412 | put_id_of_data_of_userRes200,
 )
 async def put_id_of_data_of_user(
     user_id: int,
-    req: HB[IfMatchHeader | EmptyHeader, schemas.IntValue],
+    req: put_id_of_data_of_userReqWithIfMatch | put_id_of_data_of_userReqWithoutIfMatch,
     db: Session = Depends(get_db),
 ):
     user = await _get_user(db=db, user_id=user_id)
     if (
-        isinstance(req.header, IfMatchHeader)
-        and req.header.if_match != user.current_patch_id
+        isinstance(req, put_id_of_data_of_userReqWithIfMatch)
+        and req.if_match != user.current_patch_id
     ):
-        raise HTTPException(status_code=412, detail="Data have been changed.")
+        current_patch = await crud.get_patch(db=db, patch_id=user.current_patch_id)
+        if current_patch is None:
+            raise RuntimeError(
+                f"Must not happen: [user] does not have valid current_patch_id."
+            )
+        logging.error(vars(current_patch))
+        return put_id_of_data_of_userRes412(
+            status_code=412,
+            body=put_id_of_data_of_userRes412Body(updated_at=current_patch.updated_at),
+        )
 
     patch = await crud.get_patch(db=db, patch_id=req.body.value)
     if patch is None:
@@ -234,29 +288,33 @@ async def put_id_of_data_of_user(
     user.current_patch_id = req.body.value
     await db.commit()
 
-    return HB(
-        header=EtagPathHeader(
-            etag=req.body.value, path=get_data.path_of(patch_id=req.body.value)
-        ),
+    return put_id_of_data_of_userRes200(
+        status_code=200,
+        etag=req.body.value,
+        path=get_data.path_of(patch_id=req.body.value),
         body=schemas.IntValue(value=req.body.value),
     )
+
+
+class get_id_of_data_of_userRes(pydantic.BaseModel):
+    etag: int
+    path: str
+    body: schemas.IntValue
 
 
 @with_path_of(
     app.get,
     "/users/{user_id}/data/id",
-    response_model=HB[EtagPathHeader, schemas.IntValue],
+    response_model=get_id_of_data_of_userRes,
 )
 async def get_id_of_data_of_user(
     user_id: int,
     db: Session = Depends(get_db),
 ):
     user = await _get_user(db=db, user_id=user_id)
-    return HB(
-        header=EtagPathHeader(
-            etag=user.current_patch_id,
-            path=get_data.path_of(patch_id=user.current_patch_id),
-        ),
+    return get_id_of_data_of_userRes(
+        etag=user.current_patch_id,
+        path=get_data.path_of(patch_id=user.current_patch_id),
         body=schemas.IntValue(value=user.current_patch_id),
     )
 
