@@ -29,7 +29,17 @@
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
-    "extends": "react-app"
+    "extends": "react-app",
+    "rules": {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          "varsIgnorePattern": "^_$",
+          "argsIgnorePattern": "^_$",
+          "destructuredArrayIgnorePattern": "^_$"
+        }
+      ]
+    }
   },
   "browserslist": [
     ">0.2%",
