@@ -271,7 +271,7 @@ async def put_id_of_data_of_user(
         current_patch = await crud.get_patch(db=db, patch_id=user.current_patch_id)
         if current_patch is None:
             raise RuntimeError(
-                f"Must not happen: [user] does not have valid current_patch_id."
+                f"Must not happen: {user} does not have valid current_patch_id."
             )
         logging.error(vars(current_patch))
         return put_id_of_data_of_userRes412(

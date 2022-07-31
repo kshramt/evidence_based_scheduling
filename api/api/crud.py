@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 
 import jsonpatch
 from sqlalchemy import and_, func, join, select
@@ -52,7 +53,7 @@ async def get_current_patch_id(db: Session, user_id: int):
     )
 
 
-async def get_data(db: Session, patch_id: int):
+async def get_data(db: Session, patch_id: int, commit=True):
     select_cols = (
         models.Patch.id,
         models.Patch.parent_id,
@@ -75,10 +76,21 @@ async def get_data(db: Session, patch_id: int):
     stmt = select((func.coalesce(branch.c.snapshot, branch.c.patch),)).order_by(
         branch.c.id
     )
+    t1 = time.monotonic()
     ss = (await db.scalars(stmt)).all()
     if not ss:
         return None
     res = json.loads(ss[0])
     for patch in ss[1:]:
         jsonpatch.apply_patch(res, patch, in_place=True)
+    t2 = time.monotonic()
+    if 1 < t2 - t1:
+        db_patch = await get_patch(db=db, patch_id=patch_id)
+        if db_patch is None:
+            raise RuntimeError(f"Must not happen: db_patch is None for {patch_id}")
+        db_patch.snapshot = json.dumps(
+            res, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+        )
+        if commit:
+            await db.commit()
     return res
