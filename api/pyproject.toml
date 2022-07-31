@@ -33,7 +33,7 @@ jupyterlab-code-formatter = "^1.4.11"
 alembic = "^1.8.1"
 
 [tool.poetry]
-name = "src"
+name = "api"
 version = "0.1.0"
 description = ""
 authors = ["Your Name <you@example.com>"]

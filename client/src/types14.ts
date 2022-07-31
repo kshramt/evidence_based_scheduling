@@ -66,10 +66,7 @@ export interface IData {
   readonly show_strong_edge_only?: boolean;
   readonly version: typeof VERSION;
 }
-const is_IData = (
-  data: any,
-  record_if_false: TRecordIfFalse,
-): data is IData =>
+const is_IData = (data: any, record_if_false: TRecordIfFalse): data is IData =>
   record_if_false(is_object(data), "is_object") &&
   record_if_false(is_IEdges(data.edges, record_if_false), "edges") &&
   record_if_false(is_TNodeId(data.root), "root") &&
@@ -135,8 +132,7 @@ const is_IEdges = (
 
 const edge_type_values = ["weak", "strong"] as const;
 type TEdgeType = typeof edge_type_values[number];
-const is_TEdgeType = (x: any): x is TEdgeType =>
-  edge_type_values.includes(x);
+const is_TEdgeType = (x: any): x is TEdgeType => edge_type_values.includes(x);
 
 interface IEdge {
   readonly c: TNodeId;

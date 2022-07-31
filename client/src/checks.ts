@@ -151,7 +151,9 @@ const _has_cycle_of = (
     return false;
   }
   utils.vids[node_id] = vid;
-  return ops.keys_of(state.data.nodes[node_id].parents).some((edge_id) =>
-    _has_cycle_of(state.data.edges[edge_id].p, state, vid, origin_node_id),
-  );
+  return ops
+    .keys_of(state.data.nodes[node_id].parents)
+    .some((edge_id) =>
+      _has_cycle_of(state.data.edges[edge_id].p, state, vid, origin_node_id),
+    );
 };

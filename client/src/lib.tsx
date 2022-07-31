@@ -405,7 +405,7 @@ const root_reducer_def = (
     if (node_id_min !== null) {
       _top(
         state,
-        todo_leafs_of(node_id_min, state, (edge) => true)
+        todo_leafs_of(node_id_min, state, () => true)
           [Symbol.iterator]()
           .next().value[0],
       );
@@ -1943,7 +1943,7 @@ const digits1 = (x: number) => {
 
 export const cumsum = (xs: number[]) => {
   const ret = [0];
-  xs.reduce((total, current, i) => {
+  xs.reduce((total, current) => {
     const t = total + current;
     ret.push(t);
     return t;

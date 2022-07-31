@@ -37,7 +37,7 @@ export class TriGramPredictor<K> {
   constructor(decay: number) {
     this.decay = decay;
     this.counts = new DefaultMap(
-      (k: K) => new DefaultMap((k: K) => new DefaultMap(this.default_count_of)),
+      () => new DefaultMap(() => new DefaultMap(this.default_count_of)),
     );
     this.buf = [];
     this.i = -1;
@@ -80,9 +80,7 @@ export class BiGramPredictor<K> {
   n: number;
   constructor(decay: number) {
     this.decay = decay;
-    this.counts = new DefaultMap(
-      (k: K) => new DefaultMap(this.default_count_of),
-    );
+    this.counts = new DefaultMap(() => new DefaultMap(this.default_count_of));
     this.buf = [];
     this.i = -1;
     this.n = 2;

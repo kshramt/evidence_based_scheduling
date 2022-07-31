@@ -34,7 +34,7 @@ const store_of = () => {
     },
     get_state: () => state,
     add: (severity: TSeverity, text: string) => {
-      const id = (++id_seq);
+      const id = ++id_seq;
       set_state((prev) => {
         const message = { severity, text, id };
         return [...prev, message];

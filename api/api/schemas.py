@@ -1,4 +1,5 @@
 from typing import Any
+
 import pydantic
 
 
@@ -46,4 +47,3 @@ class Data(DataBase):
 
 class IntValue(pydantic.BaseModel):
     value: int
-

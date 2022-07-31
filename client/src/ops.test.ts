@@ -1,13 +1,13 @@
 import * as ops from "./ops";
-import * as types from "./types"
+import * as types from "./types";
 
-jest.mock("./toast", ()=>{
+jest.mock("./toast", () => {
   const original = jest.requireActual("./toast");
   return {
     ...original,
     add: console.log,
-  }
-})
+  };
+});
 
 it("_parse_toc", () => {
   const parsed = ops._parse_toc(`0 a
