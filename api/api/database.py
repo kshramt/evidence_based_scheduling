@@ -47,7 +47,7 @@ def on_engine_connect(dbapi_connection, connection_record):
     cursor = dbapi_connection.cursor()
     try:
         cursor.execute("pragma foreign_keys=ON")
-        cursor.execute("pragma busy_timeout=2000")
+        cursor.execute("pragma busy_timeout=5000")
     finally:
         cursor.close()
 
