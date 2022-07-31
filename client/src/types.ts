@@ -138,6 +138,7 @@ export interface IState {
   readonly data: IData;
   readonly caches: ICaches;
   readonly predicted_next_nodes: TNodeId[];
+  readonly n_unsaved_patches: number;
 }
 
 export interface IData {

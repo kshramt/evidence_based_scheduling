@@ -43,6 +43,7 @@ export const emptyStateOf = (): types.IState => {
     data,
     caches,
     predicted_next_nodes: [],
+    n_unsaved_patches: 0,
   };
 };
 

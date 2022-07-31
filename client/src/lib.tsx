@@ -54,12 +54,6 @@ const register_history_type = <T extends {}>(x: T) => {
   return x;
 };
 
-const save_type_set = new Set<string>();
-const register_save_type = <T extends {}>(x: T) => {
-  save_type_set.add(x.toString());
-  return x;
-};
-
 const next_action_predictor3 = new nap.TriGramPredictor<types.TNodeId>(0.9);
 const next_action_predictor2 = new nap.BiGramPredictor<types.TNodeId>(0.9);
 
@@ -135,131 +129,108 @@ const stop_all = (draft: immer.Draft<types.IState>) => {
 };
 
 const eval_ = register_history_type(rtk.action_of_of<types.TNodeId>("eval_"));
-const delete_action = register_save_type(
-  register_history_type(rtk.action_of_of<types.TNodeId>("delete_action")),
+const delete_action = register_history_type(
+  rtk.action_of_of<types.TNodeId>("delete_action"),
 );
-const parse_toc_action = register_save_type(
-  register_history_type(rtk.action_of_of<types.TNodeId>("parse_toc_action")),
+const parse_toc_action = register_history_type(
+  rtk.action_of_of<types.TNodeId>("parse_toc_action"),
 );
-const delete_edge_action = register_save_type(
-  register_history_type(rtk.action_of_of<types.TEdgeId>("delete_edge_action")),
+const delete_edge_action = register_history_type(
+  rtk.action_of_of<types.TEdgeId>("delete_edge_action"),
 );
-const new_action = register_save_type(
-  register_history_type(rtk.action_of_of<types.TNodeId>("new_action")),
+const new_action = register_history_type(
+  rtk.action_of_of<types.TNodeId>("new_action"),
 );
-const flipShowTodoOnly = register_save_type(
-  register_history_type(rtk.action_of_of("flipShowTodoOnly")),
+const flipShowTodoOnly = register_history_type(
+  rtk.action_of_of("flipShowTodoOnly"),
 );
-const toggle_show_strong_edge_only_action = register_save_type(
-  register_history_type(
-    rtk.action_of_of("toggle_show_strong_edge_only_action"),
-  ),
+const toggle_show_strong_edge_only_action = register_history_type(
+  rtk.action_of_of("toggle_show_strong_edge_only_action"),
 );
 const flipShowDetail = rtk.action_of_of<types.TNodeId>("flipShowDetail");
-const start_action = register_save_type(
-  register_history_type(
-    rtk.action_of_of<{ node_id: types.TNodeId; is_concurrent: boolean }>(
-      "start_action",
-    ),
+const start_action = register_history_type(
+  rtk.action_of_of<{ node_id: types.TNodeId; is_concurrent: boolean }>(
+    "start_action",
   ),
 );
-const top_action = register_save_type(
-  register_history_type(rtk.action_of_of<types.TNodeId>("top_action")),
+const top_action = register_history_type(
+  rtk.action_of_of<types.TNodeId>("top_action"),
 );
-const smallestToTop = register_save_type(
-  register_history_type(rtk.action_of_of("smallestToTop")),
-);
-const closestToTop = register_save_type(
-  register_history_type(rtk.action_of_of("closestToTop")),
-);
-const move_important_node_to_top_action = register_save_type(
-  register_history_type(rtk.action_of_of("move_important_node_to_top_action")),
+const smallestToTop = register_history_type(rtk.action_of_of("smallestToTop"));
+const closestToTop = register_history_type(rtk.action_of_of("closestToTop"));
+const move_important_node_to_top_action = register_history_type(
+  rtk.action_of_of("move_important_node_to_top_action"),
 );
 const set_total_time = register_history_type(
   rtk.action_of_of<types.TNodeId>("set_total_time"),
 );
-const stop_action = register_save_type(
-  register_history_type(rtk.action_of_of<types.TNodeId>("stop_action")),
+const stop_action = register_history_type(
+  rtk.action_of_of<types.TNodeId>("stop_action"),
 );
-const stop_all_action = register_save_type(
-  register_history_type(rtk.action_of_of("stop_all_action")),
+const stop_all_action = register_history_type(
+  rtk.action_of_of("stop_all_action"),
 );
-const moveUp_ = register_save_type(
-  register_history_type(rtk.action_of_of<types.TNodeId>("moveUp_")),
+const moveUp_ = register_history_type(
+  rtk.action_of_of<types.TNodeId>("moveUp_"),
 );
-const moveDown_ = register_save_type(
-  register_history_type(rtk.action_of_of<types.TNodeId>("moveDown_")),
+const moveDown_ = register_history_type(
+  rtk.action_of_of<types.TNodeId>("moveDown_"),
 );
-const set_estimate_action = register_save_type(
-  register_history_type(
-    rtk.action_of_of<{
-      node_id: types.TNodeId;
-      estimate: number;
-    }>("set_estimate_action"),
+const set_estimate_action = register_history_type(
+  rtk.action_of_of<{
+    node_id: types.TNodeId;
+    estimate: number;
+  }>("set_estimate_action"),
+);
+const set_range_value_action = register_history_type(
+  rtk.action_of_of<{
+    node_id: types.TNodeId;
+    i_range: number;
+    k: keyof types.IRange;
+    v: string;
+  }>("set_range_value_action"),
+);
+const delete_range_action = register_history_type(
+  rtk.action_of_of<{
+    node_id: types.TNodeId;
+    i_range: number;
+  }>("delete_range_action"),
+);
+const setTextAndResizeTextArea = register_history_type(
+  rtk.action_of_of<{
+    k: types.TNodeId;
+    text: string;
+    height: null | string;
+  }>("setTextAndResizeTextArea"),
+);
+const todoToDone = register_history_type(
+  rtk.action_of_of<types.TNodeId>("todoToDone"),
+);
+const todoToDont = register_history_type(
+  rtk.action_of_of<types.TNodeId>("todoToDont"),
+);
+const done_or_dont_to_todo_action = register_history_type(
+  rtk.action_of_of<types.TNodeId>("done_or_dont_to_todo_action"),
+);
+const toggle_show_children = register_history_type(
+  rtk.action_of_of<types.TNodeId>("toggle_show_children"),
+);
+const show_path_to_selected_node = register_history_type(
+  rtk.action_of_of<types.TNodeId>("show_path_to_selected_node"),
+);
+const set_edge_type_action = register_history_type(
+  rtk.action_of_of<{ edge_id: types.TEdgeId; edge_type: types.TEdgeType }>(
+    "set_edge_type_action",
   ),
 );
-const set_range_value_action = register_save_type(
-  register_history_type(
-    rtk.action_of_of<{
-      node_id: types.TNodeId;
-      i_range: number;
-      k: keyof types.IRange;
-      v: string;
-    }>("set_range_value_action"),
-  ),
+const toggle_edge_hide_action = register_history_type(
+  rtk.action_of_of<types.TEdgeId>("toggle_edge_hide_action"),
 );
-const delete_range_action = register_save_type(
-  register_history_type(
-    rtk.action_of_of<{
-      node_id: types.TNodeId;
-      i_range: number;
-    }>("delete_range_action"),
-  ),
+const add_edges_action = register_history_type(
+  rtk.action_of_of<types.IEdge[]>("add_edges_action"),
 );
-const setTextAndResizeTextArea = register_save_type(
-  register_history_type(
-    rtk.action_of_of<{
-      k: types.TNodeId;
-      text: string;
-      height: null | string;
-    }>("setTextAndResizeTextArea"),
-  ),
-);
-const todoToDone = register_save_type(
-  register_history_type(rtk.action_of_of<types.TNodeId>("todoToDone")),
-);
-const todoToDont = register_save_type(
-  register_history_type(rtk.action_of_of<types.TNodeId>("todoToDont")),
-);
-const done_or_dont_to_todo_action = register_save_type(
-  register_history_type(
-    rtk.action_of_of<types.TNodeId>("done_or_dont_to_todo_action"),
-  ),
-);
-const toggle_show_children = register_save_type(
-  register_history_type(
-    rtk.action_of_of<types.TNodeId>("toggle_show_children"),
-  ),
-);
-const show_path_to_selected_node = register_save_type(
-  register_history_type(
-    rtk.action_of_of<types.TNodeId>("show_path_to_selected_node"),
-  ),
-);
-const set_edge_type_action = register_save_type(
-  register_history_type(
-    rtk.action_of_of<{ edge_id: types.TEdgeId; edge_type: types.TEdgeType }>(
-      "set_edge_type_action",
-    ),
-  ),
-);
-const toggle_edge_hide_action = register_save_type(
-  register_history_type(
-    rtk.action_of_of<types.TEdgeId>("toggle_edge_hide_action"),
-  ),
-);
-const add_edges_action = register_save_type(
-  register_history_type(rtk.action_of_of<types.IEdge[]>("add_edges_action")),
+const set_n_unsaved_patches_action = rtk.action_of_of<number>(
+  "set_n_unsaved_patches_action",
 );
 
 const root_reducer_def = (
@@ -268,6 +239,9 @@ const root_reducer_def = (
     reduce: rtk.TReduce<types.IState, Payload>,
   ) => void,
 ) => {
+  builder(set_n_unsaved_patches_action, (state, action) => {
+    state.n_unsaved_patches = action.payload;
+  });
   builder(eval_, (state, action) => {
     const k = action.payload;
     _eval_(state, k);
@@ -762,6 +736,7 @@ const Menu = () => {
   const show_strong_edge_only = useSelector(
     (state) => state.data.show_strong_edge_only,
   );
+  const n_unsaved_patches = useSelector((state) => state.n_unsaved_patches);
   const _undo = useCallback(() => {
     dispatch({ type: undoable.UNDO_TYPE });
   }, [dispatch]);
@@ -825,6 +800,10 @@ const Menu = () => {
       </button>
       <NodeFilterQueryInput />
       <NodeIdsInput />
+      <span className="grow" />
+      {n_unsaved_patches ? (
+        <span className="pr-[1ex]">{n_unsaved_patches} left</span>
+      ) : null}
     </div>
   );
 };
@@ -2430,9 +2409,6 @@ const LastRange_of = memoize1((node_id: types.TNodeId) => (
 
 const _suppress_missing_onChange_handler_warning = () => {};
 
-register_save_type(undoable.UNDO_TYPE);
-register_save_type(undoable.REDO_TYPE);
-
 const reducer_of_reducer_with_patches = (
   reducer_with_patches: (
     state: undefined | types.IState,
@@ -2447,31 +2423,6 @@ const reducer_of_reducer_with_patches = (
     return reducer_with_patches(state, action).state;
   };
 };
-
-const saveStateMiddlewareOf = (pred: (type_: string) => boolean) => {
-  const saveStateMiddleware: Middleware<{}, types.IState> =
-    (store) => (next_dispatch) => (action) => {
-      const ret = next_dispatch(action);
-      if (pred(action.type)) {
-        fetch(`/users/${USER_ID}/patches`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json; charset=utf-8",
-          },
-          body: JSON.stringify(store.getState().data),
-        }).then((r) => {
-          if (!r.ok) {
-            toast.add("error", "Failed to save changes.", 50000);
-          }
-        });
-      }
-      return ret;
-    };
-  return saveStateMiddleware;
-};
-const saveStateMiddleware = saveStateMiddlewareOf((type_: string) =>
-  save_type_set.has(type_),
-);
 
 type AppDispatch = ThunkDispatch<types.IState, {}, types.TAnyPayloadAction>;
 const useDispatch = () => _useDispatch<AppDispatch>();
@@ -2546,6 +2497,7 @@ export const main = () => {
           data: parsed_data.data,
           caches,
           predicted_next_nodes: [],
+          n_unsaved_patches: 0,
         };
         patches = parsed_data.patches;
         reverse_patches = parsed_data.reverse_patches;
@@ -2580,8 +2532,16 @@ export const main = () => {
             USER_ID,
           ),
         ),
-        applyMiddleware(thunk, saveStateMiddleware),
+        applyMiddleware(thunk, saver.middleware),
       );
+
+      saver.push_patches.add_before_process_hook((q) => {
+        store.dispatch(set_n_unsaved_patches_action(q.length));
+      });
+      saver.push_patches.add_after_process_hook(() => {
+        store.dispatch(set_n_unsaved_patches_action(0));
+      });
+
       root.render(
         <React.StrictMode>
           <Provider store={store}>

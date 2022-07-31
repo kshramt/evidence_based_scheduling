@@ -1,3 +1,4 @@
+import * as redux from "redux";
 import * as immer from "immer";
 
 import * as client from "./client";
@@ -7,8 +8,10 @@ import * as types from "./types";
 let PARENT_ID = -1;
 let ORIGIN_ID = -1;
 
-const push_patches_queue = rate_limit.rate_limit_of();
-const push_data_id_queue = rate_limit.rate_limit_of();
+const push_patches_queue = rate_limit.rate_limit_of(300);
+const push_data_id_queue = rate_limit.rate_limit_of(300);
+let stored_patches: undefined | { user_id: number; patches: immer.Patch[] } =
+  undefined;
 
 export const set_parent_id = (parent_id: number) => {
   PARENT_ID = parent_id;
@@ -35,6 +38,9 @@ export const push_patches = (user_id: number, patches: immer.Patch[]) => {
     ),
   );
 };
+push_patches.add_before_process_hook =
+  push_patches_queue.add_before_process_hook;
+push_patches.add_after_process_hook = push_patches_queue.add_after_process_hook;
 
 export const patch_saver_of = (
   reducer_with_patches: (
@@ -55,11 +61,26 @@ export const patch_saver_of = (
       return reducer_with_patches(state, action);
     }
     const reduced = reducer_with_patches(state, action);
-    push_patches(user_id, reduced.patches);
+    if (stored_patches !== undefined) {
+      throw new Error(`stored_patches !== undefined: ${stored_patches}`);
+    }
+    stored_patches = { user_id, patches: reduced.patches };
     return reduced;
   };
   return patch_saver;
 };
+
+export const middleware =
+  () => (next_dispatch: redux.Dispatch) => (action: redux.AnyAction) => {
+    const ret = next_dispatch(action);
+    if (stored_patches === undefined) {
+      throw new Error(`stored_patches === undefined`);
+    }
+    const sp = stored_patches;
+    stored_patches = undefined;
+    push_patches(sp.user_id, sp.patches);
+    return ret;
+  };
 
 const post_patches_of = (user_id: number, patch: string) => {
   const post_patches = async () => {
