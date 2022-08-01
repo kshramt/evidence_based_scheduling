@@ -24,6 +24,7 @@ import * as rtk from "./rtk";
 import * as undoable from "./undoable";
 import * as client from "./client";
 import * as saver from "./saver";
+import * as producer from "./producer";
 
 const MENU_HEIGHT = "3rem" as const;
 const START_MARK = <span className="material-icons">play_arrow</span>;
@@ -2410,18 +2411,18 @@ const LastRange_of = memoize1((node_id: types.TNodeId) => (
 
 const _suppress_missing_onChange_handler_warning = () => {};
 
-const reducer_of_reducer_with_patches = (
-  reducer_with_patches: (
+const reducer_of_reducer_with_patch = (
+  reducer_with_patch: (
     state: undefined | types.IState,
     action: types.TAnyPayloadAction,
   ) => {
     state: types.IState;
-    patches: immer.Patch[];
-    reverse_patches: immer.Patch[];
+    patch: producer.TOperation[];
+    reverse_patch: producer.TOperation[];
   },
 ) => {
   return (state: undefined | types.IState, action: types.TAnyPayloadAction) => {
-    return reducer_with_patches(state, action).state;
+    return reducer_with_patch(state, action).state;
   };
 };
 
@@ -2472,15 +2473,15 @@ export const main = () => {
       saver.set_origin_id(res.etag);
 
       let state: types.IState;
-      let patches: immer.Patch[];
-      // let reverse_patches: immer.Patch[];
+      let patch: producer.TOperation[];
+      // let reverse_patch: producer.TPatch[];
       if (res.body.data === null) {
         state = ops.emptyStateOf();
-        const produced = immer.produceWithPatches(res.body, (draft) => {
+        const produced = producer.produce_with_patche(res.body, (draft) => {
           draft.data = state.data;
         });
-        patches = produced[1];
-        // reverse_patches = produced[2];
+        patch = produced.patch;
+        // reverse_patch = produced.reverse_patch;
       } else {
         const parsed_data = types.parse_data(res.body.data);
         if (!parsed_data.success) {
@@ -2500,10 +2501,10 @@ export const main = () => {
           predicted_next_nodes: [],
           n_unsaved_patches: 0,
         };
-        patches = parsed_data.patches;
-        // reverse_patches = parsed_data.reverse_patches;
+        patch = parsed_data.patch;
+        // reverse_patch = parsed_data.reverse_patch;
       }
-      saver.push_patches(USER_ID, patches);
+      saver.push_patch(USER_ID, patch);
 
       const start_time_and_node_id_list: [number, types.TNodeId][] = [];
       for (const node_id of ops.keys_of(state.data.queue)) {
@@ -2522,12 +2523,12 @@ export const main = () => {
       }
       set_predicted_next_nodes(state);
 
-      const root_reducer = rtk.reducer_with_patches_of<types.IState>(
+      const root_reducer = rtk.reducer_with_patch_of<types.IState>(
         () => state,
         root_reducer_def,
       );
       const store = createStore(
-        reducer_of_reducer_with_patches(
+        reducer_of_reducer_with_patch(
           saver.patch_saver_of(
             undoable.undoable_of(root_reducer, history_type_set),
             USER_ID,
@@ -2536,10 +2537,10 @@ export const main = () => {
         applyMiddleware(thunk, saver.middleware),
       );
 
-      saver.push_patches.add_before_process_hook((q) => {
+      saver.push_patch.add_before_process_hook((q) => {
         store.dispatch(set_n_unsaved_patches_action(q.length));
       });
-      saver.push_patches.add_after_process_hook(() => {
+      saver.push_patch.add_after_process_hook(() => {
         store.dispatch(set_n_unsaved_patches_action(0));
       });
 

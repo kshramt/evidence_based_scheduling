@@ -1,5 +1,6 @@
 import * as toast from "./toast";
-import * as immer from "immer";
+
+import * as producer from "./producer";
 
 import * as types_prev from "./types14";
 import type { TEdgeId, TNodeId } from "./types14";
@@ -7,8 +8,6 @@ import { is_TEdgeId, is_TNodeId } from "./types14";
 
 export type { TEdgeId, TNodeId } from "./types14";
 export { is_TEdgeId, is_TNodeId } from "./types14";
-
-immer.enablePatches();
 
 export const VERSION = 15 as const;
 
@@ -18,13 +17,13 @@ export const parse_data = (
   | {
       success: true;
       data: IData;
-      patches: immer.Patch[];
-      reverse_patches: immer.Patch[];
+      patch: producer.TOperation[];
+      reverse_patch: producer.TOperation[];
     }
   | { success: false } => {
   const record_if_false = record_if_false_of();
   if (is_IData(x, record_if_false)) {
-    return { success: true, data: x, patches: [], reverse_patches: [] };
+    return { success: true, data: x, patch: [], reverse_patch: [] };
   }
   const parsed_prev = types_prev.parse_data(x);
   if (!parsed_prev.success) {
@@ -40,9 +39,9 @@ export const parse_data = (
     return {
       success: true,
       data: converted.data,
-      patches: parsed_prev.patches.concat(converted.patches),
-      reverse_patches: parsed_prev.reverse_patches.concat(
-        converted.reverse_patches,
+      patch: parsed_prev.patch.concat(converted.patch),
+      reverse_patch: parsed_prev.reverse_patch.concat(
+        converted.reverse_patch,
       ),
     };
   }
@@ -55,43 +54,46 @@ const current_of_prev = (
   | {
       success: true;
       data: IData;
-      patches: immer.Patch[];
-      reverse_patches: immer.Patch[];
+      patch: producer.TOperation[];
+      reverse_patch: producer.TOperation[];
     } => {
-  const [data, patches, reverse_patches] = immer.produceWithPatches(
-    data_prev,
-    (draft) => {
-      // @ts-expect-error
-      draft.version = VERSION;
-      const queue: TOrderedTNodeIds = {};
-      for (let i = 0; i < draft.queue.length; ++i) {
-        queue[draft.queue[i]] = i;
+  const produced = producer.produce_with_patche(data_prev, (draft) => {
+    // @ts-expect-error
+    draft.version = VERSION;
+    const queue: TOrderedTNodeIds = {};
+    for (let i = 0; i < draft.queue.length; ++i) {
+      queue[draft.queue[i]] = i;
+    }
+    // @ts-expect-error
+    draft.queue = queue;
+    for (const node of Object.values(draft.nodes)) {
+      const children: TOrderedTEdgeIds = {};
+      for (let i = 0; i < node.children.length; ++i) {
+        children[node.children[i]] = i;
       }
       // @ts-expect-error
-      draft.queue = queue;
-      for (const node of Object.values(draft.nodes)) {
-        const children: TOrderedTEdgeIds = {};
-        for (let i = 0; i < node.children.length; ++i) {
-          children[node.children[i]] = i;
-        }
-        // @ts-expect-error
-        node.children = children;
-        const parents: TOrderedTEdgeIds = {};
-        for (let i = 0; i < node.parents.length; ++i) {
-          parents[node.parents[i]] = i;
-        }
-        // @ts-expect-error
-        node.parents = parents;
+      node.children = children;
+      const parents: TOrderedTEdgeIds = {};
+      for (let i = 0; i < node.parents.length; ++i) {
+        parents[node.parents[i]] = i;
       }
-    },
-  );
+      // @ts-expect-error
+      node.parents = parents;
+    }
+  });
   const record_if_false = record_if_false_of();
+  const data = produced.value;
   if (!is_IData(data, record_if_false)) {
     toast.add("error", `!is_IData: ${JSON.stringify(record_if_false.path)}`);
     console.warn("!is_IData", record_if_false.path);
     return { success: false };
   }
-  return { success: true, data, patches, reverse_patches };
+  return {
+    success: true,
+    data,
+    patch: produced.patch,
+    reverse_patch: produced.reverse_patch,
+  };
 };
 
 const is_object = (x: any) =>

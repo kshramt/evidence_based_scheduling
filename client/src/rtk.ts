@@ -1,6 +1,7 @@
-import * as types from "./types";
-
 import * as immer from "immer";
+
+import * as types from "./types";
+import * as producer from "./producer";
 
 type IfVoid<P, T, F> = [void] extends [P] ? T : F;
 export type TReduce<State, Payload> = (
@@ -68,36 +69,7 @@ export function async_thunk_of_of<Payload, Rejected = Error>(
   return async_thunk_of;
 }
 
-export const reducer_of = <State>(
-  initial_state_of: () => State,
-  ctor: (
-    builder: <Payload, Type extends string>(
-      action_of: TActionOf<Payload>,
-      reduce: TReduce<State, Payload>,
-    ) => void,
-  ) => void,
-) => {
-  const map: Record<string, TReduce<State, any> | TReduce<State, void>> = {};
-  ctor((action_of, reduce) => {
-    map[action_of.type] = reduce;
-  });
-
-  const reducer = (
-    state: undefined | State,
-    action: types.TAnyPayloadAction,
-  ) => {
-    if (state === undefined) {
-      return initial_state_of();
-    }
-    const reduce = map[action.type];
-    return reduce
-      ? immer.produce(state, (draft) => reduce(draft, action))
-      : state;
-  };
-  return reducer;
-};
-
-export const reducer_with_patches_of = <State>(
+export const reducer_with_patch_of = <State>(
   initial_state_of: () => State,
   ctor: (
     builder: <Payload>(
@@ -116,17 +88,20 @@ export const reducer_with_patches_of = <State>(
     action: types.TAnyPayloadAction,
   ) => {
     if (state === undefined) {
-      return { state: initial_state_of(), patches: [], reverse_patches: [] };
+      return { state: initial_state_of(), patch: [], reverse_patch: [] };
     }
     const reduce = map[action.type];
     if (!reduce) {
-      return { state, patches: [], reverse_patches: [] };
+      return { state, patch: [], reverse_patch: [] };
     }
-    const [new_state, patches, reverse_patches] = immer.produceWithPatches(
-      state,
-      (draft) => reduce(draft, action),
+    const produced = producer.produce_with_patche(state, (draft) =>
+      reduce(draft, action),
     );
-    return { state: new_state, patches, reverse_patches };
+    return {
+      state: produced.value,
+      patch: produced.patch,
+      reverse_patch: produced.reverse_patch,
+    };
   };
   return reducer;
 };

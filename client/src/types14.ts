@@ -1,6 +1,5 @@
-import * as immer from "immer";
-
 import * as toast from "./toast";
+import * as producer from "./producer";
 
 const VERSION = 14 as const;
 
@@ -10,13 +9,13 @@ export const parse_data = (
   | {
       success: true;
       data: IData;
-      patches: immer.Patch[];
-      reverse_patches: immer.Patch[];
+      patch: producer.TOperation[];
+      reverse_patch: producer.TOperation[];
     }
   | { success: false } => {
   const record_if_false = record_if_false_of();
   if (is_IData(x, record_if_false)) {
-    return { success: true, data: x, patches: [], reverse_patches: [] };
+    return { success: true, data: x, patch: [], reverse_patch: [] };
   }
   toast.add("error", `!is_IData: ${JSON.stringify(record_if_false.path)}`);
   console.warn("!is_IData", record_if_false.path);

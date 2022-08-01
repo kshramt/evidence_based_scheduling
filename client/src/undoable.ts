@@ -1,6 +1,7 @@
 import * as immer from "immer";
 
 import * as types from "./types";
+import * as producer from "./producer";
 
 export const UNDO_TYPE = "undoable/undo";
 export const REDO_TYPE = "undoable/redo";
@@ -47,59 +48,71 @@ class PatchHistory<T> {
 }
 
 export const undoable_of = (
-  reducer_with_patches: (
+  reducer_with_patch: (
     state: undefined | types.IState,
     action: types.TAnyPayloadAction,
   ) => {
     state: types.IState;
-    patches: immer.Patch[];
-    reverse_patches: immer.Patch[];
+    patch: producer.TOperation[];
+    reverse_patch: producer.TOperation[];
   },
   history_type_set: Set<string>,
 ) => {
   const history = new PatchHistory<{
-    patches: immer.Patch[];
-    reverse_patches: immer.Patch[];
+    patch: producer.TOperation[];
+    reverse_patch: producer.TOperation[];
   }>(-1);
   const undoable = (
     state: undefined | types.IState,
     action: types.TAnyPayloadAction,
   ) => {
     if (state === undefined) {
-      return reducer_with_patches(state, action);
+      return reducer_with_patch(state, action);
     }
     switch (action.type) {
       case UNDO_TYPE: {
         const h = history.undo();
         if (!h.shifted) {
-          return { state, patches: [], reverse_patches: [] };
+          return { state, patch: [], reverse_patch: [] };
         }
+        const produced = immer.produce(
+          { state, patch: h.value.reverse_patch },
+          (draft) => {
+            producer.apply_patch(draft.state, draft.patch);
+          },
+        );
         return {
-          state: immer.applyPatches(state, h.value.reverse_patches),
-          patches: h.value.reverse_patches,
-          reverse_patches: h.value.patches,
+          state: produced.state,
+          patch: h.value.reverse_patch,
+          reverse_patch: h.value.patch,
         };
       }
       case REDO_TYPE: {
         const h = history.redo();
         if (!h.shifted) {
-          return { state, patches: [], reverse_patches: [] };
+          return { state, patch: [], reverse_patch: [] };
         }
+        const produced = immer.produce(
+          { state, patch: h.value.patch },
+          (draft) => {
+            producer.apply_patch(draft.state, draft.patch);
+          },
+        );
         return {
-          state: immer.applyPatches(state, h.value.patches),
-          patches: h.value.patches,
-          reverse_patches: h.value.reverse_patches,
+          state: produced.state,
+          patch: h.value.patch,
+          reverse_patch: h.value.reverse_patch,
         };
       }
       default: {
-        const reduced = reducer_with_patches(state, action);
+        const reduced = reducer_with_patch(state, action);
         if (
           history_type_set.has(action.type) &&
-          (reduced.patches.length || reduced.reverse_patches.length)
+          (reduced.patch.length || reduced.reverse_patch.length)
         ) {
           history.push({
-            patches: reduced.patches,
-            reverse_patches: reduced.reverse_patches,
+            patch: reduced.patch,
+            reverse_patch: reduced.reverse_patch,
           });
         }
         return reduced;

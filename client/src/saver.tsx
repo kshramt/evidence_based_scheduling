@@ -1,18 +1,19 @@
 import React from "react";
 import * as redux from "redux";
-import * as immer from "immer";
 
 import * as client from "./client";
 import * as rate_limit from "./rate_limit";
 import * as types from "./types";
+import * as producer from "./producer";
 
 let PARENT_ID = -1;
 let ORIGIN_ID = -1;
 
-const patches_queue = rate_limit.rate_limit_of(300);
+const patch_queue = rate_limit.rate_limit_of(300);
 const data_id_queue = rate_limit.rate_limit_of(300);
-let stored_patches: undefined | { user_id: number; patches: immer.Patch[] } =
-  undefined;
+let stored_patch:
+  | undefined
+  | { user_id: number; patch: producer.TOperation[] } = undefined;
 
 type TState = null | { updated_at: string };
 
@@ -75,35 +76,24 @@ export const set_origin_id = (origin_id: number) => {
   ORIGIN_ID = origin_id;
 };
 
-export const push_patches = (user_id: number, patches: immer.Patch[]) => {
-  patches = patches.filter((patch) => patch.path[0] === "data");
-  if (!patches.length) {
+export const push_patch = (user_id: number, patch: producer.TOperation[]) => {
+  patch = patch.filter((patch) => patch.path.startsWith("/data"));
+  if (!patch.length) {
     return;
   }
-  patches_queue.push(
-    post_patches_of(
-      user_id,
-      JSON.stringify(
-        patches
-          .filter((patch) => patch.path[0] === "data")
-          .map((patch) => {
-            return { ...patch, path: "/" + patch.path.join("/") };
-          }),
-      ),
-    ),
-  );
+  patch_queue.push(post_patch_of(user_id, JSON.stringify(patch)));
 };
-push_patches.add_before_process_hook = patches_queue.add_before_process_hook;
-push_patches.add_after_process_hook = patches_queue.add_after_process_hook;
+push_patch.add_before_process_hook = patch_queue.add_before_process_hook;
+push_patch.add_after_process_hook = patch_queue.add_after_process_hook;
 
 export const patch_saver_of = (
-  reducer_with_patches: (
+  reducer_with_patch: (
     state: undefined | types.IState,
     action: types.TAnyPayloadAction,
   ) => {
     state: types.IState;
-    patches: immer.Patch[];
-    reverse_patches: immer.Patch[];
+    patch: producer.TOperation[];
+    reverse_patch: producer.TOperation[];
   },
   user_id: number,
 ) => {
@@ -112,13 +102,13 @@ export const patch_saver_of = (
     action: types.TAnyPayloadAction,
   ) => {
     if (state === undefined) {
-      return reducer_with_patches(state, action);
+      return reducer_with_patch(state, action);
     }
-    const reduced = reducer_with_patches(state, action);
-    if (stored_patches !== undefined) {
-      throw new Error(`stored_patches !== undefined: ${stored_patches}`);
+    const reduced = reducer_with_patch(state, action);
+    if (stored_patch !== undefined) {
+      throw new Error(`stored_patch !== undefined: ${stored_patch}`);
     }
-    stored_patches = { user_id, patches: reduced.patches };
+    stored_patch = { user_id, patch: reduced.patch };
     return reduced;
   };
   return patch_saver;
@@ -127,17 +117,17 @@ export const patch_saver_of = (
 export const middleware =
   () => (next_dispatch: redux.Dispatch) => (action: redux.AnyAction) => {
     const ret = next_dispatch(action);
-    if (stored_patches === undefined) {
-      throw new Error(`stored_patches === undefined`);
+    if (stored_patch === undefined) {
+      throw new Error(`stored_patch === undefined`);
     }
-    const sp = stored_patches;
-    stored_patches = undefined;
-    push_patches(sp.user_id, sp.patches);
+    const sp = stored_patch;
+    stored_patch = undefined;
+    push_patch(sp.user_id, sp.patch);
     return ret;
   };
 
-const post_patches_of = (user_id: number, patch: string) => {
-  const post_patches = async () => {
+const post_patch_of = (user_id: number, patch: string) => {
+  const post_patch = async () => {
     let res;
     try {
       res = await client.client.createPatchPatchesPost({
@@ -151,7 +141,7 @@ const post_patches_of = (user_id: number, patch: string) => {
     data_id_queue.push(post_data_id_of(user_id));
     return true;
   };
-  return post_patches;
+  return post_patch;
 };
 
 const post_data_id_of = (user_id: number, force_update: boolean = false) => {
