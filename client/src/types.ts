@@ -40,9 +40,7 @@ export const parse_data = (
       success: true,
       data: converted.data,
       patch: parsed_prev.patch.concat(converted.patch),
-      reverse_patch: parsed_prev.reverse_patch.concat(
-        converted.reverse_patch,
-      ),
+      reverse_patch: parsed_prev.reverse_patch.concat(converted.reverse_patch),
     };
   }
 };

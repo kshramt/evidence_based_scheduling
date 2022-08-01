@@ -15,8 +15,8 @@ from . import crud, database, models, schemas
 logger = logging.getLogger(__name__)
 
 
-INITIAL_PATCH = '[{"op": "replace", "path": "", "value": {"data": null}}]'
-INITIAL_SNAPSHOT = '{"data": null}'
+INITIAL_PATCH = '[{"op":"replace","path":"","value":{"data":null}}]'
+INITIAL_SNAPSHOT = '{"data":null}'
 
 
 THeader = TypeVar("THeader")
@@ -146,14 +146,6 @@ async def _get_user(db: Session, user_id: int):
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found.")
     return db_user
-
-
-@app.get("/patches", response_model=HB[EmptyHeader, list[schemas.Patch]])
-async def get_patches(offset: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return HB(
-        header=EmptyHeader(),
-        body=await crud.get_patches(db, offset=offset, limit=limit),
-    )
 
 
 @with_path_of(

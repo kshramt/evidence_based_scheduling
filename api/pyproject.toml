@@ -12,7 +12,9 @@ module = [
   "sqlalchemy.ext",
   "sqlalchemy.ext.asyncio",
   "sqlalchemy.orm",
+  "sqlalchemy.types",
   "jsonpatch",
+  "zstd",
 ]
 ignore_missing_imports = true
 
@@ -23,6 +25,7 @@ uvicorn = "^0.18.2"
 SQLAlchemy = "^1.4.39"
 aiosqlite = "^0.17.0"
 jsonpatch = "^1.32"
+zstd = "^1.5.2"
 
 [tool.poetry.dev-dependencies]
 black = "^22.6.0"

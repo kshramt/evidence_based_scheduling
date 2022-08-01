@@ -1,10 +1,31 @@
 import datetime
+import logging
+from typing import Final
 
 import sqlalchemy
 import sqlalchemy.orm
+import sqlalchemy.types
+import zstd
 from sqlalchemy import Boolean, CheckConstraint, Column, Integer, String
 
 from .database import Base
+
+logger: Final = logging.getLogger(__name__)
+
+
+class CompressedString(sqlalchemy.types.TypeDecorator):
+    impl = sqlalchemy.types.LargeBinary
+    cache_ok = True
+
+    def process_bind_param(self, value: None | str, dialect):
+        if value is None:
+            return None
+        return zstd.compress(value.encode())
+
+    def process_result_value(self, value: None | bytes, dialect):
+        if value is None:
+            return None
+        return zstd.decompress(value).decode()
 
 
 class MixIn:
@@ -65,7 +86,7 @@ class Patch(MixIn, Base):
         index=True,
         nullable=False,
     )  # The root node has a self link.
-    patch = Column(String, nullable=False)
-    snapshot = Column(String, nullable=True)
+    patch = Column(CompressedString, nullable=False)
+    snapshot = Column(CompressedString, nullable=True)
     created_at = created_at_of()
     updated_at = updated_at_of()

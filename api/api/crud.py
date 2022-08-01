@@ -32,10 +32,6 @@ async def get_patch(db: Session, patch_id: int):
     return await db.scalar(select(models.Patch).filter(models.Patch.id == patch_id))
 
 
-async def get_patches(db: Session, offset: int = 0, limit: int = 100):
-    return (await db.scalars(select(models.Patch).offset(offset).limit(limit))).all()
-
-
 async def create_patch(
     db: Session, patch: schemas.PatchCreate, snapshot=None, commit=True
 ):
