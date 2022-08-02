@@ -288,10 +288,15 @@ async def put_id_of_data_of_user(
     )
 
 
+class get_id_of_data_of_userResBody(pydantic.BaseModel):
+    value: int
+    updated_at: str
+
+
 class get_id_of_data_of_userRes(pydantic.BaseModel):
     etag: int
     path: str
-    body: schemas.IntValue
+    body: get_id_of_data_of_userResBody
 
 
 @with_path_of(
@@ -303,11 +308,18 @@ async def get_id_of_data_of_user(
     user_id: int,
     db: Session = Depends(get_db),
 ):
-    user = await _get_user(db=db, user_id=user_id)
+    db_user = await _get_user(db=db, user_id=user_id)
+    db_patch = await crud.get_patch(db=db, patch_id=db_user.current_patch_id)
+    if db_patch is None:
+        raise RuntimeError(
+            f"Must not happen: {db_user} does not have valid current_patch_id."
+        )
     return get_id_of_data_of_userRes(
-        etag=user.current_patch_id,
-        path=get_data.path_of(patch_id=user.current_patch_id),
-        body=schemas.IntValue(value=user.current_patch_id),
+        etag=db_user.current_patch_id,
+        path=get_data.path_of(patch_id=db_user.current_patch_id),
+        body=get_id_of_data_of_userResBody(
+            value=db_user.current_patch_id, updated_at=db_patch.updated_at
+        ),
     )
 
 

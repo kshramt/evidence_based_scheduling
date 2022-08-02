@@ -146,7 +146,7 @@ const post_patch_of = (user_id: number, patch: string) => {
 
 const post_data_id_of = (user_id: number, force_update: boolean = false) => {
   const post_data_id = async () => {
-    if (ORIGIN_ID === PARENT_ID) {
+    if (ORIGIN_ID === PARENT_ID && !force_update) {
       return true;
     }
     let res;
@@ -181,4 +181,27 @@ const post_data_id_of = (user_id: number, force_update: boolean = false) => {
     return true;
   };
   return post_data_id;
+};
+
+export const useCheckUpdates = (user_id: number) => {
+  React.useEffect(() => {
+    const handle_focus = async () => {
+      const res = await client.client.getIdOfDataOfUserUsersUserIdDataIdGet(
+        user_id,
+      );
+      if (res.body.value !== PARENT_ID) {
+        set_state(() => {
+          return {
+            updated_at: res.body.updated_at,
+          };
+        });
+      }
+    };
+
+    window.addEventListener("focus", handle_focus);
+
+    return () => {
+      window.removeEventListener("focus", handle_focus);
+    };
+  }, [user_id]);
 };

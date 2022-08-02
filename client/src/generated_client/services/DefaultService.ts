@@ -7,7 +7,6 @@ import type { create_userReq } from '../models/create_userReq';
 import type { create_userRes } from '../models/create_userRes';
 import type { get_data_of_userRes } from '../models/get_data_of_userRes';
 import type { get_id_of_data_of_userRes } from '../models/get_id_of_data_of_userRes';
-import type { HB_EmptyHeader__list_api_schemas_Patch__ } from '../models/HB_EmptyHeader__list_api_schemas_Patch__';
 import type { HB_EmptyHeader__list_api_schemas_User__ } from '../models/HB_EmptyHeader__list_api_schemas_User__';
 import type { HB_EmptyHeader__Patch_ } from '../models/HB_EmptyHeader__Patch_';
 import type { HB_EmptyHeader__User_ } from '../models/HB_EmptyHeader__User_';
@@ -89,22 +88,19 @@ export class DefaultService {
     }
 
     /**
-     * Get Patches
-     * @param offset
-     * @param limit
-     * @returns HB_EmptyHeader__list_api_schemas_Patch__ Successful Response
+     * Get Patch
+     * @param patchId
+     * @returns HB_EmptyHeader__Patch_ Successful Response
      * @throws ApiError
      */
-    public static getPatchesPatchesGet(
-        offset?: number,
-        limit: number = 100,
-    ): CancelablePromise<HB_EmptyHeader__list_api_schemas_Patch__> {
+    public static getPatchPatchesPatchIdGet(
+        patchId: number,
+    ): CancelablePromise<HB_EmptyHeader__Patch_> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/patches',
-            query: {
-                'offset': offset,
-                'limit': limit,
+            url: '/patches/{patch_id}',
+            path: {
+                'patch_id': patchId,
             },
             errors: {
                 422: `Validation Error`,
@@ -126,27 +122,6 @@ export class DefaultService {
             url: '/patches',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-
-    /**
-     * Get Patch
-     * @param patchId
-     * @returns HB_EmptyHeader__Patch_ Successful Response
-     * @throws ApiError
-     */
-    public static getPatchPatchesPatchIdGet(
-        patchId: number,
-    ): CancelablePromise<HB_EmptyHeader__Patch_> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/patches/{patch_id}',
-            path: {
-                'patch_id': patchId,
-            },
             errors: {
                 422: `Validation Error`,
             },

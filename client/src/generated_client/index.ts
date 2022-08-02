@@ -15,7 +15,7 @@ export type { EmptyHeader } from './models/EmptyHeader';
 export type { EtagHeader } from './models/EtagHeader';
 export type { get_data_of_userRes } from './models/get_data_of_userRes';
 export type { get_id_of_data_of_userRes } from './models/get_id_of_data_of_userRes';
-export type { HB_EmptyHeader__list_api_schemas_Patch__ } from './models/HB_EmptyHeader__list_api_schemas_Patch__';
+export type { get_id_of_data_of_userResBody } from './models/get_id_of_data_of_userResBody';
 export type { HB_EmptyHeader__list_api_schemas_User__ } from './models/HB_EmptyHeader__list_api_schemas_User__';
 export type { HB_EmptyHeader__Patch_ } from './models/HB_EmptyHeader__Patch_';
 export type { HB_EmptyHeader__User_ } from './models/HB_EmptyHeader__User_';
