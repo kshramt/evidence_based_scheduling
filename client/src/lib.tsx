@@ -702,7 +702,7 @@ const App = () => {
   const [node_filter_query_slow, set_node_filter_query_slow] =
     React.useState("");
   const [node_ids, set_node_ids] = React.useState("");
-  saver.useCheckUpdates(USER_ID)
+  saver.useCheckUpdates(USER_ID);
   return (
     <set_node_filter_query_slow_context.Provider
       value={set_node_filter_query_slow}
