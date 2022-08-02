@@ -12,7 +12,9 @@ logger = logging.getLogger(__name__)
 
 DATA_DIR: Final = pathlib.Path(os.environ.get("DATA_DIR", "data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
-SQLALCHEMY_DATABASE_URL = f"sqlite+aiosqlite:///{DATA_DIR}/data.sqlite"
+SQLALCHEMY_DATABASE_URL = os.environ.get(
+    "DATABASE_URL", f"sqlite+aiosqlite:///{DATA_DIR}/data.sqlite"
+)
 
 
 engine = sqlalchemy.ext.asyncio.create_async_engine(
