@@ -23,48 +23,6 @@ THeader = TypeVar("THeader")
 TBody = TypeVar("TBody")
 
 
-class HB(pydantic.generics.GenericModel, Generic[THeader, TBody]):
-    header: THeader
-    body: TBody
-
-
-class EmptyBody(pydantic.BaseModel):
-    pass
-
-
-class EmptyHeader(pydantic.BaseModel):
-    pass
-
-
-class EmptyReq(pydantic.BaseModel):
-    header: EmptyHeader
-    body: EmptyBody
-
-
-class EtagHeader(pydantic.BaseModel):
-    etag: int
-
-
-class PathHeader(pydantic.BaseModel):
-    path: str
-
-
-class EtagPathHeader(EtagHeader, PathHeader):
-    pass
-
-
-class EtagPathStatusCode200Header(EtagPathHeader):
-    status_code: Literal[200] = 200
-
-
-class IfMatchHeader(pydantic.BaseModel):
-    if_match: int
-
-
-class StatusCode412Header(pydantic.BaseModel):
-    status_code: Literal[412] = 412
-
-
 async def create_all():
     async with database.engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
