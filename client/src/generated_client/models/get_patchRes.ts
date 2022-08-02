@@ -2,11 +2,9 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { EmptyHeader } from './EmptyHeader';
 import type { Patch } from './Patch';
 
-export type HB_EmptyHeader__Patch_ = {
-    header: EmptyHeader;
+export type get_patchRes = {
     body: Patch;
 };
 

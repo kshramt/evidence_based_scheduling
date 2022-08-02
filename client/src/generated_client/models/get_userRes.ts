@@ -2,11 +2,9 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { EmptyHeader } from './EmptyHeader';
 import type { User } from './User';
 
-export type HB_EmptyHeader__User_ = {
-    header: EmptyHeader;
+export type get_userRes = {
     body: User;
 };
 

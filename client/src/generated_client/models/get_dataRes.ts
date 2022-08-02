@@ -3,10 +3,9 @@
 /* eslint-disable */
 
 import type { Data } from './Data';
-import type { EtagHeader } from './EtagHeader';
 
-export type HB_EtagHeader__Data_ = {
-    header: EtagHeader;
+export type get_dataRes = {
+    etag: string;
     body: Data;
 };
 

@@ -8,7 +8,6 @@ import fastapi.middleware.gzip
 import pydantic
 import pydantic.generics
 from fastapi import Depends, HTTPException
-from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from . import crud, database, models, schemas
@@ -127,19 +126,22 @@ async def create_user(req: create_userReq, db: Session = Depends(get_db)):
     db_patch.parent_id = db_patch.id
     await db.commit()
     await db.refresh(db_user)
-    return create_userRes(path=get_user.path_of(user_id=db_user.id), body=db_user)
-
-
-@app.get("/users", response_model=HB[EmptyHeader, list[schemas.User]])
-async def get_users(offset: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return HB(
-        header=EmptyHeader(), body=await crud.get_users(db, offset=offset, limit=limit)
+    return json_response_of(
+        create_userRes,
+        path=get_user.path_of(user_id=db_user.id),
+        body=db_user.to_dict(),
     )
 
 
-@with_path_of(app.get, "/users/{user_id}", response_model=HB[EmptyHeader, schemas.User])
+class get_userRes(pydantic.BaseModel):
+    body: schemas.User
+
+
+@with_path_of(app.get, "/users/{user_id}", response_model=get_userRes)
 async def get_user(user_id: int, db: Session = Depends(get_db)):
-    return HB(header=EmptyHeader(), body=await _get_user(db=db, user_id=user_id))
+    return json_response_of(
+        get_userRes, body=_get_user(db=db, user_id=user_id).to_dict()
+    )
 
 
 async def _get_user(db: Session, user_id: int):
@@ -149,14 +151,16 @@ async def _get_user(db: Session, user_id: int):
     return db_user
 
 
-@with_path_of(
-    app.get, "/patches/{patch_id}", response_model=HB[EmptyHeader, schemas.Patch]
-)
+class get_patchRes(pydantic.BaseModel):
+    body: schemas.Patch
+
+
+@with_path_of(app.get, "/patches/{patch_id}", response_model=get_patchRes)
 async def get_patch(patch_id: int, db: Session = Depends(get_db)):
     db_patch = await crud.get_patch(db, patch_id=patch_id)
     if db_patch is None:
         raise HTTPException(status_code=404, detail="Patch not found.")
-    return HB(header=EmptyHeader(), body=db_patch)
+    return json_response_of(get_patchRes, body=db_patch.to_dict())
 
 
 class create_patchReq(pydantic.BaseModel):
@@ -177,10 +181,11 @@ async def create_patch(req: create_patchReq, db: Session = Depends(get_db)):
     if db_parent_patch.user_id != req.body.user_id:
         raise HTTPException(status_code=400, detail="The parent patch should exist.")
     db_patch = await crud.create_patch(db=db, patch=req.body)
-    return create_patchRes(
+    return json_response_of(
+        create_patchRes,
         etag=db_patch.id,
         path=get_patch.path_of(patch_id=db_patch.id),
-        body=db_patch,
+        body=db_patch.to_dict(),
     )
 
 
@@ -196,26 +201,29 @@ async def get_data_of_user(user_id: int, db: Session = Depends(get_db)):
     if patch_id is None:
         raise HTTPException(status_code=404, detail="User not found.")
 
-    return JSONResponse(
-        get_data_of_userRes(
-            etag=patch_id,
-            path=get_data.path_of(patch_id=patch_id),
-            body=await _get_data(db=db, patch_id=patch_id),
-        ).dict()
+    return json_response_of(
+        get_data_of_userRes,
+        etag=patch_id,
+        path=get_data.path_of(patch_id=patch_id),
+        body=await _get_data(db=db, patch_id=patch_id),
     )
+
+
+class get_dataRes(pydantic.BaseModel):
+    etag: str
+    body: schemas.Data
 
 
 @with_path_of(
     app.get,
     "/data/{patch_id}",
-    response_model=HB[EtagHeader, schemas.Data],
+    response_model=get_dataRes,
 )
 async def get_data(patch_id: int, db: Session = Depends(get_db)):
-    return JSONResponse(
-        HB(
-            header=EtagHeader(etag=patch_id),
-            body=await _get_data(db=db, patch_id=patch_id),
-        ).dict()
+    return json_response_of(
+        get_dataRes,
+        etag=patch_id,
+        body=await _get_data(db=db, patch_id=patch_id),
     )
 
 
@@ -286,11 +294,12 @@ async def put_id_of_data_of_user(
     user.current_patch_id = req.body.value
     await db.commit()
 
-    return put_id_of_data_of_userRes200(
+    return json_response_of(
+        put_id_of_data_of_userRes200,
         status_code=200,
         etag=req.body.value,
         path=get_data.path_of(patch_id=req.body.value),
-        body=schemas.IntValue(value=req.body.value),
+        body=dict(value=req.body.value),
     )
 
 
@@ -320,13 +329,17 @@ async def get_id_of_data_of_user(
         raise RuntimeError(
             f"Must not happen: {db_user} does not have valid current_patch_id."
         )
-    return get_id_of_data_of_userRes(
+    return json_response_of(
+        get_id_of_data_of_userRes,
         etag=db_user.current_patch_id,
         path=get_data.path_of(patch_id=db_user.current_patch_id),
-        body=get_id_of_data_of_userResBody(
-            value=db_user.current_patch_id, updated_at=db_patch.updated_at
-        ),
+        body=dict(value=db_user.current_patch_id, updated_at=db_patch.updated_at),
     )
+
+
+def json_response_of(cls, **kwargs):
+    cls(**kwargs)  # Check
+    return fastapi.responses.JSONResponse(kwargs)
 
 
 def _set_handlers(logger, paths, level_stderr=logging.INFO, level_path=logging.DEBUG):

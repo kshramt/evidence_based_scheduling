@@ -6,11 +6,10 @@ import type { create_patchRes } from '../models/create_patchRes';
 import type { create_userReq } from '../models/create_userReq';
 import type { create_userRes } from '../models/create_userRes';
 import type { get_data_of_userRes } from '../models/get_data_of_userRes';
+import type { get_dataRes } from '../models/get_dataRes';
 import type { get_id_of_data_of_userRes } from '../models/get_id_of_data_of_userRes';
-import type { HB_EmptyHeader__list_api_schemas_User__ } from '../models/HB_EmptyHeader__list_api_schemas_User__';
-import type { HB_EmptyHeader__Patch_ } from '../models/HB_EmptyHeader__Patch_';
-import type { HB_EmptyHeader__User_ } from '../models/HB_EmptyHeader__User_';
-import type { HB_EtagHeader__Data_ } from '../models/HB_EtagHeader__Data_';
+import type { get_patchRes } from '../models/get_patchRes';
+import type { get_userRes } from '../models/get_userRes';
 import type { put_id_of_data_of_userReqWithIfMatch } from '../models/put_id_of_data_of_userReqWithIfMatch';
 import type { put_id_of_data_of_userReqWithoutIfMatch } from '../models/put_id_of_data_of_userReqWithoutIfMatch';
 import type { put_id_of_data_of_userRes200 } from '../models/put_id_of_data_of_userRes200';
@@ -21,30 +20,6 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 
 export class DefaultService {
-
-    /**
-     * Get Users
-     * @param offset
-     * @param limit
-     * @returns HB_EmptyHeader__list_api_schemas_User__ Successful Response
-     * @throws ApiError
-     */
-    public static getUsersUsersGet(
-        offset?: number,
-        limit: number = 100,
-    ): CancelablePromise<HB_EmptyHeader__list_api_schemas_User__> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/users',
-            query: {
-                'offset': offset,
-                'limit': limit,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
 
     /**
      * Create User
@@ -69,12 +44,12 @@ export class DefaultService {
     /**
      * Get User
      * @param userId
-     * @returns HB_EmptyHeader__User_ Successful Response
+     * @returns get_userRes Successful Response
      * @throws ApiError
      */
     public static getUserUsersUserIdGet(
         userId: number,
-    ): CancelablePromise<HB_EmptyHeader__User_> {
+    ): CancelablePromise<get_userRes> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/users/{user_id}',
@@ -90,12 +65,12 @@ export class DefaultService {
     /**
      * Get Patch
      * @param patchId
-     * @returns HB_EmptyHeader__Patch_ Successful Response
+     * @returns get_patchRes Successful Response
      * @throws ApiError
      */
     public static getPatchPatchesPatchIdGet(
         patchId: number,
-    ): CancelablePromise<HB_EmptyHeader__Patch_> {
+    ): CancelablePromise<get_patchRes> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/patches/{patch_id}',
@@ -152,12 +127,12 @@ export class DefaultService {
     /**
      * Get Data
      * @param patchId
-     * @returns HB_EtagHeader__Data_ Successful Response
+     * @returns get_dataRes Successful Response
      * @throws ApiError
      */
     public static getDataDataPatchIdGet(
         patchId: number,
-    ): CancelablePromise<HB_EtagHeader__Data_> {
+    ): CancelablePromise<get_dataRes> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/data/{patch_id}',

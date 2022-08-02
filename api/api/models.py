@@ -31,6 +31,9 @@ class CompressedString(sqlalchemy.types.TypeDecorator):
 class MixIn:
     __mapper_args__ = {"eager_defaults": True}
 
+    def to_dict(self):
+        return {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
+
 
 class ForeignKey(sqlalchemy.ForeignKey):
     def __init__(self, *args, **kwargs):
