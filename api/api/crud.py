@@ -78,9 +78,9 @@ async def get_data(db: Session, patch_id: int, commit=True):
         return None
     res = json.loads(ss[0])
     for patch in ss[1:]:
-        jsonpatch.apply_patch(res, patch, in_place=True)
+        jsonpatch.apply_patch(res, json.loads(patch), in_place=True)
     t2 = time.monotonic()
-    if 1 < t2 - t1:
+    if 5 < t2 - t1:
         db_patch = await get_patch(db=db, patch_id=patch_id)
         if db_patch is None:
             raise RuntimeError(f"Must not happen: db_patch is None for {patch_id}")

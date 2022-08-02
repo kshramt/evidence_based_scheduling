@@ -8,6 +8,7 @@ import fastapi.middleware.gzip
 import pydantic
 import pydantic.generics
 from fastapi import Depends, HTTPException
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from . import crud, database, models, schemas
@@ -194,10 +195,13 @@ async def get_data_of_user(user_id: int, db: Session = Depends(get_db)):
     patch_id = await crud.get_current_patch_id(db=db, user_id=user_id)
     if patch_id is None:
         raise HTTPException(status_code=404, detail="User not found.")
-    return get_data_of_userRes(
-        etag=patch_id,
-        path=get_data.path_of(patch_id=patch_id),
-        body=await _get_data(db=db, patch_id=patch_id),
+
+    return JSONResponse(
+        get_data_of_userRes(
+            etag=patch_id,
+            path=get_data.path_of(patch_id=patch_id),
+            body=await _get_data(db=db, patch_id=patch_id),
+        ).dict()
     )
 
 
@@ -207,9 +211,11 @@ async def get_data_of_user(user_id: int, db: Session = Depends(get_db)):
     response_model=HB[EtagHeader, schemas.Data],
 )
 async def get_data(patch_id: int, db: Session = Depends(get_db)):
-    return HB(
-        header=EtagHeader(etag=patch_id),
-        body=await _get_data(db=db, patch_id=patch_id),
+    return JSONResponse(
+        HB(
+            header=EtagHeader(etag=patch_id),
+            body=await _get_data(db=db, patch_id=patch_id),
+        ).dict()
     )
 
 
