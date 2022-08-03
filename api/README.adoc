@@ -1,0 +1,4 @@
+[source,bash]
+----
+ATA_DIR="$PWD/data" SQLALCHEMY_WARN_20=1 env -u VIRTUAL_ENV /path/to/python3 -m poetry run python3 -m uvicorn api.main:app --reload --log-config log-config.json
+----
