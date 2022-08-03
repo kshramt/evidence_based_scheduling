@@ -15,7 +15,7 @@ export SHELLOPTS := pipefail:errexit:nounset:noclobber
 .PHONY: run_api
 run_api:
 	pushd api
-	SQLALCHEMY_WARN_20=1 UVICORN_PORT=5002 env -u VIRTUAL_ENV ~/py310/bin/python3 -m poetry run python3 -m uvicorn api.main:app --host 0.0.0.0 --reload --reload-exclude '*/**/*_test.py' --reload-exclude '*/**/conftest.py' --log-config log-config.json
+	SQLALCHEMY_WARN_20=1 env -u VIRTUAL_ENV ~/py310/bin/python3 -m poetry run python3 -m uvicorn api.main:app --host 0.0.0.0 --reload --reload-exclude '*/**/*_test.py' --reload-exclude '*/**/conftest.py' --log-config log-config.json
 
 .PHONY: check
 .PHONY: check_api
