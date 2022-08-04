@@ -48,10 +48,10 @@ li {
     @apply px-[0.15rem] bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 disabled:bg-gray-300 disabled:dark:bg-gray-600 disabled:opacity-40 text-center min-w-[2rem] h-[2rem] text-[1rem] border-none shadow-none;
   }
   .running {
-    @apply bg-yellow-200 dark:bg-yellow-800;
+    @apply bg-yellow-200 dark:bg-yellow-900;
   }
   .hidden-leafs {
-    @apply bg-green-200 dark:bg-green-800;
+    @apply bg-green-200 dark:bg-green-900;
   }
   .link {
     @apply text-blue-600 hover:text-blue-800 visited:text-purple-600 dark:text-blue-300 dark:hover:text-blue-100 dark:visited:text-purple-300;
