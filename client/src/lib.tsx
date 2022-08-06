@@ -197,12 +197,11 @@ const delete_range_action = register_history_type(
     i_range: number;
   }>("delete_range_action"),
 );
-const setTextAndResizeTextArea = register_history_type(
+const set_text_action = register_history_type(
   rtk.action_of_of<{
     k: types.TNodeId;
     text: string;
-    height: null | string;
-  }>("setTextAndResizeTextArea"),
+  }>("set_text_action"),
 );
 const todoToDone = register_history_type(
   rtk.action_of_of<types.TNodeId>("todoToDone"),
@@ -528,16 +527,12 @@ const root_reducer_def = (
     );
     ops.update_node_caches(action.payload.node_id, state);
   });
-  builder(setTextAndResizeTextArea, (state, action) => {
+  builder(set_text_action, (state, action) => {
     const node_id = action.payload.k;
     const text = action.payload.text;
-    const height = action.payload.height;
     const node = state.data.nodes[node_id];
-    node.text = text;
-    if (height !== null) {
-      if (node.style.height !== height) {
-        node.style.height = height;
-      }
+    if (text !== node.text) {
+      node.text = text;
     }
     ops.update_node_caches(node_id, state);
   });
@@ -2016,7 +2011,7 @@ const moveDownButtonRefOf = memoize1((_: types.TNodeId) =>
 );
 
 const textAreaRefOf = memoize1((_: types.TNodeId) =>
-  React.createRef<HTMLTextAreaElement>(),
+  React.createRef<HTMLDivElement>(),
 );
 
 const ToTreeLink = (props: {
@@ -2312,87 +2307,55 @@ const TextAreaImpl = (props: { node_id: types.TNodeId }) => {
   const state_text = useSelector(
     (state) => state.data.nodes[props.node_id].text,
   );
-  const state_style = useSelector(
-    (state) => state.data.nodes[props.node_id].style,
-  );
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
   const dispatch = useDispatch();
-  const [text, setText] = useState(state_text);
-  const [style, setStyle] = useState(state_style);
+  const ref = textAreaRefOf(props.node_id);
   const [text_prev, setText_prev] = useState(state_text);
-  const [style_prev, setStyle_prev] = useState(state_style);
 
-  const resizeAndSetText = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const dispatch_set_text_action = useCallback(
+    (e: React.ChangeEvent<HTMLDivElement>) => {
       const el = e.target;
-      const h = getAndSetHeight(el);
-      const t = el.value;
-      if (text !== t) {
-        setText(t);
-      }
-      if (h !== style.height) {
-        setStyle(
-          immer.produce(style, (draft) => {
-            draft.height = h;
-          }),
-        );
-      }
-    },
-    [text, setText, style, setStyle],
-  );
-
-  const dispatchResizeAndSetText = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const el = e.target;
-      const h = getAndSetHeight(el);
       dispatch(
-        setTextAndResizeTextArea({
+        set_text_action({
           k: props.node_id,
-          text: el.value,
-          height: h,
+          text: el.innerText,
         }),
       );
     },
     [dispatch, props.node_id],
   );
   if (state_text !== text_prev) {
-    setText(state_text);
     setText_prev(state_text);
   }
-  if (state_style !== style_prev) {
-    setStyle(state_style);
-    setStyle_prev(state_style);
-  }
-
   return (
-    <textarea
-      value={text}
-      onChange={resizeAndSetText}
-      onBlur={dispatchResizeAndSetText}
+    <div
+      contentEditable
+      suppressContentEditableWarning
+      onKeyDown={insert_plain_enter}
+      onBlur={dispatch_set_text_action}
       className={utils.join(
-        "resize-y w-[30em] overflow-hidden",
+        "textarea whitespace-pre-wrap overflow-wrap-anywhere w-[30em] overflow-hidden p-[0.125em]",
         status === "done"
           ? "text-red-300"
           : status === "dont"
           ? "text-gray-500"
           : undefined,
       )}
-      style={{
-        ...style,
-      }}
-      ref={textAreaRefOf(props.node_id)}
-    />
+      ref={ref}
+    >
+      {state_text}
+    </div>
   );
 };
 const TextAreaImpl_of = memoize1((node_id: types.TNodeId) => (
   <TextAreaImpl node_id={node_id} />
 ));
 
-const getAndSetHeight = (el: HTMLTextAreaElement) => {
-  el.style.height = "1px";
-  const h = String(el.scrollHeight) + "px";
-  el.style.height = h;
-  return h;
+const insert_plain_enter = (event: React.KeyboardEvent<HTMLElement>) => {
+  if (event.key === "Enter") {
+    document.execCommand("insertLineBreak");
+    event.preventDefault();
+  }
 };
 
 const LastRange = (props: { node_id: types.TNodeId }) => {
@@ -2484,7 +2447,7 @@ export const main = () => {
         patch = produced.patch;
         // reverse_patch = produced.reverse_patch;
       } else {
-        const parsed_data = types.parse_data(res.body.data);
+        const parsed_data = types.parse_data({data: res.body.data});
         if (!parsed_data.success) {
           root.render(error_element);
           return;

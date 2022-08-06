@@ -4,7 +4,7 @@ import * as producer from "./producer";
 const VERSION = 14 as const;
 
 export const parse_data = (
-  x: any,
+  x: {data: any},
 ):
   | {
       success: true;
@@ -14,8 +14,8 @@ export const parse_data = (
     }
   | { success: false } => {
   const record_if_false = record_if_false_of();
-  if (is_IData(x, record_if_false)) {
-    return { success: true, data: x, patch: [], reverse_patch: [] };
+  if (is_IData(x.data, record_if_false)) {
+    return { success: true, data: x.data, patch: [], reverse_patch: [] };
   }
   toast.add("error", `!is_IData: ${JSON.stringify(record_if_false.path)}`);
   console.warn("!is_IData", record_if_false.path);
