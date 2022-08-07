@@ -1,25 +1,41 @@
-from node:13.14.0-alpine3.11 as js
+from node:18.7.0-bullseye-slim as base_js
+from python:3.10.6-slim-bullseye as base_py
+env PYTHONUNBUFFERED 1
+env PYTHONDONTWRITEBYTECODE 1
 
-workdir /app
+from base_js as base_client
+from base_py as base_api
 
-copy package.json package-lock.json ./
+from base_client as builder_client
+workdir /app/client
+copy client/package.json client/package-lock.json ./
+
+from builder_client as test_builder_client
 run npm ci
-
-copy . .
+copy client .
 run npm run build
 
+from builder_client as prod_builder_client
+run npm ci --omit=dev
+copy client .
+run npm run build
 
-from python:3.8.3-alpine3.11 as py
-
+from base_api as builder_api
 workdir /app
+run pip install --no-cache-dir poetry==1.1.14
+copy api .
 
-copy requirements.txt .
-run pip install --no-cache-dir -r requirements.txt \
-&& rm -fr requirements.txt
+from builder_api as test_builder_api
+run python3 -m poetry install
+# copy --from=test_builder_client /app/client/build client
 
-copy --from=js /app/build build
+from builder_api as prod_builder_api
+run python3 -m poetry install --no-dev
 
-copy server.py .
-
-expose 5000
-cmd EBS_DATA_DIR=data FLASK_ENV=deployment python3 server.py
+from prod_builder_api as prod
+env DATA_DIR /data
+copy --from=prod_builder_client /app/client/build client
+copy --from=prod_builder_api /app/.venv .venv
+copy --from=prod_builder_api /app/log-config.json log-config.json
+copy --from=prod_builder_api /app/api api
+cmd [".venv/bin/python3", "-OO", "-m", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--log-config", "log-config.json"]

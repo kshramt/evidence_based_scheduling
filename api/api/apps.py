@@ -297,7 +297,7 @@ def json_response_of(cls, **kwargs):
     return fastapi.responses.JSONResponse(kwargs)
 
 
-def set_handlers(logger, paths, level_stderr=logging.INFO, level_path=logging.DEBUG):
+def set_handlers(logger, paths, level_stderr=logging.DEBUG, level_path=logging.DEBUG):
     fmt = logging.Formatter(
         # "%(levelname)s\t%(process)d\t%(asctime)s\t%(pathname)s\t%(funcName)s\t%(lineno)d\t%(message)s"
         # "%(levelname)s\t%(asctime)s\t%(pathname)s\t%(funcName)s\t%(lineno)d\t%(message)s"
