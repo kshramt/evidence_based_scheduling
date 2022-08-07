@@ -53,9 +53,9 @@ export {
 
 export const VERSION = 16 as const;
 
-export const parse_data = (
-  x: {data: any},
-):
+export const parse_data = (x: {
+  data: any;
+}):
   | {
       success: true;
       data: IData;
@@ -87,9 +87,9 @@ export const parse_data = (
   }
 };
 
-const current_of_prev = (
-  data_prev: {data: types_prev.IData},
-):
+const current_of_prev = (data_prev: {
+  data: types_prev.IData;
+}):
   | { success: false }
   | {
       success: true;

@@ -295,7 +295,7 @@ const root_reducer_def = (
     delete state.data.edges[edge_id];
   });
   builder(new_action, (state, action) => {
-    ops.new_(action.payload, state);
+    ops.new_(state, action.payload, is_mobile());
   });
   builder(flipShowTodoOnly, (state) => {
     state.data.showTodoOnly = !state.data.showTodoOnly;
@@ -691,6 +691,143 @@ const set_predicted_next_nodes = (state: immer.Draft<types.IState>) => {
   state.predicted_next_nodes = predicted.slice(0, N_PREDICTED);
 };
 
+const is_mobile = () => {
+  const ua = window.navigator.userAgent;
+  return /(Mobi|Tablet|iPad)/.test(ua);
+};
+
+const MobileMenu = () => {
+  const root = useSelector((state) => state.data.root);
+  const dispatch = useDispatch();
+  const stop_all = useCallback(() => dispatch(stop_all_action()), [dispatch]);
+  const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
+  const n_unsaved_patches = useSelector((state) => state.n_unsaved_patches);
+  const _undo = useCallback(() => {
+    dispatch({ type: undoable.UNDO_TYPE });
+  }, [dispatch]);
+  const _redo = useCallback(() => {
+    dispatch({ type: undoable.REDO_TYPE });
+  }, [dispatch]);
+  const _flipShowTodoOnly = useCallback(() => {
+    dispatch(flipShowTodoOnly());
+  }, [dispatch]);
+  return (
+    <div
+      className={`flex items-center fixed z-[999999] gap-x-[0.25em] w-full top-0  bg-gray-200 dark:bg-gray-900`}
+      style={{ height: MENU_HEIGHT }}
+    >
+      <button className="btn-icon" onClick={stop_all}>
+        {STOP_MARK}
+      </button>
+      {NewButton_of(dispatch, root)}
+      <button className="btn-icon" arial-label="Undo." onClick={_undo}>
+        {UNDO_MARK}
+      </button>
+      <button className="btn-icon" arial-label="Redo." onClick={_redo}>
+        <span className="material-icons">redo</span>
+      </button>
+      <div onClick={_flipShowTodoOnly}>
+        TODO:{" "}
+        <input
+          type="radio"
+          checked={Boolean(showTodoOnly)}
+          onChange={_suppress_missing_onChange_handler_warning}
+        />
+      </div>
+      <MobileNodeFilterQueryInput />
+      <span className="grow" />
+      {n_unsaved_patches ? (
+        <span className="pr-[1ex]">{n_unsaved_patches} left</span>
+      ) : null}
+    </div>
+  );
+};
+
+const MobileBody = () => {
+  return (
+    <div
+      className="flex w-full h-screen gap-x-8 overflow-y-hidden"
+      style={{
+        paddingTop: MENU_HEIGHT,
+      }}
+    >
+      <div className={`overflow-y-scroll shrink-0`}>
+        <MobileQueueColumn />
+      </div>
+    </div>
+  );
+};
+
+const MobileQueueColumn = () => {
+  return (
+    <>
+      <MobilePredictedNextNodes />
+      <MobileQueueNodes />
+    </>
+  );
+};
+
+const MobileQueueNodes = () => {
+  const queue = useSelector((state) => state.data.queue);
+  const nodes = useSelector((state) => state.data.nodes);
+  const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
+  const node_filter_query = React.useContext(node_filter_query_slow_context);
+  const node_ids = ops
+    .sorted_keys_of(queue)
+    .filter((node_id) => {
+      const node = nodes[node_id];
+      return !_should_hide_of(
+        showTodoOnly,
+        node.status !== "todo",
+        node_filter_query,
+        node.text,
+        node_id,
+      );
+    })
+    .slice(0, 50);
+  return (
+    <>
+      {node_ids.map((node_id) => (
+        <div className="mb-[1em] last:mb-0" key={node_id}>
+          <EntryWrapper node_id={node_id}>
+            <TextArea node_id={node_id} style={{ width: "100vw" }} />
+            <MobileEntryButtons node_id={node_id} />
+            <Details node_id={node_id} />
+          </EntryWrapper>
+        </div>
+      ))}
+    </>
+  );
+};
+
+const MobileApp = () => {
+  const [node_filter_query_fast, set_node_filter_query_fast] =
+    React.useState("");
+  const [node_filter_query_slow, set_node_filter_query_slow] =
+    React.useState("");
+  saver.useCheckUpdates(USER_ID);
+  return (
+    <set_node_filter_query_slow_context.Provider
+      value={set_node_filter_query_slow}
+    >
+      <set_node_filter_query_fast_context.Provider
+        value={set_node_filter_query_fast}
+      >
+        <node_filter_query_slow_context.Provider value={node_filter_query_slow}>
+          <node_filter_query_fast_context.Provider
+            value={node_filter_query_fast}
+          >
+            <MobileMenu />
+            <MobileBody />
+            {toast.component}
+            <saver.Component user_id={USER_ID} />
+          </node_filter_query_fast_context.Provider>
+        </node_filter_query_slow_context.Provider>
+      </set_node_filter_query_fast_context.Provider>
+    </set_node_filter_query_slow_context.Provider>
+  );
+};
+
 const App = () => {
   const [node_filter_query_fast, set_node_filter_query_fast] =
     React.useState("");
@@ -803,6 +940,48 @@ const Menu = () => {
         <span className="pr-[1ex]">{n_unsaved_patches} left</span>
       ) : null}
     </div>
+  );
+};
+
+const MobileNodeFilterQueryInput = () => {
+  const set_node_filter_query_fast = React.useContext(
+    set_node_filter_query_fast_context,
+  );
+  const set_node_filter_query_slow = React.useContext(
+    set_node_filter_query_slow_context,
+  );
+  const node_filter_query = React.useContext(node_filter_query_fast_context);
+  const handle_change = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const v = e.target.value;
+      set_node_filter_query_fast(v);
+      React.startTransition(() => {
+        set_node_filter_query_slow(v);
+      });
+    },
+    [set_node_filter_query_fast, set_node_filter_query_slow],
+  );
+  const clear_input = useCallback(() => {
+    const v = "";
+    set_node_filter_query_fast(v);
+    React.startTransition(() => {
+      set_node_filter_query_slow(v);
+    });
+  }, [set_node_filter_query_fast, set_node_filter_query_slow]);
+  return (
+    <>
+      Filter:
+      <div className="flex items-center border border-solid border-gray-400">
+        <input
+          value={node_filter_query}
+          onChange={handle_change}
+          className="h-[2em] border-none w-[8em]"
+        />
+        <button className="btn-icon" onClick={clear_input}>
+          {consts.DELETE_MARK}
+        </button>
+      </div>
+    </>
   );
 };
 
@@ -1137,6 +1316,30 @@ const QueueColumn = () => {
   );
 };
 
+const MobilePredictedNextNodes = () => {
+  const predicted_next_nodes = useSelector(
+    (state) => state.predicted_next_nodes,
+  );
+  return (
+    <>
+      {predicted_next_nodes.map((node_id) => (
+        <MobilePredictedNextNode node_id={node_id} key={node_id} />
+      ))}
+    </>
+  );
+};
+const MobilePredictedNextNode = (props: { node_id: types.TNodeId }) => {
+  const text = useSelector((state) => state.data.nodes[props.node_id].text);
+  const dispatch = useDispatch();
+  return (
+    <div className="flex w-fit gap-x-[0.25em] items-baseline py-[0.125em]">
+      {StartButton_of(dispatch, props.node_id)}
+      {StartConcurrentButton_of(dispatch, props.node_id)}
+      <ToTreeLink node_id={props.node_id}>{text.slice(0, 30)}</ToTreeLink>
+    </div>
+  );
+};
+
 const PredictedNextNodes = () => {
   const predicted_next_nodes = useSelector(
     (state) => state.predicted_next_nodes,
@@ -1144,7 +1347,9 @@ const PredictedNextNodes = () => {
   return (
     <ol>
       {predicted_next_nodes.map((node_id) => (
-        <PredictedNextNode node_id={node_id} key={node_id} />
+        <li key={node_id}>
+          <PredictedNextNode node_id={node_id} />
+        </li>
       ))}
     </ol>
   );
@@ -1269,7 +1474,9 @@ const QueueEntry_of = memoize1((node_id: types.TNodeId) => (
   <EntryWrapper node_id={node_id}>
     <div className="flex items-end w-fit">
       {ToTreeLink_of(node_id)}
-      <div id={`q-${node_id}`}>{TextArea_of(node_id)}</div>
+      <div id={`q-${node_id}`}>
+        <TextArea node_id={node_id} />
+      </div>
     </div>
     {EntryButtons_of(node_id)}
     {Details_of(node_id)}
@@ -1280,7 +1487,9 @@ const TreeEntry_of = memoize1((node_id: types.TNodeId) => (
   <EntryWrapper node_id={node_id}>
     <div className="flex items-end w-fit">
       {ToQueueLink_of(node_id)}
-      <div id={`t-${node_id}`}>{TextArea_of(node_id)}</div>
+      <div id={`t-${node_id}`}>
+        <TextArea node_id={node_id} />
+      </div>
     </div>
     {EntryButtons_of(node_id)}
     {Details_of(node_id)}
@@ -1342,7 +1551,6 @@ const DetailsImpl = (props: { node_id: types.TNodeId }) => {
     <div className="pt-[0.5em] bg-gray-200 dark:bg-gray-700">
       {hline}
       <div className="flex w-fit gap-x-[0.25em] items-baseline">
-        {deleteButtonOf(dispatch, props.node_id)}
         {ParseTocButton_of(dispatch, props.node_id)}
       </div>
       {hline}
@@ -1770,6 +1978,96 @@ const EntryWrapper = (props: {
   );
 };
 
+const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
+  const cache = useSelector((state) => state.caches[props.node_id]);
+
+  const children = useSelector(
+    (state) => state.data.nodes[props.node_id].children,
+  );
+  const is_completable = checks.is_completable_node_of_nodes_and_edges(
+    ops.keys_of(children),
+    cache.child_nodes,
+    cache.child_edges,
+  );
+
+  const parents = useSelector(
+    (state) => state.data.nodes[props.node_id].parents,
+  );
+  const is_uncompletable = checks.is_uncompletable_node_of_nodes_and_edges(
+    ops.keys_of(parents),
+    cache.parent_nodes,
+    cache.parent_edges,
+  );
+
+  const status = useSelector((state) => state.data.nodes[props.node_id].status);
+
+  const root = useSelector((state) => state.data.root);
+  const is_root = props.node_id === root;
+
+  const dispatch = useDispatch();
+  const on_click_total_time = useCallback(() => {
+    dispatch(set_total_time(props.node_id));
+  }, [dispatch, props.node_id]);
+
+  return React.useMemo(
+    () => (
+      <div
+        className={utils.join(
+          !cache.show_detail && "opacity-40 hover:opacity-100",
+        )}
+      >
+        <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
+          {is_root || EstimationInputOf(props.node_id)}
+          {is_root || status !== "todo" || StartOrStopButtons_of(props.node_id)}
+          {is_root ||
+            status !== "todo" ||
+            !is_completable ||
+            todoToDoneButtonOf(dispatch, props.node_id)}
+          {is_root ||
+            status !== "todo" ||
+            !is_completable ||
+            todoToDontButtonOf(dispatch, props.node_id)}
+          {is_root ||
+            status === "todo" ||
+            !is_uncompletable ||
+            DoneOrDontToTodoButton_of(dispatch, props.node_id)}
+          {status === "todo" && evalButtonOf(dispatch, props.node_id)}
+          {is_root || status !== "todo" || topButtonOf(dispatch, props.node_id)}
+          {CopyNodeIdButton_of(props.node_id)}
+          {status === "todo" && NewButton_of(dispatch, props.node_id)}
+          {deleteButtonOf(dispatch, props.node_id)}
+          {showDetailButtonOf(dispatch, props.node_id)}
+          <span onClick={on_click_total_time}>
+            {cache.total_time < 0
+              ? "-"
+              : digits1(cache.total_time / (1000 * 3600))}
+          </span>
+          {is_root || LastRange_of(props.node_id)}
+        </div>
+        <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
+          {status === "todo" &&
+            0 <= cache.leaf_estimates_sum &&
+            digits1(cache.leaf_estimates_sum) + " | "}
+          {status === "todo" && cache.percentiles.map(digits1).join(", ")}
+        </div>
+      </div>
+    ),
+    [
+      cache.percentiles,
+      cache.leaf_estimates_sum,
+      cache.show_detail,
+      cache.total_time,
+      status,
+      on_click_total_time,
+      is_root,
+      is_completable,
+      is_uncompletable,
+      props.node_id,
+      dispatch,
+    ],
+  );
+};
+
 const EntryButtons = (props: { node_id: types.TNodeId }) => {
   const cache = useSelector((state) => state.caches[props.node_id]);
 
@@ -1833,6 +2131,7 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
             moveDownButtonOf(dispatch, props.node_id)}
           {CopyNodeIdButton_of(props.node_id)}
           {status === "todo" && NewButton_of(dispatch, props.node_id)}
+          {deleteButtonOf(dispatch, props.node_id)}
           {showDetailButtonOf(dispatch, props.node_id)}
           <span onClick={on_click_total_time}>
             {cache.total_time < 0
@@ -2288,28 +2587,37 @@ const EstimationInput = (props: { k: types.TNodeId }) => {
     <input
       type="number"
       step="any"
+      min={0}
       value={estimate}
       onChange={set_estimate_of(dispatch, props.k)}
+      onFocus={move_cursor_to_the_end}
       className="w-[3em] h-[2em]"
     />
   );
 };
 
-const TextArea = (props: { node_id: types.TNodeId }) => {
-  const root = useSelector((state) => state.data.root);
-  return props.node_id === root ? null : TextAreaImpl_of(props.node_id);
+const move_cursor_to_the_end = (e: React.FocusEvent<HTMLInputElement>) => {
+  const el = e.target;
+  el.select();
 };
-const TextArea_of = memoize1((node_id: types.TNodeId) => (
-  <TextArea node_id={node_id} />
-));
 
-const TextAreaImpl = (props: { node_id: types.TNodeId }) => {
-  const state_text = useSelector(
-    (state) => state.data.nodes[props.node_id].text,
+const TextArea = ({
+  node_id,
+  ...div_props
+}: { node_id: types.TNodeId } & React.HTMLProps<HTMLDivElement>) => {
+  const root = useSelector((state) => state.data.root);
+  return node_id === root ? null : (
+    <TextAreaImpl node_id={node_id} {...div_props} />
   );
-  const status = useSelector((state) => state.data.nodes[props.node_id].status);
+};
+
+const TextAreaImpl = ({
+  node_id,
+  ...div_props
+}: { node_id: types.TNodeId } & React.HTMLProps<HTMLDivElement>) => {
+  const state_text = useSelector((state) => state.data.nodes[node_id].text);
+  const status = useSelector((state) => state.data.nodes[node_id].status);
   const dispatch = useDispatch();
-  const ref = textAreaRefOf(props.node_id);
   const [text_prev, setText_prev] = useState(state_text);
 
   const dispatch_set_text_action = useCallback(
@@ -2317,12 +2625,12 @@ const TextAreaImpl = (props: { node_id: types.TNodeId }) => {
       const el = e.target;
       dispatch(
         set_text_action({
-          k: props.node_id,
+          k: node_id,
           text: el.innerText,
         }),
       );
     },
-    [dispatch, props.node_id],
+    [dispatch, node_id],
   );
   if (state_text !== text_prev) {
     setText_prev(state_text);
@@ -2341,15 +2649,13 @@ const TextAreaImpl = (props: { node_id: types.TNodeId }) => {
           ? "text-gray-500"
           : undefined,
       )}
-      ref={ref}
+      {...div_props}
+      ref={textAreaRefOf(node_id)}
     >
       {state_text}
     </div>
   );
 };
-const TextAreaImpl_of = memoize1((node_id: types.TNodeId) => (
-  <TextAreaImpl node_id={node_id} />
-));
 
 const insert_plain_enter = (event: React.KeyboardEvent<HTMLElement>) => {
   if (event.key === "Enter") {
@@ -2447,7 +2753,7 @@ export const main = () => {
         patch = produced.patch;
         // reverse_patch = produced.reverse_patch;
       } else {
-        const parsed_data = types.parse_data({data: res.body.data});
+        const parsed_data = types.parse_data({ data: res.body.data });
         if (!parsed_data.success) {
           root.render(error_element);
           return;
@@ -2511,7 +2817,7 @@ export const main = () => {
       root.render(
         <React.StrictMode>
           <Provider store={store}>
-            <App />
+            {is_mobile() ? <MobileApp /> : <App />}
           </Provider>
         </React.StrictMode>,
       );

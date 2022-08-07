@@ -11,9 +11,9 @@ export { is_TEdgeId, is_TNodeId } from "./types14";
 
 export const VERSION = 15 as const;
 
-export const parse_data = (
-  x: {data: any},
-):
+export const parse_data = (x: {
+  data: any;
+}):
   | {
       success: true;
       data: IData;

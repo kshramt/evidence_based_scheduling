@@ -118,8 +118,9 @@ export const set_estimate = (
 };
 
 export const new_ = (
-  parent_node_id: types.TNodeId,
   draft: Draft<types.IState>,
+  parent_node_id: types.TNodeId,
+  top_of_queue: boolean = false,
 ) => {
   if (draft.data.nodes[parent_node_id].status !== "todo") {
     toast.add(
@@ -135,7 +136,7 @@ export const new_ = (
   draft.data.nodes[node_id] = node;
   draft.data.edges[edge_id] = edge;
   draft.data.nodes[parent_node_id].children[edge_id] = -Number(new Date());
-  draft.data.queue[node_id] = Number(new Date());
+  draft.data.queue[node_id] = (top_of_queue ? -1 : 1) * Number(new Date());
   draft.caches[node_id] = new_cache_of(draft.data, node_id);
   draft.caches[edge.p].child_edges[edge_id] = edge;
   draft.caches[edge.p].child_nodes[node_id] = node;
@@ -226,7 +227,7 @@ const add_weak_edges_from_toc = (toc: ITocNode, edges: types.IEdge[]) => {
 const make_tree_from_toc = (toc: ITocNode, draft: Draft<types.IState>) => {
   for (let i = toc.children.length - 1; -1 < i; --i) {
     const child_toc = toc.children[i];
-    const node_id = new_(toc.id, draft);
+    const node_id = new_(draft, toc.id);
     if (node_id === null) {
       const msg = "Must not happen: node_id === null.";
       toast.add("error", msg);

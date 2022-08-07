@@ -3,9 +3,9 @@ import * as producer from "./producer";
 
 const VERSION = 14 as const;
 
-export const parse_data = (
-  x: {data: any},
-):
+export const parse_data = (x: {
+  data: any;
+}):
   | {
       success: true;
       data: IData;
