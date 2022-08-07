@@ -1,4 +1,6 @@
+import json
 import logging
+import time
 from typing import Literal, TypeVar
 
 import fastapi
@@ -68,6 +70,7 @@ class create_userRes(pydantic.BaseModel):
 @with_path_of(app.post, "/users", response_model=create_userRes)
 async def create_user(req: create_userReq, db: Session = Depends(get_db)):
     await db.execute("pragma defer_foreign_keys=ON")
+    await db.execute("begin immediate")
     db_user = await crud.create_user(db=db, user=req.body, commit=False)
     await db.flush()
     db_patch = await crud.create_patch(
@@ -94,6 +97,7 @@ class get_userRes(pydantic.BaseModel):
 
 @with_path_of(app.get, "/users/{user_id}", response_model=get_userRes)
 async def get_user(user_id: int, db: Session = Depends(get_db)):
+    await db.execute("begin")
     return json_response_of(
         get_userRes, body=(await _get_user(db=db, user_id=user_id)).to_dict()
     )
@@ -112,6 +116,7 @@ class get_patchRes(pydantic.BaseModel):
 
 @with_path_of(app.get, "/patches/{patch_id}", response_model=get_patchRes)
 async def get_patch(patch_id: int, db: Session = Depends(get_db)):
+    await db.execute("begin")
     db_patch = await crud.get_patch(db, patch_id=patch_id)
     if db_patch is None:
         raise HTTPException(status_code=404, detail="Patch not found.")
@@ -130,6 +135,7 @@ class create_patchRes(pydantic.BaseModel):
 
 @with_path_of(app.post, "/patches", response_model=create_patchRes)
 async def create_patch(req: create_patchReq, db: Session = Depends(get_db)):
+    await db.execute("begin immediate")
     db_parent_patch = await crud.get_patch(db, patch_id=req.body.parent_id)
     if db_parent_patch is None:
         raise HTTPException(status_code=400, detail="The parent patch should exist.")
@@ -152,6 +158,7 @@ class get_data_of_userRes(pydantic.BaseModel):
 
 @with_path_of(app.get, "/users/{user_id}/data", response_model=get_data_of_userRes)
 async def get_data_of_user(user_id: int, db: Session = Depends(get_db)):
+    await db.execute("begin")
     patch_id = await crud.get_current_patch_id(db=db, user_id=user_id)
     if patch_id is None:
         raise HTTPException(status_code=404, detail="User not found.")
@@ -160,7 +167,7 @@ async def get_data_of_user(user_id: int, db: Session = Depends(get_db)):
         get_data_of_userRes,
         etag=patch_id,
         path=get_data.path_of(patch_id=patch_id),
-        body=await _get_data(db=db, patch_id=patch_id),
+        body=await _get_data_and_set_snapshot_if_slow(db=db, patch_id=patch_id),
     )
 
 
@@ -175,17 +182,32 @@ class get_dataRes(pydantic.BaseModel):
     response_model=get_dataRes,
 )
 async def get_data(patch_id: int, db: Session = Depends(get_db)):
+    await db.execute("begin")
     return json_response_of(
         get_dataRes,
         etag=patch_id,
-        body=await _get_data(db=db, patch_id=patch_id),
+        body=await _get_data_and_set_snapshot_if_slow(db=db, patch_id=patch_id),
     )
 
 
-async def _get_data(db: Session, patch_id: int):
+async def _get_data_and_set_snapshot_if_slow(
+    db: Session, patch_id: int, split_transaction=True, commit=True
+):
+    t1 = time.monotonic()
     data = await crud.get_data(db=db, patch_id=patch_id)
+    t2 = time.monotonic()
     if data is None:
         raise HTTPException(status_code=404, detail="Data not found.")
+    if 6 < t2 - t1:
+        if split_transaction:
+            await db.commit()
+            await db.execute("begin immediate")
+        await crud.update_snapshot(
+            db,
+            patch_id,
+            json.dumps(data, sort_keys=True, ensure_ascii=False, separators=(",", ":")),
+            commit=commit,
+        )
     return data
 
 
@@ -224,6 +246,7 @@ async def put_id_of_data_of_user(
     req: put_id_of_data_of_userReqWithIfMatch | put_id_of_data_of_userReqWithoutIfMatch,
     db: Session = Depends(get_db),
 ):
+    await db.execute("begin immediate")
     user = await _get_user(db=db, user_id=user_id)
     if (
         isinstance(req, put_id_of_data_of_userReqWithIfMatch)
@@ -278,6 +301,7 @@ async def get_id_of_data_of_user(
     user_id: int,
     db: Session = Depends(get_db),
 ):
+    await db.execute("begin")
     db_user = await _get_user(db=db, user_id=user_id)
     db_patch = await crud.get_patch(db=db, patch_id=db_user.current_patch_id)
     if db_patch is None:

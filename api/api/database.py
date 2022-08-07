@@ -64,5 +64,4 @@ def do_connect(dbapi_connection, connection_record):
 
 @sqlalchemy.event.listens_for(engine.sync_engine, "begin")
 def do_begin(conn):
-    # emit our own BEGIN
-    conn.exec_driver_sql("BEGIN")
+    pass  # sess.execute("begin") or sess.execute("begin immediate")
