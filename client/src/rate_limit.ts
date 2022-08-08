@@ -68,7 +68,10 @@ export const rate_limit_of = (
       return;
     }
     let retry_interval_msec = min_retry_interval_msec;
-    while (!(await fn())) {
+    while (true) {
+      if (await fn()) {
+        break;
+      }
       await sleep(
         retry_interval_msec *
           (1 + retry_interval_jitter_ratio * (2 * Math.random() - 1)),

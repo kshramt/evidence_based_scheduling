@@ -2,7 +2,8 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { create_patchReq } from '../models/create_patchReq';
-import type { create_patchRes } from '../models/create_patchRes';
+import type { create_patchResNoMatchingParent } from '../models/create_patchResNoMatchingParent';
+import type { create_patchResOk } from '../models/create_patchResOk';
 import type { create_userReq } from '../models/create_userReq';
 import type { create_userRes } from '../models/create_userRes';
 import type { get_data_of_userRes } from '../models/get_data_of_userRes';
@@ -86,12 +87,12 @@ export class DefaultService {
     /**
      * Create Patch
      * @param requestBody
-     * @returns create_patchRes Successful Response
+     * @returns any Successful Response
      * @throws ApiError
      */
     public static createPatchPatchesPost(
         requestBody: create_patchReq,
-    ): CancelablePromise<create_patchRes> {
+    ): CancelablePromise<(create_patchResOk | create_patchResNoMatchingParent)> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/patches',

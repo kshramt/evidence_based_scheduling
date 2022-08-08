@@ -1,7 +1,7 @@
 import json
 import logging
 import time
-from typing import Literal, TypeVar
+from typing import Literal
 
 import fastapi
 import fastapi.middleware.cors
@@ -18,10 +18,6 @@ logger = logging.getLogger(__name__)
 
 INITIAL_PATCH = '[{"op":"replace","path":"","value":{"data":null}}]'
 INITIAL_SNAPSHOT = '{"data":null}'
-
-
-THeader = TypeVar("THeader")
-TBody = TypeVar("TBody")
 
 
 async def create_all():
@@ -127,23 +123,39 @@ class create_patchReq(pydantic.BaseModel):
     body: schemas.PatchCreate
 
 
-class create_patchRes(pydantic.BaseModel):
+class create_patchResNoMatchingParent(pydantic.BaseModel):
+    status: Literal["no-matching-parent"]
+
+
+class create_patchResOk(pydantic.BaseModel):
+    status: Literal["ok"]
     etag: int
     path: str
     body: schemas.Patch
 
 
-@with_path_of(app.post, "/patches", response_model=create_patchRes)
+@with_path_of(
+    app.post,
+    "/patches",
+    response_model=create_patchResOk | create_patchResNoMatchingParent,
+)
 async def create_patch(req: create_patchReq, db: Session = Depends(get_db)):
     await db.execute("begin immediate")
     db_parent_patch = await crud.get_patch(db, patch_id=req.body.parent_id)
     if db_parent_patch is None:
-        raise HTTPException(status_code=400, detail="The parent patch should exist.")
+        return json_response_of(
+            create_patchResNoMatchingParent,
+            status="no-matching-parent",
+        )
     if db_parent_patch.user_id != req.body.user_id:
-        raise HTTPException(status_code=400, detail="The parent patch should exist.")
+        return json_response_of(
+            create_patchResNoMatchingParent,
+            status="no-matching-parent",
+        )
     db_patch = await crud.create_patch(db=db, patch=req.body)
     return json_response_of(
-        create_patchRes,
+        create_patchResOk,
+        status="ok",
         etag=db_patch.id,
         path=get_patch.path_of(patch_id=db_patch.id),
         body=db_patch.to_dict(),

@@ -7,7 +7,8 @@ export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
 export type { create_patchReq } from './models/create_patchReq';
-export type { create_patchRes } from './models/create_patchRes';
+export type { create_patchResNoMatchingParent } from './models/create_patchResNoMatchingParent';
+export type { create_patchResOk } from './models/create_patchResOk';
 export type { create_userReq } from './models/create_userReq';
 export type { create_userRes } from './models/create_userRes';
 export type { Data } from './models/Data';

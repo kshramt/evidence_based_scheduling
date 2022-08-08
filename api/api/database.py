@@ -49,6 +49,9 @@ def on_engine_connect(dbapi_connection, connection_record):
     cursor = dbapi_connection.cursor()
     try:
         cursor.execute("pragma journal_mode=WAL")
+        # Litestream's replication can loose some transactions anyway.
+        cursor.execute("pragma synchronous=NORMAL")
+        cursor.execute("pragma wal_autocheckpoint=0")
         cursor.execute("pragma foreign_keys=ON")
         cursor.execute("pragma busy_timeout=5000")
     finally:

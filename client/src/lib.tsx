@@ -2033,9 +2033,9 @@ const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
             DoneOrDontToTodoButton_of(dispatch, props.node_id)}
           {status === "todo" && evalButtonOf(dispatch, props.node_id)}
           {is_root || status !== "todo" || topButtonOf(dispatch, props.node_id)}
+          {deleteButtonOf(dispatch, props.node_id)}
           {CopyNodeIdButton_of(props.node_id)}
           {status === "todo" && NewButton_of(dispatch, props.node_id)}
-          {deleteButtonOf(dispatch, props.node_id)}
           {showDetailButtonOf(dispatch, props.node_id)}
           <span onClick={on_click_total_time}>
             {cache.total_time < 0
@@ -2129,9 +2129,9 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
           {is_root ||
             status !== "todo" ||
             moveDownButtonOf(dispatch, props.node_id)}
+          {deleteButtonOf(dispatch, props.node_id)}
           {CopyNodeIdButton_of(props.node_id)}
           {status === "todo" && NewButton_of(dispatch, props.node_id)}
-          {deleteButtonOf(dispatch, props.node_id)}
           {showDetailButtonOf(dispatch, props.node_id)}
           <span onClick={on_click_total_time}>
             {cache.total_time < 0

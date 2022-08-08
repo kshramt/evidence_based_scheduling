@@ -15,7 +15,7 @@ let stored_patch:
   | undefined
   | { user_id: number; patch: producer.TOperation[] } = undefined;
 
-type TState = null | { updated_at: string };
+type TState = null | { updated_at: string } | "no-matching-parent";
 
 const initial_state: TState = null;
 
@@ -51,19 +51,29 @@ export const Component = (props: { user_id: number }) => {
     () => data_id_queue.unshift(post_data_id_of(props.user_id, true)),
     [props.user_id],
   );
-  return (
-    state && (
+  if (state === null) {
+    return null;
+  }
+  if (state === "no-matching-parent") {
+    return (
       <div className="flex justify-center h-[100vh] w-full items-center fixed z-[999999] font-bold top-0 left-0">
         <span>
-          Server data have been updated by another client at {state.updated_at}.
-          Please <a href=".">reload</a> or continue to{" "}
-          <button onClick={force_update} className="link">
-            use the current state
-          </button>
-          .
+          No matching parent ID found, please <a href=".">reload</a>.
         </span>
       </div>
-    )
+    );
+  }
+  return (
+    <div className="flex justify-center h-[100vh] w-full items-center fixed z-[999999] font-bold top-0 left-0">
+      <span>
+        Server data have been updated by another client at {state.updated_at}.
+        Please <a href=".">reload</a> or continue to{" "}
+        <button onClick={force_update} className="link">
+          use the current state
+        </button>
+        .
+      </span>
+    </div>
   );
 };
 
@@ -135,6 +145,11 @@ const post_patch_of = (user_id: number, patch: string) => {
       });
     } catch (e: unknown) {
       console.error(e);
+      return false;
+    }
+    const status = res.status;
+    if (status === "no-matching-parent") {
+      set_state(() => status);
       return false;
     }
     set_parent_id(res.etag);
