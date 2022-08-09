@@ -2221,22 +2221,14 @@ const TotalTime = (props: { node_id: types.TNodeId }) => {
     if (ref.current === null) {
       return;
     }
-    let is_requested = false;
-    let handle = -1;
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
         total_time_utils.visible_node_ids.add(props.node_id);
-        if (total_time_utils.should_update(props.node_id) && !is_requested) {
-          is_requested = true;
-          handle = requestIdleCallback(() => {
-            on_click_total_time();
-            is_requested = false;
-          });
+        if (total_time_utils.should_update(props.node_id)) {
+          on_click_total_time();
         }
       } else {
         total_time_utils.visible_node_ids.delete(props.node_id);
-        cancelIdleCallback(handle);
-        is_requested = false;
       }
     });
     observer.observe(ref.current);
