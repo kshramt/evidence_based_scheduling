@@ -32,10 +32,18 @@ run python3 -m poetry install
 from builder_api as prod_builder_api
 run python3 -m poetry install --no-dev
 
+from base_api as builder_litestream
+run apt-get update && apt-get install -y wget
+run wget https://github.com/benbjohnson/litestream/releases/download/v0.3.9/litestream-v0.3.9-linux-amd64.deb
+run dpkg -i litestream-v0.3.9-linux-amd64.deb
+
 from prod_builder_api as prod
+expose 8080
 env DATA_DIR /data
+
+copy --from=builder_litestream /usr/bin/litestream /usr/bin/litestream
 copy --from=prod_builder_client /app/client/build client
 copy --from=prod_builder_api /app/.venv .venv
 copy --from=prod_builder_api /app/log-config.json log-config.json
 copy --from=prod_builder_api /app/api api
-cmd [".venv/bin/python3", "-OO", "-m", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--log-config", "log-config.json"]
+cmd ["scripts/run.sh"]

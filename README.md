@@ -11,26 +11,19 @@ The numbers shown on the right are the 0th, 10th, 33rd, 50th, 67th, 90th, and 10
 ## Usage
 
 ```
-docker run --rm -p 5000:5000 -v "$(pwd)":/app/data kshra/evidence_based_scheduling:latest
+docker run --rm --init --mount type=bind,source="$PWD"/data,target=/data  -e REPLICA_URI=gs://<bucket>/data.sqlite -p 8080:8080 ghcr.io/kshramt/evidence_based_scheduling:latest
 ```
 
 ## Development
 
 ```
-./build.sh
-docker run --rm -p 5000:5000 -v "$(pwd)":/app/data kshramt/evidence_based_scheduling
-# open localhost:5000 in a Web browser
+UVICORN_PORT=5000 make run_api
+```
 
-# or
-
-python3 -m  venv venv
-source venv/bin/activate
-pip3 install -r requirements.txt
-npm ci
-
-EBS_DATA_DIR=. FLASK_APP=server.py FLASK_DEBUG=1 flask run
-# On another terminal window.
-npm start # http://localhost:3000
+```
+cd client
+PORT=3000 npm run start
+xdg-open http://localhost:3000
 ```
 
 ## License
