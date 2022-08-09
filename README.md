@@ -11,7 +11,22 @@ The numbers shown on the right are the 0th, 10th, 33rd, 50th, 67th, 90th, and 10
 ## Usage
 
 ```
-docker run --rm --init --mount type=bind,source="$PWD"/data,target=/data  -e REPLICA_URI=gs://<bucket>/data.sqlite -p 8080:8080 ghcr.io/kshramt/evidence_based_scheduling:latest
+docker run \
+  --rm \
+  --init \
+  --mount type=bind,source="$PWD"/data,target=/data \
+  -e REPLICA_URI=gcs://<bucket>/data.sqlite \
+  -p 8080:8080 \
+  ghcr.io/kshramt/evidence_based_scheduling:latest
+
+docker run \
+  -d \
+  --name ebs \
+  --log-driver local \
+  --mount type=bind,source="$PWD"/data,target=/data \
+  -e REPLICA_URI=gcs://<bucket>/data.sqlite \
+  -p8080:8080 \
+  ghcr.io/kshramt/evidence_based_scheduling:latest
 ```
 
 ## Development
