@@ -25,6 +25,7 @@ import * as undoable from "./undoable";
 import * as client from "./client";
 import * as saver from "./saver";
 import * as producer from "./producer";
+import * as total_time_utils from "./total_time_utils";
 
 const MENU_HEIGHT = "3rem" as const;
 const START_MARK = <span className="material-icons">play_arrow</span>;
@@ -112,20 +113,21 @@ export class Multinomial {
 const stop = (
   draft: immer.Draft<types.IState>,
   node_id: types.TNodeId,
+  vid: number,
   t?: number,
 ) => {
   const last_range = draft.data.nodes[node_id].ranges.at(-1);
   if (last_range && last_range.end === null) {
     last_range.end = t ?? Number(new Date());
     ops.update_node_caches(node_id, draft);
-    _set_total_time(draft, node_id);
+    _set_total_time_of_ancestors(draft, node_id, vid);
   }
 };
 
-const stop_all = (draft: immer.Draft<types.IState>) => {
+const stop_all = (draft: immer.Draft<types.IState>, vid: number) => {
   const t = Number(new Date());
   for (const node_id of ops.keys_of(draft.data.queue)) {
-    stop(draft, node_id, t);
+    stop(draft, node_id, vid, t);
   }
 };
 
@@ -162,8 +164,8 @@ const closestToTop = register_history_type(rtk.action_of_of("closestToTop"));
 const move_important_node_to_top_action = register_history_type(
   rtk.action_of_of("move_important_node_to_top_action"),
 );
-const set_total_time = register_history_type(
-  rtk.action_of_of<types.TNodeId>("set_total_time"),
+const set_total_time_action = register_history_type(
+  rtk.action_of_of<types.TNodeId>("set_total_time_action"),
 );
 const stop_action = register_history_type(
   rtk.action_of_of<types.TNodeId>("stop_action"),
@@ -244,14 +246,17 @@ const root_reducer_def = (
   });
   builder(eval_, (state, action) => {
     const k = action.payload;
-    _eval_(state, k);
+    _eval_(state, k, utils.visit_counter_of());
   });
   builder(delete_action, (state, action) => {
     const node_id = action.payload;
+    const vid = utils.visit_counter_of();
     if (checks.is_deletable_node(node_id, state)) {
       const node = state.data.nodes[node_id];
+      const affected_parent_node_ids = new Set<types.TNodeId>();
       for (const edge_id of ops.keys_of(node.parents)) {
         const parent_node_id = state.data.edges[edge_id].p;
+        affected_parent_node_ids.add(parent_node_id);
         delete state.caches[parent_node_id].child_edges[edge_id];
         delete state.caches[parent_node_id].child_nodes[node_id];
         delete state.data.nodes[parent_node_id].children[edge_id];
@@ -267,6 +272,9 @@ const root_reducer_def = (
       delete state.data.queue[node_id];
       delete state.data.nodes[node_id];
       delete state.caches[node_id];
+      for (const parent_node_id of affected_parent_node_ids) {
+        _set_total_time_of_ancestors(state, parent_node_id, vid);
+      }
     } else {
       toast.add("error", `Node ${node_id} is not deletable.`);
     }
@@ -276,6 +284,7 @@ const root_reducer_def = (
   });
   builder(delete_edge_action, (state, action) => {
     const edge_id = action.payload;
+    const vid = utils.visit_counter_of();
     if (!checks.is_deletable_edge_of(edge_id, state)) {
       toast.add(
         "error",
@@ -293,6 +302,7 @@ const root_reducer_def = (
     ops.update_node_caches(edge.p, state);
     ops.update_node_caches(edge.c, state);
     delete state.data.edges[edge_id];
+    _set_total_time_of_ancestors(state, edge.p, vid);
   });
   builder(new_action, (state, action) => {
     ops.new_(state, action.payload, is_mobile());
@@ -308,6 +318,7 @@ const root_reducer_def = (
     state.caches[node_id].show_detail = !state.caches[node_id].show_detail;
   });
   builder(start_action, (state, action) => {
+    const vid = utils.visit_counter_of();
     const node_id = action.payload.node_id;
     if (state.data.nodes[node_id].status !== "todo") {
       toast.add("error", `Non-todo node ${node_id} cannot be started.`);
@@ -321,7 +332,7 @@ const root_reducer_def = (
         "Must not happen",
       ]);
       if (!action.payload.is_concurrent) {
-        stop_all(state);
+        stop_all(state, vid);
       }
       state.data.nodes[node_id].ranges.push({
         start: Number(new Date()),
@@ -452,14 +463,19 @@ const root_reducer_def = (
     }
     _top(state, candidate);
   });
-  builder(set_total_time, (state, action) => {
-    _set_total_time(state, action.payload);
+  builder(set_total_time_action, (state, action) => {
+    if (state.data.nodes[action.payload] === undefined) {
+      return;
+    }
+    _set_total_time(state, action.payload, utils.visit_counter_of());
   });
   builder(stop_action, (state, action) => {
-    stop(state, action.payload);
+    const vid = utils.visit_counter_of();
+    stop(state, action.payload, vid);
   });
   builder(stop_all_action, (state) => {
-    stop_all(state);
+    const vid = utils.visit_counter_of();
+    stop_all(state, vid);
   });
   builder(moveUp_, (state, action) => {
     if (state.data.nodes[action.payload].status === "todo") {
@@ -496,6 +512,7 @@ const root_reducer_def = (
     ops.set_estimate(action.payload, state);
   });
   builder(set_range_value_action, (state, action) => {
+    const vid = utils.visit_counter_of();
     const range =
       state.data.nodes[action.payload.node_id].ranges[action.payload.i_range];
     const prev_milliseconds = range[action.payload.k];
@@ -519,6 +536,7 @@ const root_reducer_def = (
       range[action.payload.k] = prev_milliseconds;
     }
     ops.update_node_caches(action.payload.node_id, state);
+    _set_total_time_of_ancestors(state, action.payload.node_id, vid);
   });
   builder(delete_range_action, (state, action) => {
     state.data.nodes[action.payload.node_id].ranges.splice(
@@ -538,6 +556,7 @@ const root_reducer_def = (
   });
   builder(todoToDone, (state, action) => {
     const node_id = action.payload;
+    const vid = utils.visit_counter_of();
     if (!checks.is_completable_node_of(node_id, state)) {
       toast.add(
         "error",
@@ -545,7 +564,7 @@ const root_reducer_def = (
       );
       return;
     }
-    stop(state, node_id);
+    stop(state, node_id, vid);
     state.data.nodes[node_id].status = "done";
     state.data.nodes[node_id].end_time = Number(new Date());
     ops.update_node_caches(node_id, state);
@@ -554,6 +573,7 @@ const root_reducer_def = (
   });
   builder(todoToDont, (state, action) => {
     const node_id = action.payload;
+    const vid = utils.visit_counter_of();
     if (!checks.is_completable_node_of(node_id, state)) {
       toast.add(
         "error",
@@ -561,7 +581,7 @@ const root_reducer_def = (
       );
       return;
     }
-    stop(state, node_id);
+    stop(state, node_id, vid);
     state.data.nodes[node_id].status = "dont";
     state.data.nodes[node_id].end_time = Number(new Date());
     ops.update_node_caches(node_id, state);
@@ -627,7 +647,11 @@ const root_reducer_def = (
     ops.update_edge_caches(action.payload, state);
   });
   builder(add_edges_action, (state, action) => {
-    return ops.add_edges(action.payload, state);
+    const vid = utils.visit_counter_of();
+    ops.add_edges(action.payload, state);
+    for (const edge of action.payload) {
+      _set_total_time_of_ancestors(state, edge.p, vid);
+    }
   });
 };
 
@@ -1095,8 +1119,12 @@ const doFocusTextArea = (k: types.TNodeId) => () => {
   setTimeout(() => focus(textAreaRefOf(k).current), 50);
 };
 
-const _eval_ = (draft: immer.Draft<types.IState>, k: types.TNodeId) => {
-  _set_total_time(draft, k);
+const _eval_ = (
+  draft: immer.Draft<types.IState>,
+  k: types.TNodeId,
+  vid: number,
+) => {
+  _set_total_time(draft, k, vid);
   const candidates = ops.keys_of(draft.data.queue).filter((node_id) => {
     const v = draft.data.nodes[node_id];
     return (
@@ -1107,7 +1135,9 @@ const _eval_ = (draft: immer.Draft<types.IState>, k: types.TNodeId) => {
   const ratios = candidates.length
     ? candidates.map((node_id) => {
         const node = draft.data.nodes[node_id];
-        return _set_total_time(draft, node_id) / (1000 * 3600) / node.estimate;
+        return (
+          _set_total_time(draft, node_id, vid) / (1000 * 3600) / node.estimate
+        );
         // return draft.caches[v.start_time].total_time / 3600 / v.estimate;
       })
     : [1];
@@ -1149,8 +1179,37 @@ const _eval_ = (draft: immer.Draft<types.IState>, k: types.TNodeId) => {
   ];
 };
 
-const _set_total_time = (state: types.IState, node_id: types.TNodeId) => {
-  return (state.caches[node_id].total_time = total_time_of(state, node_id));
+const _set_total_time_of_ancestors = (
+  state: types.IState,
+  node_id: types.TNodeId,
+  vid: number,
+) => {
+  if (total_time_utils.affected_vids.get(node_id) === vid) {
+    return;
+  }
+  total_time_utils.affected_vids.set(node_id, vid);
+  if (total_time_utils.visible_node_ids.has(node_id)) {
+    _set_total_time(state, node_id, vid);
+  }
+  for (const parent_edge_id of ops.keys_of(state.data.nodes[node_id].parents)) {
+    _set_total_time_of_ancestors(
+      state,
+      state.data.edges[parent_edge_id].p,
+      vid,
+    );
+  }
+};
+
+const _set_total_time = (
+  state: types.IState,
+  node_id: types.TNodeId,
+  vid: number,
+) => {
+  if (total_time_utils.should_update(node_id)) {
+    total_time_utils.updated_vids.set(node_id, vid);
+    state.caches[node_id].total_time = total_time_of(state, node_id);
+  }
+  return state.caches[node_id].total_time;
 };
 
 const total_time_of = (state: types.IState, node_id: types.TNodeId) => {
@@ -1210,10 +1269,11 @@ const collect_ranges_from_strong_descendants = (
     return;
   }
   utils.vids[node_id] = vid;
-  if (state.data.nodes[node_id].ranges.length) {
-    ranges_list.push(state.data.nodes[node_id].ranges);
+  const node = state.data.nodes[node_id];
+  if (node.ranges.length) {
+    ranges_list.push(node.ranges);
   }
-  for (const edge_id of ops.keys_of(state.data.nodes[node_id].children)) {
+  for (const edge_id of ops.keys_of(node.children)) {
     if (state.data.edges[edge_id].t !== "strong") {
       continue;
     }
@@ -2005,9 +2065,6 @@ const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
   const is_root = props.node_id === root;
 
   const dispatch = useDispatch();
-  const on_click_total_time = useCallback(() => {
-    dispatch(set_total_time(props.node_id));
-  }, [dispatch, props.node_id]);
 
   return React.useMemo(
     () => (
@@ -2037,11 +2094,7 @@ const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
           {CopyNodeIdButton_of(props.node_id)}
           {status === "todo" && NewButton_of(dispatch, props.node_id)}
           {showDetailButtonOf(dispatch, props.node_id)}
-          <span onClick={on_click_total_time}>
-            {cache.total_time < 0
-              ? "-"
-              : digits1(cache.total_time / (1000 * 3600))}
-          </span>
+          <TotalTime node_id={props.node_id} />
           {is_root || LastRange_of(props.node_id)}
         </div>
         <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
@@ -2056,9 +2109,7 @@ const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
       cache.percentiles,
       cache.leaf_estimates_sum,
       cache.show_detail,
-      cache.total_time,
       status,
-      on_click_total_time,
       is_root,
       is_completable,
       is_uncompletable,
@@ -2095,9 +2146,6 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
   const is_root = props.node_id === root;
 
   const dispatch = useDispatch();
-  const on_click_total_time = useCallback(() => {
-    dispatch(set_total_time(props.node_id));
-  }, [dispatch, props.node_id]);
 
   return React.useMemo(
     () => (
@@ -2133,11 +2181,7 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
           {CopyNodeIdButton_of(props.node_id)}
           {status === "todo" && NewButton_of(dispatch, props.node_id)}
           {showDetailButtonOf(dispatch, props.node_id)}
-          <span onClick={on_click_total_time}>
-            {cache.total_time < 0
-              ? "-"
-              : digits1(cache.total_time / (1000 * 3600))}
-          </span>
+          <TotalTime node_id={props.node_id} />
           {is_root || LastRange_of(props.node_id)}
         </div>
         <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
@@ -2152,9 +2196,7 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
       cache.percentiles,
       cache.leaf_estimates_sum,
       cache.show_detail,
-      cache.total_time,
       status,
-      on_click_total_time,
       is_root,
       is_completable,
       is_uncompletable,
@@ -2166,6 +2208,49 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
 const EntryButtons_of = memoize1((node_id: types.TNodeId) => (
   <EntryButtons node_id={node_id} />
 ));
+
+const TotalTime = (props: { node_id: types.TNodeId }) => {
+  const cache = useSelector((state) => state.caches[props.node_id]);
+  const dispatch = useDispatch();
+  const ref = React.useRef<HTMLSpanElement>(null);
+  const on_click_total_time = useCallback(() => {
+    dispatch(set_total_time_action(props.node_id));
+  }, [dispatch, props.node_id]);
+
+  React.useEffect(() => {
+    if (ref.current === null) {
+      return;
+    }
+    let is_requested = false;
+    let handle = -1;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        total_time_utils.visible_node_ids.add(props.node_id);
+        if (total_time_utils.should_update(props.node_id) && !is_requested) {
+          is_requested = true;
+          handle = requestIdleCallback(() => {
+            on_click_total_time();
+            is_requested = false;
+          });
+        }
+      } else {
+        total_time_utils.visible_node_ids.delete(props.node_id);
+        cancelIdleCallback(handle);
+        is_requested = false;
+      }
+    });
+    observer.observe(ref.current);
+    return () => {
+      observer.disconnect();
+    };
+  }, [on_click_total_time, props.node_id]);
+
+  return (
+    <span onClick={on_click_total_time} ref={ref}>
+      {cache.total_time < 0 ? "-" : digits1(cache.total_time / (1000 * 3600))}
+    </span>
+  );
+};
 
 const StartOrStopButtons = (props: { node_id: types.TNodeId }) => {
   const ranges = useSelector((state) => state.data.nodes[props.node_id].ranges);
