@@ -19,11 +19,12 @@ docker run \
   -p 8080:8080 \
   ghcr.io/kshramt/evidence_based_scheduling:latest
 
+# --log-driver local \
 docker run \
   -d \
   --name ebs \
-  --log-driver local \
-  --mount type=bind,source="$PWD"/data,target=/data \
+  --log-driver journald \
+   --mount type=bind,source="$PWD"/data,target=/data \
   -e REPLICA_URI=gcs://<bucket>/data.sqlite \
   -p8080:8080 \
   ghcr.io/kshramt/evidence_based_scheduling:latest

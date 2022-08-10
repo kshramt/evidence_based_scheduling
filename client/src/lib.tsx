@@ -158,9 +158,10 @@ const closestToTop = register_history_type(rtk.action_of_of("closestToTop"));
 const move_important_node_to_top_action = register_history_type(
   rtk.action_of_of("move_important_node_to_top_action"),
 );
-const set_total_time_action = rtk.action_of_of<types.TNodeId>(
-  "set_total_time_action",
-);
+const set_total_time_action = rtk.action_of_of<{
+  node_id: types.TNodeId;
+  force?: true;
+}>("set_total_time_action");
 const stop_action = register_history_type(
   rtk.action_of_of<types.TNodeId>("stop_action"),
 );
@@ -452,10 +453,15 @@ const root_reducer_def = (
     _top(state, candidate);
   });
   builder(set_total_time_action, (state, action) => {
-    if (state.data.nodes[action.payload] === undefined) {
+    if (state.data.nodes[action.payload.node_id] === undefined) {
       return;
     }
-    _set_total_time(state, action.payload, utils.visit_counter_of());
+    _set_total_time(
+      state,
+      action.payload.node_id,
+      utils.visit_counter_of(),
+      action.payload.force,
+    );
   });
   builder(stop_action, (state, action) => {
     const vid = utils.visit_counter_of();
@@ -1249,8 +1255,9 @@ const _set_total_time = (
   state: types.IState,
   node_id: types.TNodeId,
   vid: number,
+  force: boolean = false,
 ) => {
-  if (total_time_utils.should_update(node_id)) {
+  if (force || total_time_utils.should_update(node_id)) {
     total_time_utils.updated_vids.set(node_id, vid);
     state.caches[node_id].total_time = total_time_of(state, node_id);
   }
@@ -2257,7 +2264,7 @@ const TotalTime = (props: { node_id: types.TNodeId }) => {
   const dispatch = useDispatch();
   const ref = React.useRef<HTMLSpanElement>(null);
   const on_click_total_time = useCallback(() => {
-    dispatch(set_total_time_action(props.node_id));
+    dispatch(set_total_time_action({ node_id: props.node_id, force: true }));
   }, [dispatch, props.node_id]);
 
   React.useEffect(() => {
@@ -2268,7 +2275,7 @@ const TotalTime = (props: { node_id: types.TNodeId }) => {
       if (entry.isIntersecting) {
         total_time_utils.visible_node_ids.add(props.node_id);
         if (total_time_utils.should_update(props.node_id)) {
-          on_click_total_time();
+          dispatch(set_total_time_action({ node_id: props.node_id }));
         }
       } else {
         total_time_utils.visible_node_ids.delete(props.node_id);
@@ -2278,7 +2285,7 @@ const TotalTime = (props: { node_id: types.TNodeId }) => {
     return () => {
       observer.disconnect();
     };
-  }, [on_click_total_time, props.node_id]);
+  }, [dispatch, props.node_id]);
 
   return (
     <span onClick={on_click_total_time} ref={ref}>
@@ -2915,13 +2922,13 @@ export const main = () => {
         set_predicted_next_nodes(state);
 
         const root_reducer = rtk.reducer_with_patch_of<types.IState>(
-          () => state,
+          state,
           root_reducer_def,
         );
         const store = createStore(
           reducer_of_reducer_with_patch(
             saver.patch_saver_of(
-              undoable.undoable_of(root_reducer, history_type_set),
+              undoable.undoable_of(root_reducer, history_type_set, state),
               USER_ID,
             ),
           ),

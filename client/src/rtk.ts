@@ -70,7 +70,7 @@ export function async_thunk_of_of<Payload, Rejected = Error>(
 }
 
 export const reducer_with_patch_of = <State>(
-  initial_state_of: () => State,
+  initial_state: State,
   ctor: (
     builder: <Payload>(
       action_of: TActionOf<Payload>,
@@ -88,7 +88,7 @@ export const reducer_with_patch_of = <State>(
     action: types.TAnyPayloadAction,
   ) => {
     if (state === undefined) {
-      return { state: initial_state_of(), patch: [], reverse_patch: [] };
+      return { state: initial_state, patch: [], reverse_patch: [] };
     }
     const reduce = map[action.type];
     if (!reduce) {

@@ -15,7 +15,11 @@ export function produce_with_patche<X>(
     | immer.Draft<X>,
 ) {
   const y = immer.produce(x, fn);
+  return { value: y, ...compare(x, y) };
+}
+
+export function compare<T>(x: T, y: T) {
   const patch = fast_json_patch.compare(x, y);
   const reverse_patch = fast_json_patch.compare(y, x);
-  return { value: y, patch, reverse_patch };
+  return { patch, reverse_patch };
 }

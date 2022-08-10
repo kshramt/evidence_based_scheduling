@@ -1,49 +1,41 @@
-import * as immer from "immer";
-
 import * as types from "./types";
 import * as producer from "./producer";
 
 export const UNDO_TYPE = "undoable/undo";
 export const REDO_TYPE = "undoable/redo";
 
-class PatchHistory<T> {
+class History<T> {
   capacity: number;
   i: number;
-  i_guard: number;
   buf: T[];
-  constructor(i_guard: number) {
-    this.capacity = 0;
-    this.i = -1;
-    this.i_guard = i_guard;
-    this.buf = [];
+  constructor(init: T) {
+    this.capacity = 1;
+    this.i = 0;
+    this.buf = [init];
   }
 
   value = () => this.buf[this.i];
 
   push = (v: T) => {
+    if (this.buf[this.i] === v) {
+      return this;
+    }
     ++this.i;
     this.buf[this.i] = v;
     this.capacity = this.i + 1;
     return this;
   };
 
-  undo = (): { shifted: true; value: T } | { shifted: false } => {
-    const shifted = this.i_guard < this.i;
-    if (!shifted) {
-      return { shifted };
+  undo = () => {
+    if (0 < this.i) {
+      --this.i;
     }
-    const value = this.value();
-    --this.i;
-    return { value, shifted };
+    return this.value();
   };
 
-  redo = (): { shifted: true; value: T } | { shifted: false } => {
-    const shifted = this.i < this.capacity - 1;
-    if (!shifted) {
-      return { shifted };
-    }
-    ++this.i;
-    return { value: this.value(), shifted };
+  redo = () => {
+    this.i = Math.min(this.i + 1, this.capacity - 1);
+    return this.value();
   };
 }
 
@@ -57,11 +49,9 @@ export const undoable_of = (
     reverse_patch: producer.TOperation[];
   },
   history_type_set: Set<string>,
+  initial_state: types.IState,
 ) => {
-  const history = new PatchHistory<{
-    patch: producer.TOperation[];
-    reverse_patch: producer.TOperation[];
-  }>(-1);
+  const history = new History<types.IState>(initial_state);
   const undoable = (
     state: undefined | types.IState,
     action: types.TAnyPayloadAction,
@@ -71,49 +61,17 @@ export const undoable_of = (
     }
     switch (action.type) {
       case UNDO_TYPE: {
-        const h = history.undo();
-        if (!h.shifted) {
-          return { state, patch: [], reverse_patch: [] };
-        }
-        const produced = immer.produce(
-          { state, patch: h.value.reverse_patch },
-          (draft) => {
-            producer.apply_patch(draft.state, draft.patch);
-          },
-        );
-        return {
-          state: produced.state,
-          patch: h.value.reverse_patch,
-          reverse_patch: h.value.patch,
-        };
+        const next_state = history.undo();
+        return { state: next_state, ...producer.compare(state, next_state) };
       }
       case REDO_TYPE: {
-        const h = history.redo();
-        if (!h.shifted) {
-          return { state, patch: [], reverse_patch: [] };
-        }
-        const produced = immer.produce(
-          { state, patch: h.value.patch },
-          (draft) => {
-            producer.apply_patch(draft.state, draft.patch);
-          },
-        );
-        return {
-          state: produced.state,
-          patch: h.value.patch,
-          reverse_patch: h.value.reverse_patch,
-        };
+        const next_state = history.redo();
+        return { state: next_state, ...producer.compare(state, next_state) };
       }
       default: {
         const reduced = reducer_with_patch(state, action);
-        if (
-          history_type_set.has(action.type) &&
-          (reduced.patch.length || reduced.reverse_patch.length)
-        ) {
-          history.push({
-            patch: reduced.patch,
-            reverse_patch: reduced.reverse_patch,
-          });
+        if (history_type_set.has(action.type)) {
+          history.push(reduced.state);
         }
         return reduced;
       }
