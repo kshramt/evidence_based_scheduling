@@ -28,6 +28,7 @@ docker run \
   -e REPLICA_URI=gcs://<bucket>/data.sqlite \
   -p8080:8080 \
   ghcr.io/kshramt/evidence_based_scheduling:latest
+# journalctl  CONTAINER_NAME=ebs
 ```
 
 ## Development
