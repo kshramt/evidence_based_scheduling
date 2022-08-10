@@ -164,8 +164,8 @@ const closestToTop = register_history_type(rtk.action_of_of("closestToTop"));
 const move_important_node_to_top_action = register_history_type(
   rtk.action_of_of("move_important_node_to_top_action"),
 );
-const set_total_time_action = register_history_type(
-  rtk.action_of_of<types.TNodeId>("set_total_time_action"),
+const set_total_time_action = rtk.action_of_of<types.TNodeId>(
+  "set_total_time_action",
 );
 const stop_action = register_history_type(
   rtk.action_of_of<types.TNodeId>("stop_action"),
