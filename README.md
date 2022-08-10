@@ -37,7 +37,7 @@ UVICORN_PORT=5000 make run_api
 
 ```
 cd client
-PORT=3000 npm run start
+PORT=3000 DANGEROUSLY_DISABLE_HOST_CHECK=true npm run start
 xdg-open http://localhost:3000
 ```
 
