@@ -2811,94 +2811,105 @@ export const main = () => {
     </React.StrictMode>,
   );
 
-  client.client
-    .getDataOfUserUsersUserIdDataGet(USER_ID)
-    .then((res) => {
-      saver.set_parent_id(res.etag);
-      saver.set_origin_id(res.etag);
+  const start_app = () =>
+    client.client
+      .getDataOfUserUsersUserIdDataGet(USER_ID)
+      .then((res) => {
+        saver.set_parent_id(res.etag);
+        saver.set_origin_id(res.etag);
 
-      let state: types.IState;
-      let patch: producer.TOperation[];
-      // let reverse_patch: producer.TPatch[];
-      if (res.body.data === null) {
-        state = ops.emptyStateOf();
-        const produced = producer.produce_with_patche(res.body, (draft) => {
-          draft.data = state.data;
-        });
-        patch = produced.patch;
-        // reverse_patch = produced.reverse_patch;
-      } else {
-        const parsed_data = types.parse_data({ data: res.body.data });
-        if (!parsed_data.success) {
-          root.render(error_element);
-          return;
+        let state: types.IState;
+        let patch: producer.TOperation[];
+        // let reverse_patch: producer.TPatch[];
+        if (res.body.data === null) {
+          state = ops.emptyStateOf();
+          const produced = producer.produce_with_patche(res.body, (draft) => {
+            draft.data = state.data;
+          });
+          patch = produced.patch;
+          // reverse_patch = produced.reverse_patch;
+        } else {
+          const parsed_data = types.parse_data({ data: res.body.data });
+          if (!parsed_data.success) {
+            root.render(error_element);
+            return;
+          }
+          const caches: types.ICaches = {};
+          for (const node_id in parsed_data.data.nodes) {
+            if (types.is_TNodeId(node_id)) {
+              caches[node_id] = ops.new_cache_of(parsed_data.data, node_id);
+            }
+          }
+
+          state = {
+            data: parsed_data.data,
+            caches,
+            predicted_next_nodes: [],
+            n_unsaved_patches: 0,
+          };
+          patch = parsed_data.patch;
+          // reverse_patch = parsed_data.reverse_patch;
         }
-        const caches: types.ICaches = {};
-        for (const node_id in parsed_data.data.nodes) {
-          if (types.is_TNodeId(node_id)) {
-            caches[node_id] = ops.new_cache_of(parsed_data.data, node_id);
+        saver.push_patch(USER_ID, patch);
+
+        const start_time_and_node_id_list: [number, types.TNodeId][] = [];
+        for (const node_id of ops.keys_of(state.data.queue)) {
+          const node = state.data.nodes[node_id];
+          if (node.status !== "todo") {
+            continue;
+          }
+          for (const range of node.ranges) {
+            start_time_and_node_id_list.push([range.start, node_id]);
           }
         }
-
-        state = {
-          data: parsed_data.data,
-          caches,
-          predicted_next_nodes: [],
-          n_unsaved_patches: 0,
-        };
-        patch = parsed_data.patch;
-        // reverse_patch = parsed_data.reverse_patch;
-      }
-      saver.push_patch(USER_ID, patch);
-
-      const start_time_and_node_id_list: [number, types.TNodeId][] = [];
-      for (const node_id of ops.keys_of(state.data.queue)) {
-        const node = state.data.nodes[node_id];
-        if (node.status !== "todo") {
-          continue;
+        start_time_and_node_id_list.sort((a, b) => a[0] - b[0]);
+        for (const [_, node_id] of start_time_and_node_id_list) {
+          next_action_predictor3.fit(node_id);
+          next_action_predictor2.fit(node_id);
         }
-        for (const range of node.ranges) {
-          start_time_and_node_id_list.push([range.start, node_id]);
-        }
-      }
-      start_time_and_node_id_list.sort((a, b) => a[0] - b[0]);
-      for (const [_, node_id] of start_time_and_node_id_list) {
-        next_action_predictor3.fit(node_id);
-        next_action_predictor2.fit(node_id);
-      }
-      set_predicted_next_nodes(state);
+        set_predicted_next_nodes(state);
 
-      const root_reducer = rtk.reducer_with_patch_of<types.IState>(
-        () => state,
-        root_reducer_def,
-      );
-      const store = createStore(
-        reducer_of_reducer_with_patch(
-          saver.patch_saver_of(
-            undoable.undoable_of(root_reducer, history_type_set),
-            USER_ID,
+        const root_reducer = rtk.reducer_with_patch_of<types.IState>(
+          () => state,
+          root_reducer_def,
+        );
+        const store = createStore(
+          reducer_of_reducer_with_patch(
+            saver.patch_saver_of(
+              undoable.undoable_of(root_reducer, history_type_set),
+              USER_ID,
+            ),
           ),
-        ),
-        applyMiddleware(thunk, saver.middleware),
-      );
+          applyMiddleware(thunk, saver.middleware),
+        );
 
-      saver.push_patch.add_before_process_hook((q) => {
-        store.dispatch(set_n_unsaved_patches_action(q.length));
-      });
-      saver.push_patch.add_after_process_hook(() => {
-        store.dispatch(set_n_unsaved_patches_action(0));
+        saver.push_patch.add_before_process_hook((q) => {
+          store.dispatch(set_n_unsaved_patches_action(q.length));
+        });
+        saver.push_patch.add_after_process_hook(() => {
+          store.dispatch(set_n_unsaved_patches_action(0));
+        });
+
+        root.render(
+          <React.StrictMode>
+            <Provider store={store}>
+              {is_mobile() ? <MobileApp /> : <App />}
+            </Provider>
+          </React.StrictMode>,
+        );
+      })
+      .catch((e: unknown) => {
+        console.error(e);
+        root.render(error_element);
       });
 
-      root.render(
-        <React.StrictMode>
-          <Provider store={store}>
-            {is_mobile() ? <MobileApp /> : <App />}
-          </Provider>
-        </React.StrictMode>,
-      );
-    })
-    .catch((e: unknown) => {
-      console.error(e);
-      root.render(error_element);
+  client.client
+    .getUserUsersUserIdGet(USER_ID)
+    .then(start_app)
+    .catch((err: client.ApiError) => {
+      if (err.status !== 404) {
+        throw err;
+      }
+      client.client.createUserUsersPost({ body: {} }).then(start_app);
     });
 };
