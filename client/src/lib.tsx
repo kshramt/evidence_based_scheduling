@@ -144,12 +144,6 @@ const delete_edge_action = register_history_type(
 const new_action = register_history_type(
   rtk.action_of_of<types.TNodeId>("new_action"),
 );
-const flipShowTodoOnly = register_history_type(
-  rtk.action_of_of("flipShowTodoOnly"),
-);
-const toggle_show_strong_edge_only_action = register_history_type(
-  rtk.action_of_of("toggle_show_strong_edge_only_action"),
-);
 const flipShowDetail = rtk.action_of_of<types.TNodeId>("flipShowDetail");
 const start_action = register_history_type(
   rtk.action_of_of<{ node_id: types.TNodeId; is_concurrent: boolean }>(
@@ -305,13 +299,7 @@ const root_reducer_def = (
     _set_total_time_of_ancestors(state, edge.p, vid);
   });
   builder(new_action, (state, action) => {
-    ops.new_(state, action.payload, is_mobile());
-  });
-  builder(flipShowTodoOnly, (state) => {
-    state.data.showTodoOnly = !state.data.showTodoOnly;
-  });
-  builder(toggle_show_strong_edge_only_action, (state) => {
-    state.data.show_strong_edge_only = !state.data.show_strong_edge_only;
+    ops.new_(state, action.payload, IS_MOBILE);
   });
   builder(flipShowDetail, (state, action) => {
     const node_id = action.payload;
@@ -720,20 +708,20 @@ const is_mobile = () => {
   return /(Mobi|Tablet|iPad)/.test(ua);
 };
 
+const IS_MOBILE = is_mobile();
+
 const MobileMenu = () => {
   const root = useSelector((state) => state.data.root);
   const dispatch = useDispatch();
   const stop_all = useCallback(() => dispatch(stop_all_action()), [dispatch]);
-  const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
+  const show_todo_only = React.useContext(show_todo_only_context);
+  const toggle_show_todo_only = React.useContext(toggle_show_todo_only_context);
   const n_unsaved_patches = useSelector((state) => state.n_unsaved_patches);
   const _undo = useCallback(() => {
     dispatch({ type: undoable.UNDO_TYPE });
   }, [dispatch]);
   const _redo = useCallback(() => {
     dispatch({ type: undoable.REDO_TYPE });
-  }, [dispatch]);
-  const _flipShowTodoOnly = useCallback(() => {
-    dispatch(flipShowTodoOnly());
   }, [dispatch]);
   return (
     <div
@@ -750,11 +738,11 @@ const MobileMenu = () => {
       <button className="btn-icon" arial-label="Redo." onClick={_redo}>
         <span className="material-icons">redo</span>
       </button>
-      <div onClick={_flipShowTodoOnly}>
+      <div onClick={toggle_show_todo_only}>
         TODO:{" "}
         <input
           type="radio"
-          checked={Boolean(showTodoOnly)}
+          checked={show_todo_only}
           onChange={_suppress_missing_onChange_handler_warning}
         />
       </div>
@@ -794,14 +782,14 @@ const MobileQueueColumn = () => {
 const MobileQueueNodes = () => {
   const queue = useSelector((state) => state.data.queue);
   const nodes = useSelector((state) => state.data.nodes);
-  const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
+  const show_todo_only = React.useContext(show_todo_only_context);
   const node_filter_query = React.useContext(node_filter_query_slow_context);
   const node_ids = ops
     .sorted_keys_of(queue)
     .filter((node_id) => {
       const node = nodes[node_id];
       return !_should_hide_of(
-        showTodoOnly,
+        show_todo_only,
         node.status !== "todo",
         node_filter_query,
         node.text,
@@ -822,66 +810,129 @@ const MobileQueueNodes = () => {
   );
 };
 
-const MobileApp = () => {
-  const [node_filter_query_fast, set_node_filter_query_fast] =
-    React.useState("");
-  const [node_filter_query_slow, set_node_filter_query_slow] =
-    React.useState("");
-  saver.useCheckUpdates(USER_ID);
-  return (
-    <set_node_filter_query_slow_context.Provider
-      value={set_node_filter_query_slow}
-    >
-      <set_node_filter_query_fast_context.Provider
-        value={set_node_filter_query_fast}
-      >
-        <node_filter_query_slow_context.Provider value={node_filter_query_slow}>
-          <node_filter_query_fast_context.Provider
-            value={node_filter_query_fast}
-          >
-            <MobileMenu />
-            <MobileBody />
-            {toast.component}
-            <saver.Component user_id={USER_ID} />
-          </node_filter_query_fast_context.Provider>
-        </node_filter_query_slow_context.Provider>
-      </set_node_filter_query_fast_context.Provider>
-    </set_node_filter_query_slow_context.Provider>
-  );
-};
+const toggle_show_todo_only_context = React.createContext(() => {});
+const toggle_show_strong_edge_only_context = React.createContext(() => {});
+const show_todo_only_context = React.createContext(false);
+const show_strong_edge_only_context = React.createContext(false);
 
 const App = () => {
   const [node_filter_query_fast, set_node_filter_query_fast] =
     React.useState("");
   const [node_filter_query_slow, set_node_filter_query_slow] =
     React.useState("");
-  const [node_ids, set_node_ids] = React.useState("");
+
+  const [show_todo_only, set_show_todo_only] = React.useState(
+    React.useMemo(() => {
+      return window.localStorage.getItem("ebs/show_todo_only") === "true";
+    }, []),
+  );
+  const toggle_show_todo_only = React.useCallback(() => {
+    set_show_todo_only((prev) => {
+      const res = !prev;
+      window.localStorage.setItem("ebs/show_todo_only", res ? "true" : "false");
+      return res;
+    });
+  }, [set_show_todo_only]);
+
+  const [show_strong_edge_only, set_show_strong_edge_only] = React.useState(
+    React.useMemo(() => {
+      return (
+        window.localStorage.getItem("ebs/show_strong_edge_only") === "true"
+      );
+    }, []),
+  );
+  const toggle_show_strong_edge_only = React.useCallback(() => {
+    set_show_strong_edge_only((prev) => {
+      const res = !prev;
+      window.localStorage.setItem(
+        "ebs/show_strong_edge_only",
+        res ? "true" : "false",
+      );
+      return res;
+    });
+  }, [set_show_strong_edge_only]);
+
+  const el = React.useMemo(
+    () => (IS_MOBILE ? <MobileApp /> : <DesktopApp />),
+    [],
+  );
   saver.useCheckUpdates(USER_ID);
   return (
-    <set_node_filter_query_slow_context.Provider
-      value={set_node_filter_query_slow}
+    <toggle_show_strong_edge_only_context.Provider
+      value={toggle_show_strong_edge_only}
     >
-      <set_node_filter_query_fast_context.Provider
-        value={set_node_filter_query_fast}
-      >
-        <set_node_ids_context.Provider value={set_node_ids}>
-          <node_ids_context.Provider value={node_ids}>
-            <node_filter_query_slow_context.Provider
-              value={node_filter_query_slow}
+      <toggle_show_todo_only_context.Provider value={toggle_show_todo_only}>
+        <show_strong_edge_only_context.Provider value={show_strong_edge_only}>
+          <show_todo_only_context.Provider value={show_todo_only}>
+            <set_node_filter_query_slow_context.Provider
+              value={set_node_filter_query_slow}
             >
-              <node_filter_query_fast_context.Provider
-                value={node_filter_query_fast}
+              <set_node_filter_query_fast_context.Provider
+                value={set_node_filter_query_fast}
               >
-                <Menu />
-                <Body />
-                {toast.component}
-                <saver.Component user_id={USER_ID} />
-              </node_filter_query_fast_context.Provider>
-            </node_filter_query_slow_context.Provider>
-          </node_ids_context.Provider>
-        </set_node_ids_context.Provider>
-      </set_node_filter_query_fast_context.Provider>
-    </set_node_filter_query_slow_context.Provider>
+                <node_filter_query_slow_context.Provider
+                  value={node_filter_query_slow}
+                >
+                  <node_filter_query_fast_context.Provider
+                    value={node_filter_query_fast}
+                  >
+                    {el}
+                    <saver.Component user_id={USER_ID} />
+                  </node_filter_query_fast_context.Provider>
+                </node_filter_query_slow_context.Provider>
+              </set_node_filter_query_fast_context.Provider>
+            </set_node_filter_query_slow_context.Provider>
+          </show_todo_only_context.Provider>
+        </show_strong_edge_only_context.Provider>
+      </toggle_show_todo_only_context.Provider>
+    </toggle_show_strong_edge_only_context.Provider>
+  );
+  // return (
+  //   <device_state.context.Provider value={device_state.initial_state}>
+  //     <set_node_filter_query_slow_context.Provider
+  //       value={set_node_filter_query_slow}
+  //     >
+  //       <set_node_filter_query_fast_context.Provider
+  //         value={set_node_filter_query_fast}
+  //       >
+  //         <node_filter_query_slow_context.Provider
+  //           value={node_filter_query_slow}
+  //         >
+  //           <node_filter_query_fast_context.Provider
+  //             value={node_filter_query_fast}
+  //           >
+  //             {el}
+  //             <saver.Component user_id={USER_ID} />
+  //           </node_filter_query_fast_context.Provider>
+  //         </node_filter_query_slow_context.Provider>
+  //       </set_node_filter_query_fast_context.Provider>
+  //     </set_node_filter_query_slow_context.Provider>
+  //   </device_state.context.Provider>
+  // );
+};
+
+const MobileApp = () => {
+  return (
+    <>
+      <MobileMenu />
+      <MobileBody />
+      {toast.component}
+      <saver.Component user_id={USER_ID} />
+    </>
+  );
+};
+
+const DesktopApp = () => {
+  const [node_ids, set_node_ids] = React.useState("");
+  return (
+    <set_node_ids_context.Provider value={set_node_ids}>
+      <node_ids_context.Provider value={node_ids}>
+        <Menu />
+        <Body />
+        {toast.component}
+        <saver.Component user_id={USER_ID} />
+      </node_ids_context.Provider>
+    </set_node_ids_context.Provider>
   );
 };
 
@@ -889,10 +940,9 @@ const Menu = () => {
   const root = useSelector((state) => state.data.root);
   const dispatch = useDispatch();
   const stop_all = useCallback(() => dispatch(stop_all_action()), [dispatch]);
-  const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
-  const show_strong_edge_only = useSelector(
-    (state) => state.data.show_strong_edge_only,
-  );
+  const show_todo_only = React.useContext(show_todo_only_context);
+  const toggle_show_todo_only = React.useContext(toggle_show_todo_only_context);
+  const show_strong_edge_only = React.useContext(show_strong_edge_only_context);
   const n_unsaved_patches = useSelector((state) => state.n_unsaved_patches);
   const _undo = useCallback(() => {
     dispatch({ type: undoable.UNDO_TYPE });
@@ -900,12 +950,9 @@ const Menu = () => {
   const _redo = useCallback(() => {
     dispatch({ type: undoable.REDO_TYPE });
   }, [dispatch]);
-  const _flipShowTodoOnly = useCallback(() => {
-    dispatch(flipShowTodoOnly());
-  }, [dispatch]);
-  const toggle_show_strong_edge_only = useCallback(() => {
-    dispatch(toggle_show_strong_edge_only_action());
-  }, [dispatch]);
+  const toggle_show_strong_edge_only = React.useContext(
+    toggle_show_strong_edge_only_context,
+  );
   const _smallestToTop = useCallback(() => {
     dispatch(smallestToTop());
   }, [dispatch]);
@@ -930,11 +977,11 @@ const Menu = () => {
       <button className="btn-icon" arial-label="Redo." onClick={_redo}>
         <span className="material-icons">redo</span>
       </button>
-      <div onClick={_flipShowTodoOnly}>
+      <div onClick={toggle_show_todo_only}>
         TODO:{" "}
         <input
           type="radio"
-          checked={Boolean(showTodoOnly)}
+          checked={show_todo_only}
           onChange={_suppress_missing_onChange_handler_warning}
         />
       </div>
@@ -1443,10 +1490,8 @@ const TreeNodeList = (props: { node_id_list: types.TNodeId[] }) => {
 
 const TreeNode = (props: { node_id: types.TNodeId }) => {
   const entry = TreeEntry_of(props.node_id);
-  const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
-  const show_strong_edge_only = useSelector(
-    (state) => state.data.show_strong_edge_only,
-  );
+  const show_todo_only = React.useContext(show_todo_only_context);
+  const show_strong_edge_only = React.useContext(show_strong_edge_only_context);
   const children = useSelector(
     (state) => state.data.nodes[props.node_id].children,
   );
@@ -1456,7 +1501,7 @@ const TreeNode = (props: { node_id: types.TNodeId }) => {
     let edge_id_list = ops
       .sorted_keys_of(children)
       .filter((edge_id) => !edges[edge_id].hide);
-    if (showTodoOnly) {
+    if (show_todo_only) {
       edge_id_list = edge_id_list.filter(
         (edge_id) => nodes[edges[edge_id].c].status === "todo",
       );
@@ -1471,7 +1516,7 @@ const TreeNode = (props: { node_id: types.TNodeId }) => {
         node_id_list={edge_id_list.map((edge_id) => edges[edge_id].c)}
       />
     );
-  }, [showTodoOnly, show_strong_edge_only, children, nodes, edges]);
+  }, [show_todo_only, show_strong_edge_only, children, nodes, edges]);
 
   return (
     <>
@@ -1486,14 +1531,14 @@ const TreeNode_of = memoize1((node_id: types.TNodeId) => (
 
 const QueueNode = (props: { node_id: types.TNodeId }) => {
   const entry = QueueEntry_of(props.node_id);
-  const showTodoOnly = useSelector((state) => state.data.showTodoOnly);
+  const show_todo_only = React.useContext(show_todo_only_context);
   const is_not_todo = useSelector(
     (state) => state.data.nodes[props.node_id].status !== "todo",
   );
   const node_filter_query = React.useContext(node_filter_query_slow_context);
   const text = useSelector((state) => state.data.nodes[props.node_id].text);
   const should_hide = _should_hide_of(
-    showTodoOnly,
+    show_todo_only,
     is_not_todo,
     node_filter_query,
     text,
@@ -1507,13 +1552,13 @@ const QueueNode_of = memoize1((node_id: types.TNodeId) => (
 ));
 
 const _should_hide_of = (
-  showTodoOnly: boolean,
+  show_todo_only: boolean,
   is_not_todo: boolean,
   node_filter_query: string,
   text: string,
   node_id: types.TNodeId,
 ) => {
-  if (showTodoOnly && is_not_todo) {
+  if (show_todo_only && is_not_todo) {
     return true;
   }
   const node_filter_query_lower = node_filter_query.toLowerCase();
@@ -2893,7 +2938,7 @@ export const main = () => {
         root.render(
           <React.StrictMode>
             <Provider store={store}>
-              {is_mobile() ? <MobileApp /> : <App />}
+              <App />
             </Provider>
           </React.StrictMode>,
         );
