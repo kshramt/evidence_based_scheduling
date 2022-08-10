@@ -201,6 +201,9 @@ const post_data_id_of = (user_id: number, force_update: boolean = false) => {
 export const useCheckUpdates = (user_id: number) => {
   React.useEffect(() => {
     const handle_focus = async () => {
+      if (document.hidden) {
+        return;
+      }
       const res = await client.client.getIdOfDataOfUserUsersUserIdDataIdGet(
         user_id,
       );
@@ -214,9 +217,11 @@ export const useCheckUpdates = (user_id: number) => {
     };
 
     window.addEventListener("focus", handle_focus);
+    window.addEventListener("visibilitychange", handle_focus);
 
     return () => {
       window.removeEventListener("focus", handle_focus);
+      window.removeEventListener("visibilitychange", handle_focus);
     };
   }, [user_id]);
 };
