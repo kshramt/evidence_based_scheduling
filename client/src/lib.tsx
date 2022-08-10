@@ -812,13 +812,11 @@ const MobileQueueNodes = () => {
   return (
     <>
       {node_ids.map((node_id) => (
-        <div className="mb-[1em] last:mb-0" key={node_id}>
-          <EntryWrapper node_id={node_id}>
-            <TextArea node_id={node_id} style={{ width: "100vw" }} />
-            <MobileEntryButtons node_id={node_id} />
-            <Details node_id={node_id} />
-          </EntryWrapper>
-        </div>
+        <EntryWrapper node_id={node_id} key={node_id}>
+          <TextArea node_id={node_id} style={{ width: "100vw" }} />
+          <MobileEntryButtons node_id={node_id} />
+          <Details node_id={node_id} />
+        </EntryWrapper>
       ))}
     </>
   );
@@ -1435,7 +1433,7 @@ const QueueNodes = () => {
 const TreeNodeList = (props: { node_id_list: types.TNodeId[] }) => {
   // spacing="0.5rem" paddingLeft="1rem"
   return props.node_id_list.length ? (
-    <ol className="pt-[1em]">
+    <ol>
       {props.node_id_list.map((node_id) => {
         return <li key={node_id}>{TreeNode_of(node_id)}</li>;
       })}
@@ -1502,7 +1500,7 @@ const QueueNode = (props: { node_id: types.TNodeId }) => {
     props.node_id,
   );
   // className="hidden" is slower.
-  return should_hide ? null : <li className="mb-[1em] last:mb-0">{entry}</li>;
+  return should_hide ? null : <li>{entry}</li>;
 };
 const QueueNode_of = memoize1((node_id: types.TNodeId) => (
   <QueueNode node_id={node_id} key={node_id} />
