@@ -1019,19 +1019,16 @@ const MobileNodeFilterQueryInput = () => {
     });
   }, [set_node_filter_query_fast, set_node_filter_query_slow]);
   return (
-    <>
-      Filter:
-      <div className="flex items-center border border-solid border-gray-400">
-        <input
-          value={node_filter_query}
-          onChange={handle_change}
-          className="h-[2em] border-none w-[8em]"
-        />
-        <button className="btn-icon" onClick={clear_input}>
-          {consts.DELETE_MARK}
-        </button>
-      </div>
-    </>
+    <div className="flex items-center border border-solid border-gray-400">
+      <input
+        value={node_filter_query}
+        onChange={handle_change}
+        className="h-[2em] border-none w-[8em]"
+      />
+      <button className="btn-icon" onClick={clear_input}>
+        {consts.DELETE_MARK}
+      </button>
+    </div>
   );
 };
 
