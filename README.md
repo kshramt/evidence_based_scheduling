@@ -23,6 +23,7 @@ docker run \
 docker run \
   -d \
   --name ebs \
+  --init \
   --log-driver journald \
    --mount type=bind,source="$PWD"/data,target=/data \
   -e REPLICA_URI=gcs://<bucket>/data.sqlite \
