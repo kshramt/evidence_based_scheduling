@@ -46,6 +46,10 @@ const COPY_MARK = <span className="material-icons">content_copy</span>;
 const TOC_MARK = <span className="material-icons">toc</span>;
 const FORWARD_MARK = <span className="material-icons">arrow_forward_ios</span>;
 const BACK_MARK = <span className="material-icons">arrow_back_ios</span>;
+const SEARCH_MARK = <span className="material-icons">search</span>;
+const IDS_MARK = <span className="material-icons">content_paste</span>;
+const MOBILE_MARK = <span className="material-icons">smartphone</span>;
+const DESKTOP_MARK = <span className="material-icons">desktop_windows</span>;
 
 const USER_ID = 1;
 const N_PREDICTED = 5;
@@ -141,8 +145,10 @@ const parse_toc_action = register_history_type(
 const delete_edge_action = register_history_type(
   rtk.action_of_of<types.TEdgeId>("delete_edge_action"),
 );
-const new_action = register_history_type(
-  rtk.action_of_of<types.TNodeId>("new_action"),
+const add_action = register_history_type(
+  rtk.action_of_of<{ node_id: types.TNodeId; show_mobile: boolean }>(
+    "add_action",
+  ),
 );
 const flipShowDetail = rtk.action_of_of<types.TNodeId>("flipShowDetail");
 const start_action = register_history_type(
@@ -299,8 +305,8 @@ const root_reducer_def = (
     delete state.data.edges[edge_id];
     _set_total_time_of_ancestors(state, edge.p, vid);
   });
-  builder(new_action, (state, action) => {
-    ops.new_(state, action.payload, IS_MOBILE);
+  builder(add_action, (state, action) => {
+    ops.add(state, action.payload.node_id, action.payload.show_mobile);
   });
   builder(flipShowDetail, (state, action) => {
     const node_id = action.payload;
@@ -714,8 +720,6 @@ const is_mobile = () => {
   return /(Mobi|Tablet|iPad)/.test(ua);
 };
 
-const IS_MOBILE = is_mobile();
-
 const MobileMenu = () => {
   const root = useSelector((state) => state.data.root);
   const dispatch = useDispatch();
@@ -723,6 +727,7 @@ const MobileMenu = () => {
   const show_todo_only = React.useContext(show_todo_only_context);
   const toggle_show_todo_only = React.useContext(toggle_show_todo_only_context);
   const n_unsaved_patches = useSelector((state) => state.n_unsaved_patches);
+  const toggle_show_mobile = React.useContext(toggle_show_mobile_context);
   const _undo = useCallback(() => {
     dispatch({ type: undoable.UNDO_TYPE });
   }, [dispatch]);
@@ -737,7 +742,7 @@ const MobileMenu = () => {
       <button className="btn-icon" onClick={stop_all}>
         {STOP_MARK}
       </button>
-      {NewButton_of(dispatch, root)}
+      {AddButton_of(root)}
       <button className="btn-icon" arial-label="Undo." onClick={_undo}>
         {UNDO_MARK}
       </button>
@@ -745,7 +750,7 @@ const MobileMenu = () => {
         <span className="material-icons">redo</span>
       </button>
       <div onClick={toggle_show_todo_only}>
-        TODO:{" "}
+        TODO{" "}
         <input
           type="radio"
           checked={show_todo_only}
@@ -757,6 +762,9 @@ const MobileMenu = () => {
       {n_unsaved_patches ? (
         <span className="pr-[1ex]">{n_unsaved_patches} left</span>
       ) : null}
+      <button className="btn-icon mr-[0.5em]" onClick={toggle_show_mobile}>
+        {DESKTOP_MARK}
+      </button>
     </div>
   );
 };
@@ -814,9 +822,11 @@ const MobileQueueNodes = () => {
 };
 
 const toggle_show_todo_only_context = React.createContext(() => {});
-const toggle_show_strong_edge_only_context = React.createContext(() => {});
 const show_todo_only_context = React.createContext(false);
+const toggle_show_strong_edge_only_context = React.createContext(() => {});
 const show_strong_edge_only_context = React.createContext(false);
+const toggle_show_mobile_context = React.createContext(() => {});
+const show_mobile_context = React.createContext(false);
 
 const App = () => {
   const [node_filter_query_fast, set_node_filter_query_fast] =
@@ -855,40 +865,64 @@ const App = () => {
     });
   }, [set_show_strong_edge_only]);
 
+  const [show_mobile, set_show_mobile] = React.useState(
+    React.useMemo(() => {
+      let val = window.localStorage.getItem("ebs/show_mobile");
+      if (val === null) {
+        val = is_mobile() ? "true" : "false";
+        window.localStorage.setItem("ebs/show_mobile", val);
+      }
+      return val === "true";
+    }, []),
+  );
+  const toggle_show_mobile = React.useCallback(() => {
+    set_show_mobile((prev) => {
+      const res = !prev;
+      window.localStorage.setItem("ebs/show_mobile", res ? "true" : "false");
+      return res;
+    });
+  }, [set_show_mobile]);
+
   const el = React.useMemo(
-    () => (IS_MOBILE ? <MobileApp /> : <DesktopApp />),
-    [],
+    () => (show_mobile ? <MobileApp /> : <DesktopApp />),
+    [show_mobile],
   );
   saver.useCheckUpdates(USER_ID);
   return (
-    <toggle_show_strong_edge_only_context.Provider
-      value={toggle_show_strong_edge_only}
-    >
-      <toggle_show_todo_only_context.Provider value={toggle_show_todo_only}>
-        <show_strong_edge_only_context.Provider value={show_strong_edge_only}>
-          <show_todo_only_context.Provider value={show_todo_only}>
-            <set_node_filter_query_slow_context.Provider
-              value={set_node_filter_query_slow}
+    <toggle_show_mobile_context.Provider value={toggle_show_mobile}>
+      <show_mobile_context.Provider value={show_mobile}>
+        <toggle_show_strong_edge_only_context.Provider
+          value={toggle_show_strong_edge_only}
+        >
+          <toggle_show_todo_only_context.Provider value={toggle_show_todo_only}>
+            <show_strong_edge_only_context.Provider
+              value={show_strong_edge_only}
             >
-              <set_node_filter_query_fast_context.Provider
-                value={set_node_filter_query_fast}
-              >
-                <node_filter_query_slow_context.Provider
-                  value={node_filter_query_slow}
+              <show_todo_only_context.Provider value={show_todo_only}>
+                <set_node_filter_query_slow_context.Provider
+                  value={set_node_filter_query_slow}
                 >
-                  <node_filter_query_fast_context.Provider
-                    value={node_filter_query_fast}
+                  <set_node_filter_query_fast_context.Provider
+                    value={set_node_filter_query_fast}
                   >
-                    {el}
-                    <saver.Component user_id={USER_ID} />
-                  </node_filter_query_fast_context.Provider>
-                </node_filter_query_slow_context.Provider>
-              </set_node_filter_query_fast_context.Provider>
-            </set_node_filter_query_slow_context.Provider>
-          </show_todo_only_context.Provider>
-        </show_strong_edge_only_context.Provider>
-      </toggle_show_todo_only_context.Provider>
-    </toggle_show_strong_edge_only_context.Provider>
+                    <node_filter_query_slow_context.Provider
+                      value={node_filter_query_slow}
+                    >
+                      <node_filter_query_fast_context.Provider
+                        value={node_filter_query_fast}
+                      >
+                        {el}
+                        <saver.Component user_id={USER_ID} />
+                      </node_filter_query_fast_context.Provider>
+                    </node_filter_query_slow_context.Provider>
+                  </set_node_filter_query_fast_context.Provider>
+                </set_node_filter_query_slow_context.Provider>
+              </show_todo_only_context.Provider>
+            </show_strong_edge_only_context.Provider>
+          </toggle_show_todo_only_context.Provider>
+        </toggle_show_strong_edge_only_context.Provider>
+      </show_mobile_context.Provider>
+    </toggle_show_mobile_context.Provider>
   );
 };
 
@@ -925,6 +959,7 @@ const Menu = () => {
   const toggle_show_todo_only = React.useContext(toggle_show_todo_only_context);
   const show_strong_edge_only = React.useContext(show_strong_edge_only_context);
   const n_unsaved_patches = useSelector((state) => state.n_unsaved_patches);
+  const toggle_show_mobile = React.useContext(toggle_show_mobile_context);
   const _undo = useCallback(() => {
     dispatch({ type: undoable.UNDO_TYPE });
   }, [dispatch]);
@@ -951,7 +986,7 @@ const Menu = () => {
       <button className="btn-icon" onClick={stop_all}>
         {STOP_MARK}
       </button>
-      {NewButton_of(dispatch, root)}
+      {AddButton_of(root)}
       <button className="btn-icon" arial-label="Undo." onClick={_undo}>
         {UNDO_MARK}
       </button>
@@ -959,7 +994,7 @@ const Menu = () => {
         <span className="material-icons">redo</span>
       </button>
       <div onClick={toggle_show_todo_only}>
-        TODO:{" "}
+        TODO{" "}
         <input
           type="radio"
           checked={show_todo_only}
@@ -967,7 +1002,7 @@ const Menu = () => {
         />
       </div>
       <div onClick={toggle_show_strong_edge_only}>
-        Strong:{" "}
+        Strong{" "}
         <input
           type="radio"
           checked={Boolean(show_strong_edge_only)}
@@ -989,6 +1024,9 @@ const Menu = () => {
       {n_unsaved_patches ? (
         <span className="pr-[1ex]">{n_unsaved_patches} left</span>
       ) : null}
+      <button className="btn-icon mr-[0.5em]" onClick={toggle_show_mobile}>
+        {MOBILE_MARK}
+      </button>
     </div>
   );
 };
@@ -1059,7 +1097,7 @@ const NodeFilterQueryInput = () => {
   }, [set_node_filter_query_fast, set_node_filter_query_slow]);
   return (
     <>
-      Filter:
+      {SEARCH_MARK}
       <div className="flex items-center border border-solid border-gray-400">
         <input
           value={node_filter_query}
@@ -1090,7 +1128,7 @@ const NodeIdsInput = () => {
   }, [set_node_ids]);
   return (
     <>
-      IDs:
+      {IDS_MARK}
       <div className="flex items-center border border-solid border-gray-400">
         <input
           value={node_ids}
@@ -1109,7 +1147,6 @@ const Body = () => {
   const root = useSelector((state) => {
     return state.data.root;
   });
-  const show_todo_only = React.useContext(show_todo_only_context);
   const queue = useSelector((state) => state.data.queue);
   const nodes = useSelector((state) => state.data.nodes);
   const node_id_groups = React.useMemo(() => {
@@ -1136,29 +1173,27 @@ const Body = () => {
         <QueueNodes node_ids={node_id_groups.todos} />
       </div>
       <div className={`overflow-y-scroll shrink-0`}>{TreeNode_of(root)}</div>
-      {show_todo_only ? null : (
-        <div className={`overflow-y-scroll shrink-0`}>
-          <QueueNodes node_ids={node_id_groups.non_todos} />
-        </div>
-      )}
+      <div className={`overflow-y-scroll shrink-0`}>
+        <QueueNodes node_ids={node_id_groups.non_todos} />
+      </div>
     </div>
   );
 };
 
-const doFocusStopButton = (k: types.TNodeId) => () => {
-  setTimeout(() => focus(stopButtonRefOf(k).current), 50);
+const doFocusStopButton = (node_id: types.TNodeId) => {
+  setTimeout(() => focus(stopButtonRefOf(node_id).current), 50);
 };
 
-const doFocusMoveUpButton = (k: types.TNodeId) => () => {
-  setTimeout(() => focus(moveUpButtonRefOf(k).current), 50);
+const doFocusMoveUpButton = (node_id: types.TNodeId) => {
+  setTimeout(() => focus(moveUpButtonRefOf(node_id).current), 50);
 };
 
-const doFocusMoveDownButton = (k: types.TNodeId) => () => {
-  setTimeout(() => focus(moveDownButtonRefOf(k).current), 50);
+const doFocusMoveDownButton = (node_id: types.TNodeId) => {
+  setTimeout(() => focus(moveDownButtonRefOf(node_id).current), 50);
 };
 
-const doFocusTextArea = (k: types.TNodeId) => () => {
-  setTimeout(() => focus(textAreaRefOf(k).current), 50);
+const doFocusTextArea = (node_id: types.TNodeId) => {
+  setTimeout(() => focus(textAreaRefOf(node_id).current), 50);
 };
 
 const _eval_ = (
@@ -1480,7 +1515,7 @@ const TreeNodeList = (props: { node_id_list: types.TNodeId[] }) => {
           return (
             <tr className="align-baseline" key={node_id}>
               <td className="row-id" />
-              {TreeNode_of(node_id)}
+              <td>{TreeNode_of(node_id)}</td>
             </tr>
           );
         })}
@@ -1520,10 +1555,10 @@ const TreeNode = (props: { node_id: types.TNodeId }) => {
   }, [show_todo_only, show_strong_edge_only, children, nodes, edges]);
 
   return (
-    <td>
+    <>
       {entry}
       {tree_node_list}
-    </td>
+    </>
   );
 };
 const TreeNode_of = memoize1((node_id: types.TNodeId) => (
@@ -2125,7 +2160,7 @@ const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
           {is_root || status !== "todo" || topButtonOf(dispatch, props.node_id)}
           {deleteButtonOf(dispatch, props.node_id)}
           {CopyNodeIdButton_of(props.node_id)}
-          {status === "todo" && NewButton_of(dispatch, props.node_id)}
+          {status === "todo" && AddButton_of(props.node_id)}
           {showDetailButtonOf(dispatch, props.node_id)}
           <TotalTime node_id={props.node_id} />
           {is_root || LastRange_of(props.node_id)}
@@ -2212,7 +2247,7 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
             moveDownButtonOf(dispatch, props.node_id)}
           {deleteButtonOf(dispatch, props.node_id)}
           {CopyNodeIdButton_of(props.node_id)}
-          {status === "todo" && NewButton_of(dispatch, props.node_id)}
+          {status === "todo" && AddButton_of(props.node_id)}
           {showDetailButtonOf(dispatch, props.node_id)}
           <TotalTime node_id={props.node_id} />
           {is_root || LastRange_of(props.node_id)}
@@ -2472,30 +2507,34 @@ const DoneOrDontToTodoButton_of = memoize2(
   ),
 );
 
-const NewButton_of = memoize2((dispatch: AppDispatch, k: types.TNodeId) => {
-  const _focusTextAreaOfTheNewTodo = (
-    dispatch: AppDispatch,
-    getState: () => types.IState,
-  ) => {
+const focus_text_area_action_of =
+  (node_id: types.TNodeId) =>
+  (dispatch: AppDispatch, getState: () => types.IState) => {
     const state = getState();
-    dispatch(
-      doFocusTextArea(
-        state.data.edges[ops.sorted_keys_of(state.data.nodes[k].children)[0]].c,
-      ),
+    doFocusTextArea(
+      state.data.edges[
+        ops.sorted_keys_of(state.data.nodes[node_id].children)[0]
+      ].c,
     );
   };
+
+const AddButton_of = memoize1((node_id: types.TNodeId) => (
+  <AddButton node_id={node_id} />
+));
+
+const AddButton = (props: { node_id: types.TNodeId }) => {
+  const dispatch = useDispatch();
+  const show_mobile = React.useContext(show_mobile_context);
+  const handle_click = React.useCallback(() => {
+    dispatch(add_action({ node_id: props.node_id, show_mobile: show_mobile }));
+    dispatch(focus_text_area_action_of(props.node_id));
+  }, [props.node_id, dispatch, show_mobile]);
   return (
-    <button
-      className="btn-icon"
-      onClick={() => {
-        dispatch(new_action(k));
-        dispatch(_focusTextAreaOfTheNewTodo);
-      }}
-    >
+    <button className="btn-icon" onClick={handle_click}>
       {ADD_MARK}
     </button>
   );
-});
+};
 
 const stopButtonOf = memoize2(
   (dispatch: AppDispatch, node_id: types.TNodeId) => (
@@ -2518,7 +2557,7 @@ const StartButton_of = memoize2(
       className="btn-icon"
       onClick={() => {
         dispatch(start_action({ node_id, is_concurrent: false }));
-        dispatch(doFocusStopButton(node_id));
+        doFocusStopButton(node_id);
       }}
     >
       {START_MARK}
@@ -2531,7 +2570,7 @@ const StartConcurrentButton_of = memoize2(
       className="btn-icon"
       onClick={() => {
         dispatch(start_action({ node_id, is_concurrent: true }));
-        dispatch(doFocusStopButton(node_id));
+        doFocusStopButton(node_id);
       }}
     >
       {START_CONCURRNET_MARK}
@@ -2550,31 +2589,35 @@ const topButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
   </button>
 ));
 
-const moveUpButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
-  <button
-    className="btn-icon"
-    onClick={() => {
-      dispatch(moveUp_(k));
-      dispatch(doFocusMoveUpButton(k));
-    }}
-    ref={moveUpButtonRefOf(k)}
-  >
-    {MOVE_UP_MARK}
-  </button>
-));
+const moveUpButtonOf = memoize2(
+  (dispatch: AppDispatch, node_id: types.TNodeId) => (
+    <button
+      className="btn-icon"
+      onClick={() => {
+        dispatch(moveUp_(node_id));
+        doFocusMoveUpButton(node_id);
+      }}
+      ref={moveUpButtonRefOf(node_id)}
+    >
+      {MOVE_UP_MARK}
+    </button>
+  ),
+);
 
-const moveDownButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
-  <button
-    className="btn-icon"
-    onClick={() => {
-      dispatch(moveDown_(k));
-      dispatch(doFocusMoveDownButton(k));
-    }}
-    ref={moveDownButtonRefOf(k)}
-  >
-    {MOVE_DOWN_MARK}
-  </button>
-));
+const moveDownButtonOf = memoize2(
+  (dispatch: AppDispatch, node_id: types.TNodeId) => (
+    <button
+      className="btn-icon"
+      onClick={() => {
+        dispatch(moveDown_(node_id));
+        doFocusMoveDownButton(node_id);
+      }}
+      ref={moveDownButtonRefOf(node_id)}
+    >
+      {MOVE_DOWN_MARK}
+    </button>
+  ),
+);
 
 const todoToDoneButtonOf = memoize2(
   (dispatch: AppDispatch, k: types.TNodeId) => (

@@ -117,10 +117,10 @@ export const set_estimate = (
   update_node_caches(payload.node_id, draft);
 };
 
-export const new_ = (
+export const add = (
   draft: Draft<types.IState>,
   parent_node_id: types.TNodeId,
-  top_of_queue: boolean = false,
+  top_of_queue: boolean,
 ) => {
   if (draft.data.nodes[parent_node_id].status !== "todo") {
     toast.add(
@@ -227,7 +227,7 @@ const add_weak_edges_from_toc = (toc: ITocNode, edges: types.IEdge[]) => {
 const make_tree_from_toc = (toc: ITocNode, draft: Draft<types.IState>) => {
   for (let i = toc.children.length - 1; -1 < i; --i) {
     const child_toc = toc.children[i];
-    const node_id = new_(draft, toc.id);
+    const node_id = add(draft, toc.id, false);
     if (node_id === null) {
       const msg = "Must not happen: node_id === null.";
       toast.add("error", msg);
