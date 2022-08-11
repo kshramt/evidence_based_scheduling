@@ -23,19 +23,22 @@ li {
   contain-intrinsic-size: auto 1em;
 }
 
+table {
+  counter-reset: table-row-counter;
+}
+table > tbody > tr > td.row-id {
+  text-align: right;
+  padding-right: 0.5em;
+}
+table > tbody > tr > td.row-id::before {
+  counter-increment: table-row-counter;
+  content: counter(table-row-counter);
+}
+
 @layer base {
   html,
   body {
     @apply bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100;
-  }
-  ol {
-    @apply list-decimal ml-[2em];
-  }
-  ul {
-    @apply list-disc ml-[2em];
-  }
-  li {
-    @apply list-item;
   }
   input[type="number"] {
     @apply text-right;

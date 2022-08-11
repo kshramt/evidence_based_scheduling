@@ -794,12 +794,9 @@ const MobileQueueNodes = () => {
     .sorted_keys_of(queue)
     .filter((node_id) => {
       const node = nodes[node_id];
-      return !_should_hide_of(
-        show_todo_only,
-        node.status !== "todo",
-        node_filter_query,
-        node.text,
-        node_id,
+      return !(
+        (show_todo_only && node.status !== "todo") ||
+        _should_hide_of(node_filter_query, node.text, node_id)
       );
     })
     .slice(0, 50);
@@ -893,28 +890,6 @@ const App = () => {
       </toggle_show_todo_only_context.Provider>
     </toggle_show_strong_edge_only_context.Provider>
   );
-  // return (
-  //   <device_state.context.Provider value={device_state.initial_state}>
-  //     <set_node_filter_query_slow_context.Provider
-  //       value={set_node_filter_query_slow}
-  //     >
-  //       <set_node_filter_query_fast_context.Provider
-  //         value={set_node_filter_query_fast}
-  //       >
-  //         <node_filter_query_slow_context.Provider
-  //           value={node_filter_query_slow}
-  //         >
-  //           <node_filter_query_fast_context.Provider
-  //             value={node_filter_query_fast}
-  //           >
-  //             {el}
-  //             <saver.Component user_id={USER_ID} />
-  //           </node_filter_query_fast_context.Provider>
-  //         </node_filter_query_slow_context.Provider>
-  //       </set_node_filter_query_fast_context.Provider>
-  //     </set_node_filter_query_slow_context.Provider>
-  //   </device_state.context.Provider>
-  // );
 };
 
 const MobileApp = () => {
@@ -1137,19 +1112,38 @@ const Body = () => {
   const root = useSelector((state) => {
     return state.data.root;
   });
+  const show_todo_only = React.useContext(show_todo_only_context);
+  const queue = useSelector((state) => state.data.queue);
+  const nodes = useSelector((state) => state.data.nodes);
+  const node_id_groups = React.useMemo(() => {
+    const todos = [];
+    const non_todos = [];
+    for (const node_id of ops.sorted_keys_of(queue)) {
+      if (nodes[node_id].status === "todo") {
+        todos.push(node_id);
+      } else {
+        non_todos.push(node_id);
+      }
+    }
+    return { todos, non_todos };
+  }, [queue, nodes]);
   return (
     <div
-      className="flex w-full h-screen gap-x-8 overflow-y-hidden"
+      className="flex w-full h-screen gap-x-[1em] overflow-y-hidden"
       style={{
         paddingTop: MENU_HEIGHT,
       }}
     >
-      <div className={`overflow-y-scroll pl-[1em] shrink-0`}>
-        <QueueColumn />
+      <div className={`overflow-y-scroll shrink-0`}>
+        <PredictedNextNodes />
+        <QueueNodes node_ids={node_id_groups.todos} />
       </div>
-      <div className={`overflow-y-scroll pl-[1em] shrink-0`}>
-        {TreeNode_of(root)}
-      </div>
+      <div className={`overflow-y-scroll shrink-0`}>{TreeNode_of(root)}</div>
+      {show_todo_only ? null : (
+        <div className={`overflow-y-scroll shrink-0`}>
+          <QueueNodes node_ids={node_id_groups.non_todos} />
+        </div>
+      )}
     </div>
   );
 };
@@ -1419,15 +1413,6 @@ const memoize2 = <A, B, R>(fn: (a: A, b: B) => R) => {
   };
 };
 
-const QueueColumn = () => {
-  return (
-    <>
-      <PredictedNextNodes />
-      <QueueNodes />
-    </>
-  );
-};
-
 const MobilePredictedNextNodes = () => {
   const predicted_next_nodes = useSelector(
     (state) => state.predicted_next_nodes,
@@ -1457,41 +1442,53 @@ const PredictedNextNodes = () => {
     (state) => state.predicted_next_nodes,
   );
   return (
-    <ol>
-      {predicted_next_nodes.map((node_id) => (
-        <li key={node_id}>
-          <PredictedNextNode node_id={node_id} />
-        </li>
-      ))}
-    </ol>
+    <table>
+      <tbody>
+        {predicted_next_nodes.map((node_id) => (
+          <tr className="align-baseline" key={node_id}>
+            <td className="row-id" />
+            <PredictedNextNode node_id={node_id} />
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 };
 const PredictedNextNode = (props: { node_id: types.TNodeId }) => {
   const text = useSelector((state) => state.data.nodes[props.node_id].text);
   const dispatch = useDispatch();
   return (
-    <div className="flex w-fit gap-x-[0.25em] items-baseline py-[0.125em]">
+    <td className="flex w-fit gap-x-[0.25em] items-baseline py-[0.125em]">
       {StartButton_of(dispatch, props.node_id)}
       {StartConcurrentButton_of(dispatch, props.node_id)}
       <ToTreeLink node_id={props.node_id}>{text.slice(0, 30)}</ToTreeLink>
-    </div>
+    </td>
   );
 };
 
-const QueueNodes = () => {
-  const queue = useSelector((state) => state.data.queue);
-  const node_ids = ops.sorted_keys_of(queue);
-  return <ol>{node_ids.map(QueueNode_of)}</ol>;
+const QueueNodes = (props: { node_ids: types.TNodeId[] }) => {
+  return (
+    <table>
+      <tbody>{props.node_ids.map(QueueNode_of)}</tbody>
+    </table>
+  );
 };
 
 const TreeNodeList = (props: { node_id_list: types.TNodeId[] }) => {
   // spacing="0.5rem" paddingLeft="1rem"
   return props.node_id_list.length ? (
-    <ol>
-      {props.node_id_list.map((node_id) => {
-        return <li key={node_id}>{TreeNode_of(node_id)}</li>;
-      })}
-    </ol>
+    <table>
+      <tbody>
+        {props.node_id_list.map((node_id) => {
+          return (
+            <tr className="align-baseline" key={node_id}>
+              <td className="row-id" />
+              {TreeNode_of(node_id)}
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
   ) : null;
 };
 
@@ -1526,10 +1523,10 @@ const TreeNode = (props: { node_id: types.TNodeId }) => {
   }, [show_todo_only, show_strong_edge_only, children, nodes, edges]);
 
   return (
-    <>
+    <td>
       {entry}
       {tree_node_list}
-    </>
+    </td>
   );
 };
 const TreeNode_of = memoize1((node_id: types.TNodeId) => (
@@ -1538,36 +1535,26 @@ const TreeNode_of = memoize1((node_id: types.TNodeId) => (
 
 const QueueNode = (props: { node_id: types.TNodeId }) => {
   const entry = QueueEntry_of(props.node_id);
-  const show_todo_only = React.useContext(show_todo_only_context);
-  const is_not_todo = useSelector(
-    (state) => state.data.nodes[props.node_id].status !== "todo",
-  );
   const node_filter_query = React.useContext(node_filter_query_slow_context);
   const text = useSelector((state) => state.data.nodes[props.node_id].text);
-  const should_hide = _should_hide_of(
-    show_todo_only,
-    is_not_todo,
-    node_filter_query,
-    text,
-    props.node_id,
-  );
+  const should_hide = _should_hide_of(node_filter_query, text, props.node_id);
   // className="hidden" is slower.
-  return should_hide ? null : <li>{entry}</li>;
+  return should_hide ? null : (
+    <tr className="align-baseline">
+      <td className="row-id" />
+      <td>{entry}</td>
+    </tr>
+  );
 };
 const QueueNode_of = memoize1((node_id: types.TNodeId) => (
   <QueueNode node_id={node_id} key={node_id} />
 ));
 
 const _should_hide_of = (
-  show_todo_only: boolean,
-  is_not_todo: boolean,
   node_filter_query: string,
   text: string,
   node_id: types.TNodeId,
 ) => {
-  if (show_todo_only && is_not_todo) {
-    return true;
-  }
   const node_filter_query_lower = node_filter_query.toLowerCase();
   const text_lower = text.toLowerCase();
   let is_match_filter_node_query = true;
@@ -2076,7 +2063,6 @@ const EntryWrapper = (props: {
     () => (
       <div
         className={utils.join(
-          "pt-[0.5em]",
           running ? "running" : has_hidden_leaf ? "hidden-leafs" : undefined,
         )}
         onDoubleClick={handle_toggle_show_children}
