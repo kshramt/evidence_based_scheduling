@@ -2797,7 +2797,7 @@ const TextAreaImpl = ({
       className={utils.join(
         "textarea whitespace-pre-wrap overflow-wrap-anywhere w-[30em] overflow-hidden p-[0.125em]",
         status === "done"
-          ? "text-red-500"
+          ? "text-red-600 dark:text-red-400"
           : status === "dont"
           ? "text-gray-500"
           : undefined,
