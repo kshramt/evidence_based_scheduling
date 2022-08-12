@@ -44,6 +44,7 @@ jobs:
       - uses: docker/build-push-action@v3
         with:
           push: true
+          target: prod
           tags: ghcr.io/kshramt/evidence_based_scheduling:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
