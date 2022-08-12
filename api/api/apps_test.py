@@ -16,3 +16,6 @@ async def test__users__user_id__data__id(tmp_path):
     async with AsyncClient(app=target.app, base_url="http://test") as ac:
         resp = await ac.post("/users", json=dict(body=dict()))
         assert resp.status_code == 200
+        resp = await ac.get("/users/1/data")
+        assert resp.status_code == 200
+        assert resp.json() == {"body": {"data": None}, "etag": 1, "path": "/data/1"}
