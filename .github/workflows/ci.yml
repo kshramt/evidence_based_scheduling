@@ -1,69 +1,48 @@
 name: ci
 on: [push]
 jobs:
-  set-vars:
+  build-images:
     runs-on: ubuntu-latest
-    outputs:
-      ref-b64: ${{ steps.git.outputs.ref-b64 }}
     steps:
-    - id: git
+    - id: vars
       run: |
         echo ::set-output name=ref-b64::"$(echo "${{ github.ref }}" | base64 --wrap 0 | sed -e 's/=//g')"
-  build-test-api:
-    needs: [set-vars]
+        echo ::set-output name=tmp-dir::"$(mktemp -d)"
+    - uses: actions/checkout@v3
+    - uses: docker/setup-buildx-action@v2
+    - uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - run: docker buildx build . --target merger --cache-from type=registry,ref=ghcr.io/kshramt/evidence_based_scheduling/cache:${{ steps.vars.outputs.ref-b64 }} --cache-to type=local,dest=${{ steps.vars.outputs.tmp-dir }},mode=max
+    - run: docker buildx build . --target merger --cache-from type=local,src=${{ steps.vars.outputs.tmp-dir }} --cache-to type=registry,ref=ghcr.io/kshramt/evidence_based_scheduling/cache:${{ steps.vars.outputs.ref-b64 }},mode=max
+    - run: docker buildx build . -t ghcr.io/kshramt/evidence_based_scheduling/test_api:${{ github.sha }} --target test_api --push --cache-from type=local,src=${{ steps.vars.outputs.tmp-dir }}
+    - run: docker buildx build . -t ghcr.io/kshramt/evidence_based_scheduling/test_client:${{ github.sha }} --target test_client --push --cache-from type=local,src=${{ steps.vars.outputs.tmp-dir }}
+    - run: docker buildx build . -t ghcr.io/kshramt/evidence_based_scheduling:${{ github.sha }} --target prod --push --cache-from type=local,src=${{ steps.vars.outputs.tmp-dir }}
+  test-api:
+    needs: [build-images]
     runs-on: ubuntu-latest
     steps:
-      - uses: docker/setup-buildx-action@v2
-      - uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/checkout@v3
-      - run: docker buildx build . -t build-test-api:latest --target test_builder_api --load --cache-from type=registry,ref=ghcr.io/kshramt/evidence_based_scheduling/cache/build-test-api:${{ needs.set-vars.outputs.ref-b64 }} --cache-to type=registry,ref=ghcr.io/kshramt/evidence_based_scheduling/cache/build-test-api:${{ needs.set-vars.outputs.ref-b64 }},mode=max
-      - run: docker run build-test-api:latest .venv/bin/python3 -m pyflakes api
-      - run: docker run build-test-api:latest .venv/bin/python3 -m mypy --check-untyped-defs api
-      - run: docker run build-test-api:latest .venv/bin/python3 -m black --check api
-      - run: docker run build-test-api:latest .venv/bin/python3 -m isort --check-only api
-      - run: docker run build-test-api:latest .venv/bin/python3 -m pytest
-  build-test-client:
-    needs: [set-vars]
+    - uses: actions/checkout@v3
+    - run: docker run ghcr.io/kshramt/evidence_based_scheduling/test_api:${{ github.sha }} .venv/bin/python3 -m pyflakes api
+    - run: docker run ghcr.io/kshramt/evidence_based_scheduling/test_api:${{ github.sha }} .venv/bin/python3 -m mypy --check-untyped-defs api
+    - run: docker run ghcr.io/kshramt/evidence_based_scheduling/test_api:${{ github.sha }} .venv/bin/python3 -m black --check api
+    - run: docker run ghcr.io/kshramt/evidence_based_scheduling/test_api:${{ github.sha }} .venv/bin/python3 -m isort --check-only api
+    - run: docker run ghcr.io/kshramt/evidence_based_scheduling/test_api:${{ github.sha }} .venv/bin/python3 -m pytest
+  test-client:
+    needs: [build-images]
     runs-on: ubuntu-latest
     steps:
-      - uses: docker/setup-buildx-action@v2
-      - uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/checkout@v3
-      - run: docker buildx build . -t build-test-client:latest --target test_builder_client --load --cache-from type=registry,ref=ghcr.io/kshramt/evidence_based_scheduling/cache/build-test-client:${{ needs.set-vars.outputs.ref-b64 }} --cache-to type=registry,ref=ghcr.io/kshramt/evidence_based_scheduling/cache/build-test-client:${{ needs.set-vars.outputs.ref-b64 }},mode=max
-      - run: docker run build-test-client:latest node_modules/.bin/react-scripts test --ci --watchAll false
-      - run: docker run build-test-client:latest node_modules/.bin/eslint --max-warnings 0 src
-      - run: docker run build-test-client:latest node_modules/.bin/prettier --check src
-  build-prod-git-sha-tag:
-    needs: [build-test-api, build-test-client, set-vars]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: docker/setup-buildx-action@v2
-      - uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v3
-        with:
-          push: true
-          target: prod
-          tags: ghcr.io/kshramt/evidence_based_scheduling:${{ github.sha }}
-          cache-from: type=registry,ref=ghcr.io/kshramt/evidence_based_scheduling/cache:${{ needs.set-vars.outputs.ref-b64 }}
-          cache-to: type=registry,ref=ghcr.io/kshramt/evidence_based_scheduling/cache:${{ needs.set-vars.outputs.ref-b64 }},mode=max
-  build-prod-latest-tag:
+    - uses: actions/checkout@v3
+    - run: docker run ghcr.io/kshramt/evidence_based_scheduling/test_client:${{ github.sha }} node_modules/.bin/react-scripts test --ci --watchAll false
+    - run: docker run ghcr.io/kshramt/evidence_based_scheduling/test_client:${{ github.sha }} node_modules/.bin/eslint --max-warnings 0 src
+    - run: docker run ghcr.io/kshramt/evidence_based_scheduling/test_client:${{ github.sha }} node_modules/.bin/prettier --check src
+  tag-latest-tag:
     if: ${{ github.ref == 'refs/heads/main' }}
-    needs: [build-prod-git-sha-tag]
+    needs: [test-client, test-api]
     runs-on: ubuntu-latest
     steps:
-      - uses: docker/setup-buildx-action@v2
       - uses: docker/login-action@v2
         with:
           registry: ghcr.io
