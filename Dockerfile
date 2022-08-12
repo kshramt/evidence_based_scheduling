@@ -9,15 +9,12 @@ from base_py as base_api
 from base_client as builder_client
 workdir /app/client
 copy client/package.json client/package-lock.json ./
-
-from builder_client as test_builder_client
 run npm ci
 copy client .
-run npm run build
+
+from builder_client as test_builder_client
 
 from builder_client as prod_builder_client
-run npm ci --omit=dev
-copy client .
 run npm run build
 
 from base_api as builder_api
