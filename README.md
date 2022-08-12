@@ -12,7 +12,7 @@ The numbers shown on the right are the 0th, 10th, 33rd, 50th, 67th, 90th, and 10
 docker run \
   --rm \
   --init \
-  --mount type=bind,source="$PWD"/data,target=/home/app/data \
+  --mount type=bind,source="$PWD"/data,target=/data \
   -e USE_LITESTREAM=no \
   -p 8080:8080 \
   ghcr.io/kshramt/evidence_based_scheduling:latest
@@ -22,7 +22,7 @@ docker run \
 docker run \
   --rm \
   --init \
-  --mount type=bind,source="$PWD"/data,target=/home/app/data \
+  --mount type=bind,source="$PWD"/data,target=/data \
   -e REPLICA_URI=gcs://<bucket>/data.sqlite \
   -p 8080:8080 \
   ghcr.io/kshramt/evidence_based_scheduling:latest
@@ -35,7 +35,7 @@ docker run \
   --name ebs \
   --init \
   --log-driver journald \
-  --mount type=bind,source="$PWD"/data,target=/home/app/data \
+  --mount type=bind,source="$PWD"/data,target=/data \
   -e REPLICA_URI=gcs://<bucket>/data.sqlite \
   -p8080:8080 \
   --restart always \
