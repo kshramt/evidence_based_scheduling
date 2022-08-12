@@ -807,7 +807,7 @@ const MobileQueueNodes = () => {
         _should_hide_of(node_filter_query, node.text, node_id)
       );
     })
-    .slice(0, 50);
+    .slice(0, 100);
   return (
     <>
       {node_ids.map((node_id) => (
