@@ -13,7 +13,7 @@ it("Multinomial", () => {
     const vals = [9, 8, 7];
     const rng = new Multinomial([1, 2, 3]);
     const ns = [];
-    for (let i = 0; i < 200000; i++) {
+    for (let i = 0; i < 300000; i++) {
       ns.push(vals[rng.sample()]);
     }
     const _9 = ns.filter((x) => x === 9);
