@@ -11,7 +11,7 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/checkout@v3
-      - run: docker buildx build . -t build-test-api:latest --target test_builder_api --load --cache-from type=gha,scope=build-test-api --cache-to type=gha,mode=max,scope=build-test-api
+      - run: docker buildx build . -t build-test-api:latest --target test_builder_api --load --cache-from type=registry,ref=ghcr.io/kshramt/evidence_based_scheduling/cache/build-test-api:latest --cache-to type=registry,ref=ghcr.io/kshramt/evidence_based_scheduling/cache/build-test-api:latest,mode=max
       - run: docker run build-test-api:latest .venv/bin/python3 -m pyflakes api
       - run: docker run build-test-api:latest .venv/bin/python3 -m mypy --check-untyped-defs api
       - run: docker run build-test-api:latest .venv/bin/python3 -m black --check api
@@ -27,7 +27,7 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/checkout@v3
-      - run: docker buildx build . -t build-test-client:latest --target test_builder_client --load --cache-from type=gha,scope=build-test-client --cache-to type=gha,mode=max,scope=build-test-client
+      - run: docker buildx build . -t build-test-client:latest --target test_builder_client --load --cache-from type=registry,ref=ghcr.io/kshramt/evidence_based_scheduling/cache/build-test-client:latest --cache-to type=registry,ref=ghcr.io/kshramt/evidence_based_scheduling/cache/build-test-client:latest,mode=max
       - run: docker run build-test-client:latest node_modules/.bin/react-scripts test --ci --watchAll false
       - run: docker run build-test-client:latest node_modules/.bin/eslint --max-warnings 0 src
       - run: docker run build-test-client:latest node_modules/.bin/prettier --check src
@@ -46,8 +46,8 @@ jobs:
           push: true
           target: prod
           tags: ghcr.io/kshramt/evidence_based_scheduling:${{ github.sha }}
-          cache-from: type=gha,scope=prod
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=ghcr.io/kshramt/evidence_based_scheduling/cache:latest
+          cache-to: type=registry,ref=ghcr.io/kshramt/evidence_based_scheduling/cache:latest,mode=max
   build-prod-latest-tag:
     if: ${{ github.ref == 'refs/heads/main' }}
     needs: [build-prod-git-sha-tag]
