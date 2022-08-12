@@ -117,7 +117,7 @@ export const set_estimate = (
   update_node_caches(payload.node_id, draft);
 };
 
-export const add = (
+export const add_node = (
   draft: Draft<types.IState>,
   parent_node_id: types.TNodeId,
   top_of_queue: boolean,
@@ -135,8 +135,12 @@ export const add = (
   const edge = { p: parent_node_id, c: node_id, t: "strong" as const };
   draft.data.nodes[node_id] = node;
   draft.data.edges[edge_id] = edge;
-  draft.data.nodes[parent_node_id].children[edge_id] = -Number(new Date());
-  draft.data.queue[node_id] = (top_of_queue ? -1 : 1) * Number(new Date());
+  draft.data.nodes[parent_node_id].children[edge_id] = _front_value_of(
+    draft.data.nodes[parent_node_id].children,
+  );
+  draft.data.queue[node_id] = (top_of_queue ? _front_value_of : _back_value_of)(
+    draft.data.queue,
+  );
   draft.caches[node_id] = new_cache_of(draft.data, node_id);
   draft.caches[edge.p].child_edges[edge_id] = edge;
   draft.caches[edge.p].child_nodes[node_id] = node;
@@ -162,8 +166,12 @@ export const add_edges = (edges: types.IEdge[], draft: Draft<types.IState>) => {
     }
     const edge_id = new_edge_id_of(draft);
     draft.data.edges[edge_id] = edge;
-    draft.data.nodes[edge.c].parents[edge_id] = -Number(new Date());
-    draft.data.nodes[edge.p].children[edge_id] = -Number(new Date());
+    draft.data.nodes[edge.c].parents[edge_id] = _front_value_of(
+      draft.data.nodes[edge.c].parents,
+    );
+    draft.data.nodes[edge.p].children[edge_id] = _front_value_of(
+      draft.data.nodes[edge.p].children,
+    );
     if (checks.has_cycle_of(edge_id, draft)) {
       delete draft.data.edges[edge_id];
       delete draft.data.nodes[edge.c].parents[edge_id];
@@ -227,7 +235,7 @@ const add_weak_edges_from_toc = (toc: ITocNode, edges: types.IEdge[]) => {
 const make_tree_from_toc = (toc: ITocNode, draft: Draft<types.IState>) => {
   for (let i = toc.children.length - 1; -1 < i; --i) {
     const child_toc = toc.children[i];
-    const node_id = add(draft, toc.id, false);
+    const node_id = add_node(draft, toc.id, false);
     if (node_id === null) {
       const msg = "Must not happen: node_id === null.";
       toast.add("error", msg);
@@ -430,8 +438,26 @@ export function move_before<K extends string | number | symbol>(
   }
   kvs[ks[src]] =
     dst === 0
-      ? -Number(new Date())
+      ? _front_value_of(kvs)
       : dst === n
-      ? Number(new Date())
+      ? _back_value_of(kvs)
       : (kvs[ks[dst]] + kvs[ks[dst - 1]]) / 2;
+}
+
+function _back_value_of<K extends string | number | symbol>(
+  kvs: Record<K, number>,
+) {
+  return Math.max(
+    Number(new Date()),
+    Math.max(...Object.values<number>(kvs)) + 1,
+  );
+}
+
+function _front_value_of<K extends string | number | symbol>(
+  kvs: Record<K, number>,
+) {
+  return Math.min(
+    -Number(new Date()),
+    Math.min(...Object.values<number>(kvs)) - 1,
+  );
 }

@@ -306,7 +306,7 @@ const root_reducer_def = (
     _set_total_time_of_ancestors(state, edge.p, vid);
   });
   builder(add_action, (state, action) => {
-    ops.add(state, action.payload.node_id, action.payload.show_mobile);
+    ops.add_node(state, action.payload.node_id, action.payload.show_mobile);
   });
   builder(flipShowDetail, (state, action) => {
     const node_id = action.payload;
