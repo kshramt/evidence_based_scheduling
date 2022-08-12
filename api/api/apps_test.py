@@ -19,3 +19,7 @@ async def test__users__user_id__data__id(tmp_path):
         resp = await ac.get("/users/1/data")
         assert resp.status_code == 200
         assert resp.json() == {"body": {"data": None}, "etag": 1, "path": "/data/1"}
+        resp = await ac.get("/users/1/data/id")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["etag"] == 1
