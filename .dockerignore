@@ -1,6 +1,9 @@
-README.md
-Makefile
-to_dot.py
+.dockerignore
 .github/
+.gitignore
 .venv/
+Dockerfile
+Makefile
+README.md
 node_modules/
+to_dot.py
