@@ -1,2 +1,6 @@
+README.md
+Makefile
+to_dot.py
+.github/
 .venv/
 node_modules/
