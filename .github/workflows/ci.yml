@@ -4,52 +4,63 @@ jobs:
   set-vars:
     runs-on: ubuntu-latest
     outputs:
-      ref-b64: steps.vars.outputs.ref-b64
-      tmp-dir: steps.vars.outputs.tmp-dir
+      ref-b64: ${{ steps.vars.outputs.ref-b64 }}
+      tmp-dir: ${{ steps.vars.outputs.tmp-dir }}
+      host-arch: ${{ steps.vars.outputs.host-arch }}
+      host-os: ${{ steps.vars.outputs.host-os }}
     steps:
+    - run: |
+        echo I ::set-output name=ref-b64::"$(echo "${{ github.ref }}" | base64 --wrap 0 | sed -e 's/=//g')"
+        echo I ::set-output name=tmp-dir::"$(mktemp -d)"
+        echo I ::set-output name=host-arch::"$(docker version --format '{{ (index .Server.Components 0).Details.Arch }}')"
+        echo I ::set-output name=host-os::"$(docker version --format '{{ (index .Server.Components 0).Details.Os }}')"
     - id: vars
       run: |
         echo ::set-output name=ref-b64::"$(echo "${{ github.ref }}" | base64 --wrap 0 | sed -e 's/=//g')"
         echo ::set-output name=tmp-dir::"$(mktemp -d)"
+        echo ::set-output name=host-arch::"$(docker version --format '{{ (index .Server.Components 0).Details.Arch }}')"
+        echo ::set-output name=host-os::"$(docker version --format '{{ (index .Server.Components 0).Details.Os }}')"
   build-images:
     needs: [set-vars]
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        platform: [linux/amd64, linux/arm64]
+        os: [linux]
+        arch: [amd64, arm64]
     steps:
     - uses: actions/checkout@v3
+    - uses: docker/setup-qemu-action@v2
     - uses: docker/setup-buildx-action@v2
     - uses: docker/login-action@v2
       with:
         registry: ghcr.io
         username: ${{ github.repository_owner }}
         password: ${{ secrets.GITHUB_TOKEN }}
-    - run: sha=${{ github.sha }} ref_b64=${{ needs.set-vars.outputs.ref-b64 }} docker buildx bake --file bake.hcl {prod,test_client,test_api}/${{ matrix.platform }}
+    - run: sha=${{ github.sha }} ref_b64=${{ needs.set-vars.outputs.ref-b64 }} docker buildx bake --file bake.hcl {prod,test_client,test_api}-${{ matrix.os }}-${{ matrix.arch }}
     #
-    - run: docker run ghcr.io/kshramt/evidence_based_scheduling/test_api/${{ matrix.platform }}:${{ github.sha }} .venv/bin/python3 -m pyflakes api
-    - run: docker run ghcr.io/kshramt/evidence_based_scheduling/test_api/${{ matrix.platform }}:${{ github.sha }} .venv/bin/python3 -m mypy --check-untyped-defs api
-    - run: docker run ghcr.io/kshramt/evidence_based_scheduling/test_api/${{ matrix.platform }}:${{ github.sha }} .venv/bin/python3 -m black --check api
-    - run: docker run ghcr.io/kshramt/evidence_based_scheduling/test_api/${{ matrix.platform }}:${{ github.sha }} .venv/bin/python3 -m isort --check-only api
-    - run: docker run ghcr.io/kshramt/evidence_based_scheduling/test_api/${{ matrix.platform }}:${{ github.sha }} .venv/bin/python3 -m pytest
+    - if: ${{ matrix.os == needs.set-vars.outputs.host-os && matrix.arch == needs.set-vars.outputs.host-arch}}
+      run: docker run ghcr.io/kshramt/evidence_based_scheduling/test_api:${{ github.sha }}-${{ matrix.os }}-${{ matrix.arch }} scripts/check.sh
     #
-    - run: docker run ghcr.io/kshramt/evidence_based_scheduling/test_client/${{ matrix.platform }}:${{ github.sha }} node_modules/.bin/react-scripts test --ci --watchAll false
-    - run: docker run ghcr.io/kshramt/evidence_based_scheduling/test_client/${{ matrix.platform }}:${{ github.sha }} node_modules/.bin/eslint --max-warnings 0 src
-    - run: docker run ghcr.io/kshramt/evidence_based_scheduling/test_client/${{ matrix.platform }}:${{ github.sha }} node_modules/.bin/prettier --check src
+    - if: ${{ matrix.os == needs.set-vars.outputs.host-os && matrix.arch == needs.set-vars.outputs.host-arch}}
+      run: docker run ghcr.io/kshramt/evidence_based_scheduling/test_client:${{ github.sha }}-${{ matrix.os }}-${{ matrix.arch }} scripts/check.sh
     #
+    - run: docker push ghcr.io/kshramt/evidence_based_scheduling:${{ github.sha }}-${{ matrix.os }}-${{ matrix.arch }}
     - if: ${{ github.ref == 'refs/heads/main' }}
-      run: docker pull ghcr.io/kshramt/evidence_based_scheduling/${{ matrix.platform }}:${{ github.sha }}
+      run: docker tag ghcr.io/kshramt/evidence_based_scheduling:${{ github.sha }}-${{ matrix.os }}-${{ matrix.arch }} ghcr.io/kshramt/evidence_based_scheduling:latest-${{ matrix.os }}-${{ matrix.arch }}
     - if: ${{ github.ref == 'refs/heads/main' }}
-      run: docker tag ghcr.io/kshramt/evidence_based_scheduling/${{ matrix.platform }}:${{ github.sha }} ghcr.io/kshramt/evidence_based_scheduling/${{ matrix.platform }}:latest
-    - if: ${{ github.ref == 'refs/heads/main' }}
-      run: docker push ghcr.io/kshramt/evidence_based_scheduling/${{ matrix.platform }}:latest
+      run: docker push ghcr.io/kshramt/evidence_based_scheduling:latest-${{ matrix.os }}-${{ matrix.arch }}
   build-manifests:
-    needs: [build-manifests]
+    needs: [build-images]
     runs-on: ubuntu-latest
     steps:
-    - run: docker manifest create ghcr.io/kshramt/evidence_based_scheduling{,/linux{amd64,arm64}}:${{ github.sha }}
+    - uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - run: docker manifest create ghcr.io/kshramt/evidence_based_scheduling:${{ github.sha }}{,-linux-{amd64,arm64}}
     - run: docker manifest push ghcr.io/kshramt/evidence_based_scheduling:${{ github.sha }}
     - if: ${{ github.ref == 'refs/heads/main' }}
-      run: docker tag ghcr.io/kshramt/evidence_based_scheduling:${{ github.sha }} ghcr.io/kshramt/evidence_based_scheduling:latest
+      run: docker manifest create ghcr.io/kshramt/evidence_based_scheduling:{latest,${{ github.sha }}-linux-{amd64,arm64}}
     - if: ${{ github.ref == 'refs/heads/main' }}
-      run: docker push ghcr.io/kshramt/evidence_based_scheduling:latest
+      run: docker manifest push ghcr.io/kshramt/evidence_based_scheduling:latest
