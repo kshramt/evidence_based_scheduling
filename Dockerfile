@@ -44,8 +44,3 @@ copy --from=prod_api /app/.venv .venv
 copy --from=prod_api /app/log-config.json log-config.json
 copy --from=prod_api /app/api api
 cmd ["scripts/run.sh"]
-
-from base_py as merger
-copy --from=prod /etc/issue .
-copy --from=test_api /etc/issue .
-copy --from=test_client /etc/issue .
