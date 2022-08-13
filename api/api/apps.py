@@ -39,7 +39,7 @@ app.add_middleware(fastapi.middleware.gzip.GZipMiddleware)
 def with_path_of(app, path: str, *args, **kwargs):
     def deco(fn):
         res = app(path, *args, **kwargs)(fn)
-        res.path_of = path.format  # type: ignore
+        res.path_of = path.format
         return res
 
     return deco
