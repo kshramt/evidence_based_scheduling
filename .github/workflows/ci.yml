@@ -38,11 +38,32 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     - run: sha=${{ github.sha }} ref_b64=${{ needs.set-vars.outputs.ref-b64 }} docker buildx bake --file bake.hcl {prod,test_client,test_api}-${{ matrix.os }}-${{ matrix.arch }}
     #
-    - if: ${{ matrix.os == needs.set-vars.outputs.host-os && matrix.arch == needs.set-vars.outputs.host-arch}}
+    - if: ${{ matrix.os == needs.set-vars.outputs.host-os && matrix.arch == needs.set-vars.outputs.host-arch }}
       run: docker run ghcr.io/kshramt/evidence_based_scheduling/test_api:${{ github.sha }}-${{ matrix.os }}-${{ matrix.arch }} scripts/check.sh
     #
     - if: ${{ matrix.os == needs.set-vars.outputs.host-os && matrix.arch == needs.set-vars.outputs.host-arch}}
       run: docker run ghcr.io/kshramt/evidence_based_scheduling/test_client:${{ github.sha }}-${{ matrix.os }}-${{ matrix.arch }} scripts/check.sh
+    #
+    - if: ${{ matrix.os == needs.set-vars.outputs.host-os && matrix.arch == needs.set-vars.outputs.host-arch }}
+      run: docker run -d -e USE_LITESTREAM=no -p8080:8080 ghcr.io/kshramt/evidence_based_scheduling:${{ github.sha }}-${{ matrix.os }}-${{ matrix.arch }}
+    - if: ${{ matrix.os == needs.set-vars.outputs.host-os && matrix.arch == needs.set-vars.outputs.host-arch }}
+      run: |
+        set -xv
+        set -o nounset
+        set -o errexit
+        set -o pipefail
+        set -o noclobber
+        i=0
+        for i in {1..100}; do
+          if curl localhost:8080/healthz; then
+            break;
+          fi
+          (( ++i ))
+          sleep 0.1
+        done
+        if [[ $i -gt 100 ]]; then
+            exit 1
+        fi
     #
     - run: docker push ghcr.io/kshramt/evidence_based_scheduling:${{ github.sha }}-${{ matrix.os }}-${{ matrix.arch }}
     - if: ${{ github.ref == 'refs/heads/main' }}

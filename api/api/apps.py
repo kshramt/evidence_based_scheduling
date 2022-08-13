@@ -8,6 +8,7 @@ import fastapi.middleware.cors
 import fastapi.middleware.gzip
 import pydantic
 import pydantic.generics
+import starlette.status
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -20,9 +21,13 @@ INITIAL_PATCH = '[{"op":"replace","path":"","value":{"data":null}}]'
 INITIAL_SNAPSHOT = '{"data":null}'
 
 
-async def create_all():
+async def on_load_hook():
     async with database.engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
+
+    @app.get("/healthz", status_code=starlette.status.HTTP_204_NO_CONTENT)
+    async def get_healthz():
+        return fastapi.Response(status_code=starlette.status.HTTP_204_NO_CONTENT)
 
 
 app = fastapi.FastAPI()

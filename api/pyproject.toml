@@ -30,6 +30,7 @@ SQLAlchemy = "^1.4.39"
 aiosqlite = "^0.17.0"
 jsonpatch = "^1.32"
 zstd = "^1.5.2"
+starlette = "0.19.1"
 
 [tool.poetry.dev-dependencies]
 black = "^22.6.0"
