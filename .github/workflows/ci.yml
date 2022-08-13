@@ -36,7 +36,8 @@ jobs:
         registry: ghcr.io
         username: ${{ github.repository_owner }}
         password: ${{ secrets.GITHUB_TOKEN }}
-    - run: sha=${{ github.sha }} ref_b64=${{ needs.set-vars.outputs.ref-b64 }} docker buildx bake --file bake.hcl {prod,test_client,test_api}-${{ matrix.os }}-${{ matrix.arch }}
+    - run: python3 bake.py --sha=${{ github.sha }} --ref_b64=${{ needs.set-vars.outputs.ref-b64 }} | tee bake.json
+    - run: docker buildx bake --file bake.json ${{ matrix.os }}-${{ matrix.arch }}
     #
     - if: ${{ matrix.os == needs.set-vars.outputs.host-os && matrix.arch == needs.set-vars.outputs.host-arch }}
       run: docker run ghcr.io/kshramt/evidence_based_scheduling/test_api:${{ github.sha }}-${{ matrix.os }}-${{ matrix.arch }} scripts/check.sh
