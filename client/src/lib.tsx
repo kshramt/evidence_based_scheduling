@@ -2795,7 +2795,7 @@ const TextAreaImpl = ({
       onKeyDown={insert_plain_enter}
       onBlur={dispatch_set_text_action}
       className={utils.join(
-        "textarea whitespace-pre-wrap overflow-wrap-anywhere w-[30em] overflow-hidden p-[0.125em]",
+        "textarea whitespace-pre-wrap overflow-wrap-anywhere w-[30em] overflow-hidden p-[0.125em] bg-white dark:bg-gray-700",
         status === "done"
           ? "text-red-600 dark:text-red-400"
           : status === "dont"
