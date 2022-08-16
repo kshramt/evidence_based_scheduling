@@ -10,12 +10,16 @@ jobs:
       host-os: ${{ steps.vars.outputs.host-os }}
     steps:
     - run: |
+        set -o errexit
+        set -o pipefail
         echo I ::set-output name=ref-b64::"$(echo "${{ github.ref }}" | base64 --wrap 0 | sed -e 's/=//g')"
         echo I ::set-output name=tmp-dir::"$(mktemp -d)"
         echo I ::set-output name=host-arch::"$(docker version --format '{{ (index .Server.Components 0).Details.Arch }}')"
         echo I ::set-output name=host-os::"$(docker version --format '{{ (index .Server.Components 0).Details.Os }}')"
     - id: vars
       run: |
+        set -o errexit
+        set -o pipefail
         echo ::set-output name=ref-b64::"$(echo "${{ github.ref }}" | base64 --wrap 0 | sed -e 's/=//g')"
         echo ::set-output name=tmp-dir::"$(mktemp -d)"
         echo ::set-output name=host-arch::"$(docker version --format '{{ (index .Server.Components 0).Details.Arch }}')"
@@ -55,22 +59,25 @@ jobs:
         set -o pipefail
         set -o noclobber
         i=0
-        for _i in {1..100}; do
+        for _i in {1..10}; do
           if curl localhost:8080/healthz; then
             break;
           fi
           (( ++i ))
-          sleep 0.1
+          sleep 1
         done
-        if [[ $i -ge 100 ]]; then
+        if [[ $i -ge 10 ]]; then
             exit 1
         fi
     #
     - run: docker push ghcr.io/kshramt/evidence_based_scheduling:${{ github.sha }}-${{ matrix.os }}-${{ matrix.arch }}
     - if: ${{ github.ref == 'refs/heads/main' }}
-      run: docker tag ghcr.io/kshramt/evidence_based_scheduling:${{ github.sha }}-${{ matrix.os }}-${{ matrix.arch }} ghcr.io/kshramt/evidence_based_scheduling:latest-${{ matrix.os }}-${{ matrix.arch }}
-    - if: ${{ github.ref == 'refs/heads/main' }}
-      run: docker push ghcr.io/kshramt/evidence_based_scheduling:latest-${{ matrix.os }}-${{ matrix.arch }}
+      run: |
+        set -o errexit
+        docker tag ghcr.io/kshramt/evidence_based_scheduling:${{ github.sha }}-${{ matrix.os }}-${{ matrix.arch }} ghcr.io/kshramt/evidence_based_scheduling:b${{ github.run_number }}-${{ matrix.os }}-${{ matrix.arch }}
+        docker push ghcr.io/kshramt/evidence_based_scheduling:b${{ github.run_number }}-${{ matrix.os }}-${{ matrix.arch }}
+        docker tag ghcr.io/kshramt/evidence_based_scheduling:${{ github.sha }}-${{ matrix.os }}-${{ matrix.arch }} ghcr.io/kshramt/evidence_based_scheduling:latest-${{ matrix.os }}-${{ matrix.arch }}
+        docker push ghcr.io/kshramt/evidence_based_scheduling:latest-${{ matrix.os }}-${{ matrix.arch }}
   build-manifests:
     needs: [build-images]
     runs-on: ubuntu-latest
@@ -83,6 +90,9 @@ jobs:
     - run: docker manifest create ghcr.io/kshramt/evidence_based_scheduling:${{ github.sha }}{,-linux-{amd64,arm64}}
     - run: docker manifest push ghcr.io/kshramt/evidence_based_scheduling:${{ github.sha }}
     - if: ${{ github.ref == 'refs/heads/main' }}
-      run: docker manifest create ghcr.io/kshramt/evidence_based_scheduling:{latest,${{ github.sha }}-linux-{amd64,arm64}}
-    - if: ${{ github.ref == 'refs/heads/main' }}
-      run: docker manifest push ghcr.io/kshramt/evidence_based_scheduling:latest
+      run: |
+        set -o errexit
+        docker manifest create ghcr.io/kshramt/evidence_based_scheduling:{b${{ github.run_number }},${{ github.sha }}-linux-{amd64,arm64}}
+        docker manifest push ghcr.io/kshramt/evidence_based_scheduling:b${{ github.run_number }}
+        docker manifest create ghcr.io/kshramt/evidence_based_scheduling:{latest,${{ github.sha }}-linux-{amd64,arm64}}
+        docker manifest push ghcr.io/kshramt/evidence_based_scheduling:latest
