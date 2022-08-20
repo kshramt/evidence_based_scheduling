@@ -759,9 +759,7 @@ const MobileMenu = () => {
       </div>
       <MobileNodeFilterQueryInput />
       <span className="grow" />
-      {n_unsaved_patches ? (
-        <span className="pr-[1ex]">{n_unsaved_patches} left</span>
-      ) : null}
+      <NLeftButton n_unsaved_patches={n_unsaved_patches} />
       <button className="btn-icon mr-[0.5em]" onClick={toggle_show_mobile}>
         {DESKTOP_MARK}
       </button>
@@ -1021,9 +1019,7 @@ const Menu = () => {
       <NodeFilterQueryInput />
       <NodeIdsInput />
       <span className="grow" />
-      {n_unsaved_patches ? (
-        <span className="pr-[1ex]">{n_unsaved_patches} left</span>
-      ) : null}
+      <NLeftButton n_unsaved_patches={n_unsaved_patches} />
       <button className="btn-icon mr-[0.5em]" onClick={toggle_show_mobile}>
         {MOBILE_MARK}
       </button>
@@ -1178,6 +1174,28 @@ const Body = () => {
       </div>
     </div>
   );
+};
+
+const NLeftButton = (props: { n_unsaved_patches: number }) => {
+  const dispatch = useDispatch();
+  const handle_click = React.useCallback(() => {
+    dispatch((disptch, getState) => {
+      const state = getState();
+      const blob = new Blob([JSON.stringify(state)], {
+        type: "application/json",
+      });
+      const anchor = document.createElement("a");
+      anchor.href = URL.createObjectURL(blob);
+      anchor.download = "evidence_based_scheduling.json";
+      anchor.click();
+      URL.revokeObjectURL(anchor.href);
+    });
+  }, [dispatch]);
+  return props.n_unsaved_patches ? (
+    <button className="btn-icon" onClick={handle_click}>
+      {props.n_unsaved_patches} left
+    </button>
+  ) : null;
 };
 
 const doFocusStopButton = (node_id: types.TNodeId) => {

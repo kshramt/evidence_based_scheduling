@@ -48,4 +48,4 @@ copy --from=prod_api /app/.venv .venv
 copy --from=prod_api /app/log-config.json log-config.json
 copy --from=prod_api /app/api api
 copy --from=prod_api /app/scripts/run.sh scripts/run.sh
-cmd ["scripts/run.sh"]
+entrypoint ["scripts/run.sh"]
