@@ -5,6 +5,7 @@ multi_line_output = 3
 [tool.mypy]
 # plugins = "numpy.typing.mypy_plugin"
 check_untyped_defs = true
+enable_recursive_aliases = true
 show_error_codes = true
 warn_return_any = true
 warn_unused_ignores = true
