@@ -1181,7 +1181,7 @@ const NLeftButton = (props: { n_unsaved_patches: number }) => {
   const handle_click = React.useCallback(() => {
     dispatch((disptch, getState) => {
       const state = getState();
-      const blob = new Blob([JSON.stringify(state)], {
+      const blob = new Blob([JSON.stringify(state.data)], {
         type: "application/json",
       });
       const anchor = document.createElement("a");
