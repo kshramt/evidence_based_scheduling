@@ -880,46 +880,56 @@ const App = () => {
       return res;
     });
   }, [set_show_mobile]);
+  const [node_ids, set_node_ids] = React.useState("");
 
   const el = React.useMemo(
-    () => (show_mobile ? <MobileApp /> : <DesktopApp />),
+    () => (
+      <>
+        {show_mobile ? <MobileApp /> : <DesktopApp />}
+        {toast.component}
+        <saver.Component user_id={USER_ID} />
+      </>
+    ),
     [show_mobile],
   );
   saver.useCheckUpdates(USER_ID);
   return (
     <toggle_show_mobile_context.Provider value={toggle_show_mobile}>
-      <show_mobile_context.Provider value={show_mobile}>
-        <toggle_show_strong_edge_only_context.Provider
-          value={toggle_show_strong_edge_only}
-        >
-          <toggle_show_todo_only_context.Provider value={toggle_show_todo_only}>
-            <show_strong_edge_only_context.Provider
-              value={show_strong_edge_only}
+      <toggle_show_strong_edge_only_context.Provider
+        value={toggle_show_strong_edge_only}
+      >
+        <show_strong_edge_only_context.Provider value={show_strong_edge_only}>
+          <set_node_ids_context.Provider value={set_node_ids}>
+            <set_node_filter_query_slow_context.Provider
+              value={set_node_filter_query_slow}
             >
-              <show_todo_only_context.Provider value={show_todo_only}>
-                <set_node_filter_query_slow_context.Provider
-                  value={set_node_filter_query_slow}
-                >
-                  <set_node_filter_query_fast_context.Provider
-                    value={set_node_filter_query_fast}
+              <set_node_filter_query_fast_context.Provider
+                value={set_node_filter_query_fast}
+              >
+                <show_mobile_context.Provider value={show_mobile}>
+                  <toggle_show_todo_only_context.Provider
+                    value={toggle_show_todo_only}
                   >
-                    <node_filter_query_slow_context.Provider
-                      value={node_filter_query_slow}
-                    >
-                      <node_filter_query_fast_context.Provider
-                        value={node_filter_query_fast}
-                      >
-                        {el}
-                        <saver.Component user_id={USER_ID} />
-                      </node_filter_query_fast_context.Provider>
-                    </node_filter_query_slow_context.Provider>
-                  </set_node_filter_query_fast_context.Provider>
-                </set_node_filter_query_slow_context.Provider>
-              </show_todo_only_context.Provider>
-            </show_strong_edge_only_context.Provider>
-          </toggle_show_todo_only_context.Provider>
-        </toggle_show_strong_edge_only_context.Provider>
-      </show_mobile_context.Provider>
+                    <show_todo_only_context.Provider value={show_todo_only}>
+                      <node_ids_context.Provider value={node_ids}>
+                        <node_filter_query_slow_context.Provider
+                          value={node_filter_query_slow}
+                        >
+                          <node_filter_query_fast_context.Provider
+                            value={node_filter_query_fast}
+                          >
+                            {el}
+                          </node_filter_query_fast_context.Provider>
+                        </node_filter_query_slow_context.Provider>
+                      </node_ids_context.Provider>
+                    </show_todo_only_context.Provider>
+                  </toggle_show_todo_only_context.Provider>
+                </show_mobile_context.Provider>
+              </set_node_filter_query_fast_context.Provider>
+            </set_node_filter_query_slow_context.Provider>
+          </set_node_ids_context.Provider>
+        </show_strong_edge_only_context.Provider>
+      </toggle_show_strong_edge_only_context.Provider>
     </toggle_show_mobile_context.Provider>
   );
 };
@@ -929,23 +939,16 @@ const MobileApp = () => {
     <>
       <MobileMenu />
       <MobileBody />
-      {toast.component}
-      <saver.Component user_id={USER_ID} />
     </>
   );
 };
 
 const DesktopApp = () => {
-  const [node_ids, set_node_ids] = React.useState("");
   return (
-    <set_node_ids_context.Provider value={set_node_ids}>
-      <node_ids_context.Provider value={node_ids}>
-        <Menu />
-        <Body />
-        {toast.component}
-        <saver.Component user_id={USER_ID} />
-      </node_ids_context.Provider>
-    </set_node_ids_context.Provider>
+    <>
+      <Menu />
+      <Body />
+    </>
   );
 };
 
