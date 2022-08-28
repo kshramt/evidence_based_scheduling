@@ -192,4 +192,16 @@ export class DefaultService {
         });
     }
 
+    /**
+     * Get Healthz
+     * @returns void
+     * @throws ApiError
+     */
+    public static getHealthzHealthzGet(): CancelablePromise<void> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/healthz',
+        });
+    }
+
 }
