@@ -52,7 +52,7 @@ const MOBILE_MARK = <span className="material-icons">smartphone</span>;
 const DESKTOP_MARK = <span className="material-icons">desktop_windows</span>;
 
 const USER_ID = 1;
-const N_PREDICTED = 5;
+const N_PREDICTED = 10;
 
 const history_type_set = new Set<string>();
 const register_history_type = <T extends {}>(x: T) => {
