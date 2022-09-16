@@ -2835,6 +2835,10 @@ const TextArea = ({
   );
 };
 
+const prevent_propagation = (e: React.MouseEvent) => {
+  e.stopPropagation();
+};
+
 const TextAreaImpl = ({
   node_id,
   ...div_props
@@ -2865,6 +2869,7 @@ const TextAreaImpl = ({
       suppressContentEditableWarning
       onKeyDown={insert_plain_enter}
       onBlur={dispatch_set_text_action}
+      onDoubleClick={prevent_propagation}
       className={utils.join(
         "textarea whitespace-pre-wrap overflow-wrap-anywhere w-[30em] overflow-hidden p-[0.125em] bg-white dark:bg-gray-700",
         status === "done"
