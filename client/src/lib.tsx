@@ -1480,11 +1480,10 @@ const MobilePredictedNextNodes = () => {
 };
 const MobilePredictedNextNode = (props: { node_id: types.TNodeId }) => {
   const text = useSelector((state) => state.data.nodes[props.node_id].text);
-  const dispatch = useDispatch();
   return (
     <div className="flex w-fit gap-x-[0.25em] items-baseline py-[0.125em]">
-      {StartButton_of(dispatch, props.node_id)}
-      {StartConcurrentButton_of(dispatch, props.node_id)}
+      <StartButton node_id={props.node_id} />
+      <StartConcurrentButton node_id={props.node_id} />
       <ToTreeLink node_id={props.node_id}>{text.slice(0, 30)}</ToTreeLink>
     </div>
   );
@@ -1509,11 +1508,10 @@ const PredictedNextNodes = () => {
 };
 const PredictedNextNode = (props: { node_id: types.TNodeId }) => {
   const text = useSelector((state) => state.data.nodes[props.node_id].text);
-  const dispatch = useDispatch();
   return (
     <td className="flex w-fit gap-x-[0.25em] items-baseline py-[0.125em]">
-      {StartButton_of(dispatch, props.node_id)}
-      {StartConcurrentButton_of(dispatch, props.node_id)}
+      <StartButton node_id={props.node_id} />
+      <StartConcurrentButton node_id={props.node_id} />
       <ToTreeLink node_id={props.node_id}>{text.slice(0, 30)}</ToTreeLink>
     </td>
   );
@@ -1736,7 +1734,7 @@ const DetailsImpl = (props: { node_id: types.TNodeId }) => {
     <div className="pt-[0.5em] bg-gray-200 dark:bg-gray-900">
       {hline}
       <div className="flex w-fit gap-x-[0.25em] items-baseline">
-        {ParseTocButton_of(dispatch, props.node_id)}
+        <ParseTocButton node_id={props.node_id} />
       </div>
       {hline}
       <div className="flex gap-x-[0.25em] items-baseline">
@@ -2140,14 +2138,9 @@ const EntryWrapper = (props: {
   const has_hidden_leaf = Object.values(child_edges).some((edge) => edge.hide);
 
   const dispatch = useDispatch();
-  const handle_toggle_show_children = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (e.target === e.currentTarget) {
-        dispatch(toggle_show_children(props.node_id));
-      }
-    },
-    [props.node_id, dispatch],
-  );
+  const handle_toggle_show_children = useCallback(() => {
+    dispatch(toggle_show_children(props.node_id));
+  }, [props.node_id, dispatch]);
 
   return React.useMemo(
     () => (
@@ -2224,9 +2217,11 @@ const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
             !is_uncompletable ||
             DoneOrDontToTodoButton_of(dispatch, props.node_id)}
           {status === "todo" && evalButtonOf(dispatch, props.node_id)}
-          {is_root || status !== "todo" || topButtonOf(dispatch, props.node_id)}
+          {is_root || status !== "todo" || (
+            <TopButton node_id={props.node_id} />
+          )}
           {deleteButtonOf(dispatch, props.node_id)}
-          {CopyNodeIdButton_of(props.node_id)}
+          <CopyNodeIdButton node_id={props.node_id} />
           {status === "todo" && AddButton_of(props.node_id)}
           {showDetailButtonOf(dispatch, props.node_id)}
           <TotalTime node_id={props.node_id} />
@@ -2299,7 +2294,7 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
           !is_uncompletable ||
           DoneOrDontToTodoButton_of(dispatch, props.node_id)}
         {status === "todo" && evalButtonOf(dispatch, props.node_id)}
-        {is_root || status !== "todo" || topButtonOf(dispatch, props.node_id)}
+        {is_root || status !== "todo" || <TopButton node_id={props.node_id} />}
         {is_root ||
           status !== "todo" ||
           moveUpButtonOf(dispatch, props.node_id)}
@@ -2307,7 +2302,7 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
           status !== "todo" ||
           moveDownButtonOf(dispatch, props.node_id)}
         {deleteButtonOf(dispatch, props.node_id)}
-        {CopyNodeIdButton_of(props.node_id)}
+        <CopyNodeIdButton node_id={props.node_id} />
         {status === "todo" && AddButton_of(props.node_id)}
         {showDetailButtonOf(dispatch, props.node_id)}
       </div>
@@ -2404,8 +2399,8 @@ const StartOrStopButtons = (props: { node_id: types.TNodeId }) => {
     stopButtonOf(dispatch, props.node_id)
   ) : (
     <>
-      {StartButton_of(dispatch, props.node_id)}
-      {StartConcurrentButton_of(dispatch, props.node_id)}
+      <StartButton node_id={props.node_id} />
+      <StartConcurrentButton node_id={props.node_id} />
     </>
   );
 };
@@ -2633,43 +2628,42 @@ const stopButtonOf = memoize2(
   ),
 );
 
-const StartButton_of = memoize2(
-  (dispatch: AppDispatch, node_id: types.TNodeId) => (
-    <button
-      className="btn-icon"
-      onClick={() => {
-        dispatch(start_action({ node_id, is_concurrent: false }));
-        doFocusStopButton(node_id);
-      }}
-    >
+const StartButton = (props: { node_id: types.TNodeId }) => {
+  const dispatch = useDispatch();
+  const on_click = React.useCallback(() => {
+    dispatch(start_action({ node_id: props.node_id, is_concurrent: false }));
+    doFocusStopButton(props.node_id);
+  }, [props.node_id, dispatch]);
+  return (
+    <button className="btn-icon" onClick={on_click}>
       {START_MARK}
     </button>
-  ),
-);
-const StartConcurrentButton_of = memoize2(
-  (dispatch: AppDispatch, node_id: types.TNodeId) => (
-    <button
-      className="btn-icon"
-      onClick={() => {
-        dispatch(start_action({ node_id, is_concurrent: true }));
-        doFocusStopButton(node_id);
-      }}
-    >
+  );
+};
+const StartConcurrentButton = (props: { node_id: types.TNodeId }) => {
+  const dispatch = useDispatch();
+  const on_click = React.useCallback(() => {
+    dispatch(start_action({ node_id: props.node_id, is_concurrent: true }));
+    doFocusStopButton(props.node_id);
+  }, [props.node_id, dispatch]);
+  return (
+    <button className="btn-icon" onClick={on_click}>
       {START_CONCURRNET_MARK}
     </button>
-  ),
-);
+  );
+};
 
-const topButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
-  <button
-    className="btn-icon"
-    onClick={() => {
-      dispatch(top_action(k));
-    }}
-  >
-    {TOP_MARK}
-  </button>
-));
+const TopButton = (props: { node_id: types.TNodeId }) => {
+  const dispatch = useDispatch();
+  const on_click = React.useCallback(() => {
+    dispatch(top_action(props.node_id));
+  }, [props.node_id, dispatch]);
+  return (
+    <button className="btn-icon" onClick={on_click}>
+      {TOP_MARK}
+    </button>
+  );
+};
 
 const moveUpButtonOf = memoize2(
   (dispatch: AppDispatch, node_id: types.TNodeId) => (
@@ -2751,18 +2745,17 @@ const deleteButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
   </button>
 ));
 
-const ParseTocButton_of = memoize2(
-  (dispatch: AppDispatch, node_id: types.TNodeId) => (
-    <button
-      className="btn-icon"
-      onClick={() => {
-        dispatch(parse_toc_action(node_id));
-      }}
-    >
+const ParseTocButton = (props: { node_id: types.TNodeId }) => {
+  const dispatch = useDispatch();
+  const on_click = React.useCallback(() => {
+    dispatch(parse_toc_action(props.node_id));
+  }, [props.node_id, dispatch]);
+  return (
+    <button className="btn-icon" onClick={on_click}>
       {TOC_MARK}
     </button>
-  ),
-);
+  );
+};
 
 const evalButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
   <button
@@ -2794,10 +2787,6 @@ const CopyNodeIdButton = (props: { node_id: types.TNodeId }) => {
     </button>
   );
 };
-
-const CopyNodeIdButton_of = memoize1((node_id: types.TNodeId) => (
-  <CopyNodeIdButton node_id={node_id} />
-));
 
 const set_estimate_of = memoize2(
   (dispatch: AppDispatch, node_id: types.TNodeId) =>
