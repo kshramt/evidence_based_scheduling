@@ -1620,31 +1620,66 @@ const _should_hide_of = (
   return !is_match_filter_node_query;
 };
 
-const QueueEntry_of = memoize1((node_id: types.TNodeId) => (
-  <EntryWrapper node_id={node_id}>
-    <div className="flex items-end w-fit">
-      {ToTreeLink_of(node_id)}
-      <div id={`q-${node_id}`}>
-        <TextArea node_id={node_id} />
+const QueueEntry = (props: { node_id: types.TNodeId }) => {
+  const [is_hover, set_hover] = React.useState(false);
+  const on_mouse_over = React.useCallback(() => {
+    set_hover(true);
+  }, [set_hover]);
+  const on_mouse_out = React.useCallback(() => {
+    set_hover(false);
+  }, [set_hover]);
+  return (
+    <EntryWrapper
+      node_id={props.node_id}
+      onMouseOver={on_mouse_over}
+      onMouseOut={on_mouse_out}
+    >
+      <div className="flex items-end w-fit">
+        {ToTreeLink_of(props.node_id)}
+        <div id={`q-${props.node_id}`}>
+          <TextArea node_id={props.node_id} />
+        </div>
+        {EntryInfos_of(props.node_id)}
       </div>
-    </div>
-    {EntryButtons_of(node_id)}
-    {Details_of(node_id)}
-  </EntryWrapper>
+      {is_hover && EntryButtons_of(props.node_id)}
+      {Details_of(props.node_id)}
+    </EntryWrapper>
+  );
+};
+
+const QueueEntry_of = memoize1((node_id: types.TNodeId) => (
+  <QueueEntry node_id={node_id} />
 ));
 
-const TreeEntry_of = memoize1((node_id: types.TNodeId) => (
-  <EntryWrapper node_id={node_id}>
-    <div className="flex items-end w-fit">
-      {ToQueueLink_of(node_id)}
-      <div id={`t-${node_id}`}>
-        <TextArea node_id={node_id} />
+const TreeEntry = (props: { node_id: types.TNodeId }) => {
+  const [is_hover, set_hover] = React.useState(false);
+  const on_mouse_over = React.useCallback(() => {
+    set_hover(true);
+  }, [set_hover]);
+  const on_mouse_out = React.useCallback(() => {
+    set_hover(false);
+  }, [set_hover]);
+  return (
+    <EntryWrapper
+      node_id={props.node_id}
+      onMouseOver={on_mouse_over}
+      onMouseOut={on_mouse_out}
+    >
+      <div className="flex items-end w-fit">
+        {ToQueueLink_of(props.node_id)}
+        <div id={`t-${props.node_id}`}>
+          <TextArea node_id={props.node_id} />
+        </div>
+        {EntryInfos_of(props.node_id)}
       </div>
-    </div>
-    {EntryButtons_of(node_id)}
-    {Details_of(node_id)}
-  </EntryWrapper>
-));
+      {is_hover && EntryButtons_of(props.node_id)}
+      {Details_of(props.node_id)}
+    </EntryWrapper>
+  );
+};
+const TreeEntry_of = memoize1((node_id: types.TNodeId) => {
+  return <TreeEntry node_id={node_id} />;
+});
 
 const Details = (props: { node_id: types.TNodeId }) => {
   const show_detail = useSelector(
@@ -2092,6 +2127,8 @@ const ParentEdgeRow_of = memoize1((edge_id: types.TEdgeId) => (
 const EntryWrapper = (props: {
   node_id: types.TNodeId;
   children: React.ReactNode;
+  onMouseOver?: () => void;
+  onMouseOut?: () => void;
 }) => {
   const ranges = useSelector((state) => state.data.nodes[props.node_id].ranges);
   const last_range = ranges.at(-1);
@@ -2119,11 +2156,20 @@ const EntryWrapper = (props: {
           running ? "running" : has_hidden_leaf ? "hidden-leafs" : undefined,
         )}
         onDoubleClick={handle_toggle_show_children}
+        onMouseOver={props.onMouseOver}
+        onMouseOut={props.onMouseOut}
       >
         {props.children}
       </div>
     ),
-    [has_hidden_leaf, running, handle_toggle_show_children, props.children],
+    [
+      has_hidden_leaf,
+      running,
+      handle_toggle_show_children,
+      props.children,
+      props.onMouseOver,
+      props.onMouseOut,
+    ],
   );
 };
 
@@ -2238,53 +2284,35 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
 
   return React.useMemo(
     () => (
-      <div
-        className={utils.join(
-          !cache.show_detail && "opacity-40 hover:opacity-100",
-        )}
-      >
-        <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
-          {is_root || EstimationInputOf(props.node_id)}
-          {is_root || status !== "todo" || StartOrStopButtons_of(props.node_id)}
-          {is_root ||
-            status !== "todo" ||
-            !is_completable ||
-            todoToDoneButtonOf(dispatch, props.node_id)}
-          {is_root ||
-            status !== "todo" ||
-            !is_completable ||
-            todoToDontButtonOf(dispatch, props.node_id)}
-          {is_root ||
-            status === "todo" ||
-            !is_uncompletable ||
-            DoneOrDontToTodoButton_of(dispatch, props.node_id)}
-          {status === "todo" && evalButtonOf(dispatch, props.node_id)}
-          {is_root || status !== "todo" || topButtonOf(dispatch, props.node_id)}
-          {is_root ||
-            status !== "todo" ||
-            moveUpButtonOf(dispatch, props.node_id)}
-          {is_root ||
-            status !== "todo" ||
-            moveDownButtonOf(dispatch, props.node_id)}
-          {deleteButtonOf(dispatch, props.node_id)}
-          {CopyNodeIdButton_of(props.node_id)}
-          {status === "todo" && AddButton_of(props.node_id)}
-          {showDetailButtonOf(dispatch, props.node_id)}
-          <TotalTime node_id={props.node_id} />
-          {is_root || LastRange_of(props.node_id)}
-        </div>
-        <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
-          {status === "todo" &&
-            0 <= cache.leaf_estimates_sum &&
-            digits1(cache.leaf_estimates_sum) + " | "}
-          {status === "todo" && cache.percentiles.map(digits1).join(", ")}
-        </div>
+      <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
+        {is_root || status !== "todo" || StartOrStopButtons_of(props.node_id)}
+        {is_root ||
+          status !== "todo" ||
+          !is_completable ||
+          todoToDoneButtonOf(dispatch, props.node_id)}
+        {is_root ||
+          status !== "todo" ||
+          !is_completable ||
+          todoToDontButtonOf(dispatch, props.node_id)}
+        {is_root ||
+          status === "todo" ||
+          !is_uncompletable ||
+          DoneOrDontToTodoButton_of(dispatch, props.node_id)}
+        {status === "todo" && evalButtonOf(dispatch, props.node_id)}
+        {is_root || status !== "todo" || topButtonOf(dispatch, props.node_id)}
+        {is_root ||
+          status !== "todo" ||
+          moveUpButtonOf(dispatch, props.node_id)}
+        {is_root ||
+          status !== "todo" ||
+          moveDownButtonOf(dispatch, props.node_id)}
+        {deleteButtonOf(dispatch, props.node_id)}
+        {CopyNodeIdButton_of(props.node_id)}
+        {status === "todo" && AddButton_of(props.node_id)}
+        {showDetailButtonOf(dispatch, props.node_id)}
       </div>
     ),
     [
-      cache.percentiles,
-      cache.leaf_estimates_sum,
-      cache.show_detail,
       status,
       is_root,
       is_completable,
@@ -2296,6 +2324,39 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
 };
 const EntryButtons_of = memoize1((node_id: types.TNodeId) => (
   <EntryButtons node_id={node_id} />
+));
+
+const EntryInfos = (props: { node_id: types.TNodeId }) => {
+  const cache = useSelector((state) => state.caches[props.node_id]);
+
+  const status = useSelector((state) => state.data.nodes[props.node_id].status);
+
+  const root = useSelector((state) => state.data.root);
+  const is_root = props.node_id === root;
+
+  return React.useMemo(
+    () => (
+      <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
+        {is_root || EstimationInputOf(props.node_id)}
+        <TotalTime node_id={props.node_id} />
+        {is_root || LastRange_of(props.node_id)}
+        {status === "todo" &&
+          0 <= cache.leaf_estimates_sum &&
+          digits1(cache.leaf_estimates_sum) + " | "}
+        {status === "todo" && cache.percentiles.map(digits1).join(", ")}
+      </div>
+    ),
+    [
+      cache.percentiles,
+      cache.leaf_estimates_sum,
+      status,
+      is_root,
+      props.node_id,
+    ],
+  );
+};
+const EntryInfos_of = memoize1((node_id: types.TNodeId) => (
+  <EntryInfos node_id={node_id} />
 ));
 
 const TotalTime = (props: { node_id: types.TNodeId }) => {
