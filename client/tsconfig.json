@@ -15,12 +15,10 @@
     "module": "esnext",
     "moduleResolution": "node",
     "noFallthroughCasesInSwitch": true,
-    "noImplicitAny": true,
     "noImplicitReturns": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "strictNullChecks": true,
     "jsx": "react-jsx"
   },
   "include": [
