@@ -1619,6 +1619,9 @@ const _should_hide_of = (
 };
 
 const QueueEntry = (props: { node_id: types.TNodeId }) => {
+  const show_detail = useSelector(
+    (state) => state.caches[props.node_id].show_detail,
+  );
   const [is_hover, set_hover] = React.useState(false);
   const on_mouse_over = React.useCallback(() => {
     set_hover(true);
@@ -1639,7 +1642,7 @@ const QueueEntry = (props: { node_id: types.TNodeId }) => {
         </div>
         {EntryInfos_of(props.node_id)}
       </div>
-      {is_hover && EntryButtons_of(props.node_id)}
+      {(is_hover || show_detail) && EntryButtons_of(props.node_id)}
       {Details_of(props.node_id)}
     </EntryWrapper>
   );
