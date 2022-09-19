@@ -739,14 +739,28 @@ const MobileMenu = () => {
       className={`flex items-center fixed z-[999999] gap-x-[0.25em] w-full top-0  bg-gray-200 dark:bg-gray-900`}
       style={{ height: MENU_HEIGHT }}
     >
-      <button className="btn-icon" onClick={stop_all}>
+      <button
+        className="btn-icon"
+        onClick={stop_all}
+        onDoubleClick={prevent_propagation}
+      >
         {STOP_MARK}
       </button>
       {AddButton_of(root)}
-      <button className="btn-icon" arial-label="Undo." onClick={_undo}>
+      <button
+        className="btn-icon"
+        arial-label="Undo."
+        onClick={_undo}
+        onDoubleClick={prevent_propagation}
+      >
         {UNDO_MARK}
       </button>
-      <button className="btn-icon" arial-label="Redo." onClick={_redo}>
+      <button
+        className="btn-icon"
+        arial-label="Redo."
+        onClick={_redo}
+        onDoubleClick={prevent_propagation}
+      >
         <span className="material-icons">redo</span>
       </button>
       <div onClick={toggle_show_todo_only}>
@@ -760,7 +774,11 @@ const MobileMenu = () => {
       <MobileNodeFilterQueryInput />
       <span className="grow" />
       <NLeftButton n_unsaved_patches={n_unsaved_patches} />
-      <button className="btn-icon mr-[0.5em]" onClick={toggle_show_mobile}>
+      <button
+        className="btn-icon mr-[0.5em]"
+        onClick={toggle_show_mobile}
+        onDoubleClick={prevent_propagation}
+      >
         {DESKTOP_MARK}
       </button>
     </div>
@@ -984,14 +1002,28 @@ const Menu = () => {
       className={`flex items-center fixed z-[999999] pl-[1em] gap-x-[0.25em] w-full top-0  bg-gray-200 dark:bg-gray-900`}
       style={{ height: MENU_HEIGHT }}
     >
-      <button className="btn-icon" onClick={stop_all}>
+      <button
+        className="btn-icon"
+        onClick={stop_all}
+        onDoubleClick={prevent_propagation}
+      >
         {STOP_MARK}
       </button>
       {AddButton_of(root)}
-      <button className="btn-icon" arial-label="Undo." onClick={_undo}>
+      <button
+        className="btn-icon"
+        arial-label="Undo."
+        onClick={_undo}
+        onDoubleClick={prevent_propagation}
+      >
         {UNDO_MARK}
       </button>
-      <button className="btn-icon" arial-label="Redo." onClick={_redo}>
+      <button
+        className="btn-icon"
+        arial-label="Redo."
+        onClick={_redo}
+        onDoubleClick={prevent_propagation}
+      >
         <span className="material-icons">redo</span>
       </button>
       <div onClick={toggle_show_todo_only}>
@@ -1010,20 +1042,36 @@ const Menu = () => {
           onChange={_suppress_missing_onChange_handler_warning}
         />
       </div>
-      <button className="btn-icon" onClick={_smallestToTop}>
+      <button
+        className="btn-icon"
+        onClick={_smallestToTop}
+        onDoubleClick={prevent_propagation}
+      >
         Small
       </button>
-      <button className="btn-icon" onClick={_closestToTop}>
+      <button
+        className="btn-icon"
+        onClick={_closestToTop}
+        onDoubleClick={prevent_propagation}
+      >
         Due
       </button>
-      <button className="btn-icon" onClick={move_important_node_to_top}>
+      <button
+        className="btn-icon"
+        onClick={move_important_node_to_top}
+        onDoubleClick={prevent_propagation}
+      >
         Important
       </button>
       <NodeFilterQueryInput />
       <NodeIdsInput />
       <span className="grow" />
       <NLeftButton n_unsaved_patches={n_unsaved_patches} />
-      <button className="btn-icon mr-[0.5em]" onClick={toggle_show_mobile}>
+      <button
+        className="btn-icon mr-[0.5em]"
+        onClick={toggle_show_mobile}
+        onDoubleClick={prevent_propagation}
+      >
         {MOBILE_MARK}
       </button>
     </div>
@@ -1062,7 +1110,11 @@ const MobileNodeFilterQueryInput = () => {
         onChange={handle_change}
         className="h-[2em] border-none w-[8em]"
       />
-      <button className="btn-icon" onClick={clear_input}>
+      <button
+        className="btn-icon"
+        onClick={clear_input}
+        onDoubleClick={prevent_propagation}
+      >
         {consts.DELETE_MARK}
       </button>
     </div>
@@ -1103,7 +1155,11 @@ const NodeFilterQueryInput = () => {
           onChange={handle_change}
           className="h-[2em] border-none"
         />
-        <button className="btn-icon" onClick={clear_input}>
+        <button
+          className="btn-icon"
+          onClick={clear_input}
+          onDoubleClick={prevent_propagation}
+        >
           {consts.DELETE_MARK}
         </button>
       </div>
@@ -1134,7 +1190,11 @@ const NodeIdsInput = () => {
           onChange={handle_change}
           className="h-[2em] border-none"
         />
-        <button className="btn-icon" onClick={clear_input}>
+        <button
+          className="btn-icon"
+          onClick={clear_input}
+          onDoubleClick={prevent_propagation}
+        >
           {consts.DELETE_MARK}
         </button>
       </div>
@@ -1195,7 +1255,11 @@ const NLeftButton = (props: { n_unsaved_patches: number }) => {
     });
   }, [dispatch]);
   return props.n_unsaved_patches ? (
-    <button className="btn-icon" onClick={handle_click}>
+    <button
+      className="btn-icon"
+      onClick={handle_click}
+      onDoubleClick={prevent_propagation}
+    >
       {props.n_unsaved_patches} left
     </button>
   ) : null;
@@ -1749,10 +1813,18 @@ const DetailsImpl = (props: { node_id: types.TNodeId }) => {
             </option>
           ))}
         </select>
-        <button className="btn-icon" onClick={handle_add_parents}>
+        <button
+          className="btn-icon"
+          onClick={handle_add_parents}
+          onDoubleClick={prevent_propagation}
+        >
           Parents
         </button>
-        <button className="btn-icon" onClick={handle_add_children}>
+        <button
+          className="btn-icon"
+          onClick={handle_add_children}
+          onDoubleClick={prevent_propagation}
+        >
           Children
         </button>
       </div>
@@ -1813,6 +1885,7 @@ const RangesTable = (props: { node_id: types.TNodeId }) => {
           disabled={offset - rows_per_page < 0}
           onClick={handle_offset_prev}
           className="btn-icon"
+          onDoubleClick={prevent_propagation}
         >
           {BACK_MARK}
         </button>
@@ -1827,6 +1900,7 @@ const RangesTable = (props: { node_id: types.TNodeId }) => {
           disabled={n <= offset + rows_per_page}
           onClick={handle_offset_next}
           className="btn-icon"
+          onDoubleClick={prevent_propagation}
         >
           {FORWARD_MARK}
         </button>
@@ -1896,7 +1970,11 @@ const RangesTableRow = (props: { node_id: types.TNodeId; i_range: number }) => {
           )}
         </td>
         <td className="p-[0.25em]">
-          <button className="btn-icon" onClick={handle_delete}>
+          <button
+            className="btn-icon"
+            onClick={handle_delete}
+            onDoubleClick={prevent_propagation}
+          >
             {consts.DELETE_MARK}
           </button>
         </td>
@@ -1993,6 +2071,7 @@ const ChildEdgeRow = (props: { edge_id: types.TEdgeId }) => {
             className="btn-icon"
             onClick={delete_edge}
             disabled={!is_deletable_edge}
+            onDoubleClick={prevent_propagation}
           >
             {consts.DELETE_MARK}
           </button>
@@ -2104,6 +2183,7 @@ const ParentEdgeRow = (props: { edge_id: types.TEdgeId }) => {
             className="btn-icon"
             onClick={delete_edge}
             disabled={!is_deletable_edge}
+            onDoubleClick={prevent_propagation}
           >
             {consts.DELETE_MARK}
           </button>
@@ -2581,6 +2661,7 @@ const DoneOrDontToTodoButton_of = memoize2(
       onClick={() => {
         dispatch(done_or_dont_to_todo_action(node_id));
       }}
+      onDoubleClick={prevent_propagation}
     >
       {UNDO_MARK}
     </button>
@@ -2610,7 +2691,11 @@ const AddButton = (props: { node_id: types.TNodeId }) => {
     dispatch(focus_text_area_action_of(props.node_id));
   }, [props.node_id, dispatch, show_mobile]);
   return (
-    <button className="btn-icon" onClick={handle_click}>
+    <button
+      className="btn-icon"
+      onClick={handle_click}
+      onDoubleClick={prevent_propagation}
+    >
       {ADD_MARK}
     </button>
   );
@@ -2625,6 +2710,7 @@ const stopButtonOf = memoize2(
         dispatch(stop_action(node_id));
       }}
       ref={stopButtonRefOf(node_id)}
+      onDoubleClick={prevent_propagation}
     >
       {STOP_MARK}
     </button>
@@ -2638,7 +2724,11 @@ const StartButton = (props: { node_id: types.TNodeId }) => {
     doFocusStopButton(props.node_id);
   }, [props.node_id, dispatch]);
   return (
-    <button className="btn-icon" onClick={on_click}>
+    <button
+      className="btn-icon"
+      onClick={on_click}
+      onDoubleClick={prevent_propagation}
+    >
       {START_MARK}
     </button>
   );
@@ -2650,7 +2740,11 @@ const StartConcurrentButton = (props: { node_id: types.TNodeId }) => {
     doFocusStopButton(props.node_id);
   }, [props.node_id, dispatch]);
   return (
-    <button className="btn-icon" onClick={on_click}>
+    <button
+      className="btn-icon"
+      onClick={on_click}
+      onDoubleClick={prevent_propagation}
+    >
       {START_CONCURRNET_MARK}
     </button>
   );
@@ -2662,7 +2756,11 @@ const TopButton = (props: { node_id: types.TNodeId }) => {
     dispatch(top_action(props.node_id));
   }, [props.node_id, dispatch]);
   return (
-    <button className="btn-icon" onClick={on_click}>
+    <button
+      className="btn-icon"
+      onClick={on_click}
+      onDoubleClick={prevent_propagation}
+    >
       {TOP_MARK}
     </button>
   );
@@ -2677,6 +2775,7 @@ const moveUpButtonOf = memoize2(
         doFocusMoveUpButton(node_id);
       }}
       ref={moveUpButtonRefOf(node_id)}
+      onDoubleClick={prevent_propagation}
     >
       {MOVE_UP_MARK}
     </button>
@@ -2692,6 +2791,7 @@ const moveDownButtonOf = memoize2(
         doFocusMoveDownButton(node_id);
       }}
       ref={moveDownButtonRefOf(node_id)}
+      onDoubleClick={prevent_propagation}
     >
       {MOVE_DOWN_MARK}
     </button>
@@ -2705,6 +2805,7 @@ const todoToDoneButtonOf = memoize2(
       onClick={() => {
         dispatch(todoToDone(k));
       }}
+      onDoubleClick={prevent_propagation}
     >
       {DONE_MARK}
     </button>
@@ -2718,6 +2819,7 @@ const todoToDontButtonOf = memoize2(
       onClick={() => {
         dispatch(todoToDont(k));
       }}
+      onDoubleClick={prevent_propagation}
     >
       {DONT_MARK}
     </button>
@@ -2731,6 +2833,7 @@ const showDetailButtonOf = memoize2(
       onClick={() => {
         dispatch(flipShowDetail(k));
       }}
+      onDoubleClick={prevent_propagation}
     >
       {DETAIL_MARK}
     </button>
@@ -2743,6 +2846,7 @@ const deleteButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
     onClick={() => {
       dispatch(delete_action(k));
     }}
+    onDoubleClick={prevent_propagation}
   >
     {consts.DELETE_MARK}
   </button>
@@ -2754,7 +2858,11 @@ const ParseTocButton = (props: { node_id: types.TNodeId }) => {
     dispatch(parse_toc_action(props.node_id));
   }, [props.node_id, dispatch]);
   return (
-    <button className="btn-icon" onClick={on_click}>
+    <button
+      className="btn-icon"
+      onClick={on_click}
+      onDoubleClick={prevent_propagation}
+    >
       {TOC_MARK}
     </button>
   );
@@ -2766,6 +2874,7 @@ const evalButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
     onClick={() => {
       dispatch(eval_(k));
     }}
+    onDoubleClick={prevent_propagation}
   >
     {EVAL_MARK}
   </button>
@@ -2785,7 +2894,11 @@ const CopyNodeIdButton = (props: { node_id: types.TNodeId }) => {
     [props.node_id, set_node_ids, clipboard],
   );
   return (
-    <button className="btn-icon" onClick={handle_click}>
+    <button
+      className="btn-icon"
+      onClick={handle_click}
+      onDoubleClick={prevent_propagation}
+    >
       {clipboard.is_copied ? DONE_MARK : COPY_MARK}
     </button>
   );
