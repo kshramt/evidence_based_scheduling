@@ -1687,6 +1687,8 @@ const QueueEntry = (props: { node_id: types.TNodeId }) => {
     (state) => state.caches[props.node_id].show_detail,
   );
   const [is_hover, set_hover] = React.useState(false);
+  const cache = useSelector((state) => state.caches[props.node_id]);
+  const status = useSelector((state) => state.data.nodes[props.node_id].status);
   const on_mouse_over = React.useCallback(() => {
     set_hover(true);
   }, [set_hover]);
@@ -1706,6 +1708,10 @@ const QueueEntry = (props: { node_id: types.TNodeId }) => {
         </div>
         {EntryInfos_of(props.node_id)}
       </div>
+      {status === "todo" &&
+        0 <= cache.leaf_estimates_sum &&
+        digits1(cache.leaf_estimates_sum) + " | "}
+      {status === "todo" && cache.percentiles.map(digits1).join(", ")}
       {(is_hover || show_detail) && EntryButtons_of(props.node_id)}
       {Details_of(props.node_id)}
     </EntryWrapper>
@@ -1721,6 +1727,8 @@ const TreeEntry = (props: { node_id: types.TNodeId }) => {
     (state) => state.caches[props.node_id].show_detail,
   );
   const [is_hover, set_hover] = React.useState(false);
+  const cache = useSelector((state) => state.caches[props.node_id]);
+  const status = useSelector((state) => state.data.nodes[props.node_id].status);
   const on_mouse_over = React.useCallback(() => {
     set_hover(true);
   }, [set_hover]);
@@ -1740,6 +1748,10 @@ const TreeEntry = (props: { node_id: types.TNodeId }) => {
         </div>
         {EntryInfos_of(props.node_id)}
       </div>
+      {status === "todo" &&
+        0 <= cache.leaf_estimates_sum &&
+        digits1(cache.leaf_estimates_sum) + " | "}
+      {status === "todo" && cache.percentiles.map(digits1).join(", ")}
       {(is_hover || show_detail) && EntryButtons_of(props.node_id)}
       {Details_of(props.node_id)}
     </EntryWrapper>
@@ -2408,10 +2420,6 @@ const EntryButtons_of = memoize1((node_id: types.TNodeId) => (
 ));
 
 const EntryInfos = (props: { node_id: types.TNodeId }) => {
-  const cache = useSelector((state) => state.caches[props.node_id]);
-
-  const status = useSelector((state) => state.data.nodes[props.node_id].status);
-
   const root = useSelector((state) => state.data.root);
   const is_root = props.node_id === root;
 
@@ -2421,19 +2429,9 @@ const EntryInfos = (props: { node_id: types.TNodeId }) => {
         {is_root || EstimationInputOf(props.node_id)}
         <TotalTime node_id={props.node_id} />
         {is_root || LastRange_of(props.node_id)}
-        {status === "todo" &&
-          0 <= cache.leaf_estimates_sum &&
-          digits1(cache.leaf_estimates_sum) + " | "}
-        {status === "todo" && cache.percentiles.map(digits1).join(", ")}
       </div>
     ),
-    [
-      cache.percentiles,
-      cache.leaf_estimates_sum,
-      status,
-      is_root,
-      props.node_id,
-    ],
+    [is_root, props.node_id],
   );
 };
 const EntryInfos_of = memoize1((node_id: types.TNodeId) => (
