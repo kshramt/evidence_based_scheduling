@@ -27,6 +27,9 @@ import * as saver from "./saver";
 import * as producer from "./producer";
 import * as total_time_utils from "./total_time_utils";
 
+const WEEK_0_BEGIN = new Date(Date.UTC(2021, 12 - 1, 27));
+const WEEK_MSEC = 86400 * 1000 * 7;
+const EMPTY_STRING = "";
 const MENU_HEIGHT = "3rem" as const;
 const START_MARK = <span className="material-icons">play_arrow</span>;
 const START_CONCURRNET_MARK = (
@@ -150,6 +153,15 @@ const add_action = register_history_type(
     "add_action",
   ),
 );
+const assign_nodes_to_time_node_action = register_history_type(
+  rtk.action_of_of<{
+    time_node_id: types.TTimeNodeId;
+    node_ids: types.TNodeId[];
+  }>("assign_nodes_to_time_node_action"),
+);
+const toggle_show_time_node_children_action = register_history_type(
+  rtk.action_of_of<types.TTimeNodeId>("toggle_show_time_node_children_action"),
+);
 const flipShowDetail = rtk.action_of_of<types.TNodeId>("flipShowDetail");
 const start_action = register_history_type(
   rtk.action_of_of<{ node_id: types.TNodeId; is_concurrent: boolean }>(
@@ -206,6 +218,12 @@ const set_text_action = register_history_type(
     text: string;
   }>("set_text_action"),
 );
+const set_time_node_text_action = register_history_type(
+  rtk.action_of_of<{
+    time_node_id: types.TTimeNodeId;
+    text: string;
+  }>("set_time_node_text_action"),
+);
 const todoToDone = register_history_type(
   rtk.action_of_of<types.TNodeId>("todoToDone"),
 );
@@ -235,6 +253,9 @@ const add_edges_action = register_history_type(
 const set_n_unsaved_patches_action = rtk.action_of_of<number>(
   "set_n_unsaved_patches_action",
 );
+const increment_count_action = register_history_type(
+  rtk.action_of_of("increment_count_action"),
+);
 
 const root_reducer_def = (
   builder: <Payload>(
@@ -254,6 +275,9 @@ const root_reducer_def = (
     const vid = utils.visit_counter_of();
     if (checks.is_deletable_node(node_id, state)) {
       const node = state.data.nodes[node_id];
+      Object.values(state.data.timeline.time_nodes).forEach((time_node) => {
+        delete time_node.nodes[node_id];
+      });
       const affected_parent_node_ids = new Set<types.TNodeId>();
       for (const edge_id of ops.keys_of(node.parents)) {
         const parent_node_id = state.data.edges[edge_id].p;
@@ -307,6 +331,24 @@ const root_reducer_def = (
   });
   builder(add_action, (state, action) => {
     ops.add_node(state, action.payload.node_id, action.payload.show_mobile);
+  });
+  builder(assign_nodes_to_time_node_action, (state, action) => {
+    const time_node =
+      state.data.timeline.time_nodes[action.payload.time_node_id] ||
+      ops.new_time_node_of();
+    const t_msec = Number(new Date());
+    action.payload.node_ids.forEach((node_id, i) => {
+      if (state.data.nodes[node_id]) {
+        time_node.nodes[node_id] = -(t_msec + i);
+      }
+    });
+    state.data.timeline.time_nodes[action.payload.time_node_id] = time_node;
+  });
+  builder(toggle_show_time_node_children_action, (state, action) => {
+    const time_node =
+      state.data.timeline.time_nodes[action.payload] || ops.new_time_node_of();
+    time_node.show_children = !time_node.show_children;
+    state.data.timeline.time_nodes[action.payload] = time_node;
   });
   builder(flipShowDetail, (state, action) => {
     const node_id = action.payload;
@@ -554,6 +596,13 @@ const root_reducer_def = (
     }
     ops.update_node_caches(node_id, state);
   });
+  builder(set_time_node_text_action, (state, action) => {
+    const time_node =
+      state.data.timeline.time_nodes[action.payload.time_node_id] ||
+      ops.new_time_node_of();
+    time_node.text = action.payload.text;
+    state.data.timeline.time_nodes[action.payload.time_node_id] = time_node;
+  });
   builder(todoToDone, (state, action) => {
     const node_id = action.payload;
     const vid = utils.visit_counter_of();
@@ -652,6 +701,9 @@ const root_reducer_def = (
     for (const edge of action.payload) {
       _set_total_time_of_ancestors(state, edge.p, vid);
     }
+  });
+  builder(increment_count_action, (state) => {
+    ++state.data.timeline.count;
   });
 };
 
@@ -846,9 +898,9 @@ const show_mobile_context = React.createContext(false);
 
 const App = () => {
   const [node_filter_query_fast, set_node_filter_query_fast] =
-    React.useState("");
+    React.useState(EMPTY_STRING);
   const [node_filter_query_slow, set_node_filter_query_slow] =
-    React.useState("");
+    React.useState(EMPTY_STRING);
 
   const [show_todo_only, set_show_todo_only] = React.useState(
     React.useMemo(() => {
@@ -898,7 +950,7 @@ const App = () => {
       return res;
     });
   }, [set_show_mobile]);
-  const [node_ids, set_node_ids] = React.useState("");
+  const [node_ids, set_node_ids] = React.useState(EMPTY_STRING);
 
   const el = React.useMemo(
     () => (
@@ -1097,7 +1149,7 @@ const MobileNodeFilterQueryInput = () => {
     [set_node_filter_query_fast, set_node_filter_query_slow],
   );
   const clear_input = useCallback(() => {
-    const v = "";
+    const v = EMPTY_STRING;
     set_node_filter_query_fast(v);
     React.startTransition(() => {
       set_node_filter_query_slow(v);
@@ -1140,7 +1192,7 @@ const NodeFilterQueryInput = () => {
     [set_node_filter_query_fast, set_node_filter_query_slow],
   );
   const clear_input = useCallback(() => {
-    const v = "";
+    const v = EMPTY_STRING;
     set_node_filter_query_fast(v);
     React.startTransition(() => {
       set_node_filter_query_slow(v);
@@ -1178,7 +1230,7 @@ const NodeIdsInput = () => {
     [set_node_ids],
   );
   const clear_input = useCallback(() => {
-    const v = "";
+    const v = EMPTY_STRING;
     set_node_ids(v);
   }, [set_node_ids]);
   return (
@@ -1235,8 +1287,198 @@ const Body = () => {
       <div className={`overflow-y-scroll shrink-0`}>
         <QueueNodes node_ids={node_id_groups.non_todos} />
       </div>
+      <div className={`overflow-y-scroll shrink-0`}>
+        <Timeline />
+      </div>
     </div>
   );
+};
+
+const Timeline = () => {
+  const dispatch = useDispatch();
+  const year_begin = useSelector((state) => state.data.timeline.year_begin);
+  const count = useSelector((state) => state.data.timeline.count);
+  const increment_count = React.useCallback(
+    () => dispatch(increment_count_action()),
+    [dispatch],
+  );
+  const year_nodes = React.useMemo(() => {
+    const res = [];
+    for (let dy = 0; dy < count; ++dy) {
+      const time_node_id = `y${year_begin + dy}`;
+      if (types.is_TTimeNodeId(time_node_id)) {
+        res.push(<TimeNode time_node_id={time_node_id} key={time_node_id} />);
+      }
+    }
+    return res;
+  }, [year_begin, count]);
+  return (
+    <>
+      {year_nodes}
+      <button className="btn-icon" onClick={increment_count}>
+        {ADD_MARK}
+      </button>
+    </>
+  );
+};
+
+const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
+  const dispatch = useDispatch();
+  const time_node = useSelector(
+    (state) => state.data.timeline.time_nodes[props.time_node_id],
+  );
+  const selected_node_ids = React.useContext(node_ids_context);
+  const text = time_node?.text ? time_node.text : EMPTY_STRING;
+
+  const toggle_show_children = React.useCallback(() => {
+    const payload = props.time_node_id;
+    dispatch(toggle_show_time_node_children_action(payload));
+  }, [props.time_node_id, dispatch]);
+  const assign_nodes = React.useCallback(() => {
+    const node_ids = node_ids_list_of_node_ids_string(selected_node_ids);
+    if (node_ids.length < 1) {
+      return;
+    }
+    const payload = {
+      time_node_id: props.time_node_id,
+      node_ids,
+    };
+    dispatch(assign_nodes_to_time_node_action(payload));
+  }, [props.time_node_id, selected_node_ids, dispatch]);
+  const dispatch_set_text_action = React.useCallback(
+    (e: React.ChangeEvent<HTMLDivElement>) => {
+      const el = e.target;
+      dispatch(
+        set_time_node_text_action({
+          time_node_id: props.time_node_id,
+          text: el.innerText,
+        }),
+      );
+    },
+    [dispatch, props.time_node_id],
+  );
+  const node_ids = ops.sorted_keys_of(time_node?.nodes || {});
+
+  const child_time_node_ids = child_time_node_ids_of(props.time_node_id);
+  const children =
+    time_node?.show_children &&
+    props.time_node_id[0] !== "h" &&
+    child_time_node_ids.map((child_time_node_id) => (
+      <TimeNode time_node_id={child_time_node_id} key={child_time_node_id} />
+    ));
+
+  return (
+    <div className="pb-[0.125em] pl-[1em]">
+      {props.time_node_id.slice(1)}
+      <AutoHeightTextArea
+        text={text}
+        onKeyDown={insert_plain_enter}
+        onBlur={dispatch_set_text_action}
+        onDoubleClick={prevent_propagation}
+        className={utils.join(
+          "textarea whitespace-pre-wrap overflow-wrap-anywhere w-[30em] overflow-hidden p-[0.125em] bg-white dark:bg-gray-700",
+        )}
+      />
+      <button className="btn-icon" onClick={assign_nodes}>
+        {ADD_MARK}
+      </button>
+      <button className="btn-icon" onClick={toggle_show_children}>
+        O
+      </button>
+      <table>
+        <tbody>
+          {node_ids.map((node_id) => (
+            <tr className="align-baseline" key={node_id}>
+              <td className="row-id" />
+              <PlannedNode node_id={node_id} />
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {children}
+    </div>
+  );
+};
+
+const child_time_node_ids_of = (time_node_id: types.TTimeNodeId) => {
+  const child_time_node_ids = child_time_node_ids_of_impl(time_node_id);
+  const res = [];
+  for (const v of child_time_node_ids) {
+    if (types.is_TTimeNodeId(v)) {
+      res.push(v);
+    }
+  }
+  return res;
+};
+const child_time_node_ids_of_impl = (time_node_id: types.TTimeNodeId) => {
+  if (time_node_id[0] === "y") {
+    const y = time_node_id.slice(1);
+    return [`q${y}-Q1`, `q${y}-Q2`, `q${y}-Q3`, `q${y}-Q4`];
+  } else if (time_node_id[0] === "q") {
+    const y = time_node_id.slice(1, 5);
+    const q = time_node_id.at(-1);
+    if (q === "1") {
+      return [`m${y}-01`, `m${y}-02`, `m${y}-03`];
+    } else if (q === "2") {
+      return [`m${y}-04`, `m${y}-05`, `m${y}-06`];
+    } else if (q === "3") {
+      return [`m${y}-07`, `m${y}-08`, `m${y}-09`];
+    } else if (q === "4") {
+      return [`m${y}-10`, `m${y}-11`, `m${y}-12`];
+    } else {
+      throw new Error(`Invalid format: ${time_node_id}`);
+    }
+  } else if (time_node_id[0] === "m") {
+    const y = parseInt(time_node_id.slice(1, 5));
+    if (isNaN(y)) {
+      throw new Error(`Invalid format: ${time_node_id}`);
+    }
+    const m = parseInt(time_node_id.slice(6, 8));
+    if (isNaN(m)) {
+      throw new Error(`Invalid format: ${time_node_id}`);
+    }
+    const w0 = Math.floor(
+      (Date.UTC(y, m - 1, 1) - Number(WEEK_0_BEGIN)) / WEEK_MSEC,
+    );
+    const w1 = Math.floor(
+      (Date.UTC(y, m - 1 + 1, 0) - Number(WEEK_0_BEGIN)) / WEEK_MSEC,
+    );
+    const res = [];
+    for (let w = w0; w < w1 + 1; ++w) {
+      res.push(`w${w}`);
+    }
+    return res;
+  } else if (time_node_id[0] === "w") {
+    const w = parseInt(time_node_id.slice(1));
+    if (isNaN(w)) {
+      throw new Error(`Invalid format: ${time_node_id}`);
+    }
+    const t0 = new Date(Number(WEEK_0_BEGIN) + WEEK_MSEC * w);
+    const y0 = t0.getUTCFullYear();
+    const m0 = t0.getUTCMonth();
+    const d0 = t0.getUTCDate();
+    const res = [];
+    for (let i = 0; i < 7; ++i) {
+      const t = new Date(Date.UTC(y0, m0, d0 + i));
+      res.push(
+        `d${t.getUTCFullYear()}-${(t.getUTCMonth() + 1)
+          .toString()
+          .padStart(2, "0")}-${t.getUTCDate().toString().padStart(2, "0")}`,
+      );
+    }
+    return res;
+  } else if (time_node_id[0] === "d") {
+    const d = time_node_id.slice(1);
+    const res = [];
+    for (let h = 0; h < 24; ++h) {
+      res.push(`h${d}T${h.toString().padStart(2, "0")}`);
+    }
+    return res;
+  } else if (time_node_id[0] === "h") {
+    return [];
+  } else {
+    throw new Error(`Unsupported time_node_id: ${time_node_id}`);
+  }
 };
 
 const NLeftButton = (props: { n_unsaved_patches: number }) => {
@@ -1254,7 +1496,7 @@ const NLeftButton = (props: { n_unsaved_patches: number }) => {
       URL.revokeObjectURL(anchor.href);
     });
   }, [dispatch]);
-  return props.n_unsaved_patches ? (
+  return (
     <button
       className="btn-icon"
       onClick={handle_click}
@@ -1262,7 +1504,7 @@ const NLeftButton = (props: { n_unsaved_patches: number }) => {
     >
       {props.n_unsaved_patches} left
     </button>
-  ) : null;
+  );
 };
 
 const doFocusStopButton = (node_id: types.TNodeId) => {
@@ -1577,6 +1819,17 @@ const PredictedNextNode = (props: { node_id: types.TNodeId }) => {
       <StartButton node_id={props.node_id} />
       <StartConcurrentButton node_id={props.node_id} />
       <ToTreeLink node_id={props.node_id}>{text.slice(0, 30)}</ToTreeLink>
+    </td>
+  );
+};
+
+const PlannedNode = (props: { node_id: types.TNodeId }) => {
+  const text = useSelector((state) => state.data.nodes[props.node_id].text);
+  return (
+    <td className="flex w-fit gap-x-[0.25em] items-baseline py-[0.125em]">
+      <StartButton node_id={props.node_id} />
+      <StartConcurrentButton node_id={props.node_id} />
+      <ToTreeLink node_id={props.node_id}>{text.slice(0, 60)}</ToTreeLink>
     </td>
   );
 };
@@ -2963,7 +3216,6 @@ const TextAreaImpl = ({
   const state_text = useSelector((state) => state.data.nodes[node_id].text);
   const status = useSelector((state) => state.data.nodes[node_id].status);
   const dispatch = useDispatch();
-  const [text_prev, setText_prev] = useState(state_text);
 
   const dispatch_set_text_action = useCallback(
     (e: React.ChangeEvent<HTMLDivElement>) => {
@@ -2977,13 +3229,9 @@ const TextAreaImpl = ({
     },
     [dispatch, node_id],
   );
-  if (state_text !== text_prev) {
-    setText_prev(state_text);
-  }
   return (
-    <div
-      contentEditable
-      suppressContentEditableWarning
+    <AutoHeightTextArea
+      text={state_text}
       onKeyDown={insert_plain_enter}
       onBlur={dispatch_set_text_action}
       onDoubleClick={prevent_propagation}
@@ -2997,11 +3245,34 @@ const TextAreaImpl = ({
       )}
       {...div_props}
       ref={textAreaRefOf(node_id)}
-    >
-      {state_text}
-    </div>
+    />
   );
 };
+
+type TAutoHeightTextAreaProps = {
+  text: string;
+} & React.HTMLProps<HTMLDivElement>;
+
+const AutoHeightTextArea = React.forwardRef<
+  HTMLDivElement,
+  TAutoHeightTextAreaProps
+>(({ text, ...div_props }, ref) => {
+  const [text_prev, set_text_prev] = useState(text);
+  if (text !== text_prev) {
+    set_text_prev(text);
+  }
+  return (
+    <div
+      {...div_props}
+      contentEditable
+      suppressContentEditableWarning
+      onKeyDown={insert_plain_enter}
+      ref={ref}
+    >
+      {text}
+    </div>
+  );
+});
 
 const insert_plain_enter = (event: React.KeyboardEvent<HTMLElement>) => {
   if (event.key === "Enter") {

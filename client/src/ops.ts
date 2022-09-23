@@ -32,6 +32,11 @@ export const emptyStateOf = (): types.IState => {
     id_seq,
     nodes,
     queue: {},
+    timeline: {
+      year_begin: new Date().getFullYear(),
+      count: 0,
+      time_nodes: {},
+    },
     showTodoOnly: false,
     version: types.VERSION,
   };
@@ -44,6 +49,18 @@ export const emptyStateOf = (): types.IState => {
     caches,
     predicted_next_nodes: [],
     n_unsaved_patches: 0,
+  };
+};
+
+export const new_time_node_of = () => {
+  const t = new Date();
+  const t_msec = Number(t);
+  return {
+    created_at: t_msec,
+    tz: t.getTimezoneOffset(),
+    text: "",
+    show_children: false,
+    nodes: {},
   };
 };
 
