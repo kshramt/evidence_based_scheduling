@@ -23,7 +23,7 @@ from builder_client as prod_client
 run npm run build
 
 from base_api as builder_api
-run pip install --no-cache-dir poetry==1.1.14
+run pip install --no-cache-dir poetry==1.2.1
 copy api .
 
 from builder_api as prod_api
