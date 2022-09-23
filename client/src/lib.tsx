@@ -999,7 +999,7 @@ const Menu = () => {
   }, [dispatch]);
   return (
     <div
-      className={`flex items-center fixed z-[999999] pl-[1em] gap-x-[0.25em] w-full top-0  bg-gray-200 dark:bg-gray-900`}
+      className={`flex items-center overflow-x-auto fixed z-[999999] pl-[1em] gap-x-[0.25em] w-full top-0  bg-gray-200 dark:bg-gray-900`}
       style={{ height: MENU_HEIGHT }}
     >
       <button
