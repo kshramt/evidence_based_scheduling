@@ -1497,13 +1497,15 @@ const NLeftButton = (props: { n_unsaved_patches: number }) => {
     });
   }, [dispatch]);
   return (
-    <button
-      className="btn-icon"
-      onClick={handle_click}
-      onDoubleClick={prevent_propagation}
-    >
-      {props.n_unsaved_patches} left
-    </button>
+    0 < props.n_unsaved_patches && (
+      <button
+        className="btn-icon"
+        onClick={handle_click}
+        onDoubleClick={prevent_propagation}
+      >
+        {props.n_unsaved_patches}
+      </button>
+    )
   );
 };
 
