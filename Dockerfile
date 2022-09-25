@@ -43,9 +43,9 @@ expose 8080
 env DATA_DIR /data
 
 copy --from=builder_litestream /usr/bin/litestream /usr/bin/litestream
-copy --from=prod_client /app/client/build client
 copy --from=prod_api /app/.venv .venv
 copy --from=prod_api /app/log-config.json log-config.json
 copy --from=prod_api /app/api api
 copy --from=prod_api /app/scripts/run.sh scripts/run.sh
+copy --from=prod_client /app/client/build client
 entrypoint ["scripts/run.sh"]
