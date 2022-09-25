@@ -1387,7 +1387,7 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
 
   const id = `tl-${props.time_node_id}`;
   return (
-    <div className="pb-[0.125em] pl-[1em]">
+    <div className="pb-[0.125em] pl-[0.5em]">
       <div className="flex items-end w-fit gap-x-[0.125em]">
         <a href={`#${id}`} id={id}>
           {time_node_id_repr_of(props.time_node_id, year_begin)}
