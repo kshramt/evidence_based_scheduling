@@ -1923,6 +1923,7 @@ const PlannedNode = (props: {
   time_node_id: types.TTimeNodeId;
 }) => {
   const text = useSelector((state) => state.data.nodes[props.node_id].text);
+  const status = useSelector((state) => state.data.nodes[props.node_id].status);
   const dispatch = useDispatch();
   const unassign_node = React.useCallback(() => {
     dispatch(
@@ -1941,7 +1942,17 @@ const PlannedNode = (props: {
         {consts.DELETE_MARK}
       </button>
       <ToTreeLink node_id={props.node_id} title={text}>
-        {text.slice(0, 50)}
+        <span
+          className={
+            status === "done"
+              ? "text-red-600 dark:text-red-400"
+              : status === "dont"
+              ? "text-gray-500"
+              : undefined
+          }
+        >
+          {text.slice(0, 50)}
+        </span>
       </ToTreeLink>
     </td>
   );
@@ -2983,6 +2994,7 @@ const ToTreeLink = (props: {
   node_id: types.TNodeId;
   children?: React.ReactNode;
   title?: string;
+  className?: string;
 }) => {
   const dispatch = useDispatch();
   return (
@@ -2992,6 +3004,7 @@ const ToTreeLink = (props: {
         dispatch(show_path_to_selected_node(props.node_id));
       }}
       title={props.title}
+      className={props.className}
     >
       {props.children === undefined ? "→" : props.children}
     </a>
