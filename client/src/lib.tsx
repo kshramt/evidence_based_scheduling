@@ -159,6 +159,12 @@ const assign_nodes_to_time_node_action = register_history_type(
     node_ids: types.TNodeId[];
   }>("assign_nodes_to_time_node_action"),
 );
+const unassign_nodes_of_time_node_action = register_history_type(
+  rtk.action_of_of<{
+    time_node_id: types.TTimeNodeId;
+    node_ids: types.TNodeId[];
+  }>("unassign_nodes_of_time_node_action"),
+);
 const toggle_show_time_node_children_action = register_history_type(
   rtk.action_of_of<types.TTimeNodeId>("toggle_show_time_node_children_action"),
 );
@@ -343,6 +349,16 @@ const root_reducer_def = (
       }
     });
     state.data.timeline.time_nodes[action.payload.time_node_id] = time_node;
+  });
+  builder(unassign_nodes_of_time_node_action, (state, action) => {
+    const time_node =
+      state.data.timeline.time_nodes[action.payload.time_node_id];
+    if (time_node === undefined) {
+      return;
+    }
+    action.payload.node_ids.forEach((node_id) => {
+      delete time_node.nodes[node_id];
+    });
   });
   builder(toggle_show_time_node_children_action, (state, action) => {
     const time_node =
@@ -1367,34 +1383,42 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
       <TimeNode time_node_id={child_time_node_id} key={child_time_node_id} />
     ));
 
+  const id = `tl-${props.time_node_id}`;
   return (
     <div className="pb-[0.125em] pl-[1em]">
-      {props.time_node_id.slice(1)}
-      <AutoHeightTextArea
-        text={text}
-        onKeyDown={insert_plain_enter}
-        onBlur={dispatch_set_text_action}
-        onDoubleClick={prevent_propagation}
-        className={utils.join(
-          "textarea whitespace-pre-wrap overflow-wrap-anywhere w-[30em] overflow-hidden p-[0.125em] bg-white dark:bg-gray-700",
-        )}
-      />
-      <button className="btn-icon" onClick={assign_nodes}>
-        {ADD_MARK}
-      </button>
-      <button className="btn-icon" onClick={toggle_show_children}>
-        O
-      </button>
-      <table>
-        <tbody>
-          {node_ids.map((node_id) => (
-            <tr className="align-baseline" key={node_id}>
-              <td className="row-id" />
-              <PlannedNode node_id={node_id} />
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="flex items-end w-fit gap-x-[0.125em]">
+        <a href={`#${id}`} id={id}>
+          {props.time_node_id.slice(1)}
+        </a>
+        <button className="btn-icon" onClick={assign_nodes}>
+          {ADD_MARK}
+        </button>
+        <button className="btn-icon" onClick={toggle_show_children}>
+          O
+        </button>
+        <AutoHeightTextArea
+          text={text}
+          onKeyDown={insert_plain_enter}
+          onBlur={dispatch_set_text_action}
+          onDoubleClick={prevent_propagation}
+          className="textarea whitespace-pre-wrap overflow-wrap-anywhere w-[30em] overflow-hidden p-[0.125em] bg-white dark:bg-gray-700"
+        />
+      </div>
+      <div className="pl-[1em]">
+        <table>
+          <tbody>
+            {node_ids.map((node_id) => (
+              <tr className="align-baseline" key={node_id}>
+                <td className="row-id" />
+                <PlannedNode
+                  node_id={node_id}
+                  time_node_id={props.time_node_id}
+                />
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {children}
     </div>
   );
@@ -1823,13 +1847,48 @@ const PredictedNextNode = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const PlannedNode = (props: { node_id: types.TNodeId }) => {
+const useHover = () => {
+  const [is_hover, set_hover] = React.useState(false);
+  const on_mouse_over = React.useCallback(() => {
+    set_hover(true);
+  }, [set_hover]);
+  const on_mouse_out = React.useCallback(() => {
+    set_hover(false);
+  }, [set_hover]);
+  return React.useMemo(() => {
+    return {
+      is_hover,
+      on_mouse_over,
+      on_mouse_out,
+    };
+  }, [is_hover, on_mouse_over, on_mouse_out]);
+};
+
+const PlannedNode = (props: {
+  node_id: types.TNodeId;
+  time_node_id: types.TTimeNodeId;
+}) => {
   const text = useSelector((state) => state.data.nodes[props.node_id].text);
+  const dispatch = useDispatch();
+  const unassign_node = React.useCallback(() => {
+    dispatch(
+      unassign_nodes_of_time_node_action({
+        time_node_id: props.time_node_id,
+        node_ids: [props.node_id],
+      }),
+    );
+  }, [props.time_node_id, props.node_id, dispatch]);
   return (
-    <td className="flex w-fit gap-x-[0.25em] items-baseline py-[0.125em]">
+    <td className="flex w-fit gap-x-[0.25em] items-baseline py-[0.25em]">
       <StartButton node_id={props.node_id} />
       <StartConcurrentButton node_id={props.node_id} />
-      <ToTreeLink node_id={props.node_id}>{text.slice(0, 60)}</ToTreeLink>
+      <CopyNodeIdButton node_id={props.node_id} />
+      <button className="btn-icon" onClick={unassign_node}>
+        {consts.DELETE_MARK}
+      </button>
+      <ToTreeLink node_id={props.node_id} title={text}>
+        {text.slice(0, 50)}
+      </ToTreeLink>
     </td>
   );
 };
@@ -1939,15 +1998,9 @@ const QueueEntry = (props: { node_id: types.TNodeId }) => {
   const show_detail = useSelector(
     (state) => state.caches[props.node_id].show_detail,
   );
-  const [is_hover, set_hover] = React.useState(false);
+  const { is_hover, on_mouse_over, on_mouse_out } = useHover();
   const cache = useSelector((state) => state.caches[props.node_id]);
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
-  const on_mouse_over = React.useCallback(() => {
-    set_hover(true);
-  }, [set_hover]);
-  const on_mouse_out = React.useCallback(() => {
-    set_hover(false);
-  }, [set_hover]);
   return (
     <EntryWrapper
       node_id={props.node_id}
@@ -2875,6 +2928,7 @@ const textAreaRefOf = memoize1((_: types.TNodeId) =>
 const ToTreeLink = (props: {
   node_id: types.TNodeId;
   children?: React.ReactNode;
+  title?: string;
 }) => {
   const dispatch = useDispatch();
   return (
@@ -2883,6 +2937,7 @@ const ToTreeLink = (props: {
       onClick={() => {
         dispatch(show_path_to_selected_node(props.node_id));
       }}
+      title={props.title}
     >
       {props.children === undefined ? "→" : props.children}
     </a>
