@@ -1943,15 +1943,16 @@ const PlannedNode = (props: {
       </button>
       <ToTreeLink node_id={props.node_id} title={text}>
         <span
-          className={
+          className={utils.join(
+            "w-[30em] inline-block whitespace-nowrap",
             status === "done"
               ? "text-red-600 dark:text-red-400"
               : status === "dont"
               ? "text-gray-500"
-              : undefined
-          }
+              : undefined,
+          )}
         >
-          {text.slice(0, 50)}
+          {text.slice(0, 60)}
         </span>
       </ToTreeLink>
     </td>
