@@ -1312,25 +1312,24 @@ const Body = () => {
 
 const Timeline = () => {
   const dispatch = useDispatch();
-  const year_begin = useSelector((state) => state.data.timeline.year_begin);
   const count = useSelector((state) => state.data.timeline.count);
   const increment_count = React.useCallback(
     () => dispatch(increment_count_action()),
     [dispatch],
   );
-  const year_nodes = React.useMemo(() => {
+  const decade_nodes = React.useMemo(() => {
     const res = [];
-    for (let dy = 0; dy < count; ++dy) {
-      const time_node_id = `y${year_begin + dy}`;
+    for (let i_count = 0; i_count < count; ++i_count) {
+      const time_node_id = `e${i_count}`;
       if (types.is_TTimeNodeId(time_node_id)) {
         res.push(<TimeNode time_node_id={time_node_id} key={time_node_id} />);
       }
     }
     return res;
-  }, [year_begin, count]);
+  }, [count]);
   return (
     <>
-      {year_nodes}
+      {decade_nodes}
       <button className="btn-icon" onClick={increment_count}>
         {ADD_MARK}
       </button>
@@ -1375,10 +1374,13 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
   );
   const node_ids = ops.sorted_keys_of(time_node?.nodes || {});
 
-  const child_time_node_ids = child_time_node_ids_of(props.time_node_id);
+  const year_begin = useSelector((state) => state.data.timeline.year_begin);
+  const child_time_node_ids = child_time_node_ids_of(
+    props.time_node_id,
+    year_begin,
+  );
   const children =
     time_node?.show_children &&
-    props.time_node_id[0] !== "h" &&
     child_time_node_ids.map((child_time_node_id) => (
       <TimeNode time_node_id={child_time_node_id} key={child_time_node_id} />
     ));
@@ -1388,7 +1390,7 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
     <div className="pb-[0.125em] pl-[1em]">
       <div className="flex items-end w-fit gap-x-[0.125em]">
         <a href={`#${id}`} id={id}>
-          {props.time_node_id.slice(1)}
+          {time_node_id_repr_of(props.time_node_id, year_begin)}
         </a>
         <button className="btn-icon" onClick={assign_nodes}>
           {ADD_MARK}
@@ -1424,18 +1426,70 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
   );
 };
 
-const child_time_node_ids_of = (time_node_id: types.TTimeNodeId) => {
-  const child_time_node_ids = child_time_node_ids_of_impl(time_node_id);
-  const res = [];
-  for (const v of child_time_node_ids) {
-    if (types.is_TTimeNodeId(v)) {
-      res.push(v);
+const time_node_id_repr_of = (
+  time_node_id: types.TTimeNodeId,
+  year_begin: number,
+) => {
+  if (time_node_id[0] === "e") {
+    // dEcade
+    const i_count = parseInt(time_node_id.slice(1));
+    if (isNaN(i_count)) {
+      throw new Error(`Invalid format: ${time_node_id}`);
     }
+    const y0 = year_begin + 10 * i_count;
+    return `${y0}/P10Y`;
+  } else if (time_node_id[0] === "y") {
+    return time_node_id.slice(1);
+  } else if (time_node_id[0] === "q") {
+    return time_node_id.slice(1);
+  } else if (time_node_id[0] === "m") {
+    return time_node_id.slice(1);
+  } else if (time_node_id[0] === "w") {
+    const w = parseInt(time_node_id.slice(1));
+    if (isNaN(w)) {
+      throw new Error(`Invalid format: ${time_node_id}`);
+    }
+    const t0 = new Date(Number(WEEK_0_BEGIN) + WEEK_MSEC * w);
+    const y0 = t0.getUTCFullYear();
+    const m0 = t0.getUTCMonth();
+    const d0 = t0.getUTCDate();
+    return `${y0}-${m0}-${d0}/P7D`;
+  } else if (time_node_id[0] === "d") {
+    return time_node_id.slice(1);
+  } else if (time_node_id[0] === "h") {
+    return time_node_id.slice(1);
+  } else {
+    throw new Error(`Unsupported time_node_id: ${time_node_id}`);
   }
-  return res;
 };
-const child_time_node_ids_of_impl = (time_node_id: types.TTimeNodeId) => {
-  if (time_node_id[0] === "y") {
+
+const child_time_node_ids_of = (
+  time_node_id: types.TTimeNodeId,
+  year_begin: number,
+) => {
+  const child_time_node_ids: string[] = child_time_node_ids_of_impl(
+    time_node_id,
+    year_begin,
+  );
+  return child_time_node_ids as types.TTimeNodeId[];
+};
+const child_time_node_ids_of_impl = (
+  time_node_id: types.TTimeNodeId,
+  year_begin: number,
+) => {
+  if (time_node_id[0] === "e") {
+    // dEcade
+    const decade_count = parseInt(time_node_id.slice(1));
+    if (isNaN(decade_count)) {
+      throw new Error(`Invalid format: ${time_node_id}`);
+    }
+    const offset = year_begin + 10 * decade_count;
+    const res = [];
+    for (let dy = 0; dy < 10; ++dy) {
+      res.push(`y${offset + dy}`);
+    }
+    return res;
+  } else if (time_node_id[0] === "y") {
     const y = time_node_id.slice(1);
     return [`q${y}-Q1`, `q${y}-Q2`, `q${y}-Q3`, `q${y}-Q4`];
   } else if (time_node_id[0] === "q") {
