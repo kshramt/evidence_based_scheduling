@@ -1451,8 +1451,8 @@ const time_node_id_repr_of = (
     }
     const t0 = new Date(Number(WEEK_0_BEGIN) + WEEK_MSEC * w);
     const y0 = t0.getUTCFullYear();
-    const m0 = t0.getUTCMonth();
-    const d0 = t0.getUTCDate();
+    const m0 = (t0.getUTCMonth() + 1).toString().padStart(2, "0");
+    const d0 = t0.getUTCDate().toString().padStart(2, "0");
     return `${y0}-${m0}-${d0}/P7D`;
   } else if (time_node_id[0] === "d") {
     return time_node_id.slice(1);
