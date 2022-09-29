@@ -464,17 +464,11 @@ export function move_before<K extends string | number | symbol>(
 function _back_value_of<K extends string | number | symbol>(
   kvs: Record<K, number>,
 ) {
-  return Math.max(
-    Date.now(),
-    Math.max(...Object.values<number>(kvs)) + 1,
-  );
+  return Math.max(Date.now(), Math.max(...Object.values<number>(kvs)) + 1);
 }
 
 function _front_value_of<K extends string | number | symbol>(
   kvs: Record<K, number>,
 ) {
-  return Math.min(
-    -Date.now(),
-    Math.min(...Object.values<number>(kvs)) - 1,
-  );
+  return Math.min(-Date.now(), Math.min(...Object.values<number>(kvs)) - 1);
 }
