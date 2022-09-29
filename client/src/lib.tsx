@@ -1388,39 +1388,41 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
   const id = `tl-${props.time_node_id}`;
   return (
     <div className="pb-[0.125em] pl-[0.5em]">
-      <div className="flex items-end w-fit gap-x-[0.125em]">
-        <a href={`#${id}`} id={id}>
-          {time_node_id_repr_of(props.time_node_id, year_begin)}
-        </a>
-        <button className="btn-icon" onClick={assign_nodes}>
-          {ADD_MARK}
-        </button>
-        <button className="btn-icon" onClick={toggle_show_children}>
-          O
-        </button>
-        <AutoHeightTextArea
-          text={text}
-          onKeyDown={insert_plain_enter}
-          onBlur={dispatch_set_text_action}
-          onDoubleClick={prevent_propagation}
-          className="textarea whitespace-pre-wrap overflow-wrap-anywhere w-[30em] overflow-hidden p-[0.125em] bg-white dark:bg-gray-700"
-        />
-      </div>
-      <div className="pl-[1em]">
-        <table>
-          <tbody>
-            {node_ids.map((node_id) => (
-              <tr className="align-baseline" key={node_id}>
-                <td className="row-id" />
-                <PlannedNode
-                  node_id={node_id}
-                  time_node_id={props.time_node_id}
-                />
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <table>
+        <tbody>
+          <tr className="align-baseline">
+            <td>
+              <a href={`#${id}`} id={id}>
+                {time_node_id_repr_of(props.time_node_id, year_begin)}
+              </a>
+            </td>
+            <td className="flex items-end w-fit gap-x-[0.125em]">
+              <button className="btn-icon" onClick={assign_nodes}>
+                {ADD_MARK}
+              </button>
+              <button className="btn-icon" onClick={toggle_show_children}>
+                O
+              </button>
+              <AutoHeightTextArea
+                text={text}
+                onKeyDown={insert_plain_enter}
+                onBlur={dispatch_set_text_action}
+                onDoubleClick={prevent_propagation}
+                className="textarea whitespace-pre-wrap overflow-wrap-anywhere w-[30em] overflow-hidden p-[0.125em] bg-white dark:bg-gray-700"
+              />
+            </td>
+          </tr>
+          {node_ids.map((node_id) => (
+            <tr className="align-baseline" key={node_id}>
+              <td className="row-id" />
+              <PlannedNode
+                node_id={node_id}
+                time_node_id={props.time_node_id}
+              />
+            </tr>
+          ))}
+        </tbody>
+      </table>
       {children}
     </div>
   );
