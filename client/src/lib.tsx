@@ -125,14 +125,14 @@ const stop = (
 ) => {
   const last_range = draft.data.nodes[node_id].ranges.at(-1);
   if (last_range && last_range.end === null) {
-    last_range.end = t ?? Number(new Date());
+    last_range.end = t ?? Date.now();
     ops.update_node_caches(node_id, draft);
     _set_total_time_of_ancestors(draft, node_id, vid);
   }
 };
 
 const stop_all = (draft: immer.Draft<types.IState>, vid: number) => {
-  const t = Number(new Date());
+  const t = Date.now();
   for (const node_id of ops.keys_of(draft.data.queue)) {
     stop(draft, node_id, vid, t);
   }
@@ -342,7 +342,7 @@ const root_reducer_def = (
     const time_node =
       state.data.timeline.time_nodes[action.payload.time_node_id] ||
       ops.new_time_node_of();
-    const t_msec = Number(new Date());
+    const t_msec = Date.now();
     action.payload.node_ids.forEach((node_id, i) => {
       if (state.data.nodes[node_id]) {
         time_node.nodes[node_id] = -(t_msec + i);
@@ -388,7 +388,7 @@ const root_reducer_def = (
         stop_all(state, vid);
       }
       state.data.nodes[node_id].ranges.push({
-        start: Number(new Date()),
+        start: Date.now(),
         end: null,
       });
       ops.update_node_caches(node_id, state);
@@ -631,7 +631,7 @@ const root_reducer_def = (
     }
     stop(state, node_id, vid);
     state.data.nodes[node_id].status = "done";
-    state.data.nodes[node_id].end_time = Number(new Date());
+    state.data.nodes[node_id].end_time = Date.now();
     ops.update_node_caches(node_id, state);
     move_down_to_boundary(state, node_id, (status) => status !== "todo");
     _topQueue(state, node_id);
@@ -648,7 +648,7 @@ const root_reducer_def = (
     }
     stop(state, node_id, vid);
     state.data.nodes[node_id].status = "dont";
-    state.data.nodes[node_id].end_time = Number(new Date());
+    state.data.nodes[node_id].end_time = Date.now();
     ops.update_node_caches(node_id, state);
     move_down_to_boundary(state, node_id, (status) => status === "dont");
     _topQueue(state, node_id);
@@ -1623,7 +1623,7 @@ const _eval_ = (
         // return draft.caches[v.start_time].total_time / 3600 / v.estimate;
       })
     : [1];
-  const now = Number(new Date());
+  const now = Date.now();
   // todo: Use distance to tweak weights.
   // todo: The sampling weight should be a function of both the leaves and the candidates.
   const weights = candidates.length

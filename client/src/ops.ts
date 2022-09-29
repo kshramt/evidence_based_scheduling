@@ -75,7 +75,7 @@ const newNodeValueOf = (parent_edge_ids: types.TEdgeId[]) => {
     estimate: consts.NO_ESTIMATION,
     parents,
     ranges: [] as types.IRange[],
-    start_time: Number(new Date()),
+    start_time: Date.now(),
     status: "todo" as types.TStatus,
     style: { height: "3ex" },
     text: "",
@@ -465,7 +465,7 @@ function _back_value_of<K extends string | number | symbol>(
   kvs: Record<K, number>,
 ) {
   return Math.max(
-    Number(new Date()),
+    Date.now(),
     Math.max(...Object.values<number>(kvs)) + 1,
   );
 }
@@ -474,7 +474,7 @@ function _front_value_of<K extends string | number | symbol>(
   kvs: Record<K, number>,
 ) {
   return Math.min(
-    -Number(new Date()),
+    -Date.now(),
     Math.min(...Object.values<number>(kvs)) - 1,
   );
 }
