@@ -1611,7 +1611,7 @@ const NLeftButton = (props: { n_unsaved_patches: number }) => {
       URL.revokeObjectURL(anchor.href);
     });
   }, [dispatch]);
-  return 0 < props.n_unsaved_patches ? (
+  return (
     <button
       className="btn-icon"
       onClick={handle_click}
@@ -1619,7 +1619,7 @@ const NLeftButton = (props: { n_unsaved_patches: number }) => {
     >
       {props.n_unsaved_patches}
     </button>
-  ) : null;
+  );
 };
 
 const doFocusStopButton = (node_id: types.TNodeId) => {
