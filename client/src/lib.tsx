@@ -1387,7 +1387,7 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
 
   const id = `tl-${props.time_node_id}`;
   return (
-    <div className="pb-[0.125em] pl-[0.5em]">
+    <div className="pb-[0.0625] pl-[1em]">
       <table>
         <tbody>
           <tr className="align-baseline">
@@ -1439,13 +1439,33 @@ const time_node_id_repr_of = (
       throw new Error(`Invalid format: ${time_node_id}`);
     }
     const y0 = year_begin + 10 * i_count;
-    return `${y0}/P10Y`;
+    return (
+      <>
+        <b>{"E "}</b>
+        {`${y0}/P10Y`}
+      </>
+    );
   } else if (time_node_id[0] === "y") {
-    return time_node_id.slice(1);
+    return (
+      <>
+        <b>{"Y "}</b>
+        {time_node_id.slice(1)}
+      </>
+    );
   } else if (time_node_id[0] === "q") {
-    return time_node_id.slice(1);
+    return (
+      <>
+        <b>{"Q "}</b>
+        {time_node_id.slice(1)}
+      </>
+    );
   } else if (time_node_id[0] === "m") {
-    return time_node_id.slice(1);
+    return (
+      <>
+        <b>{"M "}</b>
+        {time_node_id.slice(1)}
+      </>
+    );
   } else if (time_node_id[0] === "w") {
     const w = parseInt(time_node_id.slice(1));
     if (isNaN(w)) {
@@ -1455,11 +1475,26 @@ const time_node_id_repr_of = (
     const y0 = t0.getUTCFullYear();
     const m0 = (t0.getUTCMonth() + 1).toString().padStart(2, "0");
     const d0 = t0.getUTCDate().toString().padStart(2, "0");
-    return `${y0}-${m0}-${d0}/P7D`;
+    return (
+      <>
+        <b>{"W "}</b>
+        {`${y0}-${m0}-${d0}/P7D`}
+      </>
+    );
   } else if (time_node_id[0] === "d") {
-    return time_node_id.slice(1);
+    return (
+      <>
+        <b>{"D "}</b>
+        {time_node_id.slice(1)}
+      </>
+    );
   } else if (time_node_id[0] === "h") {
-    return time_node_id.slice(1);
+    return (
+      <>
+        <b>{"H "}</b>
+        {time_node_id.slice(1)}
+      </>
+    );
   } else {
     throw new Error(`Unsupported time_node_id: ${time_node_id}`);
   }
@@ -1936,7 +1971,7 @@ const PlannedNode = (props: {
     );
   }, [props.time_node_id, props.node_id, dispatch]);
   return (
-    <td className="flex w-fit gap-x-[0.25em] items-baseline py-[0.25em]">
+    <td className="flex w-fit gap-x-[0.25em] items-baseline py-[0.0625]">
       <StartButton node_id={props.node_id} />
       <StartConcurrentButton node_id={props.node_id} />
       <CopyNodeIdButton node_id={props.node_id} />
