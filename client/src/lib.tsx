@@ -378,22 +378,23 @@ const root_reducer_def = (
       return;
     }
     const last_range = state.data.nodes[node_id].ranges.at(-1);
-    if (!last_range || last_range.end !== null) {
-      _top(state, node_id);
-      assert(() => [
-        state.data.nodes[node_id].status === "todo",
-        "Must not happen",
-      ]);
-      if (!action.payload.is_concurrent) {
-        stop_all(state, vid);
-      }
-      state.data.nodes[node_id].ranges.push({
-        start: Date.now(),
-        end: null,
-      });
-      ops.update_node_caches(node_id, state);
-      _show_path_to_selected_node(state, node_id);
+    if (last_range && last_range.end === null) {
+      return;
     }
+    _top(state, node_id);
+    assert(() => [
+      state.data.nodes[node_id].status === "todo",
+      "Must not happen",
+    ]);
+    if (!action.payload.is_concurrent) {
+      stop_all(state, vid);
+    }
+    state.data.nodes[node_id].ranges.push({
+      start: Date.now(),
+      end: null,
+    });
+    ops.update_node_caches(node_id, state);
+    _show_path_to_selected_node(state, node_id);
     next_action_predictor3.fit(node_id);
     next_action_predictor2.fit(node_id);
     set_predicted_next_nodes(state);
