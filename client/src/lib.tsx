@@ -1763,7 +1763,6 @@ const total_time_of = (state: types.IState, node_id: types.TNodeId) => {
   let res = 0;
   let count = 0;
   let t_prev = -1;
-  const count_ge_0: () => [boolean, string] = () => [0 <= count, "0 <= count"];
   for (const [t, inc] of events) {
     if (count === 0) {
       count += inc;
@@ -1774,7 +1773,9 @@ const total_time_of = (state: types.IState, node_id: types.TNodeId) => {
         res += t - t_prev;
       }
     }
-    assert(count_ge_0);
+    if (count < 0) {
+      throw new Error(`count = ${count} < 0`);
+    }
   }
   return res;
 };
