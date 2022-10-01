@@ -2113,9 +2113,7 @@ const QueueEntry = (props: { node_id: types.TNodeId }) => {
     >
       <div className="flex items-end w-fit">
         {ToTreeLink_of(props.node_id)}
-        <div id={`q-${props.node_id}`}>
-          <TextArea node_id={props.node_id} />
-        </div>
+        <TextArea node_id={props.node_id} id={`q-${props.node_id}`} />
         {EntryInfos_of(props.node_id)}
       </div>
       {status === "todo" &&
@@ -2153,9 +2151,7 @@ const TreeEntry = (props: { node_id: types.TNodeId }) => {
     >
       <div className="flex items-end w-fit">
         {ToQueueLink_of(props.node_id)}
-        <div id={`t-${props.node_id}`}>
-          <TextArea node_id={props.node_id} />
-        </div>
+        <TextArea node_id={props.node_id} id={`t-${props.node_id}`} />
         {EntryInfos_of(props.node_id)}
       </div>
       {status === "todo" &&
