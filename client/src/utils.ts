@@ -44,3 +44,27 @@ export const milliseconds_of_datetime_local = (datetime_local: string) => {
   const date = new Date(datetime_local);
   return Number(date);
 };
+
+export const memoize1 = <A, R>(fn: (a: A) => R) => {
+  const cache = new Map<A, R>();
+  return (a: A) => {
+    if (!cache.has(a)) {
+      cache.set(a, fn(a));
+    }
+    return cache.get(a) as R;
+  };
+};
+
+export const memoize2 = <A, B, R>(fn: (a: A, b: B) => R) => {
+  const cache = new Map<A, Map<B, R>>();
+  return (a: A, b: B) => {
+    if (!cache.has(a)) {
+      cache.set(a, new Map<B, R>());
+    }
+    const c = cache.get(a) as Map<B, R>;
+    if (!c.has(b)) {
+      c.set(b, fn(a, b));
+    }
+    return c.get(b) as R;
+  };
+};

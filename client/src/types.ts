@@ -1,3 +1,5 @@
+import { ThunkDispatch } from "redux-thunk";
+
 import * as toast from "./toast";
 
 import * as producer from "./producer";
@@ -7,6 +9,7 @@ import type {
   ICaches,
   IEdges,
   INodes,
+  TAnyPayloadAction,
   TNodeId,
   TOrderedTNodeIds,
 } from "./types16";
@@ -183,3 +186,5 @@ export const is_TTimeNode = (
 export type TTimeNodeId = string & { readonly tag: unique symbol };
 export const is_TTimeNodeId = (x: any): x is TTimeNodeId =>
   typeof x === "string";
+
+export type AppDispatch = ThunkDispatch<IState, {}, TAnyPayloadAction>;

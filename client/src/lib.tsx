@@ -7,7 +7,7 @@ import {
   useSelector as _useSelector,
 } from "react-redux";
 import { createStore, applyMiddleware } from "redux";
-import thunk, { ThunkDispatch } from "redux-thunk";
+import thunk from "redux-thunk";
 import * as immer from "immer";
 // import memoize from "proxy-memoize";  // Too large overhead
 import "@fontsource/material-icons";
@@ -18,6 +18,7 @@ import * as nap from "./next_action_predictor";
 import * as toast from "./toast";
 import "./lib.css";
 import * as types from "./types";
+import { AppDispatch } from "./types";
 import * as utils from "./utils";
 import * as ops from "./ops";
 import * as rtk from "./rtk";
@@ -182,10 +183,6 @@ const closestToTop = register_history_type(rtk.action_of_of("closestToTop"));
 const move_important_node_to_top_action = register_history_type(
   rtk.action_of_of("move_important_node_to_top_action"),
 );
-const set_total_time_action = rtk.action_of_of<{
-  node_id: types.TNodeId;
-  force?: true;
-}>("set_total_time_action");
 const stop_action = register_history_type(
   rtk.action_of_of<types.TNodeId>("stop_action"),
 );
@@ -517,16 +514,18 @@ const root_reducer_def = (
     }
     _top(state, candidate);
   });
-  builder(set_total_time_action, (state, action) => {
-    if (state.data.nodes[action.payload.node_id] === undefined) {
-      return;
+  builder(total_time_utils.set_total_time_action, (state, action) => {
+    for (const node_id of action.payload.node_ids) {
+      if (state.data.nodes[node_id] === undefined) {
+        continue;
+      }
+      _set_total_time(
+        state,
+        node_id,
+        utils.visit_counter_of(),
+        action.payload.force,
+      );
     }
-    _set_total_time(
-      state,
-      action.payload.node_id,
-      utils.visit_counter_of(),
-      action.payload.force,
-    );
   });
   builder(stop_action, (state, action) => {
     const vid = utils.visit_counter_of();
@@ -1865,30 +1864,6 @@ const _show_path_to_selected_node = (
   }
 };
 
-const memoize1 = <A, R>(fn: (a: A) => R) => {
-  const cache = new Map<A, R>();
-  return (a: A) => {
-    if (!cache.has(a)) {
-      cache.set(a, fn(a));
-    }
-    return cache.get(a) as R;
-  };
-};
-
-const memoize2 = <A, B, R>(fn: (a: A, b: B) => R) => {
-  const cache = new Map<A, Map<B, R>>();
-  return (a: A, b: B) => {
-    if (!cache.has(a)) {
-      cache.set(a, new Map<B, R>());
-    }
-    const c = cache.get(a) as Map<B, R>;
-    if (!c.has(b)) {
-      c.set(b, fn(a, b));
-    }
-    return c.get(b) as R;
-  };
-};
-
 const MobilePredictedNextNodes = () => {
   const predicted_next_nodes = useSelector(
     (state) => state.predicted_next_nodes,
@@ -2061,7 +2036,7 @@ const TreeNode = (props: { node_id: types.TNodeId }) => {
     </>
   );
 };
-const TreeNode_of = memoize1((node_id: types.TNodeId) => (
+const TreeNode_of = utils.memoize1((node_id: types.TNodeId) => (
   <TreeNode node_id={node_id} />
 ));
 
@@ -2078,7 +2053,7 @@ const QueueNode = (props: { node_id: types.TNodeId }) => {
     </tr>
   );
 };
-const QueueNode_of = memoize1((node_id: types.TNodeId) => (
+const QueueNode_of = utils.memoize1((node_id: types.TNodeId) => (
   <QueueNode node_id={node_id} key={node_id} />
 ));
 
@@ -2127,7 +2102,7 @@ const QueueEntry = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const QueueEntry_of = memoize1((node_id: types.TNodeId) => (
+const QueueEntry_of = utils.memoize1((node_id: types.TNodeId) => (
   <QueueEntry node_id={node_id} />
 ));
 
@@ -2164,7 +2139,7 @@ const TreeEntry = (props: { node_id: types.TNodeId }) => {
     </EntryWrapper>
   );
 };
-const TreeEntry_of = memoize1((node_id: types.TNodeId) => {
+const TreeEntry_of = utils.memoize1((node_id: types.TNodeId) => {
   return <TreeEntry node_id={node_id} />;
 });
 
@@ -2174,7 +2149,7 @@ const Details = (props: { node_id: types.TNodeId }) => {
   );
   return show_detail ? DetailsImpl_of(props.node_id) : null;
 };
-const Details_of = memoize1((node_id: types.TNodeId) => (
+const Details_of = utils.memoize1((node_id: types.TNodeId) => (
   <Details node_id={node_id} />
 ));
 
@@ -2260,7 +2235,7 @@ const DetailsImpl = (props: { node_id: types.TNodeId }) => {
     </div>
   );
 };
-const DetailsImpl_of = memoize1((node_id: types.TNodeId) => (
+const DetailsImpl_of = utils.memoize1((node_id: types.TNodeId) => (
   <DetailsImpl node_id={node_id} />
 ));
 
@@ -2511,7 +2486,7 @@ const ChildEdgeRow = (props: { edge_id: types.TEdgeId }) => {
     ],
   );
 };
-const ChildEdgeRow_of = memoize1((edge_id: types.TEdgeId) => (
+const ChildEdgeRow_of = utils.memoize1((edge_id: types.TEdgeId) => (
   <ChildEdgeRow edge_id={edge_id} key={edge_id} />
 ));
 
@@ -2623,7 +2598,7 @@ const ParentEdgeRow = (props: { edge_id: types.TEdgeId }) => {
     ],
   );
 };
-const ParentEdgeRow_of = memoize1((edge_id: types.TEdgeId) => (
+const ParentEdgeRow_of = utils.memoize1((edge_id: types.TEdgeId) => (
   <ParentEdgeRow edge_id={edge_id} key={edge_id} />
 ));
 
@@ -2822,7 +2797,7 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
     ],
   );
 };
-const EntryButtons_of = memoize1((node_id: types.TNodeId) => (
+const EntryButtons_of = utils.memoize1((node_id: types.TNodeId) => (
   <EntryButtons node_id={node_id} />
 ));
 
@@ -2841,41 +2816,29 @@ const EntryInfos = (props: { node_id: types.TNodeId }) => {
     [is_root, props.node_id],
   );
 };
-const EntryInfos_of = memoize1((node_id: types.TNodeId) => (
+const EntryInfos_of = utils.memoize1((node_id: types.TNodeId) => (
   <EntryInfos node_id={node_id} />
 ));
 
 const TotalTime = (props: { node_id: types.TNodeId }) => {
-  const cache = useSelector((state) => state.caches[props.node_id]);
+  const total_time = useSelector(
+    (state) => state.caches[props.node_id].total_time,
+  );
   const dispatch = useDispatch();
-  const ref = React.useRef<HTMLSpanElement>(null);
-  const on_click_total_time = useCallback(() => {
-    dispatch(set_total_time_action({ node_id: props.node_id, force: true }));
-  }, [dispatch, props.node_id]);
-
-  React.useEffect(() => {
-    if (ref.current === null) {
-      return;
-    }
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        total_time_utils.visible_node_ids.add(props.node_id);
-        if (total_time_utils.should_update(props.node_id)) {
-          dispatch(set_total_time_action({ node_id: props.node_id }));
-        }
-      } else {
-        total_time_utils.visible_node_ids.delete(props.node_id);
+  const observe = total_time_utils.observe_of(dispatch);
+  const ref_cb = React.useCallback(
+    (el: null | HTMLSpanElement) => {
+      if (el === null) {
+        return;
       }
-    });
-    observer.observe(ref.current);
-    return () => {
-      observer.disconnect();
-    };
-  }, [dispatch, props.node_id]);
+      observe(el, props.node_id);
+    },
+    [observe, props.node_id],
+  );
 
   return (
-    <span onClick={on_click_total_time} ref={ref}>
-      {cache.total_time < 0 ? "-" : digits1(cache.total_time / (1000 * 3600))}
+    <span ref={ref_cb}>
+      {total_time < 0 ? "-" : digits1(total_time / (1000 * 3600))}
     </span>
   );
 };
@@ -2895,7 +2858,7 @@ const StartOrStopButtons = (props: { node_id: types.TNodeId }) => {
     </>
   );
 };
-const StartOrStopButtons_of = memoize1((node_id: types.TNodeId) => (
+const StartOrStopButtons_of = utils.memoize1((node_id: types.TNodeId) => (
   <StartOrStopButtons node_id={node_id} />
 ));
 
@@ -3010,19 +2973,19 @@ const assert = (fn: () => [boolean, string]) => {
   }
 };
 
-const stopButtonRefOf = memoize1((_: types.TNodeId) =>
+const stopButtonRefOf = utils.memoize1((_: types.TNodeId) =>
   React.createRef<HTMLButtonElement>(),
 );
 
-const moveUpButtonRefOf = memoize1((_: types.TNodeId) =>
+const moveUpButtonRefOf = utils.memoize1((_: types.TNodeId) =>
   React.createRef<HTMLButtonElement>(),
 );
 
-const moveDownButtonRefOf = memoize1((_: types.TNodeId) =>
+const moveDownButtonRefOf = utils.memoize1((_: types.TNodeId) =>
   React.createRef<HTMLButtonElement>(),
 );
 
-const textAreaRefOf = memoize1((_: types.TNodeId) =>
+const textAreaRefOf = utils.memoize1((_: types.TNodeId) =>
   React.createRef<HTMLDivElement>(),
 );
 
@@ -3046,7 +3009,7 @@ const ToTreeLink = (props: {
     </a>
   );
 };
-const ToTreeLink_of = memoize1((node_id: types.TNodeId) => (
+const ToTreeLink_of = utils.memoize1((node_id: types.TNodeId) => (
   <ToTreeLink node_id={node_id} />
 ));
 
@@ -3062,11 +3025,11 @@ const ToQueueLink = (props: {
     </a>
   );
 };
-const ToQueueLink_of = memoize1((node_id: types.TNodeId) => (
+const ToQueueLink_of = utils.memoize1((node_id: types.TNodeId) => (
   <ToQueueLink node_id={node_id} />
 ));
 
-const DoneOrDontToTodoButton_of = memoize2(
+const DoneOrDontToTodoButton_of = utils.memoize2(
   (dispatch: AppDispatch, node_id: types.TNodeId) => (
     <button
       className="btn-icon"
@@ -3091,7 +3054,7 @@ const focus_text_area_action_of =
     );
   };
 
-const AddButton_of = memoize1((node_id: types.TNodeId) => (
+const AddButton_of = utils.memoize1((node_id: types.TNodeId) => (
   <AddButton node_id={node_id} />
 ));
 
@@ -3113,7 +3076,7 @@ const AddButton = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const stopButtonOf = memoize2(
+const stopButtonOf = utils.memoize2(
   (dispatch: AppDispatch, node_id: types.TNodeId) => (
     <button
       className="btn-icon"
@@ -3178,7 +3141,7 @@ const TopButton = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const moveUpButtonOf = memoize2(
+const moveUpButtonOf = utils.memoize2(
   (dispatch: AppDispatch, node_id: types.TNodeId) => (
     <button
       className="btn-icon"
@@ -3194,7 +3157,7 @@ const moveUpButtonOf = memoize2(
   ),
 );
 
-const moveDownButtonOf = memoize2(
+const moveDownButtonOf = utils.memoize2(
   (dispatch: AppDispatch, node_id: types.TNodeId) => (
     <button
       className="btn-icon"
@@ -3210,7 +3173,7 @@ const moveDownButtonOf = memoize2(
   ),
 );
 
-const todoToDoneButtonOf = memoize2(
+const todoToDoneButtonOf = utils.memoize2(
   (dispatch: AppDispatch, k: types.TNodeId) => (
     <button
       className="btn-icon"
@@ -3224,7 +3187,7 @@ const todoToDoneButtonOf = memoize2(
   ),
 );
 
-const todoToDontButtonOf = memoize2(
+const todoToDontButtonOf = utils.memoize2(
   (dispatch: AppDispatch, k: types.TNodeId) => (
     <button
       className="btn-icon"
@@ -3238,7 +3201,7 @@ const todoToDontButtonOf = memoize2(
   ),
 );
 
-const showDetailButtonOf = memoize2(
+const showDetailButtonOf = utils.memoize2(
   (dispatch: AppDispatch, k: types.TNodeId) => (
     <button
       className="btn-icon"
@@ -3252,17 +3215,19 @@ const showDetailButtonOf = memoize2(
   ),
 );
 
-const deleteButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
-  <button
-    className="btn-icon"
-    onClick={() => {
-      dispatch(delete_action(k));
-    }}
-    onDoubleClick={prevent_propagation}
-  >
-    {consts.DELETE_MARK}
-  </button>
-));
+const deleteButtonOf = utils.memoize2(
+  (dispatch: AppDispatch, k: types.TNodeId) => (
+    <button
+      className="btn-icon"
+      onClick={() => {
+        dispatch(delete_action(k));
+      }}
+      onDoubleClick={prevent_propagation}
+    >
+      {consts.DELETE_MARK}
+    </button>
+  ),
+);
 
 const ParseTocButton = (props: { node_id: types.TNodeId }) => {
   const dispatch = useDispatch();
@@ -3280,17 +3245,19 @@ const ParseTocButton = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const evalButtonOf = memoize2((dispatch: AppDispatch, k: types.TNodeId) => (
-  <button
-    className="btn-icon"
-    onClick={() => {
-      dispatch(eval_(k));
-    }}
-    onDoubleClick={prevent_propagation}
-  >
-    {EVAL_MARK}
-  </button>
-));
+const evalButtonOf = utils.memoize2(
+  (dispatch: AppDispatch, k: types.TNodeId) => (
+    <button
+      className="btn-icon"
+      onClick={() => {
+        dispatch(eval_(k));
+      }}
+      onDoubleClick={prevent_propagation}
+    >
+      {EVAL_MARK}
+    </button>
+  ),
+);
 
 const CopyNodeIdButton = (props: { node_id: types.TNodeId }) => {
   const clipboard = utils.useClipboard(props.node_id);
@@ -3316,7 +3283,7 @@ const CopyNodeIdButton = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const set_estimate_of = memoize2(
+const set_estimate_of = utils.memoize2(
   (dispatch: AppDispatch, node_id: types.TNodeId) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       dispatch(
@@ -3328,7 +3295,7 @@ const set_estimate_of = memoize2(
     },
 );
 
-const EstimationInputOf = memoize1((k: types.TNodeId) => (
+const EstimationInputOf = utils.memoize1((k: types.TNodeId) => (
   <EstimationInput k={k} />
 ));
 
@@ -3450,7 +3417,7 @@ const LastRange = (props: { node_id: types.TNodeId }) => {
     </>
   );
 };
-const LastRange_of = memoize1((node_id: types.TNodeId) => (
+const LastRange_of = utils.memoize1((node_id: types.TNodeId) => (
   <LastRange node_id={node_id} />
 ));
 
@@ -3471,8 +3438,7 @@ const reducer_of_reducer_with_patch = (
   };
 };
 
-type AppDispatch = ThunkDispatch<types.IState, {}, types.TAnyPayloadAction>;
-const useDispatch = () => _useDispatch<AppDispatch>();
+const useDispatch = () => _useDispatch<types.AppDispatch>();
 const useSelector: TypedUseSelectorHook<types.IState> = _useSelector;
 
 type TSetStateArg<T> = T | ((prev: T) => T);
