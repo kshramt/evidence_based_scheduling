@@ -83,10 +83,6 @@ const newNodeValueOf = (parent_edge_ids: types.TEdgeId[]) => {
 };
 
 export const new_cache_of = (data: types.IData, node_id: types.TNodeId) => {
-  const parent_edges = filter_object(
-    data.edges,
-    keys_of(data.nodes[node_id].parents),
-  );
   const child_edges = filter_object(
     data.edges,
     keys_of(data.nodes[node_id].children),
@@ -102,7 +98,6 @@ export const new_cache_of = (data: types.IData, node_id: types.TNodeId) => {
     percentiles: [],
     leaf_estimates_sum: -1,
     show_detail: false,
-    parent_edges,
     child_edges,
     child_nodes,
   };
@@ -377,7 +372,6 @@ export const update_edge_caches = (
 ) => {
   const edge = state.data.edges[edge_id];
   state.caches[edge.p].child_edges[edge_id] = edge;
-  state.caches[edge.c].parent_edges[edge_id] = edge;
 };
 
 export function keys_of<K extends string | number | symbol>(

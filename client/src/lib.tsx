@@ -294,7 +294,6 @@ const root_reducer_def = (
       }
       for (const edge_id of ops.keys_of(node.children)) {
         const child_node_id = state.data.edges[edge_id].c;
-        delete state.caches[child_node_id].parent_edges[edge_id];
         delete state.data.nodes[child_node_id].parents[edge_id];
         delete state.data.edges[edge_id];
       }
@@ -324,7 +323,6 @@ const root_reducer_def = (
     const edge = state.data.edges[edge_id];
     delete state.caches[edge.p].child_edges[edge_id];
     delete state.caches[edge.p].child_nodes[edge.c];
-    delete state.caches[edge.c].parent_edges[edge_id];
     delete state.data.nodes[edge.p].children[edge_id];
     delete state.data.nodes[edge.c].parents[edge_id];
     ops.update_node_caches(edge.p, state);
@@ -698,6 +696,7 @@ const root_reducer_def = (
           state.data.edges[action.payload.edge_id]
         }.`,
       );
+      return;
     }
     const edge = state.data.edges[action.payload.edge_id];
     edge.t = action.payload.edge_type;
@@ -2477,15 +2476,7 @@ const ChildEdgeTable = (props: { node_id: types.TNodeId }) => {
 const ChildEdgeRow = (props: { edge_id: types.TEdgeId }) => {
   const edge = useSelector((state) => state.data.edges[props.edge_id]);
   const child_nodes = useSelector((state) => state.caches[edge.p].child_nodes);
-  const parent_edges = useSelector(
-    (state) => state.caches[edge.c].parent_edges,
-  );
   const hide = useSelector((state) => state.data.edges[props.edge_id].hide);
-  const is_deletable_edge = checks.is_deletable_edge_of_nodes_and_edges(
-    edge,
-    child_nodes,
-    parent_edges,
-  );
   const dispatch = useDispatch();
   const delete_edge = React.useCallback(
     () => dispatch(delete_edge_action(props.edge_id)),
@@ -2524,11 +2515,7 @@ const ChildEdgeRow = (props: { edge_id: types.TEdgeId }) => {
       <tr>
         <td className="p-[0.25em]">{to_tree_link}</td>
         <td className="p-[0.25em]">
-          <select
-            disabled={!is_deletable_edge}
-            value={edge.t}
-            onChange={set_edge_type}
-          >
+          <select value={edge.t} onChange={set_edge_type}>
             {types.edge_type_values.map((t, i) => (
               <option value={t} key={i}>
                 {t}
@@ -2548,7 +2535,6 @@ const ChildEdgeRow = (props: { edge_id: types.TEdgeId }) => {
           <button
             className="btn-icon"
             onClick={delete_edge}
-            disabled={!is_deletable_edge}
             onDoubleClick={prevent_propagation}
           >
             {consts.DELETE_MARK}
@@ -2556,15 +2542,7 @@ const ChildEdgeRow = (props: { edge_id: types.TEdgeId }) => {
         </td>
       </tr>
     ),
-    [
-      is_deletable_edge,
-      edge.t,
-      hide,
-      to_tree_link,
-      delete_edge,
-      set_edge_type,
-      toggle_edge_hide,
-    ],
+    [edge.t, hide, to_tree_link, delete_edge, set_edge_type, toggle_edge_hide],
   );
 };
 const ChildEdgeRow_of = utils.memoize1((edge_id: types.TEdgeId) => (
@@ -2586,16 +2564,7 @@ const ParentEdgeTable = (props: { node_id: types.TNodeId }) => {
 const ParentEdgeRow = (props: { edge_id: types.TEdgeId }) => {
   const edge = useSelector((state) => state.data.edges[props.edge_id]);
   const text = useSelector((state) => state.data.nodes[edge.p].text);
-  const child_nodes = useSelector((state) => state.caches[edge.p].child_nodes);
-  const parent_edges = useSelector(
-    (state) => state.caches[edge.c].parent_edges,
-  );
   const hide = useSelector((state) => state.data.edges[props.edge_id].hide);
-  const is_deletable_edge = checks.is_deletable_edge_of_nodes_and_edges(
-    edge,
-    child_nodes,
-    parent_edges,
-  );
   const dispatch = useDispatch();
   const delete_edge = React.useCallback(
     () => dispatch(delete_edge_action(props.edge_id)),
@@ -2633,11 +2602,7 @@ const ParentEdgeRow = (props: { edge_id: types.TEdgeId }) => {
       <tr>
         <td className="p-[0.25em]">{to_tree_link}</td>
         <td className="p-[0.25em]">
-          <select
-            disabled={!is_deletable_edge}
-            value={edge.t}
-            onChange={set_edge_type}
-          >
+          <select value={edge.t} onChange={set_edge_type}>
             {types.edge_type_values.map((t, i) => (
               <option value={t} key={i}>
                 {t}
@@ -2657,7 +2622,6 @@ const ParentEdgeRow = (props: { edge_id: types.TEdgeId }) => {
           <button
             className="btn-icon"
             onClick={delete_edge}
-            disabled={!is_deletable_edge}
             onDoubleClick={prevent_propagation}
           >
             {consts.DELETE_MARK}
@@ -2665,15 +2629,7 @@ const ParentEdgeRow = (props: { edge_id: types.TEdgeId }) => {
         </td>
       </tr>
     ),
-    [
-      is_deletable_edge,
-      edge.t,
-      hide,
-      to_tree_link,
-      delete_edge,
-      set_edge_type,
-      toggle_edge_hide,
-    ],
+    [edge.t, hide, to_tree_link, delete_edge, set_edge_type, toggle_edge_hide],
   );
 };
 const ParentEdgeRow_of = utils.memoize1((edge_id: types.TEdgeId) => (
