@@ -87,12 +87,6 @@ export const new_cache_of = (data: types.IData, node_id: types.TNodeId) => {
     data.edges,
     keys_of(data.nodes[node_id].parents),
   );
-  const parent_nodes = filter_object(
-    data.nodes,
-    keys_of(data.nodes[node_id].parents).map(
-      (edge_id) => data.edges[edge_id].p,
-    ),
-  );
   const child_edges = filter_object(
     data.edges,
     keys_of(data.nodes[node_id].children),
@@ -109,7 +103,6 @@ export const new_cache_of = (data: types.IData, node_id: types.TNodeId) => {
     leaf_estimates_sum: -1,
     show_detail: false,
     parent_edges,
-    parent_nodes,
     child_edges,
     child_nodes,
   };
@@ -375,9 +368,6 @@ export const update_node_caches = (
   const node = state.data.nodes[node_id];
   for (const edge_id of keys_of(node.parents)) {
     state.caches[state.data.edges[edge_id].p].child_nodes[node_id] = node;
-  }
-  for (const edge_id of keys_of(node.children)) {
-    state.caches[state.data.edges[edge_id].c].parent_nodes[node_id] = node;
   }
 };
 

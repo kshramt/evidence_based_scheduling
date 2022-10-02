@@ -6,7 +6,6 @@ import * as producer from "./producer";
 
 import * as types_prev from "./types17";
 import type {
-  ICaches,
   IEdges,
   INodes,
   TAnyPayloadAction,
@@ -23,7 +22,6 @@ import {
 } from "./types16";
 
 export type {
-  ICaches,
   IEdge,
   IEdges,
   INode,
@@ -119,6 +117,20 @@ const current_of_prev = (data_prev: {
     reverse_patch: produced.reverse_patch,
   };
 };
+
+interface ICache {
+  total_time: number;
+  percentiles: number[]; // 0, 10, 33, 50, 67, 90, 100
+  leaf_estimates_sum: number;
+  show_detail: boolean;
+  parent_edges: IEdges;
+  child_edges: IEdges;
+  child_nodes: INodes;
+}
+
+export interface ICaches {
+  [k: TNodeId]: ICache;
+}
 
 export interface IState {
   readonly data: IData;

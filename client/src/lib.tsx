@@ -295,7 +295,6 @@ const root_reducer_def = (
       for (const edge_id of ops.keys_of(node.children)) {
         const child_node_id = state.data.edges[edge_id].c;
         delete state.caches[child_node_id].parent_edges[edge_id];
-        delete state.caches[child_node_id].parent_nodes[node_id];
         delete state.data.nodes[child_node_id].parents[edge_id];
         delete state.data.edges[edge_id];
       }
@@ -326,7 +325,6 @@ const root_reducer_def = (
     delete state.caches[edge.p].child_edges[edge_id];
     delete state.caches[edge.p].child_nodes[edge.c];
     delete state.caches[edge.c].parent_edges[edge_id];
-    delete state.caches[edge.c].parent_nodes[edge.p];
     delete state.data.nodes[edge.p].children[edge_id];
     delete state.data.nodes[edge.c].parents[edge_id];
     ops.update_node_caches(edge.p, state);
@@ -2084,7 +2082,6 @@ const TreeNodeList = (props: { node_id_list: types.TNodeId[] }) => {
 };
 
 const TreeNode = (props: { node_id: types.TNodeId }) => {
-  const entry = TreeEntry_of(props.node_id);
   const show_todo_only = React.useContext(show_todo_only_context);
   const show_strong_edge_only = React.useContext(show_strong_edge_only_context);
   const children = useSelector(
@@ -2115,7 +2112,7 @@ const TreeNode = (props: { node_id: types.TNodeId }) => {
 
   return (
     <>
-      {entry}
+      {TreeEntry_of(props.node_id)}
       {tree_node_list}
     </>
   );
@@ -2588,9 +2585,7 @@ const ParentEdgeTable = (props: { node_id: types.TNodeId }) => {
 };
 const ParentEdgeRow = (props: { edge_id: types.TEdgeId }) => {
   const edge = useSelector((state) => state.data.edges[props.edge_id]);
-  const parent_nodes = useSelector(
-    (state) => state.caches[edge.c].parent_nodes,
-  );
+  const text = useSelector((state) => state.data.nodes[edge.p].text);
   const child_nodes = useSelector((state) => state.caches[edge.p].child_nodes);
   const parent_edges = useSelector(
     (state) => state.caches[edge.c].parent_edges,
@@ -2625,7 +2620,6 @@ const ParentEdgeRow = (props: { edge_id: types.TEdgeId }) => {
   const toggle_edge_hide = React.useCallback(() => {
     dispatch(toggle_edge_hide_action(props.edge_id));
   }, [props.edge_id, dispatch]);
-  const text = parent_nodes[edge.p].text;
   const to_tree_link = React.useMemo(
     () => (
       <span title={text}>
@@ -2733,24 +2727,6 @@ const EntryWrapper = (props: {
 const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
   const cache = useSelector((state) => state.caches[props.node_id]);
 
-  const children = useSelector(
-    (state) => state.data.nodes[props.node_id].children,
-  );
-  const is_completable = checks.is_completable_node_of_nodes_and_edges(
-    ops.keys_of(children),
-    cache.child_nodes,
-    cache.child_edges,
-  );
-
-  const parents = useSelector(
-    (state) => state.data.nodes[props.node_id].parents,
-  );
-  const is_uncompletable = checks.is_uncompletable_node_of_nodes_and_edges(
-    ops.keys_of(parents),
-    cache.parent_nodes,
-    cache.parent_edges,
-  );
-
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
 
   const root = useSelector((state) => state.data.root);
@@ -2770,15 +2746,12 @@ const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
           {is_root || status !== "todo" || StartOrStopButtons_of(props.node_id)}
           {is_root ||
             status !== "todo" ||
-            !is_completable ||
             todoToDoneButtonOf(dispatch, props.node_id)}
           {is_root ||
             status !== "todo" ||
-            !is_completable ||
             todoToDontButtonOf(dispatch, props.node_id)}
           {is_root ||
             status === "todo" ||
-            !is_uncompletable ||
             DoneOrDontToTodoButton_of(dispatch, props.node_id)}
           {status === "todo" && evalButtonOf(dispatch, props.node_id)}
           {is_root || status !== "todo" || (
@@ -2805,8 +2778,6 @@ const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
       cache.show_detail,
       status,
       is_root,
-      is_completable,
-      is_uncompletable,
       props.node_id,
       dispatch,
     ],
@@ -2814,26 +2785,6 @@ const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
 };
 
 const EntryButtons = (props: { node_id: types.TNodeId }) => {
-  const cache = useSelector((state) => state.caches[props.node_id]);
-
-  const children = useSelector(
-    (state) => state.data.nodes[props.node_id].children,
-  );
-  const is_completable = checks.is_completable_node_of_nodes_and_edges(
-    ops.keys_of(children),
-    cache.child_nodes,
-    cache.child_edges,
-  );
-
-  const parents = useSelector(
-    (state) => state.data.nodes[props.node_id].parents,
-  );
-  const is_uncompletable = checks.is_uncompletable_node_of_nodes_and_edges(
-    ops.keys_of(parents),
-    cache.parent_nodes,
-    cache.parent_edges,
-  );
-
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
 
   const root = useSelector((state) => state.data.root);
@@ -2847,15 +2798,12 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
         {is_root || status !== "todo" || StartOrStopButtons_of(props.node_id)}
         {is_root ||
           status !== "todo" ||
-          !is_completable ||
           todoToDoneButtonOf(dispatch, props.node_id)}
         {is_root ||
           status !== "todo" ||
-          !is_completable ||
           todoToDontButtonOf(dispatch, props.node_id)}
         {is_root ||
           status === "todo" ||
-          !is_uncompletable ||
           DoneOrDontToTodoButton_of(dispatch, props.node_id)}
         {status === "todo" && evalButtonOf(dispatch, props.node_id)}
         {is_root || status !== "todo" || <TopButton node_id={props.node_id} />}
@@ -2871,14 +2819,7 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
         {showDetailButtonOf(dispatch, props.node_id)}
       </div>
     ),
-    [
-      status,
-      is_root,
-      is_completable,
-      is_uncompletable,
-      props.node_id,
-      dispatch,
-    ],
+    [status, is_root, props.node_id, dispatch],
   );
 };
 const EntryButtons_of = utils.memoize1((node_id: types.TNodeId) => (
