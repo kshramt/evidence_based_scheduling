@@ -2195,7 +2195,7 @@ const DetailsImpl = (props: { node_id: types.TNodeId }) => {
     <hr className="my-[0.5em] border-gray-300 dark:border-gray-600 bg-gray-300 dark:bg-gray-600" />
   );
   return (
-    <div className="pt-[0.5em] bg-gray-200 dark:bg-gray-900">
+    <div className="pt-[0.25em] bg-gray-200 dark:bg-gray-900">
       {hline}
       <div className="flex w-fit gap-x-[0.25em] items-baseline">
         <ParseTocButton node_id={props.node_id} />
@@ -3310,7 +3310,7 @@ const EstimationInput = (props: { k: types.TNodeId }) => {
       value={estimate}
       onChange={set_estimate_of(dispatch, props.k)}
       onFocus={move_cursor_to_the_end}
-      className="w-[3em] h-[2em]"
+      className="w-[3em]"
     />
   );
 };
