@@ -278,33 +278,33 @@ const root_reducer_def = (
   builder(delete_action, (state, action) => {
     const node_id = action.payload;
     const vid = utils.visit_counter_of();
-    if (checks.is_deletable_node(node_id, state)) {
-      const node = state.data.nodes[node_id];
-      Object.values(state.data.timeline.time_nodes).forEach((time_node) => {
-        delete time_node.nodes[node_id];
-      });
-      const affected_parent_node_ids = new Set<types.TNodeId>();
-      for (const edge_id of ops.keys_of(node.parents)) {
-        const parent_node_id = state.data.edges[edge_id].p;
-        affected_parent_node_ids.add(parent_node_id);
-        delete state.caches[parent_node_id].child_edges[edge_id];
-        delete state.caches[parent_node_id].child_nodes[node_id];
-        delete state.data.nodes[parent_node_id].children[edge_id];
-        delete state.data.edges[edge_id];
-      }
-      for (const edge_id of ops.keys_of(node.children)) {
-        const child_node_id = state.data.edges[edge_id].c;
-        delete state.data.nodes[child_node_id].parents[edge_id];
-        delete state.data.edges[edge_id];
-      }
-      delete state.data.queue[node_id];
-      delete state.data.nodes[node_id];
-      delete state.caches[node_id];
-      for (const parent_node_id of affected_parent_node_ids) {
-        _set_total_time_of_ancestors(state, parent_node_id, vid);
-      }
-    } else {
+    if (!checks.is_deletable_node(node_id, state)) {
       toast.add("error", `Node ${node_id} is not deletable.`);
+      return;
+    }
+    const node = state.data.nodes[node_id];
+    Object.values(state.data.timeline.time_nodes).forEach((time_node) => {
+      delete time_node.nodes[node_id];
+    });
+    const affected_parent_node_ids = new Set<types.TNodeId>();
+    for (const edge_id of ops.keys_of(node.parents)) {
+      const parent_node_id = state.data.edges[edge_id].p;
+      affected_parent_node_ids.add(parent_node_id);
+      delete state.caches[parent_node_id].child_edges[edge_id];
+      delete state.caches[parent_node_id].child_nodes[node_id];
+      delete state.data.nodes[parent_node_id].children[edge_id];
+      delete state.data.edges[edge_id];
+    }
+    for (const edge_id of ops.keys_of(node.children)) {
+      const child_node_id = state.data.edges[edge_id].c;
+      delete state.data.nodes[child_node_id].parents[edge_id];
+      delete state.data.edges[edge_id];
+    }
+    delete state.data.queue[node_id];
+    delete state.data.nodes[node_id];
+    delete state.caches[node_id];
+    for (const parent_node_id of affected_parent_node_ids) {
+      _set_total_time_of_ancestors(state, parent_node_id, vid);
     }
   });
   builder(parse_toc_action, (state, action) => {
@@ -692,9 +692,9 @@ const root_reducer_def = (
     if (!checks.is_deletable_edge_of(action.payload.edge_id, state)) {
       toast.add(
         "error",
-        `${action} is not applicable to Edge${
-          state.data.edges[action.payload.edge_id]
-        }.`,
+        `${JSON.stringify(action)} is not applicable to Edge${JSON.stringify(
+          state.data.edges[action.payload.edge_id],
+        )}.`,
       );
       return;
     }
