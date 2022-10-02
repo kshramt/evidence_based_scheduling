@@ -54,6 +54,8 @@ const SEARCH_MARK = <span className="material-icons">search</span>;
 const IDS_MARK = <span className="material-icons">content_paste</span>;
 const MOBILE_MARK = <span className="material-icons">smartphone</span>;
 const DESKTOP_MARK = <span className="material-icons">desktop_windows</span>;
+const EXPAND_MORE_MARK = <span className="material-icons">expand_more</span>;
+const EXPAND_LESS_MARK = <span className="material-icons">expand_less</span>;
 
 const USER_ID = 1;
 const N_PREDICTED = 10;
@@ -341,7 +343,7 @@ const root_reducer_def = (
       ops.new_time_node_of();
     const t_msec = Date.now();
     action.payload.node_ids.forEach((node_id, i) => {
-      if (state.data.nodes[node_id]) {
+      if (state.data.nodes[node_id] && time_node.nodes[node_id] === undefined) {
         time_node.nodes[node_id] = -(t_msec + i);
       }
     });
@@ -1400,8 +1402,11 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
               <button className="btn-icon" onClick={assign_nodes}>
                 {ADD_MARK}
               </button>
+              <CopyDescendantTimeNodesPlannedNodeIdsButton
+                time_node_id={props.time_node_id}
+              />
               <button className="btn-icon" onClick={toggle_show_children}>
-                O
+                {time_node?.show_children ? EXPAND_LESS_MARK : EXPAND_MORE_MARK}
               </button>
               <AutoHeightTextArea
                 text={text}
@@ -1426,6 +1431,85 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
       {children}
     </div>
   );
+};
+
+const copy_descendant_time_nodes_planned_node_ids_action = (
+  time_node_id: types.TTimeNodeId,
+  multi: boolean,
+  set_node_ids: (payload: (node_ids: string) => string) => void,
+  copy: (text: string) => void,
+) => {
+  return (dispatch: types.AppDispatch, getState: () => types.IState) => {
+    const state = getState();
+    const descendant_node_ids = collect_descendant_time_nodes_planned_node_ids(
+      [],
+      time_node_id,
+      state,
+    ).join(" ");
+    set_node_ids((node_ids: string) => {
+      const res = multi
+        ? descendant_node_ids + " " + node_ids
+        : descendant_node_ids;
+      copy(res);
+      return res;
+    });
+  };
+};
+
+const CopyDescendantTimeNodesPlannedNodeIdsButton = (props: {
+  time_node_id: types.TTimeNodeId;
+}) => {
+  const { copy, is_copied } = utils.useClipboard();
+  const set_node_ids = React.useContext(set_node_ids_context);
+  const dispatch = useDispatch();
+  const handle_click = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      const multi = e.ctrlKey;
+      dispatch(
+        copy_descendant_time_nodes_planned_node_ids_action(
+          props.time_node_id,
+          multi,
+          set_node_ids,
+          copy,
+        ),
+      );
+    },
+    [props.time_node_id, set_node_ids, copy, dispatch],
+  );
+  return (
+    <button
+      className="btn-icon"
+      onClick={handle_click}
+      onDoubleClick={prevent_propagation}
+    >
+      {is_copied ? DONE_MARK : COPY_MARK}
+    </button>
+  );
+};
+
+const collect_descendant_time_nodes_planned_node_ids = (
+  res: types.TNodeId[],
+  time_node_id: types.TTimeNodeId,
+  state: types.IState,
+) => {
+  const time_node = state.data.timeline.time_nodes[time_node_id];
+  if (time_node === undefined) {
+    return res;
+  }
+  for (const node of ops.keys_of(time_node.nodes)) {
+    res.push(node);
+  }
+  for (const child_time_node_id of child_time_node_ids_of(
+    time_node_id,
+    state.data.timeline.year_begin,
+  )) {
+    collect_descendant_time_nodes_planned_node_ids(
+      res,
+      child_time_node_id,
+      state,
+    );
+  }
+  return res;
 };
 
 const time_node_id_repr_of = (
@@ -3260,17 +3344,18 @@ const evalButtonOf = utils.memoize2(
 );
 
 const CopyNodeIdButton = (props: { node_id: types.TNodeId }) => {
-  const clipboard = utils.useClipboard(props.node_id);
+  const { copy, is_copied } = utils.useClipboard();
   const set_node_ids = React.useContext(set_node_ids_context);
   const handle_click = React.useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
-      clipboard.copy();
       const multi = e.ctrlKey;
-      set_node_ids((node_ids: string) =>
-        multi ? props.node_id + " " + node_ids : props.node_id,
-      );
+      set_node_ids((node_ids: string) => {
+        const res = multi ? props.node_id + " " + node_ids : props.node_id;
+        copy(res);
+        return res;
+      });
     },
-    [props.node_id, set_node_ids, clipboard],
+    [props.node_id, set_node_ids, copy],
   );
   return (
     <button
@@ -3278,7 +3363,7 @@ const CopyNodeIdButton = (props: { node_id: types.TNodeId }) => {
       onClick={handle_click}
       onDoubleClick={prevent_propagation}
     >
-      {clipboard.is_copied ? DONE_MARK : COPY_MARK}
+      {is_copied ? DONE_MARK : COPY_MARK}
     </button>
   );
 };

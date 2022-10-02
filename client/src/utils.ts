@@ -5,9 +5,9 @@ import * as types from "./types";
 export const join = (...xs: (undefined | null | false | string)[]) =>
   xs.filter(Boolean).join(" ");
 
-export const useClipboard = (text: string) => {
+export const useClipboard = () => {
   const [is_copied, set_is_copied] = React.useState(false);
-  const copy = React.useCallback(() => {
+  const copy = React.useCallback((text: string) => {
     navigator.clipboard
       ?.writeText(text)
       .then(() => {
@@ -15,7 +15,7 @@ export const useClipboard = (text: string) => {
         setTimeout(() => set_is_copied(false), 400);
       })
       .catch(() => set_is_copied(false));
-  }, [text]);
+  }, []);
   return React.useMemo(
     () => ({
       copy,
