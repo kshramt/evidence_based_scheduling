@@ -1379,9 +1379,20 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
     year_begin,
   );
   const children =
-    time_node?.show_children &&
-    child_time_node_ids.map((child_time_node_id) => (
-      <TimeNode time_node_id={child_time_node_id} key={child_time_node_id} />
+    (time_node?.show_children || props.time_node_id[0] === "d") &&
+    (props.time_node_id[0] === "w" ? (
+      <div className="flex gap-x-[0.125em]">
+        {child_time_node_ids.map((child_time_node_id) => (
+          <TimeNode
+            time_node_id={child_time_node_id}
+            key={child_time_node_id}
+          />
+        ))}
+      </div>
+    ) : (
+      child_time_node_ids.map((child_time_node_id) => (
+        <TimeNode time_node_id={child_time_node_id} key={child_time_node_id} />
+      ))
     ));
 
   const id = `tl-${props.time_node_id}`;
@@ -1570,12 +1581,7 @@ const time_node_id_repr_of = (
       </>
     );
   } else if (time_node_id[0] === "h") {
-    return (
-      <>
-        <b>{"H "}</b>
-        {time_node_id.slice(1)}
-      </>
-    );
+    return <>{"H " + time_node_id.slice(-2)}</>;
   } else {
     throw new Error(`Unsupported time_node_id: ${time_node_id}`);
   }
@@ -2039,7 +2045,7 @@ const PlannedNode = (props: {
       <ToTreeLink node_id={props.node_id} title={text}>
         <span
           className={utils.join(
-            "w-[30em] inline-block whitespace-nowrap",
+            "w-[25em] inline-block whitespace-nowrap overflow-hidden",
             status === "done"
               ? "text-red-600 dark:text-red-400"
               : status === "dont"
@@ -2047,7 +2053,7 @@ const PlannedNode = (props: {
               : undefined,
           )}
         >
-          {text.slice(0, 60)}
+          {text.slice(0, 40)}
         </span>
       </ToTreeLink>
     </td>
@@ -3482,7 +3488,7 @@ export const main = () => {
             root.render(error_element);
             return;
           }
-          const caches: types.ICaches = {};
+          const caches: types.TCaches = {};
           for (const node_id in parsed_data.data.nodes) {
             if (types.is_TNodeId(node_id)) {
               caches[node_id] = ops.new_cache_of(parsed_data.data, node_id);

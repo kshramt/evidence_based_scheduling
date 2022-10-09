@@ -118,22 +118,22 @@ const current_of_prev = (data_prev: {
   };
 };
 
-interface ICache {
+type TCache = {
   total_time: number;
   percentiles: number[]; // 0, 10, 33, 50, 67, 90, 100
   leaf_estimates_sum: number;
   show_detail: boolean;
   child_edges: IEdges;
   child_nodes: INodes;
-}
+};
 
-export interface ICaches {
-  [k: TNodeId]: ICache;
-}
+export type TCaches = {
+  [k: TNodeId]: TCache;
+};
 
 export interface IState {
   readonly data: IData;
-  readonly caches: ICaches;
+  readonly caches: TCaches;
   readonly predicted_next_nodes: TNodeId[];
   readonly n_unsaved_patches: number;
 }
