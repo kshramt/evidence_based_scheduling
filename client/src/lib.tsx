@@ -1396,16 +1396,20 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
     ));
 
   const id = `tl-${props.time_node_id}`;
+  const id_el = (
+    <a href={`#${id}`} id={id}>
+      {time_node_id_repr_of(props.time_node_id, year_begin)}
+    </a>
+  );
+  const upper_id_el = props.time_node_id[0] === "d" ? id_el : undefined;
+  const left_id_el = props.time_node_id[0] === "d" ? undefined : id_el;
   return (
     <div className="pb-[0.0625] pl-[1em]">
+      {upper_id_el}
       <table>
         <tbody>
           <tr className="align-baseline">
-            <td>
-              <a href={`#${id}`} id={id}>
-                {time_node_id_repr_of(props.time_node_id, year_begin)}
-              </a>
-            </td>
+            <td>{left_id_el}</td>
             <td className="flex items-end w-fit gap-x-[0.125em]">
               <button className="btn-icon" onClick={assign_nodes}>
                 {ADD_MARK}
@@ -1421,7 +1425,7 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
                 onKeyDown={insert_plain_enter}
                 onBlur={dispatch_set_text_action}
                 onDoubleClick={prevent_propagation}
-                className="textarea whitespace-pre-wrap overflow-wrap-anywhere w-[30em] overflow-hidden p-[0.125em] bg-white dark:bg-gray-700"
+                className="textarea whitespace-pre-wrap overflow-wrap-anywhere w-[20em] overflow-hidden p-[0.125em] bg-white dark:bg-gray-700"
               />
             </td>
           </tr>
@@ -1574,12 +1578,7 @@ const time_node_id_repr_of = (
       </>
     );
   } else if (time_node_id[0] === "d") {
-    return (
-      <>
-        <b>{"D "}</b>
-        {time_node_id.slice(1)}
-      </>
-    );
+    return <>{time_node_id.slice(-8)}</>;
   } else if (time_node_id[0] === "h") {
     return <>{"H " + time_node_id.slice(-2)}</>;
   } else {
@@ -2045,7 +2044,7 @@ const PlannedNode = (props: {
       <ToTreeLink node_id={props.node_id} title={text}>
         <span
           className={utils.join(
-            "w-[25em] inline-block whitespace-nowrap overflow-hidden",
+            "w-[15em] inline-block whitespace-nowrap overflow-hidden",
             status === "done"
               ? "text-red-600 dark:text-red-400"
               : status === "dont"
