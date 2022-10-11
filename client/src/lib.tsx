@@ -1378,33 +1378,18 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
     props.time_node_id,
     year_begin,
   );
-  const children =
-    (time_node?.show_children || props.time_node_id[0] === "d") &&
-    (props.time_node_id[0] === "w" ? (
-      <div className="flex gap-x-[0.125em]">
-        {child_time_node_ids.map((child_time_node_id) => (
-          <TimeNode
-            time_node_id={child_time_node_id}
-            key={child_time_node_id}
-          />
-        ))}
-      </div>
-    ) : (
-      child_time_node_ids.map((child_time_node_id) => (
-        <TimeNode time_node_id={child_time_node_id} key={child_time_node_id} />
-      ))
-    ));
-
   const id = `tl-${props.time_node_id}`;
   const id_el = (
     <a href={`#${id}`} id={id}>
       {time_node_id_repr_of(props.time_node_id, year_begin)}
     </a>
   );
-  const upper_id_el = props.time_node_id[0] === "d" ? id_el : undefined;
-  const left_id_el = props.time_node_id[0] === "d" ? undefined : id_el;
-  return (
-    <div className="pb-[0.0625] pl-[1em]">
+  const [upper_id_el, left_id_el] =
+    props.time_node_id[0] === "w" || props.time_node_id[0] === "d"
+      ? [id_el, undefined]
+      : [undefined, id_el];
+  const entry = (
+    <div>
       {upper_id_el}
       <table>
         <tbody>
@@ -1440,9 +1425,26 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
           ))}
         </tbody>
       </table>
-      {children}
     </div>
   );
+  const children =
+    (time_node?.show_children || props.time_node_id[0] === "d") &&
+    child_time_node_ids.map((child_time_node_id) => (
+      <TimeNode time_node_id={child_time_node_id} key={child_time_node_id} />
+    ));
+  const el =
+    props.time_node_id[0] === "w" ? (
+      <div className="flex gap-x-[0.125em]">
+        {entry}
+        {children}
+      </div>
+    ) : (
+      <>
+        {entry}
+        {children}
+      </>
+    );
+  return <div className="pb-[0.0625] pl-[1em]">{el}</div>;
 };
 
 const copy_descendant_time_nodes_planned_node_ids_action = (
