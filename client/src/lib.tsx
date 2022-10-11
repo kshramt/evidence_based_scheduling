@@ -1343,6 +1343,7 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
   );
   const selected_node_ids = React.useContext(node_ids_context);
   const text = time_node?.text ? time_node.text : EMPTY_STRING;
+  const { is_hover, on_mouse_over, on_mouse_out } = useHover();
 
   const toggle_show_children = React.useCallback(() => {
     const payload = props.time_node_id;
@@ -1393,18 +1394,13 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
       {upper_id_el}
       <table>
         <tbody>
-          <tr className="align-baseline">
+          <tr
+            className="align-baseline"
+            onMouseOver={on_mouse_over}
+            onMouseOut={on_mouse_out}
+          >
             <td>{left_id_el}</td>
-            <td className="flex items-end w-fit gap-x-[0.125em]">
-              <button className="btn-icon" onClick={assign_nodes}>
-                {ADD_MARK}
-              </button>
-              <CopyDescendantTimeNodesPlannedNodeIdsButton
-                time_node_id={props.time_node_id}
-              />
-              <button className="btn-icon" onClick={toggle_show_children}>
-                {time_node?.show_children ? EXPAND_LESS_MARK : EXPAND_MORE_MARK}
-              </button>
+            <td>
               <AutoHeightTextArea
                 text={text}
                 onKeyDown={insert_plain_enter}
@@ -1412,6 +1408,21 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
                 onDoubleClick={prevent_propagation}
                 className="textarea whitespace-pre-wrap overflow-wrap-anywhere w-[18em] overflow-hidden p-[0.125em] bg-white dark:bg-gray-700"
               />
+              {is_hover && (
+                <div className="flex w-fit gap-x-[0.125em]">
+                  <button className="btn-icon" onClick={assign_nodes}>
+                    {ADD_MARK}
+                  </button>
+                  <CopyDescendantTimeNodesPlannedNodeIdsButton
+                    time_node_id={props.time_node_id}
+                  />
+                  <button className="btn-icon" onClick={toggle_show_children}>
+                    {time_node?.show_children
+                      ? EXPAND_LESS_MARK
+                      : EXPAND_MORE_MARK}
+                  </button>
+                </div>
+              )}
             </td>
           </tr>
           {node_ids.map((node_id) => (
@@ -2027,6 +2038,7 @@ const PlannedNode = (props: {
   const text = useSelector((state) => state.data.nodes[props.node_id].text);
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
   const dispatch = useDispatch();
+  const { is_hover, on_mouse_over, on_mouse_out } = useHover();
   const unassign_node = React.useCallback(() => {
     dispatch(
       unassign_nodes_of_time_node_action({
@@ -2036,13 +2048,11 @@ const PlannedNode = (props: {
     );
   }, [props.time_node_id, props.node_id, dispatch]);
   return (
-    <td className="flex w-fit gap-x-[0.25em] items-baseline py-[0.0625]">
-      <StartButton node_id={props.node_id} />
-      <StartConcurrentButton node_id={props.node_id} />
-      <CopyNodeIdButton node_id={props.node_id} />
-      <button className="btn-icon" onClick={unassign_node}>
-        {consts.DELETE_MARK}
-      </button>
+    <td
+      className="py-[0.0625]"
+      onMouseOver={on_mouse_over}
+      onMouseOut={on_mouse_out}
+    >
       <ToTreeLink
         node_id={props.node_id}
         title={text}
@@ -2057,6 +2067,16 @@ const PlannedNode = (props: {
       >
         {text.slice(0, 40)}
       </ToTreeLink>
+      {is_hover && (
+        <div className="flex w-fit gap-x-[0.25em]">
+          <StartButton node_id={props.node_id} />
+          <StartConcurrentButton node_id={props.node_id} />
+          <CopyNodeIdButton node_id={props.node_id} />
+          <button className="btn-icon" onClick={unassign_node}>
+            {consts.DELETE_MARK}
+          </button>
+        </div>
+      )}
     </td>
   );
 };
@@ -2197,15 +2217,9 @@ const TreeEntry = (props: { node_id: types.TNodeId }) => {
   const show_detail = useSelector(
     (state) => state.caches[props.node_id].show_detail,
   );
-  const [is_hover, set_hover] = React.useState(false);
+  const { is_hover, on_mouse_over, on_mouse_out } = useHover();
   const cache = useSelector((state) => state.caches[props.node_id]);
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
-  const on_mouse_over = React.useCallback(() => {
-    set_hover(true);
-  }, [set_hover]);
-  const on_mouse_out = React.useCallback(() => {
-    set_hover(false);
-  }, [set_hover]);
   return (
     <EntryWrapper
       node_id={props.node_id}
