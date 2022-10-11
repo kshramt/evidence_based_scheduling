@@ -1425,7 +1425,7 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
                 onKeyDown={insert_plain_enter}
                 onBlur={dispatch_set_text_action}
                 onDoubleClick={prevent_propagation}
-                className="textarea whitespace-pre-wrap overflow-wrap-anywhere w-[20em] overflow-hidden p-[0.125em] bg-white dark:bg-gray-700"
+                className="textarea whitespace-pre-wrap overflow-wrap-anywhere w-[18em] overflow-hidden p-[0.125em] bg-white dark:bg-gray-700"
               />
             </td>
           </tr>
@@ -2041,19 +2041,19 @@ const PlannedNode = (props: {
       <button className="btn-icon" onClick={unassign_node}>
         {consts.DELETE_MARK}
       </button>
-      <ToTreeLink node_id={props.node_id} title={text}>
-        <span
-          className={utils.join(
-            "w-[15em] inline-block whitespace-nowrap overflow-hidden",
-            status === "done"
-              ? "text-red-600 dark:text-red-400"
-              : status === "dont"
-              ? "text-gray-500"
-              : undefined,
-          )}
-        >
-          {text.slice(0, 40)}
-        </span>
+      <ToTreeLink
+        node_id={props.node_id}
+        title={text}
+        className={utils.join(
+          "w-[15em] block whitespace-nowrap overflow-hidden",
+          status === "done"
+            ? "text-red-600 dark:text-red-400"
+            : status === "dont"
+            ? "text-gray-500"
+            : undefined,
+        )}
+      >
+        {text.slice(0, 40)}
       </ToTreeLink>
     </td>
   );
