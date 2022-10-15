@@ -131,7 +131,7 @@ export interface IData {
   readonly edges: IEdges;
   readonly root: TNodeId;
   id_seq: number;
-  readonly nodes: INodes;
+  readonly nodes: TNodes;
   readonly queue: TOrderedTNodeIds;
   readonly showTodoOnly: boolean;
   readonly show_strong_edge_only?: boolean;
@@ -145,7 +145,7 @@ export const is_IData = (
   record_if_false(is_IEdges(data.edges, record_if_false), "edges") &&
   record_if_false(is_TNodeId(data.root), "root") &&
   record_if_false(typeof data.id_seq === "number", "id_seq") &&
-  record_if_false(is_INodes(data.nodes, record_if_false), "nodes") &&
+  record_if_false(is_TNodes(data.nodes, record_if_false), "nodes") &&
   record_if_false(is_TOrderedTNodeIds(data.queue), "queue") &&
   record_if_false(typeof data.showTodoOnly === "boolean", "showTodoOnly") &&
   record_if_false(
@@ -154,16 +154,16 @@ export const is_IData = (
   ) &&
   record_if_false(data.version === VERSION, "version");
 
-export interface INodes {
-  [k: TNodeId]: INode;
-}
-export const is_INodes = (
+export type TNodes = {
+  [k: TNodeId]: TNode;
+};
+export const is_TNodes = (
   x: any,
   record_if_false: ReturnType<typeof record_if_false_of>,
-): x is INodes =>
-  record_if_false.check_object(x, (v) => is_INode(v, record_if_false));
+): x is TNodes =>
+  record_if_false.check_object(x, (v) => is_TNode(v, record_if_false));
 
-export interface INode {
+export type TNode = {
   readonly children: TOrderedTEdgeIds;
   readonly end_time: null | number;
   readonly estimate: number;
@@ -172,11 +172,11 @@ export interface INode {
   readonly start_time: number;
   readonly status: TStatus;
   readonly text: string;
-}
-const is_INode = (
+};
+const is_TNode = (
   x: any,
   record_if_false: ReturnType<typeof record_if_false_of>,
-): x is INode =>
+): x is TNode =>
   record_if_false(is_object(x), "is_object") &&
   record_if_false(is_TOrderedTEdgeIds(x.children), "children") &&
   record_if_false(
@@ -200,7 +200,7 @@ interface ICache {
   leaf_estimates_sum: number;
   show_detail: boolean;
   parent_edges: IEdges;
-  parent_nodes: INodes;
+  parent_nodes: TNodes;
   child_edges: IEdges;
-  child_nodes: INodes;
+  child_nodes: TNodes;
 }

@@ -1455,7 +1455,7 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
         {children}
       </>
     );
-  return <div className="pb-[0.0625] pl-[1em]">{el}</div>;
+  return <div className="pb-[0.0625] pl-[0.5em]">{el}</div>;
 };
 
 const copy_descendant_time_nodes_planned_node_ids_action = (
@@ -2943,7 +2943,7 @@ function* _todo_leafs_of(
   state: types.IState,
   edge_filter: (edge: types.IEdge) => boolean,
   vid: number,
-): Iterable<[types.TNodeId, types.INode]> {
+): Iterable<[types.TNodeId, types.TNode]> {
   if (utils.vids[node_id] === vid) {
     return;
   }

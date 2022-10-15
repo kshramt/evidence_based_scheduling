@@ -18,7 +18,7 @@ export const is_uncompletable_node_of = (
 };
 export const is_uncompletable_node_of_nodes_and_edges = (
   parents: types.TEdgeId[],
-  nodes: types.INodes,
+  nodes: types.TNodes,
 
   edges: types.IEdges,
 ) => {
@@ -44,7 +44,7 @@ export const is_completable_node_of = (
 };
 export const is_completable_node_of_nodes_and_edges = (
   children: types.TEdgeId[],
-  nodes: types.INodes,
+  nodes: types.TNodes,
   edges: types.IEdges,
 ) => {
   return !children.some((edge_id) => {
@@ -85,7 +85,7 @@ export const is_deletable_edge_of = (
 };
 export const is_deletable_edge_of_nodes_and_edges = (
   edge: types.IEdge,
-  nodes: types.INodes,
+  nodes: types.TNodes,
   edges: types.IEdges,
 ) => {
   if (edge.t !== "strong") {

@@ -24,7 +24,7 @@ export const emptyStateOf = (): types.IState => {
   const id_seq = 0;
   const root = id_string_of_number(id_seq) as types.TNodeId;
   const nodes = {
-    [root]: newNodeValueOf([]),
+    [root]: new_node_value_of([], "root"),
   };
   const data = {
     edges: {},
@@ -40,7 +40,6 @@ export const emptyStateOf = (): types.IState => {
     showTodoOnly: false,
     version: types.VERSION,
   };
-  data.nodes[root].text = "root";
   const caches = {
     [root]: new_cache_of(data, root),
   };
@@ -52,7 +51,7 @@ export const emptyStateOf = (): types.IState => {
   };
 };
 
-export const new_time_node_of = () => {
+export const new_time_node_of = (): types.TTimeNode => {
   const t = new Date();
   const t_msec = Number(t);
   return {
@@ -64,7 +63,10 @@ export const new_time_node_of = () => {
   };
 };
 
-const newNodeValueOf = (parent_edge_ids: types.TEdgeId[]) => {
+const new_node_value_of = (
+  parent_edge_ids: types.TEdgeId[],
+  text = "",
+): types.TNode => {
   const parents: types.TOrderedTEdgeIds = {};
   for (let i = 0; i < parent_edge_ids.length; ++i) {
     parents[parent_edge_ids[i]] = i;
@@ -77,8 +79,7 @@ const newNodeValueOf = (parent_edge_ids: types.TEdgeId[]) => {
     ranges: [] as types.IRange[],
     start_time: Date.now(),
     status: "todo" as types.TStatus,
-    style: { height: "3ex" },
-    text: "",
+    text,
   };
 };
 
@@ -136,7 +137,7 @@ export const add_node = (
   }
   const node_id = new_node_id_of(draft);
   const edge_id = new_edge_id_of(draft);
-  const node = newNodeValueOf([edge_id]);
+  const node = new_node_value_of([edge_id]);
   const edge = { p: parent_node_id, c: node_id, t: "strong" as const };
   draft.data.nodes[node_id] = node;
   draft.data.edges[edge_id] = edge;

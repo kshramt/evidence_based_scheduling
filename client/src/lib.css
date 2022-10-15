@@ -43,7 +43,7 @@ table > tbody > tr > td.row-id::before {
     @apply text-right;
   }
   a {
-    @apply link;
+    /* @apply link; */
   }
 }
 

@@ -6,13 +6,13 @@ import * as types_prev from "./types16";
 import type {
   ICaches,
   IEdges,
-  INodes,
+  TNodes,
   TNodeId,
   TOrderedTNodeIds,
 } from "./types16";
 import {
   is_IEdges,
-  is_INodes,
+  is_TNodes,
   is_TNodeId,
   is_TOrderedTNodeIds,
   is_object,
@@ -23,8 +23,8 @@ export type {
   ICaches,
   IEdge,
   IEdges,
-  INode,
-  INodes,
+  TNode,
+  TNodes,
   IRange,
   IVids,
   TActionWithPayload,
@@ -40,7 +40,7 @@ export type {
 export {
   edge_type_values,
   is_IEdges,
-  is_INodes,
+  is_TNodes,
   is_TEdgeType,
   is_TNodeId,
   is_TOrderedTNodeIds,
@@ -127,7 +127,7 @@ export interface IData {
   readonly edges: IEdges;
   readonly root: TNodeId;
   id_seq: number;
-  readonly nodes: INodes;
+  readonly nodes: TNodes;
   readonly queue: TOrderedTNodeIds;
   readonly version: typeof VERSION;
 }
@@ -139,6 +139,6 @@ export const is_IData = (
   record_if_false(is_IEdges(data.edges, record_if_false), "edges") &&
   record_if_false(is_TNodeId(data.root), "root") &&
   record_if_false(typeof data.id_seq === "number", "id_seq") &&
-  record_if_false(is_INodes(data.nodes, record_if_false), "nodes") &&
+  record_if_false(is_TNodes(data.nodes, record_if_false), "nodes") &&
   record_if_false(is_TOrderedTNodeIds(data.queue), "queue") &&
   record_if_false(data.version === VERSION, "version");
