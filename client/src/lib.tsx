@@ -1406,7 +1406,7 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
                 onKeyDown={insert_plain_enter}
                 onBlur={dispatch_set_text_action}
                 onDoubleClick={prevent_propagation}
-                className="textarea whitespace-pre-wrap overflow-wrap-anywhere w-[18em] overflow-hidden p-[0.125em] bg-white dark:bg-gray-700"
+                className="textarea whitespace-pre-wrap overflow-wrap-anywhere w-[17em] overflow-hidden p-[0.125em] bg-white dark:bg-gray-700"
               />
               {is_hover && (
                 <div className="flex w-fit gap-x-[0.125em]">
@@ -3364,7 +3364,7 @@ const TextAreaImpl = ({
       onBlur={dispatch_set_text_action}
       onDoubleClick={prevent_propagation}
       className={utils.join(
-        "textarea whitespace-pre-wrap overflow-wrap-anywhere w-[30em] overflow-hidden p-[0.125em] bg-white dark:bg-gray-700",
+        "textarea whitespace-pre-wrap overflow-wrap-anywhere w-[29em] overflow-hidden p-[0.125em] bg-white dark:bg-gray-700",
         status === "done"
           ? "text-red-600 dark:text-red-400"
           : status === "dont"
