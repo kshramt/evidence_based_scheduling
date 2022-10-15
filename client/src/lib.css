@@ -27,7 +27,7 @@ table {
 }
 table > tbody > tr > td.row-id {
   text-align: right;
-  padding-right: 0.5em;
+  padding-right: 0.125em;
 }
 table > tbody > tr > td.row-id::before {
   counter-increment: table-row-counter;

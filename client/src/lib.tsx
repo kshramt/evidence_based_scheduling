@@ -1593,7 +1593,7 @@ const time_node_id_repr_of = (
   } else if (time_node_id[0] === "d") {
     return <>{time_node_id.slice(-8)}</>;
   } else if (time_node_id[0] === "h") {
-    return <>{"H " + time_node_id.slice(-2)}</>;
+    return <>{time_node_id.slice(-2)}</>;
   } else {
     throw new Error(`Unsupported time_node_id: ${time_node_id}`);
   }
