@@ -9,21 +9,17 @@ jobs:
       host-arch: ${{ steps.vars.outputs.host-arch }}
       host-os: ${{ steps.vars.outputs.host-os }}
     steps:
-    - run: |
-        set -o errexit
-        set -o pipefail
-        echo I ::set-output name=ref-b64::"$(echo "${{ github.ref }}" | base64 --wrap 0 | sed -e 's/=//g')"
-        echo I ::set-output name=tmp-dir::"$(mktemp -d)"
-        echo I ::set-output name=host-arch::"$(docker version --format '{{ (index .Server.Components 0).Details.Arch }}')"
-        echo I ::set-output name=host-os::"$(docker version --format '{{ (index .Server.Components 0).Details.Os }}')"
     - id: vars
       run: |
+        set -xv
         set -o errexit
         set -o pipefail
-        echo ::set-output name=ref-b64::"$(echo "${{ github.ref }}" | base64 --wrap 0 | sed -e 's/=//g')"
-        echo ::set-output name=tmp-dir::"$(mktemp -d)"
-        echo ::set-output name=host-arch::"$(docker version --format '{{ (index .Server.Components 0).Details.Arch }}')"
-        echo ::set-output name=host-os::"$(docker version --format '{{ (index .Server.Components 0).Details.Os }}')"
+        {
+        echo "ref-b64=$(echo "${{ github.ref }}" | base64 --wrap 0 | sed -e 's/=//g')"
+        echo "tmp-dir=$(mktemp -d)"
+        echo "host-arch=$(docker version --format '{{ (index .Server.Components 0).Details.Arch }}')"
+        echo "host-os=$(docker version --format '{{ (index .Server.Components 0).Details.Os }}')"
+        } >> "$GITHUB_ENV"
   build-images:
     needs: [set-vars]
     runs-on: ubuntu-latest
