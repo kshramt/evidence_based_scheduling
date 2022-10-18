@@ -2186,6 +2186,7 @@ const QueueEntry = (props: { node_id: types.TNodeId }) => {
     (state) => state.caches[props.node_id].show_detail,
   );
   const { is_hover, on_mouse_over, on_mouse_out } = useHover();
+  const is_running = useIsRunning(props.node_id);
   const cache = useSelector((state) => state.caches[props.node_id]);
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
   return (
@@ -2203,7 +2204,8 @@ const QueueEntry = (props: { node_id: types.TNodeId }) => {
         0 <= cache.leaf_estimates_sum &&
         digits1(cache.leaf_estimates_sum) + " | "}
       {status === "todo" && cache.percentiles.map(digits1).join(", ")}
-      {(is_hover || show_detail) && EntryButtons_of(props.node_id)}
+      {(is_hover || is_running || show_detail) &&
+        EntryButtons_of(props.node_id)}
       {Details_of(props.node_id)}
     </EntryWrapper>
   );
@@ -2218,6 +2220,7 @@ const TreeEntry = (props: { node_id: types.TNodeId }) => {
     (state) => state.caches[props.node_id].show_detail,
   );
   const { is_hover, on_mouse_over, on_mouse_out } = useHover();
+  const is_running = useIsRunning(props.node_id);
   const cache = useSelector((state) => state.caches[props.node_id]);
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
   return (
@@ -2235,7 +2238,8 @@ const TreeEntry = (props: { node_id: types.TNodeId }) => {
         0 <= cache.leaf_estimates_sum &&
         digits1(cache.leaf_estimates_sum) + " | "}
       {status === "todo" && cache.percentiles.map(digits1).join(", ")}
-      {(is_hover || show_detail) && EntryButtons_of(props.node_id)}
+      {(is_hover || is_running || show_detail) &&
+        EntryButtons_of(props.node_id)}
       {Details_of(props.node_id)}
     </EntryWrapper>
   );
@@ -2657,16 +2661,20 @@ const ParentEdgeRow_of = utils.memoize1((edge_id: types.TEdgeId) => (
   <ParentEdgeRow edge_id={edge_id} key={edge_id} />
 ));
 
+const useIsRunning = (node_id: types.TNodeId) => {
+  const ranges = useSelector((state) => state.data.nodes[node_id].ranges);
+  const last_range = ranges.at(-1);
+  const is_running = last_range && last_range.end === null;
+  return is_running;
+};
+
 const EntryWrapper = (props: {
   node_id: types.TNodeId;
   children: React.ReactNode;
   onMouseOver?: () => void;
   onMouseOut?: () => void;
 }) => {
-  const ranges = useSelector((state) => state.data.nodes[props.node_id].ranges);
-  const last_range = ranges.at(-1);
-  const running = last_range && last_range.end === null;
-
+  const is_running = useIsRunning(props.node_id);
   const child_edges = useSelector(
     (state) => state.caches[props.node_id].child_edges,
   );
@@ -2681,7 +2689,7 @@ const EntryWrapper = (props: {
     () => (
       <div
         className={utils.join(
-          running ? "running" : has_hidden_leaf ? "hidden-leafs" : undefined,
+          is_running ? "running" : has_hidden_leaf ? "hidden-leafs" : undefined,
         )}
         onDoubleClick={handle_toggle_show_children}
         onMouseOver={props.onMouseOver}
@@ -2692,7 +2700,7 @@ const EntryWrapper = (props: {
     ),
     [
       has_hidden_leaf,
-      running,
+      is_running,
       handle_toggle_show_children,
       props.children,
       props.onMouseOver,
