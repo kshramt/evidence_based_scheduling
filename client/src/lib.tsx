@@ -2009,6 +2009,7 @@ const PredictedNextNode = (props: { node_id: types.TNodeId }) => {
     <td className="flex w-fit gap-x-[0.25em] items-baseline py-[0.125em]">
       <StartButton node_id={props.node_id} />
       <StartConcurrentButton node_id={props.node_id} />
+      <CopyNodeIdButton node_id={props.node_id} />
       <ToTreeLink node_id={props.node_id}>{text.slice(0, 30)}</ToTreeLink>
     </td>
   );
@@ -2039,6 +2040,7 @@ const PlannedNode = (props: {
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
   const dispatch = useDispatch();
   const { is_hover, on_mouse_over, on_mouse_out } = useHover();
+  const is_running = useIsRunning(props.node_id);
   const unassign_node = React.useCallback(() => {
     dispatch(
       unassign_nodes_of_time_node_action({
@@ -2049,7 +2051,7 @@ const PlannedNode = (props: {
   }, [props.time_node_id, props.node_id, dispatch]);
   return (
     <td
-      className="py-[0.0625]"
+      className={utils.join("py-[0.0625]", is_running ? "running" : undefined)}
       onMouseOver={on_mouse_over}
       onMouseOut={on_mouse_out}
     >
@@ -2067,7 +2069,7 @@ const PlannedNode = (props: {
       >
         {text.slice(0, 40)}
       </ToTreeLink>
-      {is_hover && (
+      {(is_hover || is_running) && (
         <div className="flex w-fit gap-x-[0.25em]">
           <StartButton node_id={props.node_id} />
           <StartConcurrentButton node_id={props.node_id} />
