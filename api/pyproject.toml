@@ -25,23 +25,23 @@ ignore_missing_imports = true
 
 [tool.poetry.dependencies]
 python = ">=3.9.5,<3.12"
-fastapi = "^0.79.0"
-uvicorn = "^0.18.2"
-SQLAlchemy = "^1.4.39"
+fastapi = "^0.85.0"
+uvicorn = "^0.19.0"
+SQLAlchemy = "^1.4.42"
 aiosqlite = "^0.17.0"
 jsonpatch = "^1.32"
 zstd = "^1.5.2"
-starlette = "0.19.1"
+starlette = "^0.20.0"
 
 [tool.poetry.dev-dependencies]
 black = "^22.6.0"
-pyflakes = "^2.4.0"
+pyflakes = "^2.5.0"
 isort = "^5.10.1"
-mypy = "^0.961"
+mypy = "^0.982"
 alembic = "^1.8.1"
-pytest = "^7.1.2"
+pytest = "^7.2.0"
 httpx = "^0.23.0"
-pytest-asyncio = "^0.19.0"
+pytest-asyncio = "^0.20.0"
 
 [tool.poetry]
 name = "api"
