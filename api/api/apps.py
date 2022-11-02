@@ -352,7 +352,7 @@ def set_handlers(logger, paths, level_stderr=logging.DEBUG, level_path=logging.D
     # )
     import time
 
-    fmt.converter = time.gmtime  # type: ignore
+    fmt.converter = time.gmtime
     fmt.default_time_format = "%Y-%m-%dT%H:%M:%S"
     fmt.default_msec_format = "%s.%03dZ"
 
