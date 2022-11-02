@@ -1,7 +1,7 @@
 from node:18.7.0-bullseye-slim as base_js
 arg arch
 
-from python:3.10.6-slim-bullseye as base_py
+from python:3.11.0-slim-bullseye as base_py
 env PYTHONUNBUFFERED 1
 env PYTHONDONTWRITEBYTECODE 1
 arg arch
