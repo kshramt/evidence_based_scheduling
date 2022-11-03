@@ -1455,7 +1455,7 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
         {children}
       </>
     );
-  return <div className="pb-[0.0625] pl-[0.5em]">{el}</div>;
+  return <div className="pb-[0.0625em] pl-[0.5em]">{el}</div>;
 };
 
 const copy_descendant_time_nodes_planned_node_ids_action = (
@@ -2051,7 +2051,10 @@ const PlannedNode = (props: {
   }, [props.time_node_id, props.node_id, dispatch]);
   return (
     <td
-      className={utils.join("py-[0.0625]", is_running ? "running" : undefined)}
+      className={utils.join(
+        "py-[0.0625em]",
+        is_running ? "running" : undefined,
+      )}
       onMouseOver={on_mouse_over}
       onMouseOut={on_mouse_out}
     >
