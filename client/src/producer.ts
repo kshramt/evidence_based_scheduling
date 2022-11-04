@@ -4,7 +4,7 @@ import * as immer from "immer";
 export type { Operation as TOperation } from "fast-json-patch";
 export { applyPatch as apply_patch } from "fast-json-patch";
 
-export function produce_with_patche<X>(
+export function produce_with_patche<X extends {}>(
   x: X,
   fn: (
     x: immer.Draft<X>,
@@ -18,7 +18,7 @@ export function produce_with_patche<X>(
   return { value: y, ...compare(x, y) };
 }
 
-export function compare<T>(x: T, y: T) {
+export function compare<T extends {}>(x: T, y: T) {
   const patch = fast_json_patch.compare(x, y);
   const reverse_patch = fast_json_patch.compare(y, x);
   return { patch, reverse_patch };

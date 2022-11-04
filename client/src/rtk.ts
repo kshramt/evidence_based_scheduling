@@ -69,7 +69,7 @@ export function async_thunk_of_of<Payload, Rejected = Error>(
   return async_thunk_of;
 }
 
-export const reducer_with_patch_of = <State>(
+export const reducer_with_patch_of = <State extends {}>(
   initial_state: State,
   ctor: (
     builder: <Payload>(
