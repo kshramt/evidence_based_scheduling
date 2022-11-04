@@ -56,7 +56,3 @@ cd client
 PORT=3000 DANGEROUSLY_DISABLE_HOST_CHECK=true npm run start
 xdg-open http://localhost:3000
 ```
-
-## License
-
-GNU General Public License version 3.
