@@ -2157,9 +2157,8 @@ const QueueNode = (props: { node_id: types.TNodeId }) => {
   const node_filter_query = React.useContext(node_filter_query_slow_context);
   const text = useSelector((state) => state.data.nodes[props.node_id].text);
   const should_hide = _should_hide_of(node_filter_query, text, props.node_id);
-  // className="hidden" is slower.
-  return should_hide ? null : (
-    <tr className="align-baseline">
+  return (
+    <tr className={utils.join("align-baseline", should_hide && "collapse")}>
       <td className="row-id" />
       <td>{entry}</td>
     </tr>
