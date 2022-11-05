@@ -1297,11 +1297,11 @@ const Body = () => {
       <div className={`overflow-y-scroll shrink-0`}>
         <Timeline />
       </div>
+      <div className={`overflow-y-scroll shrink-0`}>{TreeNode_of(root)}</div>
       <div className={`overflow-y-scroll shrink-0`}>
         <PredictedNextNodes />
         <QueueNodes node_ids={node_id_groups.todos} />
       </div>
-      <div className={`overflow-y-scroll shrink-0`}>{TreeNode_of(root)}</div>
       <div className={`overflow-y-scroll shrink-0`}>
         <QueueNodes node_ids={node_id_groups.non_todos} />
       </div>
