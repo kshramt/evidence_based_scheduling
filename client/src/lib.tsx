@@ -3445,7 +3445,6 @@ const reducer_of_reducer_with_patch = (
   ) => {
     state: types.IState;
     patch: producer.TOperation[];
-    reverse_patch: producer.TOperation[];
   },
 ) => {
   return (state: undefined | types.IState, action: types.TAnyPayloadAction) => {
@@ -3501,14 +3500,12 @@ export const main = () => {
 
         let state: types.IState;
         let patch: producer.TOperation[];
-        // let reverse_patch: producer.TPatch[];
         if (res.body.data === null) {
           state = ops.emptyStateOf();
           const produced = producer.produce_with_patche(res.body, (draft) => {
             draft.data = state.data;
           });
           patch = produced.patch;
-          // reverse_patch = produced.reverse_patch;
         } else {
           const parsed_data = types.parse_data({ data: res.body.data });
           if (!parsed_data.success) {
@@ -3529,7 +3526,6 @@ export const main = () => {
             n_unsaved_patches: 0,
           };
           patch = parsed_data.patch;
-          // reverse_patch = parsed_data.reverse_patch;
         }
         saver.push_patch(USER_ID, patch);
 

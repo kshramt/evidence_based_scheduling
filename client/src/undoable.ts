@@ -46,7 +46,6 @@ export const undoable_of = (
   ) => {
     state: types.IState;
     patch: producer.TOperation[];
-    reverse_patch: producer.TOperation[];
   },
   history_type_set: Set<string>,
   initial_state: types.IState,

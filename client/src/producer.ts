@@ -20,6 +20,5 @@ export function produce_with_patche<X extends {}>(
 
 export function compare<T extends {}>(x: T, y: T) {
   const patch = fast_json_patch.compare(x, y);
-  const reverse_patch = fast_json_patch.compare(y, x);
-  return { patch, reverse_patch };
+  return { patch };
 }

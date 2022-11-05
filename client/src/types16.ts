@@ -60,12 +60,11 @@ export const parse_data = (x: {
       success: true;
       data: IData;
       patch: producer.TOperation[];
-      reverse_patch: producer.TOperation[];
     }
   | { success: false } => {
   const record_if_false = record_if_false_of();
   if (is_IData(x.data, record_if_false)) {
-    return { success: true, data: x.data, patch: [], reverse_patch: [] };
+    return { success: true, data: x.data, patch: [] };
   }
   const parsed_prev = types_prev.parse_data(x);
   if (!parsed_prev.success) {
@@ -82,7 +81,6 @@ export const parse_data = (x: {
       success: true,
       data: converted.data,
       patch: parsed_prev.patch.concat(converted.patch),
-      reverse_patch: parsed_prev.reverse_patch.concat(converted.reverse_patch),
     };
   }
 };
@@ -95,7 +93,6 @@ const current_of_prev = (data_prev: {
       success: true;
       data: IData;
       patch: producer.TOperation[];
-      reverse_patch: producer.TOperation[];
     } => {
   const produced = producer.produce_with_patche(data_prev, (draft) => {
     // @ts-expect-error
@@ -116,7 +113,6 @@ const current_of_prev = (data_prev: {
     success: true,
     data,
     patch: produced.patch,
-    reverse_patch: produced.reverse_patch,
   };
 };
 

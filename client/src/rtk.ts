@@ -88,11 +88,11 @@ export const reducer_with_patch_of = <State extends {}>(
     action: types.TAnyPayloadAction,
   ) => {
     if (state === undefined) {
-      return { state: initial_state, patch: [], reverse_patch: [] };
+      return { state: initial_state, patch: [] };
     }
     const reduce = map[action.type];
     if (!reduce) {
-      return { state, patch: [], reverse_patch: [] };
+      return { state, patch: [] };
     }
     const produced = producer.produce_with_patche(state, (draft) =>
       reduce(draft, action),
@@ -100,7 +100,6 @@ export const reducer_with_patch_of = <State extends {}>(
     return {
       state: produced.value,
       patch: produced.patch,
-      reverse_patch: produced.reverse_patch,
     };
   };
   return reducer;

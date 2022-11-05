@@ -10,12 +10,11 @@ export const parse_data = (x: {
       success: true;
       data: IData;
       patch: producer.TOperation[];
-      reverse_patch: producer.TOperation[];
     }
   | { success: false } => {
   const record_if_false = record_if_false_of();
   if (is_IData(x.data, record_if_false)) {
-    return { success: true, data: x.data, patch: [], reverse_patch: [] };
+    return { success: true, data: x.data, patch: [] };
   }
   toast.add("error", `!is_IData: ${JSON.stringify(record_if_false.path)}`);
   console.warn("!is_IData", record_if_false.path);

@@ -103,7 +103,6 @@ export const patch_saver_of = (
   ) => {
     state: types.IState;
     patch: producer.TOperation[];
-    reverse_patch: producer.TOperation[];
   },
   user_id: number,
 ) => {
