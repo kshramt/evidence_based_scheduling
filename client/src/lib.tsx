@@ -1518,12 +1518,11 @@ const collect_descendant_time_nodes_planned_node_ids = (
   state: types.IState,
 ) => {
   const time_node = state.data.timeline.time_nodes[time_node_id];
-  if (time_node === undefined) {
-    return res;
-  }
-  for (const node of ops.keys_of(time_node.nodes)) {
-    if (state.data.nodes[node].status === "todo") {
-      res.push(node);
+  if (time_node !== undefined) {
+    for (const node of ops.keys_of(time_node.nodes)) {
+      if (state.data.nodes[node].status === "todo") {
+        res.push(node);
+      }
     }
   }
   for (const child_time_node_id of child_time_node_ids_of(
