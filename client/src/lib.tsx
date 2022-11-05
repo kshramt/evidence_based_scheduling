@@ -1522,7 +1522,9 @@ const collect_descendant_time_nodes_planned_node_ids = (
     return res;
   }
   for (const node of ops.keys_of(time_node.nodes)) {
-    res.push(node);
+    if (state.data.nodes[node].status === "todo") {
+      res.push(node);
+    }
   }
   for (const child_time_node_id of child_time_node_ids_of(
     time_node_id,
