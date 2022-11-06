@@ -1489,7 +1489,7 @@ const CopyDescendantTimeNodesPlannedNodeIdsButton = (props: {
   const dispatch = useDispatch();
   const handle_click = React.useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
-      const multi = e.ctrlKey;
+      const multi = e.ctrlKey || e.metaKey;
       dispatch(
         copy_descendant_time_nodes_planned_node_ids_action(
           props.time_node_id,
