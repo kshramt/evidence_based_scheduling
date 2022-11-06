@@ -3279,7 +3279,7 @@ const CopyNodeIdButton = (props: { node_id: types.TNodeId }) => {
   const set_node_ids = React.useContext(set_node_ids_context);
   const handle_click = React.useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
-      const multi = e.ctrlKey;
+      const multi = e.ctrlKey || e.metaKey;
       set_node_ids((node_ids: string) => {
         const res = multi ? props.node_id + " " + node_ids : props.node_id;
         copy(res);
