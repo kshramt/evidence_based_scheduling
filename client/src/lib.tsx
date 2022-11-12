@@ -1735,7 +1735,10 @@ const doFocusMoveDownButton = (node_id: types.TNodeId) => {
 };
 
 const doFocusTextArea = (node_id: types.TNodeId) => {
-  setTimeout(() => focus(textAreaRefOf(node_id).current), 50);
+  setTimeout(
+    () => focus(window.document.getElementById(tree_textarea_id_of(node_id))),
+    50,
+  );
 };
 
 const _eval_ = (
@@ -2202,7 +2205,10 @@ const QueueEntry = (props: { node_id: types.TNodeId }) => {
     >
       <div className="flex items-end w-fit">
         {ToTreeLink_of(props.node_id)}
-        <TextArea node_id={props.node_id} id={`q-${props.node_id}`} />
+        <TextArea
+          node_id={props.node_id}
+          id={queue_textarea_id_of(props.node_id)}
+        />
         {EntryInfos_of(props.node_id)}
       </div>
       {status === "todo" &&
@@ -2214,6 +2220,13 @@ const QueueEntry = (props: { node_id: types.TNodeId }) => {
       {Details_of(props.node_id)}
     </EntryWrapper>
   );
+};
+
+const tree_textarea_id_of = (node_id: types.TNodeId) => {
+  return `t-${node_id}`;
+};
+const queue_textarea_id_of = (node_id: types.TNodeId) => {
+  return `q-${node_id}`;
 };
 
 const QueueEntry_of = utils.memoize1((node_id: types.TNodeId) => (
@@ -2236,7 +2249,10 @@ const TreeEntry = (props: { node_id: types.TNodeId }) => {
     >
       <div className="flex items-end w-fit">
         {ToQueueLink_of(props.node_id)}
-        <TextArea node_id={props.node_id} id={`t-${props.node_id}`} />
+        <TextArea
+          node_id={props.node_id}
+          id={tree_textarea_id_of(props.node_id)}
+        />
         {EntryInfos_of(props.node_id)}
       </div>
       {status === "todo" &&
@@ -2914,7 +2930,7 @@ const last_range_of = (ranges: types.IRange[]): null | types.IRange => {
   }
 };
 
-const focus = <T extends HTMLElement>(r: null | T) => {
+const focus = (r: null | HTMLElement) => {
   if (r) {
     r.focus();
   }
@@ -2998,10 +3014,6 @@ const moveUpButtonRefOf = utils.memoize1((_: types.TNodeId) =>
 
 const moveDownButtonRefOf = utils.memoize1((_: types.TNodeId) =>
   React.createRef<HTMLButtonElement>(),
-);
-
-const textAreaRefOf = utils.memoize1((_: types.TNodeId) =>
-  React.createRef<HTMLDivElement>(),
 );
 
 const ToTreeLink = (props: {
@@ -3385,19 +3397,16 @@ const TextAreaImpl = ({
           : undefined,
       )}
       {...div_props}
-      ref={textAreaRefOf(node_id)}
     />
   );
 };
 
-type TAutoHeightTextAreaProps = {
+const AutoHeightTextArea = ({
+  text,
+  ...div_props
+}: {
   text: string;
-} & React.HTMLProps<HTMLDivElement>;
-
-const AutoHeightTextArea = React.forwardRef<
-  HTMLDivElement,
-  TAutoHeightTextAreaProps
->(({ text, ...div_props }, ref) => {
+} & React.HTMLProps<HTMLDivElement>) => {
   const [text_prev, set_text_prev] = useState(text);
   if (text !== text_prev) {
     set_text_prev(text);
@@ -3408,12 +3417,11 @@ const AutoHeightTextArea = React.forwardRef<
       contentEditable
       suppressContentEditableWarning
       onKeyDown={insert_plain_enter}
-      ref={ref}
     >
       {text}
     </div>
   );
-});
+};
 
 const insert_plain_enter = (event: React.KeyboardEvent<HTMLElement>) => {
   if (event.key === "Enter") {
