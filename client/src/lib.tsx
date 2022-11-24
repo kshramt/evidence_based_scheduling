@@ -631,7 +631,7 @@ const root_reducer_def = (
     state.data.nodes[node_id].status = "done";
     state.data.nodes[node_id].end_time = Date.now();
     ops.update_node_caches(node_id, state);
-    move_down_to_boundary(state, node_id, (status) => status !== "todo");
+    ops.move_down_to_boundary(state, node_id, (status) => status !== "todo");
     _topQueue(state, node_id);
   });
   builder(todoToDont, (state, action) => {
@@ -648,7 +648,7 @@ const root_reducer_def = (
     state.data.nodes[node_id].status = "dont";
     state.data.nodes[node_id].end_time = Date.now();
     ops.update_node_caches(node_id, state);
-    move_down_to_boundary(state, node_id, (status) => status === "dont");
+    ops.move_down_to_boundary(state, node_id, (status) => status === "dont");
     _topQueue(state, node_id);
   });
   builder(done_or_dont_to_todo_action, (state, action) => {
@@ -720,43 +720,6 @@ const root_reducer_def = (
   builder(increment_count_action, (state) => {
     ++state.data.timeline.count;
   });
-};
-
-const move_down_to_boundary = (
-  state: immer.Draft<types.IState>,
-  node_id: types.TNodeId,
-  is_different: (status: types.TStatus) => boolean,
-) => {
-  for (const edge_id of ops.keys_of(state.data.nodes[node_id].parents)) {
-    const children = state.data.nodes[state.data.edges[edge_id].p].children;
-    const edge_ids = ops.sorted_keys_of(children);
-    const i_edge = edge_ids.indexOf(edge_id);
-    if (i_edge + 1 === edge_ids.length) {
-      return;
-    }
-    let i_seek = i_edge + 1;
-    for (; i_seek < edge_ids.length; ++i_seek) {
-      if (
-        is_different(
-          state.data.nodes[state.data.edges[edge_ids[i_seek]].c].status,
-        )
-      ) {
-        break;
-      }
-    }
-    if (
-      i_seek + 1 === edge_ids.length &&
-      !is_different(
-        state.data.nodes[state.data.edges[edge_ids[i_seek]].c].status,
-      )
-    ) {
-      ++i_seek;
-    }
-    if (i_seek <= edge_ids.length && i_edge + 1 < i_seek) {
-      ops.move_before(children, i_edge, i_seek, edge_ids);
-      ops.update_node_caches(state.data.edges[edge_id].p, state);
-    }
-  }
 };
 
 const set_predicted_next_nodes = (state: immer.Draft<types.IState>) => {

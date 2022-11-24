@@ -188,10 +188,67 @@ export const add_edges = (edges: types.IEdge[], draft: Draft<types.IState>) => {
       );
       continue;
     }
+    {
+      const status = draft.data.nodes[edge.c].status;
+      switch (status) {
+        case "todo": {
+          break;
+        }
+        case "done": {
+          move_down_to_boundary(draft, edge.c, (status) => status !== "todo");
+          break;
+        }
+        case "dont": {
+          move_down_to_boundary(draft, edge.c, (status) => status === "dont");
+          break;
+        }
+        default: {
+          const _: never = status;
+          throw new Error(`Unsupported status: ${status}`);
+        }
+      }
+    }
     update_edge_caches(edge_id, draft);
     update_node_caches(edge.p, draft);
     update_node_caches(edge.c, draft);
     toast.add("info", `Added a edge ${edge.p} -> ${edge.c}.`);
+  }
+};
+
+export const move_down_to_boundary = (
+  state: Draft<types.IState>,
+  node_id: types.TNodeId,
+  is_different: (status: types.TStatus) => boolean,
+) => {
+  for (const edge_id of keys_of(state.data.nodes[node_id].parents)) {
+    const children = state.data.nodes[state.data.edges[edge_id].p].children;
+    const edge_ids = sorted_keys_of(children);
+    const i_edge = edge_ids.indexOf(edge_id);
+    if (i_edge + 1 === edge_ids.length) {
+      return;
+    }
+    let i_seek = i_edge + 1;
+    for (; i_seek < edge_ids.length; ++i_seek) {
+      if (
+        is_different(
+          state.data.nodes[state.data.edges[edge_ids[i_seek]].c].status,
+        )
+      ) {
+        break;
+      }
+    }
+    if (
+      i_seek + 1 === edge_ids.length &&
+      !is_different(
+        state.data.nodes[state.data.edges[edge_ids[i_seek]].c].status,
+      )
+    ) {
+      ++i_seek;
+    }
+    if (i_seek <= edge_ids.length && i_edge + 1 < i_seek) {
+      move_before(children, i_edge, i_seek, edge_ids);
+      update_node_caches(state.data.edges[edge_id].p, state);
+    }
   }
 };
 
