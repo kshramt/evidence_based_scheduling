@@ -54,8 +54,9 @@ const SEARCH_MARK = <span className="material-icons">search</span>;
 const IDS_MARK = <span className="material-icons">content_paste</span>;
 const MOBILE_MARK = <span className="material-icons">smartphone</span>;
 const DESKTOP_MARK = <span className="material-icons">desktop_windows</span>;
-const EXPAND_MORE_MARK = <span className="material-icons">expand_more</span>;
-const EXPAND_LESS_MARK = <span className="material-icons">expand_less</span>;
+const IS_FULL_MARK = <span className="material-icons">expand_more</span>;
+const IS_NONE_MARK = <span className="material-icons">expand_less</span>;
+const IS_PARTIAL_MARK = <span className="material-icons">chevron_right</span>;
 
 const USER_ID = 1;
 const N_PREDICTED = 10;
@@ -358,7 +359,12 @@ const root_reducer_def = (
   builder(toggle_show_time_node_children_action, (state, action) => {
     const time_node =
       state.data.timeline.time_nodes[action.payload] || ops.new_time_node_of();
-    time_node.show_children = !time_node.show_children;
+    time_node.show_children =
+      time_node.show_children === "none"
+        ? "full"
+        : time_node.show_children === "full"
+        ? "partial"
+        : "none";
     state.data.timeline.time_nodes[action.payload] = time_node;
   });
   builder(flipShowDetail, (state, action) => {
@@ -1335,7 +1341,6 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
     },
     [dispatch, props.time_node_id],
   );
-  const node_ids = ops.sorted_keys_of(time_node?.nodes || {});
 
   const year_begin = useSelector((state) => state.data.timeline.year_begin);
   const child_time_node_ids = child_time_node_ids_of(
@@ -1352,6 +1357,10 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
     props.time_node_id[0] === "w" || props.time_node_id[0] === "d"
       ? [id_el, undefined]
       : [undefined, id_el];
+  const node_ids =
+    time_node?.show_children !== "none"
+      ? ops.sorted_keys_of(time_node?.nodes || {})
+      : [];
   const entry = (
     <div>
       {upper_id_el}
@@ -1380,9 +1389,12 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
                     time_node_id={props.time_node_id}
                   />
                   <button className="btn-icon" onClick={toggle_show_children}>
-                    {time_node?.show_children
-                      ? EXPAND_LESS_MARK
-                      : EXPAND_MORE_MARK}
+                    {time_node === undefined ||
+                    time_node.show_children === "partial"
+                      ? IS_PARTIAL_MARK
+                      : time_node.show_children === "full"
+                      ? IS_FULL_MARK
+                      : IS_NONE_MARK}
                   </button>
                 </div>
               )}
@@ -1402,7 +1414,7 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
     </div>
   );
   const children =
-    (time_node?.show_children || props.time_node_id[0] === "d") &&
+    (time_node?.show_children === "full" || props.time_node_id[0] === "d") &&
     child_time_node_ids.map((child_time_node_id) => (
       <TimeNode time_node_id={child_time_node_id} key={child_time_node_id} />
     ));

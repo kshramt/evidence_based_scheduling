@@ -58,7 +58,7 @@ export const new_time_node_of = (): types.TTimeNode => {
     created_at: t_msec,
     tz: t.getTimezoneOffset(),
     text: "",
-    show_children: false,
+    show_children: "partial",
     nodes: {},
   };
 };

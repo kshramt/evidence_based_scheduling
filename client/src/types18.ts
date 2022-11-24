@@ -1,18 +1,9 @@
-import { ThunkDispatch } from "redux-thunk";
-
 import * as toast from "./toast";
 
 import * as producer from "./producer";
 
-import * as types_prev from "./types18";
-import type {
-  IEdges,
-  TCaches,
-  TNodes,
-  TAnyPayloadAction,
-  TNodeId,
-  TOrderedTNodeIds,
-} from "./types18";
+import * as types_prev from "./types17";
+import type { IEdges, TNodes, TNodeId, TOrderedTNodeIds } from "./types16";
 import {
   is_IEdges,
   is_TNodes,
@@ -20,12 +11,11 @@ import {
   is_TOrderedTNodeIds,
   is_object,
   record_if_false_of,
-} from "./types18";
+} from "./types16";
 
 export type {
   IEdge,
   IEdges,
-  TCaches,
   TNode,
   TNodes,
   IRange,
@@ -39,7 +29,7 @@ export type {
   TOrderedTEdgeIds,
   TOrderedTNodeIds,
   TStatus,
-} from "./types18";
+} from "./types17";
 export {
   edge_type_values,
   is_IEdges,
@@ -49,9 +39,9 @@ export {
   is_TOrderedTNodeIds,
   is_object,
   record_if_false_of,
-} from "./types18";
+} from "./types17";
 
-export const VERSION = 19 as const;
+export const VERSION = 18 as const;
 
 export const parse_data = (x: {
   data: any;
@@ -95,15 +85,12 @@ const current_of_prev = (data_prev: {
   const produced = producer.produce_with_patche(data_prev, (draft) => {
     // @ts-expect-error
     draft.data.version = VERSION;
-    for (const time_node of Object.values(draft.data.timeline.time_nodes)) {
-      // @ts-expect-error
-      time_node.show_children =
-        time_node.show_children === undefined
-          ? "partial"
-          : time_node.show_children
-          ? "full"
-          : "partial";
-    }
+    // @ts-expect-error
+    draft.data.timeline = {
+      year_begin: new Date().getFullYear(),
+      count: 0,
+      time_nodes: {},
+    };
   });
   const record_if_false = record_if_false_of();
   const data = produced.value.data;
@@ -117,6 +104,19 @@ const current_of_prev = (data_prev: {
     data,
     patch: produced.patch,
   };
+};
+
+type TCache = {
+  total_time: number;
+  percentiles: number[]; // 0, 10, 33, 50, 67, 90, 100
+  leaf_estimates_sum: number;
+  show_detail: boolean;
+  child_edges: IEdges;
+  child_nodes: TNodes;
+};
+
+export type TCaches = {
+  [k: TNodeId]: TCache;
 };
 
 export interface IState {
@@ -167,7 +167,7 @@ export const is_TTimeline = (
 export type TTimeNode = {
   readonly created_at: number;
   readonly nodes: { readonly [node_id: TNodeId]: number };
-  readonly show_children: "none" | "partial" | "full";
+  readonly show_children: boolean;
   readonly text: string;
   readonly tz: number;
 };
@@ -179,16 +179,9 @@ export const is_TTimeNode = (
   record_if_false(typeof data.created_at === "number", "created_at") &&
   record_if_false(typeof data.tz === "number", "tz") &&
   record_if_false(typeof data.text === "string", "text") &&
-  record_if_false(
-    data.show_children === "none" ||
-      data.show_children === "partial" ||
-      data.show_children === "full",
-    "show_children",
-  ) &&
+  record_if_false(typeof data.show_children === "boolean", "show_children") &&
   record_if_false(is_TOrderedTNodeIds(data.nodes), "nodes");
 
 export type TTimeNodeId = string & { readonly tag: unique symbol };
 export const is_TTimeNodeId = (x: any): x is TTimeNodeId =>
   typeof x === "string";
-
-export type AppDispatch = ThunkDispatch<IState, {}, TAnyPayloadAction>;
