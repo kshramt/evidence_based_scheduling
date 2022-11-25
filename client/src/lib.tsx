@@ -394,7 +394,7 @@ const root_reducer_def = (
         return;
       }
       seen.add(node_id);
-      node_ids.unshift(node_id);
+      node_ids.push(node_id);
     });
   });
   builder(unassign_nodes_of_covey_quadrant_action, (state, action) => {
@@ -1374,9 +1374,15 @@ const CoveyQuadrant = (props: {
         {ADD_MARK}
       </button>
       {props.quadrant_id}
-      {nodes.map((node_id) => (
-        <CoveyQuadrantNode node_id={node_id} quadrant_id={props.quadrant_id} />
-      ))}
+      {nodes
+        .slice(0)
+        .reverse()
+        .map((node_id) => (
+          <CoveyQuadrantNode
+            node_id={node_id}
+            quadrant_id={props.quadrant_id}
+          />
+        ))}
     </div>
   );
 };
