@@ -169,6 +169,26 @@ const unassign_nodes_of_time_node_action = register_history_type(
     node_ids: types.TNodeId[];
   }>("unassign_nodes_of_time_node_action"),
 );
+const assign_nodes_to_covey_quadrant_action = register_history_type(
+  rtk.action_of_of<{
+    quadrant_id:
+      | "important_urgent"
+      | "important_not_urgent"
+      | "not_important_urgent"
+      | "not_important_not_urgent";
+    node_ids: types.TNodeId[];
+  }>("assign_nodes_to_covey_quadrant_action"),
+);
+const unassign_nodes_of_covey_quadrant_action = register_history_type(
+  rtk.action_of_of<{
+    quadrant_id:
+      | "important_urgent"
+      | "important_not_urgent"
+      | "not_important_urgent"
+      | "not_important_not_urgent";
+    node_ids: types.TNodeId[];
+  }>("unassign_nodes_of_covey_quadrant_action"),
+);
 const toggle_show_time_node_children_action = register_history_type(
   rtk.action_of_of<types.TTimeNodeId>("toggle_show_time_node_children_action"),
 );
@@ -301,6 +321,15 @@ const root_reducer_def = (
       delete state.data.nodes[child_node_id].parents[edge_id];
       delete state.data.edges[edge_id];
     }
+    for (const time_node of Object.values(state.data.timeline.time_nodes)) {
+      delete time_node.nodes[node_id];
+    }
+    for (const quadrant of Object.values(state.data.covey_quadrants)) {
+      const i = quadrant.nodes.indexOf(node_id);
+      if (i !== -1) {
+        quadrant.nodes.splice(i, 1);
+      }
+    }
     delete state.data.queue[node_id];
     delete state.data.nodes[node_id];
     delete state.caches[node_id];
@@ -354,6 +383,28 @@ const root_reducer_def = (
     }
     action.payload.node_ids.forEach((node_id) => {
       delete time_node.nodes[node_id];
+    });
+  });
+  builder(assign_nodes_to_covey_quadrant_action, (state, action) => {
+    const node_ids =
+      state.data.covey_quadrants[action.payload.quadrant_id].nodes;
+    const seen = new Set(node_ids);
+    action.payload.node_ids.forEach((node_id) => {
+      if (seen.has(node_id)) {
+        return;
+      }
+      seen.add(node_id);
+      node_ids.unshift(node_id);
+    });
+  });
+  builder(unassign_nodes_of_covey_quadrant_action, (state, action) => {
+    action.payload.node_ids.forEach((node_id) => {
+      const node_ids =
+        state.data.covey_quadrants[action.payload.quadrant_id].nodes;
+      const i = node_ids.indexOf(node_id);
+      if (i !== -1) {
+        node_ids.splice(i, 1);
+      }
     });
   });
   builder(toggle_show_time_node_children_action, (state, action) => {
@@ -1263,6 +1314,7 @@ const Body = () => {
         paddingTop: MENU_HEIGHT,
       }}
     >
+      <CoveyQuadrants />
       <div className={`overflow-y-scroll shrink-0`}>
         <Timeline />
       </div>
@@ -1276,6 +1328,108 @@ const Body = () => {
       </div>
     </div>
   );
+};
+
+const CoveyQuadrants = () => {
+  return (
+    <>
+      <div className={`w-[16em] shrink-0`}>
+        <CoveyQuadrant quadrant_id="important_urgent" />
+        <CoveyQuadrant quadrant_id="not_important_urgent" />
+      </div>
+      <div className={`w-[16em] shrink-0`}>
+        <CoveyQuadrant quadrant_id="important_not_urgent" />
+        <CoveyQuadrant quadrant_id="not_important_not_urgent" />
+      </div>
+    </>
+  );
+};
+
+const CoveyQuadrant = (props: {
+  quadrant_id:
+    | "important_urgent"
+    | "important_not_urgent"
+    | "not_important_urgent"
+    | "not_important_not_urgent";
+}) => {
+  const nodes = useSelector(
+    (state) => state.data.covey_quadrants[props.quadrant_id].nodes,
+  );
+  const dispatch = useDispatch();
+  const selected_node_ids = React.useContext(node_ids_context);
+  const assign_nodes = React.useCallback(() => {
+    const node_ids = node_ids_list_of_node_ids_string(selected_node_ids);
+    if (node_ids.length < 1) {
+      return;
+    }
+    const payload = {
+      quadrant_id: props.quadrant_id,
+      node_ids,
+    };
+    dispatch(assign_nodes_to_covey_quadrant_action(payload));
+  }, [props.quadrant_id, selected_node_ids, dispatch]);
+  return (
+    <div className={`overflow-y-scroll h-[50%] p-[0.5em]`}>
+      <button className="btn-icon" onClick={assign_nodes}>
+        {ADD_MARK}
+      </button>
+      {props.quadrant_id}
+      {nodes.map((node_id) => (
+        <CoveyQuadrantNode node_id={node_id} quadrant_id={props.quadrant_id} />
+      ))}
+    </div>
+  );
+};
+
+const CoveyQuadrantNode = (props: {
+  node_id: types.TNodeId;
+  quadrant_id:
+    | "important_urgent"
+    | "important_not_urgent"
+    | "not_important_urgent"
+    | "not_important_not_urgent";
+}) => {
+  const text = useSelector((state) => state.data.nodes[props.node_id].text);
+  const status = useSelector((state) => state.data.nodes[props.node_id].status);
+  const dispatch = useDispatch();
+  const { is_hover, on_mouse_over, on_mouse_out } = useHover();
+  const is_running = useIsRunning(props.node_id);
+  const unassign_node = React.useCallback(() => {
+    dispatch(
+      unassign_nodes_of_covey_quadrant_action({
+        quadrant_id: props.quadrant_id,
+        node_ids: [props.node_id],
+      }),
+    );
+  }, [props.quadrant_id, props.node_id, dispatch]);
+  return status === "todo" ? (
+    <div
+      className={utils.join(
+        "p-[0.0625em] inline-block",
+        is_running ? "running" : undefined,
+      )}
+      onMouseOver={on_mouse_over}
+      onMouseOut={on_mouse_out}
+    >
+      <ToTreeLink
+        node_id={props.node_id}
+        title={text}
+        className="w-[15em] block whitespace-nowrap overflow-hidden"
+      >
+        {text.slice(0, 40)}
+      </ToTreeLink>
+      {(is_hover || is_running) && (
+        <div className="flex w-fit gap-x-[0.25em]">
+          <StartButton node_id={props.node_id} />
+          <StartConcurrentButton node_id={props.node_id} />
+          <CopyNodeIdButton node_id={props.node_id} />
+          <button className="btn-icon" onClick={unassign_node}>
+            {consts.DELETE_MARK}
+          </button>
+        </div>
+      )}
+    </div>
+  ) : null;
 };
 
 const Timeline = () => {

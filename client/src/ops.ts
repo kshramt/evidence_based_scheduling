@@ -27,6 +27,12 @@ export const emptyStateOf = (): types.IState => {
     [root]: new_node_value_of([], "root"),
   };
   const data = {
+    covey_quadrants: {
+      important_urgent: { nodes: [] },
+      important_not_urgent: { nodes: [] },
+      not_important_urgent: { nodes: [] },
+      not_important_not_urgent: { nodes: [] },
+    },
     edges: {},
     root,
     id_seq,
