@@ -95,9 +95,10 @@ export const is_object = (x: any) =>
 
 export const record_if_false_of = () => {
   const path: string[] = [];
-  const record_if_false = (x: boolean, k: string) => {
+  const record_if_false = (x: boolean, k: string, v: any = undefined) => {
     if (!x) {
       path.push(k);
+      path.push(v);
     }
     return x;
   };

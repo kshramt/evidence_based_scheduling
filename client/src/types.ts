@@ -184,6 +184,7 @@ export const is_TTimeNode = (
       data.show_children === "partial" ||
       data.show_children === "full",
     "show_children",
+    data.show_children,
   ) &&
   record_if_false(is_TOrderedTNodeIds(data.nodes), "nodes");
 
