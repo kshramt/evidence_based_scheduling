@@ -1596,6 +1596,7 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
 const copy_descendant_time_nodes_planned_node_ids_action = (
   time_node_id: types.TTimeNodeId,
   multi: boolean,
+  descend: boolean,
   set_node_ids: (payload: (node_ids: string) => string) => void,
   copy: (text: string) => void,
 ) => {
@@ -1604,6 +1605,7 @@ const copy_descendant_time_nodes_planned_node_ids_action = (
     const descendant_node_ids = collect_descendant_time_nodes_planned_node_ids(
       [],
       time_node_id,
+      descend,
       state,
     ).join(" ");
     set_node_ids((node_ids: string) => {
@@ -1625,10 +1627,12 @@ const CopyDescendantTimeNodesPlannedNodeIdsButton = (props: {
   const handle_click = React.useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       const multi = e.ctrlKey || e.metaKey;
+      const descend = !e.shiftKey;
       dispatch(
         copy_descendant_time_nodes_planned_node_ids_action(
           props.time_node_id,
           multi,
+          descend,
           set_node_ids,
           copy,
         ),
@@ -1650,6 +1654,7 @@ const CopyDescendantTimeNodesPlannedNodeIdsButton = (props: {
 const collect_descendant_time_nodes_planned_node_ids = (
   res: types.TNodeId[],
   time_node_id: types.TTimeNodeId,
+  descend: boolean,
   state: types.IState,
 ) => {
   const time_node = state.data.timeline.time_nodes[time_node_id];
@@ -1660,6 +1665,9 @@ const collect_descendant_time_nodes_planned_node_ids = (
       }
     }
   }
+  if (!descend) {
+    return res;
+  }
   for (const child_time_node_id of child_time_node_ids_of(
     time_node_id,
     state.data.timeline.year_begin,
@@ -1667,6 +1675,7 @@ const collect_descendant_time_nodes_planned_node_ids = (
     collect_descendant_time_nodes_planned_node_ids(
       res,
       child_time_node_id,
+      descend,
       state,
     );
   }
