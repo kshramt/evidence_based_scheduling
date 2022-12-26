@@ -1526,12 +1526,8 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
       {upper_id_el}
       <table>
         <tbody>
-          <tr
-            className="align-baseline"
-            onMouseOver={on_mouse_over}
-            onMouseOut={on_mouse_out}
-          >
-            <td>{left_id_el}</td>
+          <tr onMouseOver={on_mouse_over} onMouseOut={on_mouse_out}>
+            <td className="align-top">{left_id_el}</td>
             <td>
               <AutoHeightTextArea
                 text={text}
