@@ -231,7 +231,7 @@ export const move_down_to_boundary = (
     const edge_ids = sorted_keys_of(children);
     const i_edge = edge_ids.indexOf(edge_id);
     if (i_edge + 1 === edge_ids.length) {
-      return;
+      continue;
     }
     let i_seek = i_edge + 1;
     for (; i_seek < edge_ids.length; ++i_seek) {
