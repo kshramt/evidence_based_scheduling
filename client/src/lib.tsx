@@ -1381,6 +1381,7 @@ const CoveyQuadrant = (props: {
           <CoveyQuadrantNode
             node_id={node_id}
             quadrant_id={props.quadrant_id}
+            key={node_id}
           />
         ))}
     </div>
