@@ -25,7 +25,7 @@ run npm run build
 from base_api as builder_api
 run apt-get update \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
-run pip install --no-cache-dir poetry==1.2.1
+run pip install --no-cache-dir poetry==1.3.1
 copy api/poetry.toml api/pyproject.toml api/poetry.lock .
 
 from builder_api as prod_api
