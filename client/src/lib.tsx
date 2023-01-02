@@ -1295,7 +1295,7 @@ const NodeIdsInput = () => {
 
 const SBTTB = () => {
   return (
-    <ScrollBackToTopButton className="sticky top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 btn-icon opacity-30 hover:opacity-100 min-w-[3rem] h-[3rem] text-[2rem]">
+    <ScrollBackToTopButton className="sticky top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 btn-icon opacity-40 hover:opacity-100 min-w-[3rem] h-[3rem] text-[2rem]">
       {SCROLL_BACK_TO_TOP_MARK}
     </ScrollBackToTopButton>
   );
