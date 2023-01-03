@@ -2236,8 +2236,14 @@ const PlannedNode = (props: {
       </ToTreeLink>
       {(is_hover || is_running) && (
         <div className="flex w-fit gap-x-[0.25em]">
-          <StartButton node_id={props.node_id} />
-          <StartConcurrentButton node_id={props.node_id} />
+          {is_running ? (
+            stopButtonOf(dispatch, props.node_id)
+          ) : (
+            <>
+              <StartButton node_id={props.node_id} />
+              <StartConcurrentButton node_id={props.node_id} />
+            </>
+          )}
           <CopyNodeIdButton node_id={props.node_id} />
           <button className="btn-icon" onClick={unassign_node}>
             {consts.DELETE_MARK}
