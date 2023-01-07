@@ -2858,14 +2858,14 @@ const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
         )}
       >
         <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
-          {is_root || EstimationInputOf(props.node_id)}
+          {is_root || <EstimationInput node_id={props.node_id} />}
           {is_root || status !== "todo" || StartOrStopButtons_of(props.node_id)}
-          {is_root ||
-            status !== "todo" ||
-            todoToDoneButtonOf(dispatch, props.node_id)}
-          {is_root ||
-            status !== "todo" ||
-            todoToDontButtonOf(dispatch, props.node_id)}
+          {is_root || status !== "todo" || (
+            <TodoToDoneButton node_id={props.node_id} />
+          )}
+          {is_root || status !== "todo" || (
+            <TodoToDontButton node_id={props.node_id} />
+          )}
           {is_root ||
             status === "todo" ||
             DoneOrDontToTodoButton_of(dispatch, props.node_id)}
@@ -2873,12 +2873,12 @@ const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
           {is_root || status !== "todo" || (
             <TopButton node_id={props.node_id} />
           )}
-          {deleteButtonOf(dispatch, props.node_id)}
+          <DeleteButton node_id={props.node_id} />
           <CopyNodeIdButton node_id={props.node_id} />
           {status === "todo" && AddButton_of(props.node_id)}
-          {showDetailButtonOf(dispatch, props.node_id)}
+          <ShowDetailButton node_id={props.node_id} />
           <TotalTime node_id={props.node_id} />
-          {is_root || LastRange_of(props.node_id)}
+          {is_root || <LastRange node_id={props.node_id} />}
         </div>
         <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
           {status === "todo" &&
@@ -2912,27 +2912,27 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
     () => (
       <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
         {is_root || status !== "todo" || StartOrStopButtons_of(props.node_id)}
-        {is_root ||
-          status !== "todo" ||
-          todoToDoneButtonOf(dispatch, props.node_id)}
-        {is_root ||
-          status !== "todo" ||
-          todoToDontButtonOf(dispatch, props.node_id)}
+        {is_root || status !== "todo" || (
+          <TodoToDoneButton node_id={props.node_id} />
+        )}
+        {is_root || status !== "todo" || (
+          <TodoToDontButton node_id={props.node_id} />
+        )}
         {is_root ||
           status === "todo" ||
           DoneOrDontToTodoButton_of(dispatch, props.node_id)}
         {status === "todo" && evalButtonOf(dispatch, props.node_id)}
         {is_root || status !== "todo" || <TopButton node_id={props.node_id} />}
-        {is_root ||
-          status !== "todo" ||
-          moveUpButtonOf(dispatch, props.node_id)}
-        {is_root ||
-          status !== "todo" ||
-          moveDownButtonOf(dispatch, props.node_id)}
-        {deleteButtonOf(dispatch, props.node_id)}
+        {is_root || status !== "todo" || (
+          <MoveUpButton node_id={props.node_id} />
+        )}
+        {is_root || status !== "todo" || (
+          <MoveDownButton node_id={props.node_id} />
+        )}
+        <DeleteButton node_id={props.node_id} />
         <CopyNodeIdButton node_id={props.node_id} />
         {status === "todo" && AddButton_of(props.node_id)}
-        {showDetailButtonOf(dispatch, props.node_id)}
+        <ShowDetailButton node_id={props.node_id} />
       </div>
     ),
     [status, is_root, props.node_id, dispatch],
@@ -2949,9 +2949,9 @@ const EntryInfos = (props: { node_id: types.TNodeId }) => {
   return React.useMemo(
     () => (
       <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
-        {is_root || EstimationInputOf(props.node_id)}
+        {is_root || <EstimationInput node_id={props.node_id} />}
         <TotalTime node_id={props.node_id} />
-        {is_root || LastRange_of(props.node_id)}
+        {is_root || <LastRange node_id={props.node_id} />}
       </div>
     ),
     [is_root, props.node_id],
@@ -3278,93 +3278,114 @@ const TopButton = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const moveUpButtonOf = utils.memoize2(
-  (dispatch: AppDispatch, node_id: types.TNodeId) => (
+const MoveUpButton = (props: { node_id: types.TNodeId }) => {
+  const dispatch = useDispatch();
+  const on_click = useCallback(() => {
+    dispatch(moveUp_(props.node_id));
+    doFocusMoveUpButton(props.node_id);
+  }, [props.node_id, dispatch]);
+
+  return (
     <button
       className="btn-icon"
-      onClick={() => {
-        dispatch(moveUp_(node_id));
-        doFocusMoveUpButton(node_id);
-      }}
-      ref={moveUpButtonRefOf(node_id)}
+      onClick={on_click}
+      ref={moveUpButtonRefOf(props.node_id)}
       onDoubleClick={prevent_propagation}
     >
       {MOVE_UP_MARK}
     </button>
-  ),
-);
+  );
+};
 
-const moveDownButtonOf = utils.memoize2(
-  (dispatch: AppDispatch, node_id: types.TNodeId) => (
+const MoveDownButton = (props: { node_id: types.TNodeId }) => {
+  const dispatch = useDispatch();
+  const on_click = useCallback(() => {
+    dispatch(moveDown_(props.node_id));
+    doFocusMoveDownButton(props.node_id);
+  }, [props.node_id, dispatch]);
+
+  return (
     <button
       className="btn-icon"
-      onClick={() => {
-        dispatch(moveDown_(node_id));
-        doFocusMoveDownButton(node_id);
-      }}
-      ref={moveDownButtonRefOf(node_id)}
+      onClick={on_click}
+      ref={moveDownButtonRefOf(props.node_id)}
       onDoubleClick={prevent_propagation}
     >
       {MOVE_DOWN_MARK}
     </button>
-  ),
-);
+  );
+};
 
-const todoToDoneButtonOf = utils.memoize2(
-  (dispatch: AppDispatch, k: types.TNodeId) => (
+const TodoToDoneButton = (props: { node_id: types.TNodeId }) => {
+  const dispatch = useDispatch();
+  const on_click = useCallback(
+    () => dispatch(todoToDone(props.node_id)),
+    [props.node_id, dispatch],
+  );
+
+  return (
     <button
       className="btn-icon"
-      onClick={() => {
-        dispatch(todoToDone(k));
-      }}
+      onClick={on_click}
       onDoubleClick={prevent_propagation}
     >
       {DONE_MARK}
     </button>
-  ),
-);
+  );
+};
 
-const todoToDontButtonOf = utils.memoize2(
-  (dispatch: AppDispatch, k: types.TNodeId) => (
+const TodoToDontButton = (props: { node_id: types.TNodeId }) => {
+  const dispatch = useDispatch();
+  const on_click = useCallback(
+    () => dispatch(todoToDont(props.node_id)),
+    [props.node_id, dispatch],
+  );
+
+  return (
     <button
       className="btn-icon"
-      onClick={() => {
-        dispatch(todoToDont(k));
-      }}
+      onClick={on_click}
       onDoubleClick={prevent_propagation}
     >
       {DONT_MARK}
     </button>
-  ),
-);
+  );
+};
 
-const showDetailButtonOf = utils.memoize2(
-  (dispatch: AppDispatch, k: types.TNodeId) => (
+const ShowDetailButton = (props: { node_id: types.TNodeId }) => {
+  const dispatch = useDispatch();
+  const on_click = useCallback(
+    () => dispatch(flipShowDetail(props.node_id)),
+    [props.node_id, dispatch],
+  );
+
+  return (
     <button
       className="btn-icon"
-      onClick={() => {
-        dispatch(flipShowDetail(k));
-      }}
+      onClick={on_click}
       onDoubleClick={prevent_propagation}
     >
       {DETAIL_MARK}
     </button>
-  ),
-);
+  );
+};
 
-const deleteButtonOf = utils.memoize2(
-  (dispatch: AppDispatch, k: types.TNodeId) => (
+const DeleteButton = (props: { node_id: types.TNodeId }) => {
+  const dispatch = useDispatch();
+  const on_click = React.useCallback(() => {
+    dispatch(delete_action(props.node_id));
+  }, [props.node_id, dispatch]);
+
+  return (
     <button
       className="btn-icon"
-      onClick={() => {
-        dispatch(delete_action(k));
-      }}
+      onClick={on_click}
       onDoubleClick={prevent_propagation}
     >
       {consts.DELETE_MARK}
     </button>
-  ),
-);
+  );
+};
 
 const ParseTocButton = (props: { node_id: types.TNodeId }) => {
   const dispatch = useDispatch();
@@ -3433,12 +3454,10 @@ const set_estimate_of = utils.memoize2(
     },
 );
 
-const EstimationInputOf = utils.memoize1((k: types.TNodeId) => (
-  <EstimationInput k={k} />
-));
-
-const EstimationInput = (props: { k: types.TNodeId }) => {
-  const estimate = useSelector((state) => state.data.nodes[props.k].estimate);
+const EstimationInput = (props: { node_id: types.TNodeId }) => {
+  const estimate = useSelector(
+    (state) => state.data.nodes[props.node_id].estimate,
+  );
   const dispatch = useDispatch();
   return (
     <input
@@ -3446,7 +3465,7 @@ const EstimationInput = (props: { k: types.TNodeId }) => {
       step="any"
       min={0}
       value={estimate}
-      onChange={set_estimate_of(dispatch, props.k)}
+      onChange={set_estimate_of(dispatch, props.node_id)}
       onFocus={move_cursor_to_the_end}
       className="w-[3em]"
     />
@@ -3551,9 +3570,6 @@ const LastRange = (props: { node_id: types.TNodeId }) => {
     </>
   );
 };
-const LastRange_of = utils.memoize1((node_id: types.TNodeId) => (
-  <LastRange node_id={node_id} />
-));
 
 const _suppress_missing_onChange_handler_warning = () => {};
 
