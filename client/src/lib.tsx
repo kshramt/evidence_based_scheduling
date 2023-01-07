@@ -8,6 +8,7 @@ import {
 } from "react-redux";
 import { createStore, applyMiddleware } from "redux";
 import thunk from "redux-thunk";
+import * as Recoil from "recoil";
 import * as immer from "immer";
 // import memoize from "proxy-memoize";  // Too large overhead
 import "@fontsource/material-icons";
@@ -806,7 +807,7 @@ const set_predicted_next_nodes = (state: immer.Draft<types.IState>) => {
   state.predicted_next_nodes = predicted.slice(0, N_PREDICTED);
 };
 
-const is_mobile = () => {
+const get_is_mobile = () => {
   const ua = window.navigator.userAgent;
   return /(Mobi|Tablet|iPad)/.test(ua);
 };
@@ -815,10 +816,10 @@ const MobileMenu = () => {
   const root = useSelector((state) => state.data.root);
   const dispatch = useDispatch();
   const stop_all = useCallback(() => dispatch(stop_all_action()), [dispatch]);
-  const show_todo_only = React.useContext(show_todo_only_context);
-  const toggle_show_todo_only = React.useContext(toggle_show_todo_only_context);
+  const [show_todo_only, set_show_todo_only] =
+    Recoil.useRecoilState(show_todo_only_state);
   const n_unsaved_patches = useSelector((state) => state.n_unsaved_patches);
-  const toggle_show_mobile = React.useContext(toggle_show_mobile_context);
+  const set_show_mobile = Recoil.useSetRecoilState(show_mobile_state);
   const _undo = useCallback(() => {
     dispatch({ type: undoable.UNDO_TYPE });
   }, [dispatch]);
@@ -854,7 +855,7 @@ const MobileMenu = () => {
       >
         <span className="material-icons">redo</span>
       </button>
-      <div onClick={toggle_show_todo_only}>
+      <div onClick={get_toggle(set_show_todo_only)}>
         TODO{" "}
         <input
           type="radio"
@@ -867,7 +868,7 @@ const MobileMenu = () => {
       <NLeftButton n_unsaved_patches={n_unsaved_patches} />
       <button
         className="btn-icon mr-[0.5em]"
-        onClick={toggle_show_mobile}
+        onClick={get_toggle(set_show_mobile)}
         onDoubleClick={prevent_propagation}
       >
         {DESKTOP_MARK}
@@ -903,8 +904,10 @@ const MobileQueueColumn = () => {
 const MobileQueueNodes = () => {
   const queue = useSelector((state) => state.data.queue);
   const nodes = useSelector((state) => state.data.nodes);
-  const show_todo_only = React.useContext(show_todo_only_context);
-  const node_filter_query = React.useContext(node_filter_query_slow_context);
+  const show_todo_only = Recoil.useRecoilValue(show_todo_only_state);
+  const node_filter_query = Recoil.useRecoilValue_TRANSITION_SUPPORT_UNSTABLE(
+    node_filter_query_slow_state,
+  );
   const node_ids = ops
     .sorted_keys_of(queue)
     .filter((node_id) => {
@@ -928,70 +931,69 @@ const MobileQueueNodes = () => {
   );
 };
 
-const toggle_show_todo_only_context = React.createContext(() => {});
-const show_todo_only_context = React.createContext(false);
-const toggle_show_strong_edge_only_context = React.createContext(() => {});
-const show_strong_edge_only_context = React.createContext(false);
-const toggle_show_mobile_context = React.createContext(() => {});
-const show_mobile_context = React.createContext(false);
+const show_todo_only_state = Recoil.atom({
+  key: "ebs/show_todo_only",
+  default: false,
+  effects: [
+    ({ node, onSet, setSelf }) => {
+      const value = window.localStorage.getItem(node.key);
+      if (value !== null) {
+        setSelf(value === "true");
+      }
+      onSet((new_value, _, is_reset) => {
+        if (is_reset) {
+          window.localStorage.removeItem(node.key);
+        } else {
+          window.localStorage.setItem(node.key, new_value ? "true" : "false");
+        }
+      });
+    },
+  ],
+});
+const show_strong_edge_only_state = Recoil.atom({
+  key: "ebs/show_strong_edge_only",
+  default: false,
+  effects: [
+    ({ node, onSet, setSelf }) => {
+      const value = window.localStorage.getItem(node.key);
+      if (value !== null) {
+        setSelf(value === "true");
+      }
+      onSet((new_value, _, is_reset) => {
+        if (is_reset) {
+          window.localStorage.removeItem(node.key);
+        } else {
+          window.localStorage.setItem(node.key, new_value ? "true" : "false");
+        }
+      });
+    },
+  ],
+});
+const show_mobile_state = Recoil.atom({
+  key: "ebs/show_mobile",
+  default: get_is_mobile(),
+  effects: [
+    ({ node, onSet, setSelf }) => {
+      const value = window.localStorage.getItem(node.key);
+      if (value !== null) {
+        setSelf(value === "true");
+      }
+      onSet((new_value, _, is_reset) => {
+        if (is_reset) {
+          window.localStorage.removeItem(node.key);
+        } else {
+          window.localStorage.setItem(node.key, new_value ? "true" : "false");
+        }
+      });
+    },
+  ],
+});
 
 const App = () => {
-  const [node_filter_query_fast, set_node_filter_query_fast] =
-    React.useState(EMPTY_STRING);
-  const [node_filter_query_slow, set_node_filter_query_slow] =
-    React.useState(EMPTY_STRING);
+  const show_mobile = Recoil.useRecoilValue(show_mobile_state);
 
-  const [show_todo_only, set_show_todo_only] = React.useState(
-    React.useMemo(() => {
-      return window.localStorage.getItem("ebs/show_todo_only") === "true";
-    }, []),
-  );
-  const toggle_show_todo_only = React.useCallback(() => {
-    set_show_todo_only((prev) => {
-      const res = !prev;
-      window.localStorage.setItem("ebs/show_todo_only", res ? "true" : "false");
-      return res;
-    });
-  }, [set_show_todo_only]);
-
-  const [show_strong_edge_only, set_show_strong_edge_only] = React.useState(
-    React.useMemo(() => {
-      return (
-        window.localStorage.getItem("ebs/show_strong_edge_only") === "true"
-      );
-    }, []),
-  );
-  const toggle_show_strong_edge_only = React.useCallback(() => {
-    set_show_strong_edge_only((prev) => {
-      const res = !prev;
-      window.localStorage.setItem(
-        "ebs/show_strong_edge_only",
-        res ? "true" : "false",
-      );
-      return res;
-    });
-  }, [set_show_strong_edge_only]);
-
-  const [show_mobile, set_show_mobile] = React.useState(
-    React.useMemo(() => {
-      let val = window.localStorage.getItem("ebs/show_mobile");
-      if (val === null) {
-        val = is_mobile() ? "true" : "false";
-        window.localStorage.setItem("ebs/show_mobile", val);
-      }
-      return val === "true";
-    }, []),
-  );
-  const toggle_show_mobile = React.useCallback(() => {
-    set_show_mobile((prev) => {
-      const res = !prev;
-      window.localStorage.setItem("ebs/show_mobile", res ? "true" : "false");
-      return res;
-    });
-  }, [set_show_mobile]);
-  const [node_ids, set_node_ids] = React.useState(EMPTY_STRING);
-
-  const el = React.useMemo(
+  saver.useCheckUpdates(USER_ID);
+  return React.useMemo(
     () => (
       <>
         {show_mobile ? <MobileApp /> : <DesktopApp />}
@@ -1000,46 +1002,6 @@ const App = () => {
       </>
     ),
     [show_mobile],
-  );
-  saver.useCheckUpdates(USER_ID);
-  return (
-    <toggle_show_mobile_context.Provider value={toggle_show_mobile}>
-      <toggle_show_strong_edge_only_context.Provider
-        value={toggle_show_strong_edge_only}
-      >
-        <show_strong_edge_only_context.Provider value={show_strong_edge_only}>
-          <set_node_ids_context.Provider value={set_node_ids}>
-            <set_node_filter_query_slow_context.Provider
-              value={set_node_filter_query_slow}
-            >
-              <set_node_filter_query_fast_context.Provider
-                value={set_node_filter_query_fast}
-              >
-                <show_mobile_context.Provider value={show_mobile}>
-                  <toggle_show_todo_only_context.Provider
-                    value={toggle_show_todo_only}
-                  >
-                    <show_todo_only_context.Provider value={show_todo_only}>
-                      <node_ids_context.Provider value={node_ids}>
-                        <node_filter_query_slow_context.Provider
-                          value={node_filter_query_slow}
-                        >
-                          <node_filter_query_fast_context.Provider
-                            value={node_filter_query_fast}
-                          >
-                            {el}
-                          </node_filter_query_fast_context.Provider>
-                        </node_filter_query_slow_context.Provider>
-                      </node_ids_context.Provider>
-                    </show_todo_only_context.Provider>
-                  </toggle_show_todo_only_context.Provider>
-                </show_mobile_context.Provider>
-              </set_node_filter_query_fast_context.Provider>
-            </set_node_filter_query_slow_context.Provider>
-          </set_node_ids_context.Provider>
-        </show_strong_edge_only_context.Provider>
-      </toggle_show_strong_edge_only_context.Provider>
-    </toggle_show_mobile_context.Provider>
   );
 };
 
@@ -1065,20 +1027,18 @@ const Menu = () => {
   const root = useSelector((state) => state.data.root);
   const dispatch = useDispatch();
   const stop_all = useCallback(() => dispatch(stop_all_action()), [dispatch]);
-  const show_todo_only = React.useContext(show_todo_only_context);
-  const toggle_show_todo_only = React.useContext(toggle_show_todo_only_context);
-  const show_strong_edge_only = React.useContext(show_strong_edge_only_context);
+  const [show_todo_only, set_show_todo_only] =
+    Recoil.useRecoilState(show_todo_only_state);
+  const [show_strong_edge_only, set_show_strong_edge_only] =
+    Recoil.useRecoilState(show_strong_edge_only_state);
   const n_unsaved_patches = useSelector((state) => state.n_unsaved_patches);
-  const toggle_show_mobile = React.useContext(toggle_show_mobile_context);
+  const set_show_mobile = Recoil.useSetRecoilState(show_mobile_state);
   const _undo = useCallback(() => {
     dispatch({ type: undoable.UNDO_TYPE });
   }, [dispatch]);
   const _redo = useCallback(() => {
     dispatch({ type: undoable.REDO_TYPE });
   }, [dispatch]);
-  const toggle_show_strong_edge_only = React.useContext(
-    toggle_show_strong_edge_only_context,
-  );
   const _smallestToTop = useCallback(() => {
     dispatch(smallestToTop());
   }, [dispatch]);
@@ -1117,7 +1077,7 @@ const Menu = () => {
       >
         <span className="material-icons">redo</span>
       </button>
-      <div onClick={toggle_show_todo_only}>
+      <div onClick={get_toggle(set_show_todo_only)}>
         TODO{" "}
         <input
           type="radio"
@@ -1125,11 +1085,11 @@ const Menu = () => {
           onChange={_suppress_missing_onChange_handler_warning}
         />
       </div>
-      <div onClick={toggle_show_strong_edge_only}>
+      <div onClick={get_toggle(set_show_strong_edge_only)}>
         Strong{" "}
         <input
           type="radio"
-          checked={Boolean(show_strong_edge_only)}
+          checked={show_strong_edge_only}
           onChange={_suppress_missing_onChange_handler_warning}
         />
       </div>
@@ -1160,7 +1120,7 @@ const Menu = () => {
       <NLeftButton n_unsaved_patches={n_unsaved_patches} />
       <button
         className="btn-icon mr-[0.5em]"
-        onClick={toggle_show_mobile}
+        onClick={get_toggle(set_show_mobile)}
         onDoubleClick={prevent_propagation}
       >
         {MOBILE_MARK}
@@ -1169,14 +1129,18 @@ const Menu = () => {
   );
 };
 
+const get_toggle = utils.memoize1(
+  (set: (fn: typeof _toggle) => void) => () => set(_toggle),
+);
+const _toggle = (x: boolean) => !x;
+
 const MobileNodeFilterQueryInput = () => {
-  const set_node_filter_query_fast = React.useContext(
-    set_node_filter_query_fast_context,
+  const [node_filter_query, set_node_filter_query_fast] = Recoil.useRecoilState(
+    node_filter_query_fast_state,
   );
-  const set_node_filter_query_slow = React.useContext(
-    set_node_filter_query_slow_context,
+  const set_node_filter_query_slow = Recoil.useSetRecoilState(
+    node_filter_query_slow_state,
   );
-  const node_filter_query = React.useContext(node_filter_query_fast_context);
   const handle_change = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const v = e.target.value;
@@ -1213,13 +1177,12 @@ const MobileNodeFilterQueryInput = () => {
 };
 
 const NodeFilterQueryInput = () => {
-  const set_node_filter_query_fast = React.useContext(
-    set_node_filter_query_fast_context,
+  const [node_filter_query, set_node_filter_query_fast] = Recoil.useRecoilState(
+    node_filter_query_fast_state,
   );
-  const set_node_filter_query_slow = React.useContext(
-    set_node_filter_query_slow_context,
+  const set_node_filter_query_slow = Recoil.useSetRecoilState(
+    node_filter_query_slow_state,
   );
-  const node_filter_query = React.useContext(node_filter_query_fast_context);
   const handle_change = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const v = e.target.value;
@@ -1259,8 +1222,7 @@ const NodeFilterQueryInput = () => {
 };
 
 const NodeIdsInput = () => {
-  const set_node_ids = React.useContext(set_node_ids_context);
-  const node_ids = React.useContext(node_ids_context);
+  const [node_ids, set_node_ids] = Recoil.useRecoilState(node_ids_state);
   const handle_change = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const v = e.target.value;
@@ -1373,7 +1335,7 @@ const CoveyQuadrant = (props: {
     (state) => state.data.covey_quadrants[props.quadrant_id].nodes,
   );
   const dispatch = useDispatch();
-  const selected_node_ids = React.useContext(node_ids_context);
+  const selected_node_ids = Recoil.useRecoilValue(node_ids_state);
   const assign_nodes = React.useCallback(() => {
     const node_ids = node_ids_list_of_node_ids_string(selected_node_ids);
     if (node_ids.length < 1) {
@@ -1488,7 +1450,7 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
   const time_node = useSelector(
     (state) => state.data.timeline.time_nodes[props.time_node_id],
   );
-  const selected_node_ids = React.useContext(node_ids_context);
+  const selected_node_ids = Recoil.useRecoilValue(node_ids_state);
   const text = time_node?.text ? time_node.text : EMPTY_STRING;
   const { is_hover, on_mouse_over, on_mouse_out } = useHover();
 
@@ -1636,7 +1598,7 @@ const CopyDescendantTimeNodesPlannedNodeIdsButton = (props: {
   time_node_id: types.TTimeNodeId;
 }) => {
   const { copy, is_copied } = utils.useClipboard();
-  const set_node_ids = React.useContext(set_node_ids_context);
+  const set_node_ids = Recoil.useSetRecoilState(node_ids_state);
   const dispatch = useDispatch();
   const handle_click = React.useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -2281,8 +2243,10 @@ const TreeNodeList = (props: { node_id_list: types.TNodeId[] }) => {
 };
 
 const TreeNode = (props: { node_id: types.TNodeId }) => {
-  const show_todo_only = React.useContext(show_todo_only_context);
-  const show_strong_edge_only = React.useContext(show_strong_edge_only_context);
+  const show_todo_only = Recoil.useRecoilValue(show_todo_only_state);
+  const show_strong_edge_only = Recoil.useRecoilValue(
+    show_strong_edge_only_state,
+  );
   const children = useSelector(
     (state) => state.data.nodes[props.node_id].children,
   );
@@ -2322,7 +2286,9 @@ const TreeNode_of = utils.memoize1((node_id: types.TNodeId) => (
 
 const QueueNode = (props: { node_id: types.TNodeId }) => {
   const entry = QueueEntry_of(props.node_id);
-  const node_filter_query = React.useContext(node_filter_query_slow_context);
+  const node_filter_query = Recoil.useRecoilValue_TRANSITION_SUPPORT_UNSTABLE(
+    node_filter_query_slow_state,
+  );
   const text = useSelector((state) => state.data.nodes[props.node_id].text);
   const should_hide = _should_hide_of(node_filter_query, text, props.node_id);
   return (
@@ -2458,7 +2424,7 @@ const DetailsImpl = (props: { node_id: types.TNodeId }) => {
     [set_new_edge_type],
   );
   const dispatch = useDispatch();
-  const node_ids = React.useContext(node_ids_context);
+  const node_ids = Recoil.useRecoilValue(node_ids_state);
   const handle_add_parents = React.useCallback(() => {
     dispatch(
       add_edges_action(
@@ -3251,7 +3217,7 @@ const AddButton_of = utils.memoize1((node_id: types.TNodeId) => (
 
 const AddButton = (props: { node_id: types.TNodeId }) => {
   const dispatch = useDispatch();
-  const show_mobile = React.useContext(show_mobile_context);
+  const show_mobile = Recoil.useRecoilValue(show_mobile_state);
   const handle_click = React.useCallback(() => {
     dispatch(add_action({ node_id: props.node_id, show_mobile: show_mobile }));
     dispatch(focus_text_area_action_of(props.node_id));
@@ -3452,7 +3418,7 @@ const evalButtonOf = utils.memoize2(
 
 const CopyNodeIdButton = (props: { node_id: types.TNodeId }) => {
   const { copy, is_copied } = utils.useClipboard();
-  const set_node_ids = React.useContext(set_node_ids_context);
+  const set_node_ids = Recoil.useSetRecoilState(node_ids_state);
   const handle_click = React.useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       const multi = e.ctrlKey || e.metaKey;
@@ -3628,21 +3594,18 @@ const reducer_of_reducer_with_patch = (
 const useDispatch = () => _useDispatch<types.AppDispatch>();
 const useSelector: TypedUseSelectorHook<types.IState> = _useSelector;
 
-type TSetStateArg<T> = T | ((prev: T) => T);
-
-const set_node_filter_query_fast_context = React.createContext(
-  (_: TSetStateArg<string>) => {},
-);
-const set_node_filter_query_slow_context = React.createContext(
-  (_: TSetStateArg<string>) => {},
-);
-const node_filter_query_fast_context = React.createContext("");
-const node_filter_query_slow_context = React.createContext("");
-
-const set_node_ids_context = React.createContext(
-  (_: TSetStateArg<string>) => {},
-);
-const node_ids_context = React.createContext("");
+const node_filter_query_fast_state = Recoil.atom({
+  key: "ebs/node_filter_query_fast",
+  default: "",
+});
+const node_filter_query_slow_state = Recoil.atom({
+  key: "ebs/node_filter_query_slow",
+  default: "",
+});
+const node_ids_state = Recoil.atom({
+  key: "ebs/node_ids",
+  default: "",
+});
 
 const error_element = (
   <div className="flex justify-center h-[100vh] w-full items-center">
@@ -3742,9 +3705,11 @@ export const main = () => {
 
         root.render(
           <React.StrictMode>
-            <Provider store={store}>
-              <App />
-            </Provider>
+            <Recoil.RecoilRoot>
+              <Provider store={store}>
+                <App />
+              </Provider>
+            </Recoil.RecoilRoot>
           </React.StrictMode>,
         );
       })

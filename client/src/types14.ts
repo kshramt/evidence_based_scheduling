@@ -51,7 +51,7 @@ export type TEdgeId = string & { readonly tag: unique symbol };
 export const is_TEdgeId = (x: any): x is TEdgeId => typeof x === "string";
 
 const status_values = ["done", "dont", "todo"] as const;
-type TStatus = typeof status_values[number];
+type TStatus = (typeof status_values)[number];
 const is_TStatus = (x: any): x is TStatus => status_values.includes(x);
 
 export interface IData {
@@ -129,7 +129,7 @@ const is_IEdges = (
 ): edges is IEdges => record_if_false.check_object(edges, is_IEdge);
 
 const edge_type_values = ["weak", "strong"] as const;
-type TEdgeType = typeof edge_type_values[number];
+type TEdgeType = (typeof edge_type_values)[number];
 const is_TEdgeType = (x: any): x is TEdgeType => edge_type_values.includes(x);
 
 interface IEdge {

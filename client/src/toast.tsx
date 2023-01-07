@@ -4,7 +4,7 @@ import * as consts from "./consts";
 import * as utils from "./utils";
 
 const severity_values = ["error", "info"] as const;
-type TSeverity = typeof severity_values[number];
+type TSeverity = (typeof severity_values)[number];
 
 interface IMessage {
   text: string;

@@ -128,7 +128,7 @@ export type TActionWithPayload<Payload> = {
 export type TAnyPayloadAction = TActionWithoutPayload | TActionWithPayload<any>;
 
 const status_values = ["done", "dont", "todo"] as const;
-export type TStatus = typeof status_values[number];
+export type TStatus = (typeof status_values)[number];
 export const is_TStatus = (x: any): x is TStatus => status_values.includes(x);
 
 export interface IState {
@@ -206,7 +206,7 @@ export const is_IEdges = (
 ): edges is IEdges => record_if_false.check_object(edges, is_IEdge);
 
 export const edge_type_values = ["weak", "strong"] as const;
-export type TEdgeType = typeof edge_type_values[number];
+export type TEdgeType = (typeof edge_type_values)[number];
 export const is_TEdgeType = (x: any): x is TEdgeType =>
   edge_type_values.includes(x);
 
