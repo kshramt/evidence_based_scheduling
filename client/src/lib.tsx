@@ -2214,11 +2214,15 @@ const QueueNodes = (props: { node_ids: types.TNodeId[] }) => {
   );
 };
 
-const EdgeList = (props: { edge_ids: types.TEdgeId[] }) => {
-  return props.edge_ids.length ? (
+const EdgeList = (props: { node_id: types.TNodeId }) => {
+  const children = useSelector(
+    (state) => state.data.nodes[props.node_id].children,
+  );
+  const edge_ids = ops.sorted_keys_of(children);
+  return edge_ids.length ? (
     <table>
       <tbody>
-        {props.edge_ids.map((edge_id) => {
+        {edge_ids.map((edge_id) => {
           return <Edge edge_id={edge_id} key={edge_id} />;
         })}
       </tbody>
@@ -2251,13 +2255,10 @@ const Edge = (props: { edge_id: types.TEdgeId }) => {
 };
 
 const TreeNode = (props: { node_id: types.TNodeId }) => {
-  const children = useSelector(
-    (state) => state.data.nodes[props.node_id].children,
-  );
   return (
     <>
       {TreeEntry_of(props.node_id)}
-      <EdgeList edge_ids={ops.sorted_keys_of(children)} />
+      <EdgeList node_id={props.node_id} />
     </>
   );
 };
