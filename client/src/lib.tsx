@@ -3596,7 +3596,7 @@ const error_element = (
   </div>
 );
 
-export const main = () => {
+export const main = async () => {
   const container = document.getElementById("root");
   const root = ReactDOM.createRoot(container!);
   root.render(
@@ -3607,112 +3607,124 @@ export const main = () => {
     </React.StrictMode>,
   );
 
-  const start_app = () =>
-    client.client
-      .getDataOfUserUsersUserIdDataGet(USER_ID)
-      .then((res) => {
-        saver.set_parent_id(res.etag);
-        saver.set_origin_id(res.etag);
+  // Check if persistent storage is available.
+  if (!(await window.navigator?.storage?.persist())) {
+    root.render(
+      <React.StrictMode>
+        <div className="flex justify-center h-[100vh] w-full items-center">
+          <span>Persistent storage is not available.</span>
+        </div>
+      </React.StrictMode>,
+    );
+    return;
+  }
 
-        let state: types.IState;
-        let patch: producer.TOperation[];
-        if (res.body.data === null) {
-          state = ops.emptyStateOf();
-          const produced = producer.produce_with_patche(res.body, (draft) => {
-            draft.data = state.data;
-          });
-          patch = produced.patch;
-        } else {
-          const parsed_data = types.parse_data({ data: res.body.data });
-          if (!parsed_data.success) {
-            root.render(error_element);
-            return;
-          }
-          const caches: types.TCaches = {};
-          for (const node_id in parsed_data.data.nodes) {
-            if (types.is_TNodeId(node_id)) {
-              let n_hidden_child_edges = 0;
-              for (const edge_id of ops.keys_of(
-                parsed_data.data.nodes[node_id].children,
-              )) {
-                if (parsed_data.data.edges[edge_id].hide) {
-                  ++n_hidden_child_edges;
-                }
-              }
-              caches[node_id] = ops.new_cache_of(n_hidden_child_edges);
-            }
-          }
+  // Make sure that USER_ID exists.
+  try {
+    await client.client.getUserUsersUserIdGet(USER_ID);
+  } catch (err: any) {
+    if (err.status !== 404) {
+      throw err;
+    }
+    client.client.createUserUsersPost({ body: {} });
+  }
 
-          state = {
-            data: parsed_data.data,
-            caches,
-            predicted_next_nodes: [],
-            n_unsaved_patches: 0,
-          };
-          patch = parsed_data.patch;
-        }
-        saver.push_patch(USER_ID, patch);
+  let res;
+  try {
+    res = await client.client.getDataOfUserUsersUserIdDataGet(USER_ID);
+  } catch (err: unknown) {
+    console.error(err);
+    root.render(error_element);
+    return;
+  }
 
-        const start_time_and_node_id_list: [number, types.TNodeId][] = [];
-        for (const node_id of ops.keys_of(state.data.queue)) {
-          const node = state.data.nodes[node_id];
-          if (node.status !== "todo") {
-            continue;
-          }
-          for (const range of node.ranges) {
-            start_time_and_node_id_list.push([range.start, node_id]);
-          }
-        }
-        start_time_and_node_id_list.sort((a, b) => a[0] - b[0]);
-        for (const [_, node_id] of start_time_and_node_id_list) {
-          next_action_predictor3.fit(node_id);
-          next_action_predictor2.fit(node_id);
-        }
-        set_predicted_next_nodes(state);
+  saver.set_parent_id(res.etag);
+  saver.set_origin_id(res.etag);
 
-        const root_reducer = rtk.reducer_with_patch_of<types.IState>(
-          state,
-          root_reducer_def,
-        );
-        const store = createStore(
-          reducer_of_reducer_with_patch(
-            saver.patch_saver_of(
-              undoable.undoable_of(root_reducer, history_type_set, state),
-              USER_ID,
-            ),
-          ),
-          applyMiddleware(thunk, saver.middleware),
-        );
-
-        saver.push_patch.add_before_process_hook((q) => {
-          store.dispatch(set_n_unsaved_patches_action(q.length));
-        });
-        saver.push_patch.add_after_process_hook(() => {
-          store.dispatch(set_n_unsaved_patches_action(0));
-        });
-
-        root.render(
-          <React.StrictMode>
-            <Recoil.RecoilRoot>
-              <Provider store={store}>
-                <App />
-              </Provider>
-            </Recoil.RecoilRoot>
-          </React.StrictMode>,
-        );
-      })
-      .catch((e: unknown) => {
-        console.error(e);
-        root.render(error_element);
-      });
-
-  client.client
-    .getUserUsersUserIdGet(USER_ID)
-    .then(start_app)
-    .catch((err: client.ApiError) => {
-      if (err.status !== 404) {
-        throw err;
-      }
-      client.client.createUserUsersPost({ body: {} }).then(start_app);
+  let state: types.IState;
+  let patch: producer.TOperation[];
+  if (res.body.data === null) {
+    state = ops.emptyStateOf();
+    const produced = producer.produce_with_patche(res.body, (draft) => {
+      draft.data = state.data;
     });
+    patch = produced.patch;
+  } else {
+    const parsed_data = types.parse_data({ data: res.body.data });
+    if (!parsed_data.success) {
+      root.render(error_element);
+      return;
+    }
+    const caches: types.TCaches = {};
+    for (const node_id in parsed_data.data.nodes) {
+      if (types.is_TNodeId(node_id)) {
+        let n_hidden_child_edges = 0;
+        for (const edge_id of ops.keys_of(
+          parsed_data.data.nodes[node_id].children,
+        )) {
+          if (parsed_data.data.edges[edge_id].hide) {
+            ++n_hidden_child_edges;
+          }
+        }
+        caches[node_id] = ops.new_cache_of(n_hidden_child_edges);
+      }
+    }
+
+    state = {
+      data: parsed_data.data,
+      caches,
+      predicted_next_nodes: [],
+      n_unsaved_patches: 0,
+    };
+    patch = parsed_data.patch;
+  }
+  saver.push_patch(USER_ID, patch);
+
+  const start_time_and_node_id_list: [number, types.TNodeId][] = [];
+  for (const node_id of ops.keys_of(state.data.queue)) {
+    const node = state.data.nodes[node_id];
+    if (node.status !== "todo") {
+      continue;
+    }
+    for (const range of node.ranges) {
+      start_time_and_node_id_list.push([range.start, node_id]);
+    }
+  }
+  start_time_and_node_id_list.sort((a, b) => a[0] - b[0]);
+  for (const [_, node_id] of start_time_and_node_id_list) {
+    next_action_predictor3.fit(node_id);
+    next_action_predictor2.fit(node_id);
+  }
+  set_predicted_next_nodes(state);
+
+  const root_reducer = rtk.reducer_with_patch_of<types.IState>(
+    state,
+    root_reducer_def,
+  );
+  const store = createStore(
+    reducer_of_reducer_with_patch(
+      saver.patch_saver_of(
+        undoable.undoable_of(root_reducer, history_type_set, state),
+        USER_ID,
+      ),
+    ),
+    applyMiddleware(thunk, saver.middleware),
+  );
+
+  saver.push_patch.add_before_process_hook((q) => {
+    store.dispatch(set_n_unsaved_patches_action(q.length));
+  });
+  saver.push_patch.add_after_process_hook(() => {
+    store.dispatch(set_n_unsaved_patches_action(0));
+  });
+
+  root.render(
+    <React.StrictMode>
+      <Recoil.RecoilRoot>
+        <Provider store={store}>
+          <App />
+        </Provider>
+      </Recoil.RecoilRoot>
+    </React.StrictMode>,
+  );
 };
