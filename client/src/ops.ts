@@ -47,7 +47,7 @@ export const emptyStateOf = (): types.IState => {
     version: types.VERSION,
   };
   const caches = {
-    [root]: new_cache_of(),
+    [root]: new_cache_of(0),
   };
   return {
     data,
@@ -89,13 +89,13 @@ const new_node_value_of = (
   };
 };
 
-export const new_cache_of = () => {
+export const new_cache_of = (n_hidden_child_edges: number) => {
   return {
     total_time: -1,
     percentiles: [],
     leaf_estimates_sum: -1,
     show_detail: false,
-    n_hidden_child_edges: 0,
+    n_hidden_child_edges,
   };
 };
 
@@ -133,7 +133,7 @@ export const add_node = (
   draft.data.queue[node_id] = (top_of_queue ? _front_value_of : _back_value_of)(
     draft.data.queue,
   );
-  draft.caches[node_id] = new_cache_of();
+  draft.caches[node_id] = new_cache_of(0);
   return node_id;
 };
 

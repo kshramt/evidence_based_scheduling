@@ -3631,7 +3631,15 @@ export const main = () => {
           const caches: types.TCaches = {};
           for (const node_id in parsed_data.data.nodes) {
             if (types.is_TNodeId(node_id)) {
-              caches[node_id] = ops.new_cache_of();
+              let n_hidden_child_edges = 0;
+              for (const edge_id of ops.keys_of(
+                parsed_data.data.nodes[node_id].children,
+              )) {
+                if (parsed_data.data.edges[edge_id].hide) {
+                  ++n_hidden_child_edges;
+                }
+              }
+              caches[node_id] = ops.new_cache_of(n_hidden_child_edges);
             }
           }
 
