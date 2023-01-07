@@ -47,7 +47,7 @@ export const emptyStateOf = (): types.IState => {
     version: types.VERSION,
   };
   const caches = {
-    [root]: new_cache_of(data, root),
+    [root]: new_cache_of(),
   };
   return {
     data,
@@ -89,33 +89,14 @@ const new_node_value_of = (
   };
 };
 
-export const new_cache_of = (data: types.IData, node_id: types.TNodeId) => {
-  const child_edges = filter_object(
-    data.edges,
-    keys_of(data.nodes[node_id].children),
-  );
-  const child_nodes = filter_object(
-    data.nodes,
-    keys_of(data.nodes[node_id].children).map(
-      (edge_id) => data.edges[edge_id].c,
-    ),
-  );
+export const new_cache_of = () => {
   return {
     total_time: -1,
     percentiles: [],
     leaf_estimates_sum: -1,
     show_detail: false,
-    child_edges,
-    child_nodes,
+    n_hidden_child_edges: 0,
   };
-};
-
-const filter_object = <T extends {}>(kvs: T, ks: (keyof T)[]) => {
-  const res = {} as T;
-  for (const k of ks) {
-    res[k] = kvs[k];
-  }
-  return res;
 };
 
 export const set_estimate = (
@@ -126,7 +107,6 @@ export const set_estimate = (
     return;
   }
   draft.data.nodes[payload.node_id].estimate = payload.estimate;
-  update_node_caches(payload.node_id, draft);
 };
 
 export const add_node = (
@@ -153,9 +133,7 @@ export const add_node = (
   draft.data.queue[node_id] = (top_of_queue ? _front_value_of : _back_value_of)(
     draft.data.queue,
   );
-  draft.caches[node_id] = new_cache_of(draft.data, node_id);
-  draft.caches[edge.p].child_edges[edge_id] = edge;
-  draft.caches[edge.p].child_nodes[node_id] = node;
+  draft.caches[node_id] = new_cache_of();
   return node_id;
 };
 
@@ -214,9 +192,9 @@ export const add_edges = (edges: types.IEdge[], draft: Draft<types.IState>) => {
         }
       }
     }
-    update_edge_caches(edge_id, draft);
-    update_node_caches(edge.p, draft);
-    update_node_caches(edge.c, draft);
+    if (edge.hide) {
+      ++draft.caches[edge.p].n_hidden_child_edges;
+    }
     toast.add("info", `Added a edge ${edge.p} -> ${edge.c}.`);
   }
 };
@@ -253,7 +231,6 @@ export const move_down_to_boundary = (
     }
     if (i_seek <= edge_ids.length && i_edge + 1 < i_seek) {
       move_before(children, i_edge, i_seek, edge_ids);
-      update_node_caches(state.data.edges[edge_id].p, state);
     }
   }
 };
@@ -418,24 +395,6 @@ const leading_spaces_of = (l: string) => {
     res += 1;
   }
   return res;
-};
-
-export const update_node_caches = (
-  node_id: types.TNodeId,
-  state: types.IState,
-) => {
-  const node = state.data.nodes[node_id];
-  for (const edge_id of keys_of(node.parents)) {
-    state.caches[state.data.edges[edge_id].p].child_nodes[node_id] = node;
-  }
-};
-
-export const update_edge_caches = (
-  edge_id: types.TEdgeId,
-  state: types.IState,
-) => {
-  const edge = state.data.edges[edge_id];
-  state.caches[edge.p].child_edges[edge_id] = edge;
 };
 
 export function keys_of<K extends string | number | symbol>(

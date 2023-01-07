@@ -135,7 +135,6 @@ const stop = (
   const last_range = draft.data.nodes[node_id].ranges.at(-1);
   if (last_range && last_range.end === null) {
     last_range.end = t ?? Date.now();
-    ops.update_node_caches(node_id, draft);
     _set_total_time_of_ancestors(draft, node_id, vid);
   }
 };
@@ -316,8 +315,6 @@ const root_reducer_def = (
     for (const edge_id of ops.keys_of(node.parents)) {
       const parent_node_id = state.data.edges[edge_id].p;
       affected_parent_node_ids.add(parent_node_id);
-      delete state.caches[parent_node_id].child_edges[edge_id];
-      delete state.caches[parent_node_id].child_nodes[node_id];
       delete state.data.nodes[parent_node_id].children[edge_id];
       delete state.data.edges[edge_id];
     }
@@ -356,12 +353,11 @@ const root_reducer_def = (
       return;
     }
     const edge = state.data.edges[edge_id];
-    delete state.caches[edge.p].child_edges[edge_id];
-    delete state.caches[edge.p].child_nodes[edge.c];
     delete state.data.nodes[edge.p].children[edge_id];
     delete state.data.nodes[edge.c].parents[edge_id];
-    ops.update_node_caches(edge.p, state);
-    ops.update_node_caches(edge.c, state);
+    if (edge.hide) {
+      --state.caches[edge.p].n_hidden_child_edges;
+    }
     delete state.data.edges[edge_id];
     _set_total_time_of_ancestors(state, edge.p, vid);
   });
@@ -450,7 +446,6 @@ const root_reducer_def = (
       start: Date.now(),
       end: null,
     });
-    ops.update_node_caches(node_id, state);
     _show_path_to_selected_node(state, node_id);
     next_action_predictor3.fit(node_id);
     next_action_predictor2.fit(node_id);
@@ -602,7 +597,6 @@ const root_reducer_def = (
       )) {
         const node_id = state.data.edges[edge_id].p;
         ops.move_up(state.data.nodes[node_id].children, edge_id);
-        ops.update_node_caches(node_id, state);
       }
       ops.move_up(state.data.queue, action.payload);
     } else {
@@ -616,7 +610,6 @@ const root_reducer_def = (
       )) {
         const node_id = state.data.edges[edge_id].p;
         ops.move_down(state.data.nodes[node_id].children, edge_id);
-        ops.update_node_caches(node_id, state);
       }
       ops.move_down(state.data.queue, action.payload);
     } else {
@@ -653,7 +646,6 @@ const root_reducer_def = (
       toast.add("error", `range.end < range.start: ${JSON.stringify(action)}`);
       range[action.payload.k] = prev_milliseconds;
     }
-    ops.update_node_caches(action.payload.node_id, state);
     _set_total_time_of_ancestors(state, action.payload.node_id, vid);
   });
   builder(delete_range_action, (state, action) => {
@@ -661,7 +653,6 @@ const root_reducer_def = (
       action.payload.i_range,
       1,
     );
-    ops.update_node_caches(action.payload.node_id, state);
   });
   builder(set_text_action, (state, action) => {
     const node_id = action.payload.k;
@@ -670,7 +661,6 @@ const root_reducer_def = (
     if (text !== node.text) {
       node.text = text;
     }
-    ops.update_node_caches(node_id, state);
   });
   builder(set_time_node_text_action, (state, action) => {
     const time_node =
@@ -692,7 +682,6 @@ const root_reducer_def = (
     stop(state, node_id, vid);
     state.data.nodes[node_id].status = "done";
     state.data.nodes[node_id].end_time = Date.now();
-    ops.update_node_caches(node_id, state);
     ops.move_down_to_boundary(state, node_id, (status) => status !== "todo");
     _topQueue(state, node_id);
   });
@@ -709,7 +698,6 @@ const root_reducer_def = (
     stop(state, node_id, vid);
     state.data.nodes[node_id].status = "dont";
     state.data.nodes[node_id].end_time = Date.now();
-    ops.update_node_caches(node_id, state);
     ops.move_down_to_boundary(state, node_id, (status) => status === "dont");
     _topQueue(state, node_id);
   });
@@ -720,13 +708,11 @@ const root_reducer_def = (
       return;
     }
     state.data.nodes[node_id].status = "todo";
-    ops.update_node_caches(node_id, state);
     for (const edge_id of ops.keys_of(state.data.nodes[node_id].parents)) {
       ops.move_to_front(
         state.data.nodes[state.data.edges[edge_id].p].children,
         edge_id,
       );
-      ops.update_node_caches(state.data.edges[edge_id].p, state);
     }
   });
   builder(toggle_show_children, (state, action) => {
@@ -736,15 +722,18 @@ const root_reducer_def = (
         .keys_of(state.data.nodes[node_id].children)
         .every((edge_id) => !state.data.edges[edge_id].hide)
     ) {
-      for (const edge_id of ops.keys_of(state.data.nodes[node_id].children)) {
+      const child_edge_ids = ops.keys_of(state.data.nodes[node_id].children);
+      for (const edge_id of child_edge_ids) {
         state.data.edges[edge_id].hide = true;
-        ops.update_edge_caches(edge_id, state);
       }
+      state.caches[node_id].n_hidden_child_edges = child_edge_ids.length;
       return;
     }
     for (const edge_id of ops.keys_of(state.data.nodes[node_id].children)) {
-      delete state.data.edges[edge_id].hide;
-      ops.update_edge_caches(edge_id, state);
+      if (state.data.edges[edge_id].hide) {
+        delete state.data.edges[edge_id].hide;
+        --state.caches[node_id].n_hidden_child_edges;
+      }
     }
   });
   builder(show_path_to_selected_node, (state, action) => {
@@ -762,15 +751,16 @@ const root_reducer_def = (
     }
     const edge = state.data.edges[action.payload.edge_id];
     edge.t = action.payload.edge_type;
-    ops.update_edge_caches(action.payload.edge_id, state);
   });
   builder(toggle_edge_hide_action, (state, action) => {
-    if (state.data.edges[action.payload].hide) {
-      delete state.data.edges[action.payload].hide;
+    const edge = state.data.edges[action.payload];
+    if (edge.hide) {
+      delete edge.hide;
+      --state.caches[edge.p].n_hidden_child_edges;
     } else {
-      state.data.edges[action.payload].hide = true;
+      edge.hide = true;
+      ++state.caches[edge.p].n_hidden_child_edges;
     }
-    ops.update_edge_caches(action.payload, state);
   });
   builder(add_edges_action, (state, action) => {
     const vid = utils.visit_counter_of();
@@ -2047,7 +2037,6 @@ const _topTree = (draft: immer.Draft<types.IState>, node_id: types.TNodeId) => {
       const edge = draft.data.edges[edge_id];
       if (edge.t === "strong" && draft.data.nodes[edge.p].status === "todo") {
         ops.move_to_front(draft.data.nodes[edge.p].children, edge_id);
-        ops.update_node_caches(edge.p, draft);
         node_id = edge.p;
         break;
       }
@@ -2080,9 +2069,10 @@ const _show_path_to_selected_node = (
       return;
     }
     node_id = draft.data.edges[parent_edge_id].p;
-    if (draft.data.edges[parent_edge_id].hide) {
-      delete draft.data.edges[parent_edge_id].hide;
-      ops.update_edge_caches(parent_edge_id, draft);
+    const edge = draft.data.edges[parent_edge_id];
+    if (edge.hide) {
+      delete edge.hide;
+      --draft.caches[edge.p].n_hidden_child_edges;
     }
   }
 };
@@ -2224,59 +2214,50 @@ const QueueNodes = (props: { node_ids: types.TNodeId[] }) => {
   );
 };
 
-const TreeNodeList = (props: { node_id_list: types.TNodeId[] }) => {
-  // spacing="0.5rem" paddingLeft="1rem"
-  return props.node_id_list.length ? (
+const EdgeList = (props: { edge_ids: types.TEdgeId[] }) => {
+  return props.edge_ids.length ? (
     <table>
       <tbody>
-        {props.node_id_list.map((node_id) => {
-          return (
-            <tr className="align-baseline" key={node_id}>
-              <td className="row-id" />
-              <td>{TreeNode_of(node_id)}</td>
-            </tr>
-          );
+        {props.edge_ids.map((edge_id) => {
+          return <Edge edge_id={edge_id} key={edge_id} />;
         })}
       </tbody>
     </table>
   ) : null;
 };
 
-const TreeNode = (props: { node_id: types.TNodeId }) => {
+const Edge = (props: { edge_id: types.TEdgeId }) => {
   const show_todo_only = Recoil.useRecoilValue(show_todo_only_state);
   const show_strong_edge_only = Recoil.useRecoilValue(
     show_strong_edge_only_state,
   );
+  const edge = useSelector((state) => state.data.edges[props.edge_id]);
+  const child_node_status = useSelector(
+    (state) => state.data.nodes[edge.c].status,
+  );
+  if (
+    edge.hide ||
+    (show_strong_edge_only && edge.t === "weak") ||
+    (show_todo_only && child_node_status !== "todo")
+  ) {
+    return null;
+  }
+  return (
+    <tr className="align-baseline">
+      <td className="row-id" />
+      <td>{TreeNode_of(edge.c)}</td>
+    </tr>
+  );
+};
+
+const TreeNode = (props: { node_id: types.TNodeId }) => {
   const children = useSelector(
     (state) => state.data.nodes[props.node_id].children,
   );
-  const edges = useSelector((state) => state.caches[props.node_id].child_edges);
-  const nodes = useSelector((state) => state.caches[props.node_id].child_nodes);
-  const tree_node_list = React.useMemo(() => {
-    let edge_id_list = ops
-      .sorted_keys_of(children)
-      .filter((edge_id) => !edges[edge_id].hide);
-    if (show_todo_only) {
-      edge_id_list = edge_id_list.filter(
-        (edge_id) => nodes[edges[edge_id].c].status === "todo",
-      );
-    }
-    if (show_strong_edge_only) {
-      edge_id_list = edge_id_list.filter(
-        (edge_id) => edges[edge_id].t === "strong",
-      );
-    }
-    return (
-      <TreeNodeList
-        node_id_list={edge_id_list.map((edge_id) => edges[edge_id].c)}
-      />
-    );
-  }, [show_todo_only, show_strong_edge_only, children, nodes, edges]);
-
   return (
     <>
       {TreeEntry_of(props.node_id)}
-      {tree_node_list}
+      <EdgeList edge_ids={ops.sorted_keys_of(children)} />
     </>
   );
 };
@@ -2651,7 +2632,7 @@ const ChildEdgeTable = (props: { node_id: types.TNodeId }) => {
 };
 const ChildEdgeRow = (props: { edge_id: types.TEdgeId }) => {
   const edge = useSelector((state) => state.data.edges[props.edge_id]);
-  const child_nodes = useSelector((state) => state.caches[edge.p].child_nodes);
+  const text = useSelector((state) => state.data.nodes[edge.c].text);
   const hide = useSelector((state) => state.data.edges[props.edge_id].hide);
   const dispatch = useDispatch();
   const delete_edge = React.useCallback(
@@ -2677,7 +2658,6 @@ const ChildEdgeRow = (props: { edge_id: types.TEdgeId }) => {
   const toggle_edge_hide = React.useCallback(() => {
     dispatch(toggle_edge_hide_action(props.edge_id));
   }, [props.edge_id, dispatch]);
-  const text = child_nodes[edge.c].text;
   const to_tree_link = React.useMemo(
     () => (
       <span title={text}>
@@ -2826,10 +2806,10 @@ const EntryWrapper = (props: {
   onMouseOut?: () => void;
 }) => {
   const is_running = useIsRunning(props.node_id);
-  const child_edges = useSelector(
-    (state) => state.caches[props.node_id].child_edges,
+  const n_hidden_child_edges = useSelector(
+    (state) => state.caches[props.node_id].n_hidden_child_edges,
   );
-  const has_hidden_leaf = Object.values(child_edges).some((edge) => edge.hide);
+  const has_hidden_leaf = 0 < n_hidden_child_edges;
 
   const dispatch = useDispatch();
   const handle_toggle_show_children = useCallback(() => {
@@ -3651,7 +3631,7 @@ export const main = () => {
           const caches: types.TCaches = {};
           for (const node_id in parsed_data.data.nodes) {
             if (types.is_TNodeId(node_id)) {
-              caches[node_id] = ops.new_cache_of(parsed_data.data, node_id);
+              caches[node_id] = ops.new_cache_of();
             }
           }
 

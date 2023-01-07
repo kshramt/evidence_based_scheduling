@@ -7,7 +7,6 @@ import * as producer from "./producer";
 import * as types_prev from "./types19";
 import type {
   IEdges,
-  TCaches,
   TNodes,
   TAnyPayloadAction,
   TNodeId,
@@ -27,7 +26,6 @@ import {
 export type {
   IEdge,
   IEdges,
-  TCaches,
   TNode,
   TNodes,
   IRange,
@@ -131,6 +129,18 @@ export interface IState {
   readonly predicted_next_nodes: TNodeId[];
   readonly n_unsaved_patches: number;
 }
+
+export type TCaches = {
+  [node_id: TNodeId]: TCache;
+};
+
+type TCache = {
+  total_time: number;
+  percentiles: number[]; // 0, 10, 33, 50, 67, 90, 100
+  leaf_estimates_sum: number;
+  show_detail: boolean;
+  n_hidden_child_edges: number;
+};
 
 export interface IData {
   readonly covey_quadrants: TCoveyQuadrants;
