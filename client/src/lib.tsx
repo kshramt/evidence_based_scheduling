@@ -828,7 +828,7 @@ const MobileMenu = () => {
       >
         {STOP_MARK}
       </button>
-      {AddButton_of(root)}
+      <AddButton node_id={root} />
       <button
         className="btn-icon"
         arial-label="Undo."
@@ -1050,7 +1050,7 @@ const Menu = () => {
       >
         {STOP_MARK}
       </button>
-      {AddButton_of(root)}
+      <AddButton node_id={root} />
       <button
         className="btn-icon"
         arial-label="Undo."
@@ -1257,20 +1257,6 @@ const Body = () => {
   const root = useSelector((state) => {
     return state.data.root;
   });
-  const queue = useSelector((state) => state.data.queue);
-  const nodes = useSelector((state) => state.data.nodes);
-  const node_id_groups = React.useMemo(() => {
-    const todos = [];
-    const non_todos = [];
-    for (const node_id of ops.sorted_keys_of(queue)) {
-      if (nodes[node_id].status === "todo") {
-        todos.push(node_id);
-      } else {
-        non_todos.push(node_id);
-      }
-    }
-    return { todos, non_todos };
-  }, [queue, nodes]);
   return (
     <div
       className="flex w-full h-screen gap-x-[1em] overflow-y-hidden"
@@ -1289,11 +1275,11 @@ const Body = () => {
       <div className={`overflow-y-scroll shrink-0`}>
         <SBTTB />
         <PredictedNextNodes />
-        <QueueNodes node_ids={node_id_groups.todos} />
+        <TodoQueueNodes />
       </div>
       <div className={`overflow-y-scroll shrink-0`}>
         <SBTTB />
-        <QueueNodes node_ids={node_id_groups.non_todos} />
+        <NonTodoQueueNodes />
       </div>
     </div>
   );
@@ -2189,7 +2175,7 @@ const PlannedNode = (props: {
       {(is_hover || is_running) && (
         <div className="flex w-fit gap-x-[0.25em]">
           {is_running ? (
-            stopButtonOf(dispatch, props.node_id)
+            <StartButton node_id={props.node_id} />
           ) : (
             <>
               <StartButton node_id={props.node_id} />
@@ -2206,10 +2192,36 @@ const PlannedNode = (props: {
   );
 };
 
-const QueueNodes = (props: { node_ids: types.TNodeId[] }) => {
+const TodoQueueNodes = () => {
+  const queue = ops.sorted_keys_of(useSelector((state) => state.data.queue));
+  const nodes = useSelector((state) => state.data.nodes);
+
   return (
     <table>
-      <tbody>{props.node_ids.map(QueueNode_of)}</tbody>
+      <tbody>
+        {queue
+          .filter((node_id) => nodes[node_id].status === "todo")
+          .map((node_id) => (
+            <QueueNode node_id={node_id} key={node_id} />
+          ))}
+      </tbody>
+    </table>
+  );
+};
+
+const NonTodoQueueNodes = () => {
+  const queue = ops.sorted_keys_of(useSelector((state) => state.data.queue));
+  const nodes = useSelector((state) => state.data.nodes);
+
+  return (
+    <table>
+      <tbody>
+        {queue
+          .filter((node_id) => nodes[node_id].status !== "todo")
+          .map((node_id) => (
+            <QueueNode node_id={node_id} key={node_id} />
+          ))}
+      </tbody>
     </table>
   );
 };
@@ -2267,22 +2279,23 @@ const TreeNode_of = utils.memoize1((node_id: types.TNodeId) => (
 ));
 
 const QueueNode = (props: { node_id: types.TNodeId }) => {
-  const entry = QueueEntry_of(props.node_id);
   const node_filter_query = Recoil.useRecoilValue_TRANSITION_SUPPORT_UNSTABLE(
     node_filter_query_slow_state,
   );
   const text = useSelector((state) => state.data.nodes[props.node_id].text);
   const should_hide = _should_hide_of(node_filter_query, text, props.node_id);
-  return (
-    <tr className={utils.join("align-baseline", should_hide && "collapse")}>
-      <td className="row-id" />
-      <td>{entry}</td>
-    </tr>
+  return React.useMemo(
+    () => (
+      <tr className={utils.join("align-baseline", should_hide && "collapse")}>
+        <td className="row-id" />
+        <td>
+          <QueueEntry node_id={props.node_id} />
+        </td>
+      </tr>
+    ),
+    [should_hide, props.node_id],
   );
 };
-const QueueNode_of = utils.memoize1((node_id: types.TNodeId) => (
-  <QueueNode node_id={node_id} key={node_id} />
-));
 
 const _should_hide_of = (
   node_filter_query: string,
@@ -2302,35 +2315,62 @@ const _should_hide_of = (
 };
 
 const QueueEntry = (props: { node_id: types.TNodeId }) => {
+  const { is_hover, on_mouse_over, on_mouse_out } = useHover();
+  return React.useMemo(
+    () => (
+      <EntryWrapper
+        node_id={props.node_id}
+        onMouseOver={on_mouse_over}
+        onMouseOut={on_mouse_out}
+      >
+        <QueueEntryInner node_id={props.node_id} is_hover={is_hover} />
+      </EntryWrapper>
+    ),
+    [is_hover, on_mouse_over, on_mouse_out, props.node_id],
+  );
+};
+
+const QueueEntryInner = (props: {
+  node_id: types.TNodeId;
+  is_hover: boolean;
+}) => {
   const show_detail = useSelector(
     (state) => state.caches[props.node_id].show_detail,
   );
-  const { is_hover, on_mouse_over, on_mouse_out } = useHover();
   const is_running = useIsRunning(props.node_id);
   const cache = useSelector((state) => state.caches[props.node_id]);
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
-  return (
-    <EntryWrapper
-      node_id={props.node_id}
-      onMouseOver={on_mouse_over}
-      onMouseOut={on_mouse_out}
-    >
-      <div className="flex items-end w-fit">
-        {ToTreeLink_of(props.node_id)}
-        <TextArea
-          node_id={props.node_id}
-          id={queue_textarea_id_of(props.node_id)}
-        />
-        {EntryInfos_of(props.node_id)}
-      </div>
-      {status === "todo" &&
-        0 <= cache.leaf_estimates_sum &&
-        digits1(cache.leaf_estimates_sum) + " | "}
-      {status === "todo" && cache.percentiles.map(digits1).join(", ")}
-      {(is_hover || is_running || show_detail) &&
-        EntryButtons_of(props.node_id)}
-      {Details_of(props.node_id)}
-    </EntryWrapper>
+  const is_todo = status === "todo";
+  return React.useMemo(
+    () => (
+      <>
+        <div className="flex items-end w-fit">
+          <ToTreeLink node_id={props.node_id} />
+          <TextArea
+            node_id={props.node_id}
+            id={queue_textarea_id_of(props.node_id)}
+          />
+          <EntryInfos node_id={props.node_id} />
+        </div>
+        {is_todo &&
+          0 <= cache.leaf_estimates_sum &&
+          digits1(cache.leaf_estimates_sum) + " | "}
+        {is_todo && cache.percentiles.map(digits1).join(", ")}
+        {(props.is_hover || is_running || show_detail) && (
+          <EntryButtons node_id={props.node_id} />
+        )}
+        {Details_of(props.node_id)}
+      </>
+    ),
+    [
+      cache.leaf_estimates_sum,
+      cache.percentiles,
+      is_running,
+      is_todo,
+      props.is_hover,
+      props.node_id,
+      show_detail,
+    ],
   );
 };
 
@@ -2340,10 +2380,6 @@ const tree_textarea_id_of = (node_id: types.TNodeId) => {
 const queue_textarea_id_of = (node_id: types.TNodeId) => {
   return `q-${node_id}`;
 };
-
-const QueueEntry_of = utils.memoize1((node_id: types.TNodeId) => (
-  <QueueEntry node_id={node_id} />
-));
 
 const TreeEntry = (props: { node_id: types.TNodeId }) => {
   const show_detail = useSelector(
@@ -2360,19 +2396,20 @@ const TreeEntry = (props: { node_id: types.TNodeId }) => {
       onMouseOut={on_mouse_out}
     >
       <div className="flex items-end w-fit">
-        {ToQueueLink_of(props.node_id)}
+        <ToQueueLink node_id={props.node_id} />
         <TextArea
           node_id={props.node_id}
           id={tree_textarea_id_of(props.node_id)}
         />
-        {EntryInfos_of(props.node_id)}
+        <EntryInfos node_id={props.node_id} />
       </div>
       {status === "todo" &&
         0 <= cache.leaf_estimates_sum &&
         digits1(cache.leaf_estimates_sum) + " | "}
       {status === "todo" && cache.percentiles.map(digits1).join(", ")}
-      {(is_hover || is_running || show_detail) &&
-        EntryButtons_of(props.node_id)}
+      {(is_hover || is_running || show_detail) && (
+        <EntryButtons node_id={props.node_id} />
+      )}
       {Details_of(props.node_id)}
     </EntryWrapper>
   );
@@ -2385,7 +2422,7 @@ const Details = (props: { node_id: types.TNodeId }) => {
   const show_detail = useSelector(
     (state) => state.caches[props.node_id].show_detail,
   );
-  return show_detail ? DetailsImpl_of(props.node_id) : null;
+  return show_detail ? <DetailsImpl node_id={props.node_id} /> : null;
 };
 const Details_of = utils.memoize1((node_id: types.TNodeId) => (
   <Details node_id={node_id} />
@@ -2473,9 +2510,6 @@ const DetailsImpl = (props: { node_id: types.TNodeId }) => {
     </div>
   );
 };
-const DetailsImpl_of = utils.memoize1((node_id: types.TNodeId) => (
-  <DetailsImpl node_id={node_id} />
-));
 
 const node_ids_list_of_node_ids_string = (node_ids: string) => {
   const seen = new Set<types.TNodeId>();
@@ -2849,8 +2883,6 @@ const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
   const root = useSelector((state) => state.data.root);
   const is_root = props.node_id === root;
 
-  const dispatch = useDispatch();
-
   return React.useMemo(
     () => (
       <div
@@ -2860,23 +2892,25 @@ const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
       >
         <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
           {is_root || <EstimationInput node_id={props.node_id} />}
-          {is_root || status !== "todo" || StartOrStopButtons_of(props.node_id)}
+          {is_root || status !== "todo" || (
+            <StartOrStopButtons node_id={props.node_id} />
+          )}
           {is_root || status !== "todo" || (
             <TodoToDoneButton node_id={props.node_id} />
           )}
           {is_root || status !== "todo" || (
             <TodoToDontButton node_id={props.node_id} />
           )}
-          {is_root ||
-            status === "todo" ||
-            DoneOrDontToTodoButton_of(dispatch, props.node_id)}
-          {status === "todo" && evalButtonOf(dispatch, props.node_id)}
+          {is_root || status === "todo" || (
+            <DoneOrDontToTodoButton node_id={props.node_id} />
+          )}
+          {status === "todo" && <EvalButton node_id={props.node_id} />}
           {is_root || status !== "todo" || (
             <TopButton node_id={props.node_id} />
           )}
           <DeleteButton node_id={props.node_id} />
           <CopyNodeIdButton node_id={props.node_id} />
-          {status === "todo" && AddButton_of(props.node_id)}
+          {status === "todo" && <AddButton node_id={props.node_id} />}
           <ShowDetailButton node_id={props.node_id} />
           <TotalTime node_id={props.node_id} />
           {is_root || <LastRange node_id={props.node_id} />}
@@ -2896,7 +2930,6 @@ const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
       status,
       is_root,
       props.node_id,
-      dispatch,
     ],
   );
 };
@@ -2906,42 +2939,30 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
 
   const root = useSelector((state) => state.data.root);
   const is_root = props.node_id === root;
-
-  const dispatch = useDispatch();
+  const is_todo = status === "todo";
 
   return React.useMemo(
     () => (
       <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
-        {is_root || status !== "todo" || StartOrStopButtons_of(props.node_id)}
-        {is_root || status !== "todo" || (
-          <TodoToDoneButton node_id={props.node_id} />
+        {is_root || !is_todo || <StartOrStopButtons node_id={props.node_id} />}
+        {is_root || !is_todo || <TodoToDoneButton node_id={props.node_id} />}
+        {is_root || !is_todo || <TodoToDontButton node_id={props.node_id} />}
+        {is_root || is_todo || (
+          <DoneOrDontToTodoButton node_id={props.node_id} />
         )}
-        {is_root || status !== "todo" || (
-          <TodoToDontButton node_id={props.node_id} />
-        )}
-        {is_root ||
-          status === "todo" ||
-          DoneOrDontToTodoButton_of(dispatch, props.node_id)}
-        {status === "todo" && evalButtonOf(dispatch, props.node_id)}
-        {is_root || status !== "todo" || <TopButton node_id={props.node_id} />}
-        {is_root || status !== "todo" || (
-          <MoveUpButton node_id={props.node_id} />
-        )}
-        {is_root || status !== "todo" || (
-          <MoveDownButton node_id={props.node_id} />
-        )}
+        {is_todo && <EvalButton node_id={props.node_id} />}
+        {is_root || !is_todo || <TopButton node_id={props.node_id} />}
+        {is_root || !is_todo || <MoveUpButton node_id={props.node_id} />}
+        {is_root || !is_todo || <MoveDownButton node_id={props.node_id} />}
         <DeleteButton node_id={props.node_id} />
         <CopyNodeIdButton node_id={props.node_id} />
-        {status === "todo" && AddButton_of(props.node_id)}
+        {is_todo && <AddButton node_id={props.node_id} />}
         <ShowDetailButton node_id={props.node_id} />
       </div>
     ),
-    [status, is_root, props.node_id, dispatch],
+    [is_todo, is_root, props.node_id],
   );
 };
-const EntryButtons_of = utils.memoize1((node_id: types.TNodeId) => (
-  <EntryButtons node_id={node_id} />
-));
 
 const EntryInfos = (props: { node_id: types.TNodeId }) => {
   const root = useSelector((state) => state.data.root);
@@ -2958,9 +2979,6 @@ const EntryInfos = (props: { node_id: types.TNodeId }) => {
     [is_root, props.node_id],
   );
 };
-const EntryInfos_of = utils.memoize1((node_id: types.TNodeId) => (
-  <EntryInfos node_id={node_id} />
-));
 
 const TotalTime = (props: { node_id: types.TNodeId }) => {
   const total_time = useSelector(
@@ -2989,10 +3007,9 @@ const StartOrStopButtons = (props: { node_id: types.TNodeId }) => {
   const ranges = useSelector((state) => state.data.nodes[props.node_id].ranges);
   const last_range = ranges.at(-1);
   const running = last_range && last_range.end === null;
-  const dispatch = useDispatch();
 
   return running ? (
-    stopButtonOf(dispatch, props.node_id)
+    <StopButton node_id={props.node_id} />
   ) : (
     <>
       <StartButton node_id={props.node_id} />
@@ -3000,9 +3017,6 @@ const StartOrStopButtons = (props: { node_id: types.TNodeId }) => {
     </>
   );
 };
-const StartOrStopButtons_of = utils.memoize1((node_id: types.TNodeId) => (
-  <StartOrStopButtons node_id={node_id} />
-));
 
 const _estimate = (
   estimates: number[],
@@ -3134,12 +3148,13 @@ const ToTreeLink = (props: {
   className?: string;
 }) => {
   const dispatch = useDispatch();
+  const on_click = React.useCallback(() => {
+    dispatch(show_path_to_selected_node(props.node_id));
+  }, [props.node_id, dispatch]);
   return (
     <a
       href={`#t-${props.node_id}`}
-      onClick={() => {
-        dispatch(show_path_to_selected_node(props.node_id));
-      }}
+      onClick={on_click}
       title={props.title}
       className={props.className}
     >
@@ -3147,9 +3162,6 @@ const ToTreeLink = (props: {
     </a>
   );
 };
-const ToTreeLink_of = utils.memoize1((node_id: types.TNodeId) => (
-  <ToTreeLink node_id={node_id} />
-));
 
 const ToQueueLink = (props: {
   node_id: types.TNodeId;
@@ -3163,23 +3175,22 @@ const ToQueueLink = (props: {
     </a>
   );
 };
-const ToQueueLink_of = utils.memoize1((node_id: types.TNodeId) => (
-  <ToQueueLink node_id={node_id} />
-));
 
-const DoneOrDontToTodoButton_of = utils.memoize2(
-  (dispatch: AppDispatch, node_id: types.TNodeId) => (
+const DoneOrDontToTodoButton = (props: { node_id: types.TNodeId }) => {
+  const dispatch = useDispatch();
+  const on_click = React.useCallback(() => {
+    dispatch(done_or_dont_to_todo_action(props.node_id));
+  }, [props.node_id, dispatch]);
+  return (
     <button
       className="btn-icon"
-      onClick={() => {
-        dispatch(done_or_dont_to_todo_action(node_id));
-      }}
+      onClick={on_click}
       onDoubleClick={prevent_propagation}
     >
       {UNDO_MARK}
     </button>
-  ),
-);
+  );
+};
 
 const focus_text_area_action_of =
   (node_id: types.TNodeId) =>
@@ -3191,10 +3202,6 @@ const focus_text_area_action_of =
       ].c,
     );
   };
-
-const AddButton_of = utils.memoize1((node_id: types.TNodeId) => (
-  <AddButton node_id={node_id} />
-));
 
 const AddButton = (props: { node_id: types.TNodeId }) => {
   const dispatch = useDispatch();
@@ -3214,21 +3221,24 @@ const AddButton = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const stopButtonOf = utils.memoize2(
-  (dispatch: AppDispatch, node_id: types.TNodeId) => (
+const StopButton = (props: { node_id: types.TNodeId }) => {
+  const dispatch = useDispatch();
+  const on_click = React.useCallback(() => {
+    dispatch(stop_action(props.node_id));
+  }, [props.node_id, dispatch]);
+
+  return (
     <button
       className="btn-icon"
       arial-label="Stop."
-      onClick={() => {
-        dispatch(stop_action(node_id));
-      }}
-      ref={stopButtonRefOf(node_id)}
+      onClick={on_click}
+      ref={stopButtonRefOf(props.node_id)}
       onDoubleClick={prevent_propagation}
     >
       {STOP_MARK}
     </button>
-  ),
-);
+  );
+};
 
 const StartButton = (props: { node_id: types.TNodeId }) => {
   const dispatch = useDispatch();
@@ -3404,19 +3414,22 @@ const ParseTocButton = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const evalButtonOf = utils.memoize2(
-  (dispatch: AppDispatch, k: types.TNodeId) => (
+const EvalButton = (props: { node_id: types.TNodeId }) => {
+  const dispatch = useDispatch();
+  const on_click = React.useCallback(() => {
+    dispatch(eval_(props.node_id));
+  }, [props.node_id, dispatch]);
+
+  return (
     <button
       className="btn-icon"
-      onClick={() => {
-        dispatch(eval_(k));
-      }}
+      onClick={on_click}
       onDoubleClick={prevent_propagation}
     >
       {EVAL_MARK}
     </button>
-  ),
-);
+  );
+};
 
 const CopyNodeIdButton = (props: { node_id: types.TNodeId }) => {
   const { copy, is_copied } = utils.useClipboard();
@@ -3443,30 +3456,30 @@ const CopyNodeIdButton = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const set_estimate_of = utils.memoize2(
-  (dispatch: AppDispatch, node_id: types.TNodeId) =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      dispatch(
-        set_estimate_action({
-          node_id,
-          estimate: Number(e.target.value),
-        }),
-      );
-    },
-);
-
 const EstimationInput = (props: { node_id: types.TNodeId }) => {
   const estimate = useSelector(
     (state) => state.data.nodes[props.node_id].estimate,
   );
   const dispatch = useDispatch();
+  const on_change = React.useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      dispatch(
+        set_estimate_action({
+          node_id: props.node_id,
+          estimate: Number(e.target.value),
+        }),
+      );
+    },
+    [props.node_id, dispatch],
+  );
+
   return (
     <input
       type="number"
       step="any"
       min={0}
       value={estimate}
-      onChange={set_estimate_of(dispatch, props.node_id)}
+      onChange={on_change}
       onFocus={move_cursor_to_the_end}
       className="w-[3em]"
     />
