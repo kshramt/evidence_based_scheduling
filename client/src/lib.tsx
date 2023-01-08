@@ -758,7 +758,6 @@ const MobileMenu = () => {
   const stop_all = useCallback(() => dispatch(stop_all_action()), [dispatch]);
   const [show_todo_only, set_show_todo_only] =
     Recoil.useRecoilState(show_todo_only_state);
-  const n_unsaved_patches = useSelector((state) => state.n_unsaved_patches);
   const set_show_mobile = Recoil.useSetRecoilState(show_mobile_state);
   const _undo = useCallback(() => {
     dispatch({ type: undoable.UNDO_TYPE });
@@ -805,7 +804,7 @@ const MobileMenu = () => {
       </div>
       <MobileNodeFilterQueryInput />
       <span className="grow" />
-      <NLeftButton n_unsaved_patches={n_unsaved_patches} />
+      <NLeftButton />
       <button
         className="btn-icon mr-[0.5em]"
         onClick={get_toggle(set_show_mobile)}
@@ -949,7 +948,6 @@ const Menu = () => {
     Recoil.useRecoilState(show_todo_only_state);
   const [show_strong_edge_only, set_show_strong_edge_only] =
     Recoil.useRecoilState(show_strong_edge_only_state);
-  const n_unsaved_patches = useSelector((state) => state.n_unsaved_patches);
   const set_show_mobile = Recoil.useSetRecoilState(show_mobile_state);
   const _undo = useCallback(() => {
     dispatch({ type: undoable.UNDO_TYPE });
@@ -1035,7 +1033,7 @@ const Menu = () => {
       <NodeFilterQueryInput />
       <NodeIdsInput />
       <span className="grow" />
-      <NLeftButton n_unsaved_patches={n_unsaved_patches} />
+      <NLeftButton />
       <button
         className="btn-icon mr-[0.5em]"
         onClick={get_toggle(set_show_mobile)}
@@ -1720,8 +1718,9 @@ const child_time_node_ids_of_impl = (
   }
 };
 
-const NLeftButton = (props: { n_unsaved_patches: number }) => {
+const NLeftButton = () => {
   const dispatch = useDispatch();
+  const n_unsaved_patches = useSelector((state) => state.n_unsaved_patches);
   const handle_click = React.useCallback(() => {
     dispatch((disptch, getState) => {
       const state = getState();
@@ -1741,7 +1740,7 @@ const NLeftButton = (props: { n_unsaved_patches: number }) => {
       onClick={handle_click}
       onDoubleClick={prevent_propagation}
     >
-      {props.n_unsaved_patches}
+      {n_unsaved_patches}
     </button>
   );
 };
@@ -2122,16 +2121,13 @@ const PlannedNode = (props: {
 
 const TodoQueueNodes = () => {
   const queue = ops.sorted_keys_of(useSelector((state) => state.data.queue));
-  const nodes = useSelector((state) => state.data.nodes);
 
   return (
     <table>
       <tbody>
-        {queue
-          .filter((node_id) => nodes[node_id].status === "todo")
-          .map((node_id) => (
-            <QueueNode node_id={node_id} key={node_id} />
-          ))}
+        {queue.map((node_id) => (
+          <TodoQueueNode node_id={node_id} key={node_id} />
+        ))}
       </tbody>
     </table>
   );
@@ -2139,16 +2135,13 @@ const TodoQueueNodes = () => {
 
 const NonTodoQueueNodes = () => {
   const queue = ops.sorted_keys_of(useSelector((state) => state.data.queue));
-  const nodes = useSelector((state) => state.data.nodes);
 
   return (
     <table>
       <tbody>
-        {queue
-          .filter((node_id) => nodes[node_id].status !== "todo")
-          .map((node_id) => (
-            <QueueNode node_id={node_id} key={node_id} />
-          ))}
+        {queue.map((node_id) => (
+          <NonTodoQueueNode node_id={node_id} key={node_id} />
+        ))}
       </tbody>
     </table>
   );
@@ -2206,22 +2199,47 @@ const TreeNode_of = utils.memoize1((node_id: types.TNodeId) => (
   <TreeNode node_id={node_id} />
 ));
 
-const QueueNode = (props: { node_id: types.TNodeId }) => {
+const TodoQueueNode = (props: { node_id: types.TNodeId }) => {
+  const status = useSelector((state) => state.data.nodes[props.node_id].status);
   const node_filter_query = Recoil.useRecoilValue_TRANSITION_SUPPORT_UNSTABLE(
     node_filter_query_slow_state,
   );
   const text = useSelector((state) => state.data.nodes[props.node_id].text);
+  const is_todo = status === "todo";
   const should_hide = _should_hide_of(node_filter_query, text, props.node_id);
   return React.useMemo(
-    () => (
-      <tr className={utils.join("align-baseline", should_hide && "collapse")}>
-        <td className="row-id" />
-        <td>
-          <QueueEntry node_id={props.node_id} />
-        </td>
-      </tr>
-    ),
-    [should_hide, props.node_id],
+    () =>
+      is_todo ? (
+        <tr className={utils.join("align-baseline", should_hide && "collapse")}>
+          <td className="row-id" />
+          <td>
+            <QueueEntry node_id={props.node_id} />
+          </td>
+        </tr>
+      ) : null,
+    [is_todo, should_hide, props.node_id],
+  );
+};
+
+const NonTodoQueueNode = (props: { node_id: types.TNodeId }) => {
+  const status = useSelector((state) => state.data.nodes[props.node_id].status);
+  const node_filter_query = Recoil.useRecoilValue_TRANSITION_SUPPORT_UNSTABLE(
+    node_filter_query_slow_state,
+  );
+  const text = useSelector((state) => state.data.nodes[props.node_id].text);
+  const is_todo = status === "todo";
+  const should_hide = _should_hide_of(node_filter_query, text, props.node_id);
+  return React.useMemo(
+    () =>
+      is_todo ? null : (
+        <tr className={utils.join("align-baseline", should_hide && "collapse")}>
+          <td className="row-id" />
+          <td>
+            <QueueEntry node_id={props.node_id} />
+          </td>
+        </tr>
+      ),
+    [is_todo, should_hide, props.node_id],
   );
 };
 
@@ -2244,61 +2262,43 @@ const _should_hide_of = (
 
 const QueueEntry = (props: { node_id: types.TNodeId }) => {
   const { is_hover, on_mouse_over, on_mouse_out } = useHover();
-  return React.useMemo(
-    () => (
-      <EntryWrapper
-        node_id={props.node_id}
-        onMouseOver={on_mouse_over}
-        onMouseOut={on_mouse_out}
-      >
-        <QueueEntryInner node_id={props.node_id} is_hover={is_hover} />
-      </EntryWrapper>
-    ),
-    [is_hover, on_mouse_over, on_mouse_out, props.node_id],
-  );
-};
-
-const QueueEntryInner = (props: {
-  node_id: types.TNodeId;
-  is_hover: boolean;
-}) => {
   const show_detail = useSelector(
     (state) => state.caches[props.node_id].show_detail,
   );
-  const is_running = useIsRunning(props.node_id);
   const cache = useSelector((state) => state.caches[props.node_id]);
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
   const is_todo = status === "todo";
-  return React.useMemo(
+  const is_running = useIsRunning(props.node_id);
+  const el = React.useMemo(
     () => (
-      <>
-        <div className="flex items-end w-fit">
-          <ToTreeLink node_id={props.node_id} />
-          <TextArea
-            node_id={props.node_id}
-            id={queue_textarea_id_of(props.node_id)}
-          />
-          <EntryInfos node_id={props.node_id} />
-        </div>
-        {is_todo &&
-          0 <= cache.leaf_estimates_sum &&
-          digits1(cache.leaf_estimates_sum) + " | "}
-        {is_todo && cache.percentiles.map(digits1).join(", ")}
-        {(props.is_hover || is_running || show_detail) && (
-          <EntryButtons node_id={props.node_id} />
-        )}
-        {Details_of(props.node_id)}
-      </>
+      <div className="flex items-end w-fit">
+        <ToTreeLink node_id={props.node_id} />
+        <TextArea
+          node_id={props.node_id}
+          id={queue_textarea_id_of(props.node_id)}
+        />
+        <EntryInfos node_id={props.node_id} />
+      </div>
     ),
-    [
-      cache.leaf_estimates_sum,
-      cache.percentiles,
-      is_running,
-      is_todo,
-      props.is_hover,
-      props.node_id,
-      show_detail,
-    ],
+    [props.node_id],
+  );
+
+  return (
+    <EntryWrapper
+      node_id={props.node_id}
+      onMouseOver={on_mouse_over}
+      onMouseOut={on_mouse_out}
+    >
+      {el}
+      {is_todo &&
+        0 <= cache.leaf_estimates_sum &&
+        digits1(cache.leaf_estimates_sum) + " | "}
+      {is_todo && cache.percentiles.map(digits1).join(", ")}
+      {(is_hover || is_running || show_detail) && (
+        <EntryButtons node_id={props.node_id} />
+      )}
+      {Details_of(props.node_id)}
+    </EntryWrapper>
   );
 };
 
