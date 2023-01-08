@@ -1819,21 +1819,21 @@ const NLeftButton = (props: { n_unsaved_patches: number }) => {
 };
 
 const doFocusStopButton = (node_id: types.TNodeId) => {
-  setTimeout(() => focus(stopButtonRefOf(node_id).current), 50);
+  setTimeout(() => focus(stopButtonRefOf(node_id).current), 100);
 };
 
 const doFocusMoveUpButton = (node_id: types.TNodeId) => {
-  setTimeout(() => focus(moveUpButtonRefOf(node_id).current), 50);
+  setTimeout(() => focus(moveUpButtonRefOf(node_id).current), 100);
 };
 
 const doFocusMoveDownButton = (node_id: types.TNodeId) => {
-  setTimeout(() => focus(moveDownButtonRefOf(node_id).current), 50);
+  setTimeout(() => focus(moveDownButtonRefOf(node_id).current), 100);
 };
 
 const doFocusTextArea = (node_id: types.TNodeId) => {
   setTimeout(
     () => focus(window.document.getElementById(tree_textarea_id_of(node_id))),
-    50,
+    100,
   );
 };
 
