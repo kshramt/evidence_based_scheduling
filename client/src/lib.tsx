@@ -3568,7 +3568,7 @@ export const main = async () => {
     if (err.status !== 404) {
       throw err;
     }
-    client.client.createUserUsersPost({ body: {} });
+    await client.client.createUserUsersPost({ body: {} });
   }
 
   let res;
