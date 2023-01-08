@@ -2124,11 +2124,7 @@ const TodoQueueNodes = () => {
 
   return (
     <table>
-      <tbody>
-        {queue.map((node_id) => (
-          <TodoQueueNode node_id={node_id} key={node_id} />
-        ))}
-      </tbody>
+      <tbody>{queue.map(TodoQueueNode_of)}</tbody>
     </table>
   );
 };
@@ -2138,11 +2134,7 @@ const NonTodoQueueNodes = () => {
 
   return (
     <table>
-      <tbody>
-        {queue.map((node_id) => (
-          <NonTodoQueueNode node_id={node_id} key={node_id} />
-        ))}
-      </tbody>
+      <tbody>{queue.map(NonTodoQueueNode_of)}</tbody>
     </table>
   );
 };
@@ -2205,21 +2197,22 @@ const TodoQueueNode = (props: { node_id: types.TNodeId }) => {
     node_filter_query_slow_state,
   );
   const text = useSelector((state) => state.data.nodes[props.node_id].text);
-  const is_todo = status === "todo";
+  if (status !== "todo") {
+    return null;
+  }
   const should_hide = _should_hide_of(node_filter_query, text, props.node_id);
-  return React.useMemo(
-    () =>
-      is_todo ? (
-        <tr className={utils.join("align-baseline", should_hide && "collapse")}>
-          <td className="row-id" />
-          <td>
-            <QueueEntry node_id={props.node_id} />
-          </td>
-        </tr>
-      ) : null,
-    [is_todo, should_hide, props.node_id],
+  return (
+    <tr className={utils.join("align-baseline", should_hide && "collapse")}>
+      <td className="row-id" />
+      <td>
+        <QueueEntry node_id={props.node_id} />
+      </td>
+    </tr>
   );
 };
+const TodoQueueNode_of = utils.memoize1((node_id: types.TNodeId) => (
+  <TodoQueueNode node_id={node_id} key={node_id} />
+));
 
 const NonTodoQueueNode = (props: { node_id: types.TNodeId }) => {
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
@@ -2227,21 +2220,22 @@ const NonTodoQueueNode = (props: { node_id: types.TNodeId }) => {
     node_filter_query_slow_state,
   );
   const text = useSelector((state) => state.data.nodes[props.node_id].text);
-  const is_todo = status === "todo";
+  if (status === "todo") {
+    return null;
+  }
   const should_hide = _should_hide_of(node_filter_query, text, props.node_id);
-  return React.useMemo(
-    () =>
-      is_todo ? null : (
-        <tr className={utils.join("align-baseline", should_hide && "collapse")}>
-          <td className="row-id" />
-          <td>
-            <QueueEntry node_id={props.node_id} />
-          </td>
-        </tr>
-      ),
-    [is_todo, should_hide, props.node_id],
+  return (
+    <tr className={utils.join("align-baseline", should_hide && "collapse")}>
+      <td className="row-id" />
+      <td>
+        <QueueEntry node_id={props.node_id} />
+      </td>
+    </tr>
   );
 };
+const NonTodoQueueNode_of = utils.memoize1((node_id: types.TNodeId) => (
+  <NonTodoQueueNode node_id={node_id} key={node_id} />
+));
 
 const _should_hide_of = (
   node_filter_query: string,
