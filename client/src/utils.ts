@@ -2,6 +2,57 @@ import React from "react";
 
 import * as types from "./types";
 
+// Vose (1991)'s linear version of Walker (1974)'s alias method.
+// A Pactical Version of Vose's Algorithm: https://www.keithschwarz.com/darts-dice-coins/
+export class Multinomial {
+  i_large_of: number[];
+  thresholds: number[];
+  constructor(ws: number[]) {
+    const n = ws.length;
+    const total = sum(ws);
+    const thresholds = Array(n);
+    const i_large_of = Array(n);
+    const i_small_list = Array(n);
+    const i_large_list = Array(n);
+    let small_last = -1;
+    let large_last = -1;
+    {
+      const coef = n / total;
+      for (let i = 0; i < ws.length; ++i) {
+        const w = coef * ws[i];
+        thresholds[i] = w;
+        if (w <= 1) {
+          i_small_list[++small_last] = i;
+        } else {
+          i_large_list[++large_last] = i;
+        }
+      }
+    }
+    while (-1 < small_last && -1 < large_last) {
+      const i_small = i_small_list[small_last];
+      --small_last;
+      const i_large = i_large_list[large_last];
+      i_large_of[i_small] = i_large;
+      thresholds[i_large] = thresholds[i_large] + thresholds[i_small] - 1;
+      if (thresholds[i_large] <= 1) {
+        --large_last;
+        i_small_list[++small_last] = i_large;
+      }
+    }
+    // Loop for large_last is not necessary since thresholds for them are greater than one and are always accepted.
+    for (let i = 0; i < small_last + 1; ++i) {
+      thresholds[i_small_list[i]] = 1; // Address numerical errors.
+    }
+    this.i_large_of = i_large_of;
+    this.thresholds = thresholds;
+  }
+
+  sample = () => {
+    const i = Math.floor(this.thresholds.length * Math.random());
+    return Math.random() < this.thresholds[i] ? i : this.i_large_of[i];
+  };
+}
+
 export const join = (...xs: (undefined | null | false | string)[]) =>
   xs.filter(Boolean).join(" ");
 
@@ -53,4 +104,20 @@ export const memoize1 = <A, R>(fn: (a: A) => R) => {
     }
     return cache.get(a) as R;
   };
+};
+
+export const sum = (xs: number[]) => {
+  return xs.reduce((total, current) => {
+    return total + current;
+  }, 0);
+};
+
+export const cumsum = (xs: number[]) => {
+  const ret = [0];
+  xs.reduce((total, current) => {
+    const t = total + current;
+    ret.push(t);
+    return t;
+  }, 0);
+  return ret;
 };

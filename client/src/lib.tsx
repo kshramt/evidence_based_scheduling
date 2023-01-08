@@ -15,6 +15,7 @@ import "@fontsource/material-icons";
 
 import * as checks from "./checks";
 import * as consts from "./consts";
+import * as Db from "./db";
 import * as nap from "./next_action_predictor";
 import * as toast from "./toast";
 import "./lib.css";
@@ -74,57 +75,6 @@ const register_history_type = <T extends {}>(x: T) => {
 
 const next_action_predictor3 = new nap.TriGramPredictor<types.TNodeId>(0.9);
 const next_action_predictor2 = new nap.BiGramPredictor<types.TNodeId>(0.9);
-
-// Vose (1991)'s linear version of Walker (1974)'s alias method.
-// A Pactical Version of Vose's Algorithm: https://www.keithschwarz.com/darts-dice-coins/
-export class Multinomial {
-  i_large_of: number[];
-  thresholds: number[];
-  constructor(ws: number[]) {
-    const n = ws.length;
-    const total = sum(ws);
-    const thresholds = Array(n);
-    const i_large_of = Array(n);
-    const i_small_list = Array(n);
-    const i_large_list = Array(n);
-    let small_last = -1;
-    let large_last = -1;
-    {
-      const coef = n / total;
-      for (let i = 0; i < ws.length; ++i) {
-        const w = coef * ws[i];
-        thresholds[i] = w;
-        if (w <= 1) {
-          i_small_list[++small_last] = i;
-        } else {
-          i_large_list[++large_last] = i;
-        }
-      }
-    }
-    while (-1 < small_last && -1 < large_last) {
-      const i_small = i_small_list[small_last];
-      --small_last;
-      const i_large = i_large_list[large_last];
-      i_large_of[i_small] = i_large;
-      thresholds[i_large] = thresholds[i_large] + thresholds[i_small] - 1;
-      if (thresholds[i_large] <= 1) {
-        --large_last;
-        i_small_list[++small_last] = i_large;
-      }
-    }
-    // Loop for large_last is not necessary since thresholds for them are greater than one and are always accepted.
-    for (let i = 0; i < small_last + 1; ++i) {
-      thresholds[i_small_list[i]] = 1; // Address numerical errors.
-    }
-    this.i_large_of = i_large_of;
-    this.thresholds = thresholds;
-  }
-
-  sample = () => {
-    const i = Math.floor(this.thresholds.length * Math.random());
-    return Math.random() < this.thresholds[i] ? i : this.i_large_of[i];
-  };
-}
 
 const stop = (
   draft: immer.Draft<types.IState>,
@@ -921,62 +871,40 @@ const MobileQueueNodes = () => {
   );
 };
 
-const show_todo_only_state = Recoil.atom({
-  key: "ebs/show_todo_only",
-  default: false,
-  effects: [
-    ({ node, onSet, setSelf }) => {
-      const value = window.localStorage.getItem(node.key);
-      if (value !== null) {
+const boolean_local_storage_effect: Recoil.AtomEffect<boolean> = ({
+  node,
+  onSet,
+  setSelf,
+}) => {
+  Db.db.then((db) => {
+    db.get("local_storage", node.key).then((value) => {
+      if (value !== undefined) {
         setSelf(value === "true");
       }
       onSet((new_value, _, is_reset) => {
         if (is_reset) {
-          window.localStorage.removeItem(node.key);
+          db.delete("local_storage", node.key);
         } else {
-          window.localStorage.setItem(node.key, new_value ? "true" : "false");
+          db.put("local_storage", new_value ? "true" : "false", node.key);
         }
       });
-    },
-  ],
+    });
+  });
+};
+const show_todo_only_state = Recoil.atom({
+  key: "ebs/show_todo_only",
+  default: false,
+  effects: [boolean_local_storage_effect],
 });
 const show_strong_edge_only_state = Recoil.atom({
   key: "ebs/show_strong_edge_only",
   default: false,
-  effects: [
-    ({ node, onSet, setSelf }) => {
-      const value = window.localStorage.getItem(node.key);
-      if (value !== null) {
-        setSelf(value === "true");
-      }
-      onSet((new_value, _, is_reset) => {
-        if (is_reset) {
-          window.localStorage.removeItem(node.key);
-        } else {
-          window.localStorage.setItem(node.key, new_value ? "true" : "false");
-        }
-      });
-    },
-  ],
+  effects: [boolean_local_storage_effect],
 });
 const show_mobile_state = Recoil.atom({
   key: "ebs/show_mobile",
   default: get_is_mobile(),
-  effects: [
-    ({ node, onSet, setSelf }) => {
-      const value = window.localStorage.getItem(node.key);
-      if (value !== null) {
-        setSelf(value === "true");
-      }
-      onSet((new_value, _, is_reset) => {
-        if (is_reset) {
-          window.localStorage.removeItem(node.key);
-        } else {
-          window.localStorage.setItem(node.key, new_value ? "true" : "false");
-        }
-      });
-    },
-  ],
+  effects: [boolean_local_storage_effect],
 });
 
 const App = () => {
@@ -1885,7 +1813,7 @@ const _eval_ = (
     });
   const n_mc = 2000;
   const ts = _estimate(leaf_estimates, ratios, weights, n_mc);
-  draft.caches[k].leaf_estimates_sum = sum(leaf_estimates);
+  draft.caches[k].leaf_estimates_sum = utils.sum(leaf_estimates);
   draft.caches[k].percentiles = [
     ts[0],
     ts[Math.round(n_mc / 10)],
@@ -3025,7 +2953,7 @@ const _estimate = (
   n_mc: number,
 ) => {
   const ts = Array(n_mc);
-  const rng = new Multinomial(weights);
+  const rng = new utils.Multinomial(weights);
   for (let i = 0; i < n_mc; i++) {
     let t = 0;
     for (const estimate of estimates) {
@@ -3067,22 +2995,6 @@ const digits2 = (x: number) => {
 
 const digits1 = (x: number) => {
   return Math.round(x * 10) / 10;
-};
-
-export const cumsum = (xs: number[]) => {
-  const ret = [0];
-  xs.reduce((total, current) => {
-    const t = total + current;
-    ret.push(t);
-    return t;
-  }, 0);
-  return ret;
-};
-
-export const sum = (xs: number[]) => {
-  return xs.reduce((total, current) => {
-    return total + current;
-  }, 0);
 };
 
 const todo_leafs_of = (

@@ -1,4 +1,4 @@
-import { sum, cumsum, Multinomial } from "./lib";
+import { sum, cumsum, Multinomial } from "./utils";
 
 it("sum", () => {
   expect(sum([1, 2, 3])).toEqual(6);
