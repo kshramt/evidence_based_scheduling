@@ -2203,7 +2203,7 @@ const TodoQueueNode = (props: { node_id: types.TNodeId }) => {
   return (
     <tr className={utils.join("align-baseline", should_hide && "collapse")}>
       <td className="row-id" />
-      <td>{QueueEntry_of(props.node_id)}</td>
+      {QueueEntry_of(props.node_id)}
     </tr>
   );
 };
@@ -2224,7 +2224,7 @@ const NonTodoQueueNode = (props: { node_id: types.TNodeId }) => {
   return (
     <tr className={utils.join("align-baseline", should_hide && "collapse")}>
       <td className="row-id" />
-      <td>{QueueEntry_of(props.node_id)}</td>
+      {QueueEntry_of(props.node_id)}
     </tr>
   );
 };
@@ -2277,6 +2277,7 @@ const QueueEntry = (props: { node_id: types.TNodeId }) => {
       node_id={props.node_id}
       onMouseOver={on_mouse_over}
       onMouseOut={on_mouse_out}
+      component="td"
     >
       {el}
       {is_todo &&
@@ -2759,6 +2760,7 @@ const EntryWrapper = (props: {
   children: React.ReactNode;
   onMouseOver?: () => void;
   onMouseOut?: () => void;
+  component?: keyof JSX.IntrinsicElements;
 }) => {
   const is_running = useIsRunning(props.node_id);
   const n_hidden_child_edges = useSelector(
@@ -2771,27 +2773,18 @@ const EntryWrapper = (props: {
     dispatch(toggle_show_children(props.node_id));
   }, [props.node_id, dispatch]);
 
-  return React.useMemo(
-    () => (
-      <div
-        className={utils.join(
-          is_running ? "running" : has_hidden_leaf ? "hidden-leafs" : undefined,
-        )}
-        onDoubleClick={handle_toggle_show_children}
-        onMouseOver={props.onMouseOver}
-        onMouseOut={props.onMouseOut}
-      >
-        {props.children}
-      </div>
-    ),
-    [
-      has_hidden_leaf,
-      is_running,
-      handle_toggle_show_children,
-      props.children,
-      props.onMouseOver,
-      props.onMouseOut,
-    ],
+  const Component = props.component || "div";
+  return (
+    <Component
+      className={utils.join(
+        is_running ? "running" : has_hidden_leaf ? "hidden-leafs" : undefined,
+      )}
+      onDoubleClick={handle_toggle_show_children}
+      onMouseOver={props.onMouseOver}
+      onMouseOut={props.onMouseOut}
+    >
+      {props.children}
+    </Component>
   );
 };
 
