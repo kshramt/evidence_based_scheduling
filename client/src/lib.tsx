@@ -2203,9 +2203,7 @@ const TodoQueueNode = (props: { node_id: types.TNodeId }) => {
   return (
     <tr className={utils.join("align-baseline", should_hide && "collapse")}>
       <td className="row-id" />
-      <td>
-        <QueueEntry node_id={props.node_id} />
-      </td>
+      <td>{QueueEntry_of(props.node_id)}</td>
     </tr>
   );
 };
@@ -2226,9 +2224,7 @@ const NonTodoQueueNode = (props: { node_id: types.TNodeId }) => {
   return (
     <tr className={utils.join("align-baseline", should_hide && "collapse")}>
       <td className="row-id" />
-      <td>
-        <QueueEntry node_id={props.node_id} />
-      </td>
+      <td>{QueueEntry_of(props.node_id)}</td>
     </tr>
   );
 };
@@ -2294,6 +2290,9 @@ const QueueEntry = (props: { node_id: types.TNodeId }) => {
     </EntryWrapper>
   );
 };
+const QueueEntry_of = utils.memoize1((node_id: types.TNodeId) => (
+  <QueueEntry node_id={node_id} />
+));
 
 const tree_textarea_id_of = (node_id: types.TNodeId) => {
   return `t-${node_id}`;
