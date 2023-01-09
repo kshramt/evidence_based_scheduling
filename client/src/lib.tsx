@@ -2776,9 +2776,11 @@ const EntryWrapper = (props: {
   const Component = props.component || "div";
   return (
     <Component
-      className={utils.join(
-        is_running ? "running" : has_hidden_leaf ? "hidden-leafs" : undefined,
-      )}
+      className={
+        utils.join(
+          is_running ? "running" : has_hidden_leaf ? "hidden-leafs" : undefined,
+        ) || undefined
+      }
       onDoubleClick={handle_toggle_show_children}
       onMouseOver={props.onMouseOver}
       onMouseOut={props.onMouseOut}
