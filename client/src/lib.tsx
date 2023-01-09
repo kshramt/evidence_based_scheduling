@@ -2175,7 +2175,7 @@ const Edge = (props: { edge_id: types.TEdgeId }) => {
   );
 };
 const Edge_of = utils.memoize1((edge_id: types.TEdgeId) => (
-  <Edge edge_id={edge_id} />
+  <Edge edge_id={edge_id} key={edge_id} />
 ));
 
 const TreeNode = (props: { node_id: types.TNodeId }) => {
