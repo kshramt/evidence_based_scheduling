@@ -2146,11 +2146,7 @@ const EdgeList = (props: { node_id: types.TNodeId }) => {
   const edge_ids = ops.sorted_keys_of(children);
   return edge_ids.length ? (
     <table>
-      <tbody>
-        {edge_ids.map((edge_id) => {
-          return <Edge edge_id={edge_id} key={edge_id} />;
-        })}
-      </tbody>
+      <tbody>{edge_ids.map(Edge_of)}</tbody>
     </table>
   ) : null;
 };
@@ -2178,6 +2174,9 @@ const Edge = (props: { edge_id: types.TEdgeId }) => {
     </tr>
   );
 };
+const Edge_of = utils.memoize1((edge_id: types.TEdgeId) => (
+  <Edge edge_id={edge_id} />
+));
 
 const TreeNode = (props: { node_id: types.TNodeId }) => {
   return (
