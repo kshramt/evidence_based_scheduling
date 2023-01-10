@@ -239,10 +239,7 @@ export const make_nodes_of_toc = (
   node_id: types.TNodeId,
   draft: Draft<types.IState>,
 ) => {
-  if (
-    draft.data.nodes[node_id].status !== "todo" ||
-    keys_of(draft.data.nodes[node_id].children).length !== 0
-  ) {
+  if (draft.data.nodes[node_id].status !== "todo") {
     toast.add("error", "TOC cannot be created for used nodes.");
     return;
   }
