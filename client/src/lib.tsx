@@ -2150,6 +2150,9 @@ const EdgeList = (props: { node_id: types.TNodeId }) => {
     </table>
   ) : null;
 };
+const EdgeList_of = utils.memoize1((node_id: types.TNodeId) => (
+  <EdgeList node_id={node_id} />
+));
 
 const Edge = (props: { edge_id: types.TEdgeId }) => {
   const show_todo_only = Recoil.useRecoilValue(show_todo_only_state);
@@ -2182,7 +2185,7 @@ const TreeNode = (props: { node_id: types.TNodeId }) => {
   return (
     <>
       {TreeEntry_of(props.node_id)}
-      <EdgeList node_id={props.node_id} />
+      {EdgeList_of(props.node_id)}
     </>
   );
 };
