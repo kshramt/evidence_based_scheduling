@@ -2102,7 +2102,7 @@ const PlannedNode = (props: {
       {(is_hover || is_running) && (
         <div className="flex w-fit gap-x-[0.25em]">
           {is_running ? (
-            <StartButton node_id={props.node_id} />
+            <StopButton node_id={props.node_id} />
           ) : (
             <>
               <StartButton node_id={props.node_id} />
@@ -2927,7 +2927,7 @@ const StartOrStopButtons = (props: { node_id: types.TNodeId }) => {
   const running = last_range && last_range.end === null;
 
   return running ? (
-    <StopButton node_id={props.node_id} />
+    <StopButton node_id={props.node_id} ref={stopButtonRefOf(props.node_id)} />
   ) : (
     <>
       <StartButton node_id={props.node_id} />
@@ -3123,24 +3123,26 @@ const AddButton = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const StopButton = (props: { node_id: types.TNodeId }) => {
-  const dispatch = useDispatch();
-  const on_click = React.useCallback(() => {
-    dispatch(stop_action(props.node_id));
-  }, [props.node_id, dispatch]);
+const StopButton = React.forwardRef(
+  (props: { node_id: types.TNodeId }, ref: React.Ref<HTMLButtonElement>) => {
+    const dispatch = useDispatch();
+    const on_click = React.useCallback(() => {
+      dispatch(stop_action(props.node_id));
+    }, [props.node_id, dispatch]);
 
-  return (
-    <button
-      className="btn-icon"
-      arial-label="Stop."
-      onClick={on_click}
-      ref={stopButtonRefOf(props.node_id)}
-      onDoubleClick={prevent_propagation}
-    >
-      {STOP_MARK}
-    </button>
-  );
-};
+    return (
+      <button
+        className="btn-icon"
+        arial-label="Stop."
+        onClick={on_click}
+        ref={ref}
+        onDoubleClick={prevent_propagation}
+      >
+        {STOP_MARK}
+      </button>
+    );
+  },
+);
 
 const StartButton = (props: { node_id: types.TNodeId }) => {
   const dispatch = useDispatch();
