@@ -1982,7 +1982,7 @@ const _topQueue = (
   if (i < 0) {
     return;
   }
-  ops.move(node_ids, 0, i);
+  ops.move(node_ids, i, 0);
 };
 
 const _show_path_to_selected_node = (
