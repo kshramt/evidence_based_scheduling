@@ -91,7 +91,7 @@ const stop = (
 
 const stop_all = (draft: immer.Draft<types.IState>, vid: number) => {
   const t = Date.now();
-  for (const node_id of ops.keys_of(draft.data.queue)) {
+  for (const node_id of draft.todo_node_ids) {
     stop(draft, node_id, vid, t);
   }
 };
@@ -282,6 +282,11 @@ const root_reducer_def = (
         quadrant.nodes.splice(i, 1);
       }
     }
+    if (state.data.nodes[node_id].status === "todo") {
+      ops.delete_at_val(state.todo_node_ids, node_id);
+    } else {
+      ops.delete_at_val(state.non_todo_node_ids, node_id);
+    }
     delete state.data.queue[node_id];
     delete state.data.nodes[node_id];
     delete state.caches[node_id];
@@ -405,38 +410,38 @@ const root_reducer_def = (
     _top(state, action.payload);
   });
   builder(smallestToTop, (state) => {
-    const node_ids = ops.sorted_keys_of(state.data.queue);
-    for (let dst = 0; dst < node_ids.length - 1; ++dst) {
+    for (let dst = 0; dst < state.todo_node_ids.length - 1; ++dst) {
       let src_min = null;
       let estimate_min = Infinity;
-      for (let src = dst; src < node_ids.length; ++src) {
-        const node_id = node_ids[src];
+      for (let src = dst; src < state.todo_node_ids.length; ++src) {
+        const node_id = state.todo_node_ids[src];
         const node = state.data.nodes[node_id];
         if (
           node.status === "todo" &&
+          0 < node.estimate &&
+          node.estimate < estimate_min &&
           !ops
             .keys_of(node.children)
             .some(
               (edge_id) =>
                 state.data.nodes[state.data.edges[edge_id].c].status === "todo",
-            ) &&
-          0 < node.estimate &&
-          node.estimate < estimate_min
+            )
         ) {
           src_min = src;
           estimate_min = node.estimate;
         }
       }
       if (src_min !== null && src_min !== dst) {
-        ops.move_before(state.data.queue, src_min, dst, node_ids);
-        break;
+        ops.move_before(state.data.queue, src_min, dst, state.todo_node_ids);
+        ops.move(state.todo_node_ids, src_min, dst);
+        return;
       }
     }
   });
   builder(closestToTop, (state) => {
     let node_id_min = null;
     let due_min = ":due: 9999-12-31T23:59:59";
-    for (let node_id of ops.keys_of(state.data.queue)) {
+    for (let node_id of state.todo_node_ids) {
       let node = state.data.nodes[node_id];
       if (
         node.status === "todo" &&
@@ -470,12 +475,7 @@ const root_reducer_def = (
       }
     }
     if (node_id_min !== null) {
-      _top(
-        state,
-        todo_leafs_of(node_id_min, state, () => true)
-          [Symbol.iterator]()
-          .next().value[0],
-      );
+      _topQueue(state, node_id_min);
     }
   });
   builder(move_important_node_to_top_action, (state) => {
@@ -496,7 +496,7 @@ const root_reducer_def = (
       }
       return res;
     };
-    for (const node_id of ops.keys_of(state.data.queue)) {
+    for (const node_id of state.todo_node_ids) {
       if (
         state.data.nodes[node_id].status !== "todo" ||
         ops.keys_of(state.data.nodes[node_id].children).some((edge_id) => {
@@ -548,7 +548,7 @@ const root_reducer_def = (
         const node_id = state.data.edges[edge_id].p;
         ops.move_up(state.data.nodes[node_id].children, edge_id);
       }
-      ops.move_up(state.data.queue, action.payload);
+      ops.move_up_todo_queue(state, action.payload);
     } else {
       toast.add("error", `Non-todo node ${action.payload} cannot be moved up.`);
     }
@@ -561,7 +561,7 @@ const root_reducer_def = (
         const node_id = state.data.edges[edge_id].p;
         ops.move_down(state.data.nodes[node_id].children, edge_id);
       }
-      ops.move_down(state.data.queue, action.payload);
+      ops.move_down_todo_queue(state, action.payload);
     } else {
       toast.add(
         "error",
@@ -633,6 +633,11 @@ const root_reducer_def = (
     state.data.nodes[node_id].status = "done";
     state.data.nodes[node_id].end_time = Date.now();
     ops.move_down_to_boundary(state, node_id, (status) => status !== "todo");
+    {
+      const i = state.todo_node_ids.indexOf(node_id);
+      state.todo_node_ids.splice(i, 1);
+      state.non_todo_node_ids.splice(0, 0, node_id);
+    }
     _topQueue(state, node_id);
   });
   builder(todoToDont, (state, action) => {
@@ -649,6 +654,11 @@ const root_reducer_def = (
     state.data.nodes[node_id].status = "dont";
     state.data.nodes[node_id].end_time = Date.now();
     ops.move_down_to_boundary(state, node_id, (status) => status === "dont");
+    {
+      const i = state.todo_node_ids.indexOf(node_id);
+      state.todo_node_ids.splice(i, 1);
+      state.non_todo_node_ids.splice(0, 0, node_id);
+    }
     _topQueue(state, node_id);
   });
   builder(done_or_dont_to_todo_action, (state, action) => {
@@ -658,6 +668,11 @@ const root_reducer_def = (
       return;
     }
     state.data.nodes[node_id].status = "todo";
+    {
+      const i = state.non_todo_node_ids.indexOf(node_id);
+      state.non_todo_node_ids.splice(i, 1);
+      state.todo_node_ids.splice(0, 0, node_id);
+    }
     for (const edge_id of ops.keys_of(state.data.nodes[node_id].parents)) {
       ops.move_to_front(
         state.data.nodes[state.data.edges[edge_id].p].children,
@@ -1770,12 +1785,9 @@ const _eval_ = (
   vid: number,
 ) => {
   _set_total_time(draft, k, vid);
-  const candidates = ops.keys_of(draft.data.queue).filter((node_id) => {
+  const candidates = draft.non_todo_node_ids.filter((node_id) => {
     const v = draft.data.nodes[node_id];
-    return (
-      (v.status === "done" || v.status === "dont") &&
-      v.estimate !== consts.NO_ESTIMATION
-    );
+    return v.estimate !== consts.NO_ESTIMATION;
   });
   const ratios = candidates.length
     ? candidates.map((node_id) => {
@@ -1961,7 +1973,16 @@ const _topQueue = (
   draft: immer.Draft<types.IState>,
   node_id: types.TNodeId,
 ) => {
-  return ops.move_to_front(draft.data.queue, node_id);
+  ops.move_to_front(draft.data.queue, node_id);
+  const node_ids =
+    draft.data.nodes[node_id].status === "todo"
+      ? draft.todo_node_ids
+      : draft.non_todo_node_ids;
+  const i = node_ids.indexOf(node_id);
+  if (i < 0) {
+    return;
+  }
+  ops.move(node_ids, 0, i);
 };
 
 const _show_path_to_selected_node = (
@@ -2120,7 +2141,7 @@ const PlannedNode = (props: {
 };
 
 const TodoQueueNodes = () => {
-  const queue = ops.sorted_keys_of(useSelector((state) => state.data.queue));
+  const queue = useSelector((state) => state.todo_node_ids);
 
   return (
     <table>
@@ -2130,7 +2151,7 @@ const TodoQueueNodes = () => {
 };
 
 const NonTodoQueueNodes = () => {
-  const queue = ops.sorted_keys_of(useSelector((state) => state.data.queue));
+  const queue = useSelector((state) => state.non_todo_node_ids);
 
   return (
     <table>
@@ -3603,23 +3624,31 @@ export const main = async () => {
         caches[node_id] = ops.new_cache_of(n_hidden_child_edges);
       }
     }
+    const todo_node_ids = [];
+    const non_todo_node_ids = [];
+    for (const node_id of ops.sorted_keys_of(parsed_data.data.queue)) {
+      if (parsed_data.data.nodes[node_id].status === "todo") {
+        todo_node_ids.push(node_id);
+      } else {
+        non_todo_node_ids.push(node_id);
+      }
+    }
 
     state = {
       data: parsed_data.data,
       caches,
       predicted_next_nodes: [],
       n_unsaved_patches: 0,
+      todo_node_ids,
+      non_todo_node_ids,
     };
     patch = parsed_data.patch;
   }
   saver.push_patch(USER_ID, patch);
 
   const start_time_and_node_id_list: [number, types.TNodeId][] = [];
-  for (const node_id of ops.keys_of(state.data.queue)) {
+  for (const node_id of state.todo_node_ids) {
     const node = state.data.nodes[node_id];
-    if (node.status !== "todo") {
-      continue;
-    }
     for (const range of node.ranges) {
       start_time_and_node_id_list.push([range.start, node_id]);
     }

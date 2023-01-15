@@ -54,6 +54,8 @@ export const emptyStateOf = (): types.IState => {
     caches,
     predicted_next_nodes: [],
     n_unsaved_patches: 0,
+    todo_node_ids: [],
+    non_todo_node_ids: [],
   };
 };
 
@@ -133,6 +135,11 @@ export const add_node = (
   draft.data.queue[node_id] = (top_of_queue ? _front_value_of : _back_value_of)(
     draft.data.queue,
   );
+  if (top_of_queue) {
+    draft.todo_node_ids.splice(0, 0, node_id);
+  } else {
+    draft.todo_node_ids.push(node_id);
+  }
   draft.caches[node_id] = new_cache_of(0);
   return node_id;
 };
@@ -424,12 +431,29 @@ export function move_to_front<K extends string | number | symbol>(
   kvs: Record<K, number>,
   k: K,
 ) {
-  const ks = sorted_keys_of(kvs);
-  const i = ks.indexOf(k);
-  if (i < 1) {
-    return;
+  kvs[k] = _front_value_of(kvs);
+}
+
+export function delete_at_val<T>(xs: T[], x: T) {
+  let res = 0;
+  while (true) {
+    const i = xs.indexOf(x);
+    if (i < 0) {
+      return res;
+    }
+    delete xs[i];
+    ++res;
   }
-  move_before(kvs, i, 0, ks);
+}
+
+export function move<T>(xs: T[], src: number, dst: number) {
+  if (src === dst) {
+    return xs;
+  }
+  const x = xs[src];
+  xs.splice(src, 1);
+  xs.splice(dst, 0, x);
+  return xs;
 }
 
 export function move_down<K extends string | number | symbol>(
@@ -442,6 +466,45 @@ export function move_down<K extends string | number | symbol>(
     return;
   }
   move_before(kvs, i, i + 2, ks);
+}
+
+export function move_up_todo_queue(
+  state: types.IState,
+  node_id: types.TNodeId,
+) {
+  const i = state.todo_node_ids.indexOf(node_id);
+  if (i < 1) {
+    return;
+  }
+  move(state.todo_node_ids, i, i - 1);
+  if (i === 1) {
+    state.data.queue[node_id] = _front_value_of(state.data.queue);
+  } else {
+    const ks = sorted_keys_of(state.data.queue);
+    const i = ks.indexOf(node_id);
+    state.data.queue[node_id] =
+      (state.data.queue[ks[i - 2]] + state.data.queue[ks[i - 1]]) / 2;
+  }
+}
+
+export function move_down_todo_queue(
+  state: types.IState,
+  node_id: types.TNodeId,
+) {
+  const i = state.todo_node_ids.indexOf(node_id);
+  const n = state.todo_node_ids.length;
+  if (i < 0 || n - 1 <= i) {
+    return;
+  }
+  move(state.todo_node_ids, i, i + 1);
+  if (i === n - 2) {
+    state.data.queue[node_id] = _back_value_of(state.data.queue);
+  } else {
+    const ks = sorted_keys_of(state.data.queue);
+    const i = ks.indexOf(node_id);
+    state.data.queue[node_id] =
+      (state.data.queue[ks[i + 1]] + state.data.queue[ks[i + 2]]) / 2;
+  }
 }
 
 export function move_before<K extends string | number | symbol>(
@@ -468,11 +531,19 @@ export function move_before<K extends string | number | symbol>(
 function _back_value_of<K extends string | number | symbol>(
   kvs: Record<K, number>,
 ) {
-  return Math.max(Date.now(), Math.max(...Object.values<number>(kvs)) + 1);
+  const vs = Object.values<number>(kvs);
+  if (vs.length < 1) {
+    return 0;
+  }
+  return Math.max(...vs) + 1;
 }
 
 function _front_value_of<K extends string | number | symbol>(
   kvs: Record<K, number>,
 ) {
-  return Math.min(-Date.now(), Math.min(...Object.values<number>(kvs)) - 1);
+  const vs = Object.values<number>(kvs);
+  if (vs.length < 1) {
+    return 0;
+  }
+  return Math.min(...vs) - 1;
 }

@@ -128,6 +128,8 @@ export interface IState {
   readonly caches: TCaches;
   readonly predicted_next_nodes: TNodeId[];
   readonly n_unsaved_patches: number;
+  readonly todo_node_ids: TNodeId[];
+  readonly non_todo_node_ids: TNodeId[];
 }
 
 export type TCaches = {
