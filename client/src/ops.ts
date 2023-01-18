@@ -441,7 +441,7 @@ export function delete_at_val<T>(xs: T[], x: T) {
     if (i < 0) {
       return res;
     }
-    delete xs[i];
+    xs.splice(i, 1);
     ++res;
   }
 }
