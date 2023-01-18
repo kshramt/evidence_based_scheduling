@@ -215,11 +215,11 @@ export const useCheckUpdates = (user_id: number) => {
       }
     };
 
-    window.document.addEventListener("focus", handle_focus);
+    window.addEventListener("focus", handle_focus);
     window.addEventListener("visibilitychange", handle_focus);
 
     return () => {
-      window.document.removeEventListener("focus", handle_focus);
+      window.removeEventListener("focus", handle_focus);
       window.removeEventListener("visibilitychange", handle_focus);
     };
   }, [user_id]);
