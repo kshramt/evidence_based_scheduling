@@ -21,7 +21,7 @@ def main(argv):
     run(args)
 
 
-color_of_status = dict(todo="black", done="darkred", dont="darkgray")
+color_of_status = dict(todo="darkblue", done="darkred", dont="darkgray")
 
 
 def run(args):
