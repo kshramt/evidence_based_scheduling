@@ -8,6 +8,7 @@ import fastapi.middleware.cors
 import fastapi.middleware.gzip
 import pydantic
 import pydantic.generics
+import sqlalchemy
 import starlette.status
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -70,8 +71,8 @@ class create_userRes(pydantic.BaseModel):
 
 @with_path_of(app.post, "/users", response_model=create_userRes)
 async def create_user(req: create_userReq, db: Session = Depends(get_db)):
-    await db.execute("pragma defer_foreign_keys=ON")
-    await db.execute("begin immediate")
+    await db.execute(sqlalchemy.text("pragma defer_foreign_keys=ON"))
+    await db.execute(sqlalchemy.text("begin immediate"))
     db_user = await crud.create_user(db=db, user=req.body, commit=False)
     await db.flush()
     db_patch = await crud.create_patch(
@@ -98,7 +99,7 @@ class get_userRes(pydantic.BaseModel):
 
 @with_path_of(app.get, "/users/{user_id}", response_model=get_userRes)
 async def get_user(user_id: int, db: Session = Depends(get_db)):
-    await db.execute("begin")
+    await db.execute(sqlalchemy.text("begin"))
     return json_response_of(
         get_userRes, body=(await _get_user(db=db, user_id=user_id)).to_dict()
     )
@@ -117,7 +118,7 @@ class get_patchRes(pydantic.BaseModel):
 
 @with_path_of(app.get, "/patches/{patch_id}", response_model=get_patchRes)
 async def get_patch(patch_id: int, db: Session = Depends(get_db)):
-    await db.execute("begin")
+    await db.execute(sqlalchemy.text("begin"))
     db_patch = await crud.get_patch(db, patch_id=patch_id)
     if db_patch is None:
         raise HTTPException(status_code=404, detail="Patch not found.")
@@ -175,7 +176,7 @@ class get_data_of_userRes(pydantic.BaseModel):
 
 @with_path_of(app.get, "/users/{user_id}/data", response_model=get_data_of_userRes)
 async def get_data_of_user(user_id: int, db: Session = Depends(get_db)):
-    await db.execute("begin")
+    await db.execute(sqlalchemy.text("begin"))
     patch_id = await crud.get_current_patch_id(db=db, user_id=user_id)
     if patch_id is None:
         raise HTTPException(status_code=404, detail="User not found.")
@@ -199,7 +200,7 @@ class get_dataRes(pydantic.BaseModel):
     response_model=get_dataRes,
 )
 async def get_data(patch_id: int, db: Session = Depends(get_db)):
-    await db.execute("begin")
+    await db.execute(sqlalchemy.text("begin"))
     return json_response_of(
         get_dataRes,
         etag=patch_id,

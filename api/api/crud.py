@@ -56,11 +56,11 @@ async def get_data(db: Session, patch_id: int):
         models.Patch.snapshot,
     )
 
-    branch = select(select_cols).where(models.Patch.id == patch_id).cte(recursive=True)
+    branch = select(*select_cols).where(models.Patch.id == patch_id).cte(recursive=True)
 
     # There should be no duplications.
     branch = branch.union_all(
-        select(select_cols).select_from(
+        select(*select_cols).select_from(
             join(
                 branch,
                 models.Patch,
@@ -68,7 +68,7 @@ async def get_data(db: Session, patch_id: int):
             )
         )
     )
-    stmt = select((func.coalesce(branch.c.snapshot, branch.c.patch),)).order_by(
+    stmt = select(func.coalesce(branch.c.snapshot, branch.c.patch)).order_by(
         branch.c.id
     )
     ss = (await db.scalars(stmt)).all()
