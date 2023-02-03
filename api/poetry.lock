@@ -783,6 +783,26 @@ docs = ["sphinx (>=5.3)", "sphinx-rtd-theme (>=1.0)"]
 testing = ["coverage (>=6.2)", "flaky (>=3.5.0)", "hypothesis (>=5.7.1)", "mypy (>=0.931)", "pytest-trio (>=0.7.0)"]
 
 [[package]]
+name = "python-lsp-black"
+version = "1.2.1"
+description = "Black plugin for the Python LSP Server"
+category = "dev"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "python-lsp-black-1.2.1.tar.gz", hash = "sha256:d7eaeab2a377e96a82cc26afe2f8f2e1cf7c6eaefdcdeab026343e2e559dcce9"},
+    {file = "python_lsp_black-1.2.1-py3-none-any.whl", hash = "sha256:9793e69122f7ab51dffa980f026e456b4be62a3400df5c89b6ecf9278b74913a"},
+]
+
+[package.dependencies]
+black = ">=22.3.0"
+python-lsp-server = ">=1.4.0"
+toml = "*"
+
+[package.extras]
+dev = ["flake8", "isort (>=5.0)", "mypy", "pre-commit", "pytest", "types-pkg-resources", "types-setuptools", "types-toml"]
+
+[[package]]
 name = "python-lsp-jsonrpc"
 version = "1.0.0"
 description = "JSON RPC 2.0 server library"
@@ -1198,4 +1218,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9.5,<3.12"
-content-hash = "2115b3900ee8f0b1409a6ad441d653ef955cbbabccb7c23fe4e9cbada7372432"
+content-hash = "3099fec9996f7caf7133797037a1fc8e5dfb5965e5e76650c859eb1033f49e8b"

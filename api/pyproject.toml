@@ -9,6 +9,7 @@ plugins = [
 ]
 check_untyped_defs = true
 show_error_codes = true
+# strict = true
 warn_return_any = true
 warn_unused_ignores = true
 
@@ -41,6 +42,7 @@ pyls-isort = "^0.2.2"
 pytest = "^7.2.0"
 pytest-asyncio = "^0.20.0"
 python-lsp-server = "^1.7.0"
+python-lsp-black = "^1.2.1"
 
 [tool.poetry]
 name = "api"

@@ -1,13 +1,14 @@
 import json
 import logging
+from typing import Final
 
 import jsonpatch
 from sqlalchemy import and_, func, join, select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession as Session
 
 from . import models, schemas
 
-logger = logging.getLogger(__name__)
+logger: Final = logging.getLogger(__name__)
 
 
 async def get_user(db: Session, user_id: int):
@@ -18,7 +19,9 @@ async def get_users(db: Session, offset: int = 0, limit: int = 100):
     return (await db.scalars(select(models.User).offset(offset).limit(limit))).all()
 
 
-async def create_user(db: Session, user: schemas.UserCreate, commit=True):
+async def create_user(
+    db: Session, user: schemas.UserCreate, commit=True
+) -> models.User:
     db_user = models.User(current_patch_id=0)
     db.add(db_user)
     if commit:

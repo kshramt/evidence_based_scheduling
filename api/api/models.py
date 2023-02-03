@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Final
+from typing import Any, Final
 
 import sqlalchemy
 import sqlalchemy.orm
@@ -17,12 +17,12 @@ class CompressedString(sqlalchemy.types.TypeDecorator):
     impl = sqlalchemy.types.LargeBinary
     cache_ok = True
 
-    def process_bind_param(self, value: None | str, dialect):
+    def process_bind_param(self, value: None | str, dialect: Any):
         if value is None:
             return None
         return zstd.compress(value.encode())
 
-    def process_result_value(self, value: None | bytes, dialect):
+    def process_result_value(self, value: None | bytes, dialect: Any):
         if value is None:
             return None
         return zstd.decompress(value).decode()
@@ -31,20 +31,22 @@ class CompressedString(sqlalchemy.types.TypeDecorator):
 class MixIn:
     __mapper_args__ = {"eager_defaults": True}
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         return {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
 
 
 class ForeignKey(sqlalchemy.ForeignKey):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, ondelete="restrict", onupdate="restrict", **kwargs)
+    def __init__(self, *args, **kwargs) -> None:
+        kwargs["ondelete"] = "restrict"
+        kwargs["onupdate"] = "restrict"
+        super().__init__(*args, **kwargs)
 
 
-def created_at_of():
+def created_at_of() -> Column[str]:
     return Column(String, server_default=sqlalchemy.text("current_timestamp"))
 
 
-def updated_at_of():
+def updated_at_of() -> Column[str]:
     return Column(
         String,
         server_default=sqlalchemy.text("current_timestamp"),

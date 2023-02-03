@@ -1,7 +1,7 @@
 import json
 import logging
 import time
-from typing import Literal
+from typing import Final, Literal
 
 import fastapi
 import fastapi.middleware.cors
@@ -11,18 +11,18 @@ import pydantic.generics
 import sqlalchemy
 import starlette.status
 from fastapi import Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession as Session
 
 from . import crud, database, models, schemas
 
-logger = logging.getLogger(__name__)
+logger: Final = logging.getLogger(__name__)
 
 
-INITIAL_PATCH = '[{"op":"replace","path":"","value":{"data":null}}]'
-INITIAL_SNAPSHOT = '{"data":null}'
+INITIAL_PATCH: Final = '[{"op":"replace","path":"","value":{"data":null}}]'
+INITIAL_SNAPSHOT: Final = '{"data":null}'
 
 
-async def on_load_hook():
+async def on_load_hook() -> None:
     async with database.engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
 
@@ -31,7 +31,7 @@ async def on_load_hook():
         return fastapi.Response(status_code=starlette.status.HTTP_204_NO_CONTENT)
 
 
-app = fastapi.FastAPI()
+app: Final = fastapi.FastAPI()
 app.add_middleware(fastapi.middleware.gzip.GZipMiddleware)
 # app.add_middleware(
 #     fastapi.middleware.cors.CORSMiddleware,
@@ -146,7 +146,7 @@ class create_patchResOk(pydantic.BaseModel):
     response_model=create_patchResOk | create_patchResNoMatchingParent,
 )
 async def create_patch(req: create_patchReq, db: Session = Depends(get_db)):
-    await db.execute("begin immediate")
+    await db.execute(sqlalchemy.text("begin immediate"))
     db_parent_patch = await crud.get_patch(db, patch_id=req.body.parent_id)
     if db_parent_patch is None:
         return json_response_of(
@@ -219,7 +219,7 @@ async def _get_data_and_set_snapshot_if_slow(
     if 6 < t2 - t1:
         if split_transaction:
             await db.commit()
-            await db.execute("begin immediate")
+            await db.execute(sqlalchemy.text("begin immediate"))
         await crud.update_snapshot(
             db,
             patch_id,
@@ -264,7 +264,7 @@ async def put_id_of_data_of_user(
     req: put_id_of_data_of_userReqWithIfMatch | put_id_of_data_of_userReqWithoutIfMatch,
     db: Session = Depends(get_db),
 ):
-    await db.execute("begin immediate")
+    await db.execute(sqlalchemy.text("begin immediate"))
     user = await _get_user(db=db, user_id=user_id)
     if (
         isinstance(req, put_id_of_data_of_userReqWithIfMatch)
@@ -319,7 +319,7 @@ async def get_id_of_data_of_user(
     user_id: int,
     db: Session = Depends(get_db),
 ):
-    await db.execute("begin")
+    await db.execute(sqlalchemy.text("begin"))
     db_user = await _get_user(db=db, user_id=user_id)
     db_patch = await crud.get_patch(db=db, patch_id=db_user.current_patch_id)
     if db_patch is None:
@@ -334,12 +334,14 @@ async def get_id_of_data_of_user(
     )
 
 
-def json_response_of(cls, **kwargs):
+def json_response_of(cls, **kwargs) -> fastapi.responses.JSONResponse:
     cls(**kwargs)  # Check
     return fastapi.responses.JSONResponse(kwargs)
 
 
-def set_handlers(logger, paths, level_stderr=logging.DEBUG, level_path=logging.DEBUG):
+def set_handlers(
+    logger: logging.Logger, paths, level_stderr=logging.DEBUG, level_path=logging.DEBUG
+) -> logging.Logger:
     fmt = logging.Formatter(
         # "%(levelname)s\t%(process)d\t%(asctime)s\t%(pathname)s\t%(funcName)s\t%(lineno)d\t%(message)s"
         # "%(levelname)s\t%(asctime)s\t%(pathname)s\t%(funcName)s\t%(lineno)d\t%(message)s"

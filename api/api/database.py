@@ -1,9 +1,10 @@
 import logging
 import os
 import pathlib
-from typing import Final
+from typing import Any, Final
 
 import sqlalchemy
+import sqlalchemy.dialects.sqlite
 import sqlalchemy.engine
 import sqlalchemy.ext.asyncio
 import sqlalchemy.orm
@@ -17,21 +18,21 @@ SQLALCHEMY_DATABASE_URL = os.environ.get(
 )
 
 
-engine = sqlalchemy.ext.asyncio.create_async_engine(
+engine: Final = sqlalchemy.ext.asyncio.create_async_engine(
     SQLALCHEMY_DATABASE_URL,
     connect_args=dict(check_same_thread=False),
     future=True,
 )
-SessionLocal = sqlalchemy.orm.sessionmaker(
+SessionLocal: Final = sqlalchemy.ext.asyncio.async_sessionmaker(
+    bind=engine,
     autocommit=False,
     autoflush=False,
-    bind=engine,
     future=True,
     class_=sqlalchemy.ext.asyncio.AsyncSession,
     expire_on_commit=False,
 )
 
-Base = sqlalchemy.orm.declarative_base(
+Base: Final = sqlalchemy.orm.declarative_base(
     metadata=sqlalchemy.MetaData(
         naming_convention={
             "ix": "ix_%(column_0_label)s",
@@ -45,7 +46,10 @@ Base = sqlalchemy.orm.declarative_base(
 
 
 @sqlalchemy.event.listens_for(engine.sync_engine, "connect")
-def on_engine_connect(dbapi_connection, connection_record):
+def on_engine_connect(
+    dbapi_connection: sqlalchemy.dialects.sqlite.aiosqlite.AsyncAdapt_aiosqlite_connection,
+    connection_record: Any,
+) -> None:
     cursor = dbapi_connection.cursor()
     try:
         cursor.execute("pragma journal_mode=WAL")
@@ -59,12 +63,15 @@ def on_engine_connect(dbapi_connection, connection_record):
 
 
 @sqlalchemy.event.listens_for(engine.sync_engine, "connect")
-def do_connect(dbapi_connection, connection_record):
+def do_connect(
+    dbapi_connection: sqlalchemy.dialects.sqlite.aiosqlite.AsyncAdapt_aiosqlite_connection,
+    connection_record: Any,
+) -> None:
     # disable pysqlite's emitting of the BEGIN statement entirely.
     # also stops it from emitting COMMIT before any DDL.
     dbapi_connection.isolation_level = None
 
 
 @sqlalchemy.event.listens_for(engine.sync_engine, "begin")
-def do_begin(conn):
+def do_begin(conn: Any) -> None:
     pass  # sess.execute("begin") or sess.execute("begin immediate")
