@@ -2,39 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
-button,
-input,
-select,
-textarea {
-  font-family: inherit;
-  font-size: inherit;
-  background-color: inherit;
-}
-input,
-textarea,
-.textarea {
-  border-style: solid;
-  border-width: 1px;
-  border-color: gray;
-}
-li {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 1em;
-}
-
-table {
-  counter-reset: table-row-counter;
-}
-table > tbody > tr > td.row-id {
-  text-align: right;
-  padding-right: 0.125em;
-}
-table > tbody > tr > td.row-id::before {
-  counter-increment: table-row-counter;
-  content: counter(table-row-counter);
-}
-
 @layer base {
+  button,
+  input,
+  select,
+  textarea {
+    font-family: inherit;
+    font-size: inherit;
+    background-color: inherit;
+  }
+  input,
+  textarea,
+  .textarea {
+    border-style: solid;
+    border-width: 1px;
+    border-color: gray;
+  }
+  li {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 1em;
+  }
+
+  table {
+    counter-reset: table-row-counter;
+  }
+  table > tbody > tr > td.row-id {
+    text-align: right;
+    padding-right: 0.125em;
+  }
+  table > tbody > tr > td.row-id::before {
+    counter-increment: table-row-counter;
+    content: counter(table-row-counter);
+  }
+
   html,
   body {
     @apply bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100;
@@ -44,6 +44,14 @@ table > tbody > tr > td.row-id::before {
   }
   a {
     /* @apply link; */
+  }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"] {
+    -webkit-appearance: none;
+    margin: 0;
+    -moz-appearance: textfield !important;
   }
 }
 
