@@ -890,18 +890,20 @@ const boolean_local_storage_effect: Recoil.AtomEffect<boolean> = ({
   onSet,
   setSelf,
 }) => {
+  setSelf(
+    (async () => {
+      const db = await Db.db;
+      const value = await db.get("local_storage", node.key);
+      return value === undefined ? new Recoil.DefaultValue() : value === "true";
+    })(),
+  );
   Db.db.then((db) => {
-    db.get("local_storage", node.key).then((value) => {
-      if (value !== undefined) {
-        setSelf(value === "true");
+    onSet((new_value, _, is_reset) => {
+      if (is_reset) {
+        db.delete("local_storage", node.key);
+      } else {
+        db.put("local_storage", new_value ? "true" : "false", node.key);
       }
-      onSet((new_value, _, is_reset) => {
-        if (is_reset) {
-          db.delete("local_storage", node.key);
-        } else {
-          db.put("local_storage", new_value ? "true" : "false", node.key);
-        }
-      });
     });
   });
 };
@@ -3548,17 +3550,16 @@ const error_element = (
     </span>
   </div>
 );
+const spinner = (
+  <div className="flex justify-center h-[100vh] w-full items-center">
+    <div className="animate-spin h-[3rem] w-[3rem] border-4 border-blue-500 rounded-full border-t-transparent"></div>
+  </div>
+);
 
 export const main = async () => {
   const container = document.getElementById("root");
   const root = ReactDOM.createRoot(container!);
-  root.render(
-    <React.StrictMode>
-      <div className="flex justify-center h-[100vh] w-full items-center">
-        <div className="animate-spin h-[3rem] w-[3rem] border-4 border-blue-500 rounded-full border-t-transparent"></div>
-      </div>
-    </React.StrictMode>,
-  );
+  root.render(<React.StrictMode>{spinner}</React.StrictMode>);
 
   // Check if persistent storage is available.
   if (!(await window.navigator?.storage?.persist())) {
@@ -3587,7 +3588,7 @@ export const main = async () => {
     res = await client.client.getDataOfUserUsersUserIdDataGet(USER_ID);
   } catch (err: unknown) {
     console.error(err);
-    root.render(error_element);
+    root.render(<React.StrictMode>{error_element} </React.StrictMode>);
     return;
   }
 
@@ -3605,7 +3606,7 @@ export const main = async () => {
   } else {
     const parsed_data = types.parse_data({ data: res.body.data });
     if (!parsed_data.success) {
-      root.render(error_element);
+      root.render(<React.StrictMode>{error_element} </React.StrictMode>);
       return;
     }
     const caches: types.TCaches = {};
@@ -3683,7 +3684,9 @@ export const main = async () => {
     <React.StrictMode>
       <Recoil.RecoilRoot>
         <Provider store={store}>
-          <App />
+          <React.Suspense fallback={spinner}>
+            <App />
+          </React.Suspense>
         </Provider>
       </Recoil.RecoilRoot>
     </React.StrictMode>,
