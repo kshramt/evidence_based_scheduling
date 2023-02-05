@@ -3073,16 +3073,12 @@ const ToTreeLink = (props: {
   const dispatch = useDispatch();
   const on_click = React.useCallback(() => {
     dispatch(show_path_to_selected_node(props.node_id));
+    focus(window.document.getElementById(tree_textarea_id_of(props.node_id)));
   }, [props.node_id, dispatch]);
   return (
-    <a
-      href={`#t-${props.node_id}`}
-      onClick={on_click}
-      title={props.title}
-      className={props.className}
-    >
-      {props.children === undefined ? "→" : props.children}
-    </a>
+    <button onClick={on_click} title={props.title} className={props.className}>
+      {props.children === undefined ? "←" : props.children}
+    </button>
   );
 };
 
@@ -3091,11 +3087,13 @@ const ToQueueLink = (props: {
   children?: React.ReactNode;
 }) => {
   const root = useSelector((state) => state.data.root);
+  const on_click = React.useCallback(() => {
+    focus(window.document.getElementById(queue_textarea_id_of(props.node_id)));
+  }, [props.node_id]);
   return props.node_id === root ? null : (
-    <a href={`#q-${props.node_id}`}>
-      {" "}
-      {props.children === undefined ? "←" : props.children}
-    </a>
+    <button onClick={on_click}>
+      {props.children === undefined ? "→" : props.children}
+    </button>
   );
 };
 
