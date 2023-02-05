@@ -1307,6 +1307,7 @@ const CoveyQuadrantNode = (props: {
       }),
     );
   }, [props.quadrant_id, props.node_id, dispatch]);
+  const to_tree = useToTree(props.node_id);
   return status === "todo" ? (
     <div
       className={utils.join(
@@ -1316,13 +1317,12 @@ const CoveyQuadrantNode = (props: {
       onMouseOver={on_mouse_over}
       onMouseOut={on_mouse_out}
     >
-      <ToTreeLink
-        node_id={props.node_id}
-        title={text}
-        className="w-[15em] block whitespace-nowrap overflow-hidden"
+      <span
+        onClick={to_tree}
+        className="w-[15em] block whitespace-nowrap overflow-hidden cursor-pointer"
       >
         {text.slice(0, 40)}
-      </ToTreeLink>
+      </span>
       {(is_hover || is_running) && (
         <div className="flex w-fit gap-x-[0.25em]">
           <StartButton node_id={props.node_id} />
@@ -2027,11 +2027,14 @@ const MobilePredictedNextNodes = () => {
 };
 const MobilePredictedNextNode = (props: { node_id: types.TNodeId }) => {
   const text = useSelector((state) => state.data.nodes[props.node_id].text);
+  const to_tree = useToTree(props.node_id);
   return (
     <div className="flex w-fit gap-x-[0.25em] items-baseline py-[0.125em]">
       <StartButton node_id={props.node_id} />
       <StartConcurrentButton node_id={props.node_id} />
-      <ToTreeLink node_id={props.node_id}>{text.slice(0, 30)}</ToTreeLink>
+      <span onClick={to_tree} className="cursor-pointer">
+        {text.slice(0, 30)}
+      </span>
     </div>
   );
 };
@@ -2055,12 +2058,15 @@ const PredictedNextNodes = () => {
 };
 const PredictedNextNode = (props: { node_id: types.TNodeId }) => {
   const text = useSelector((state) => state.data.nodes[props.node_id].text);
+  const to_tree = useToTree(props.node_id);
   return (
     <td className="flex w-fit gap-x-[0.25em] items-baseline py-[0.125em]">
       <StartButton node_id={props.node_id} />
       <StartConcurrentButton node_id={props.node_id} />
       <CopyNodeIdButton node_id={props.node_id} />
-      <ToTreeLink node_id={props.node_id}>{text.slice(0, 30)}</ToTreeLink>
+      <span onClick={to_tree} className="cursor-pointer">
+        {text.slice(0, 30)}
+      </span>
     </td>
   );
 };
@@ -2099,6 +2105,7 @@ const PlannedNode = (props: {
       }),
     );
   }, [props.time_node_id, props.node_id, dispatch]);
+  const to_tree = useToTree(props.node_id);
   return (
     <td
       className={utils.join(
@@ -2108,11 +2115,11 @@ const PlannedNode = (props: {
       onMouseOver={on_mouse_over}
       onMouseOut={on_mouse_out}
     >
-      <ToTreeLink
-        node_id={props.node_id}
+      <span
         title={text}
+        onClick={to_tree}
         className={utils.join(
-          "w-[15em] block whitespace-nowrap overflow-hidden",
+          "w-[15em] block whitespace-nowrap overflow-hidden cursor-pointer",
           status === "done"
             ? "text-red-600 dark:text-red-400"
             : status === "dont"
@@ -2121,7 +2128,7 @@ const PlannedNode = (props: {
         )}
       >
         {text.slice(0, 40)}
-      </ToTreeLink>
+      </span>
       {(is_hover || is_running) && (
         <div className="flex w-fit gap-x-[0.25em]">
           {is_running ? (
@@ -2284,10 +2291,11 @@ const QueueEntry = (props: { node_id: types.TNodeId }) => {
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
   const is_todo = status === "todo";
   const is_running = useIsRunning(props.node_id);
+  const to_tree = useToTree(props.node_id);
   const el = React.useMemo(
     () => (
       <div className="flex items-end w-fit">
-        <ToTreeLink node_id={props.node_id} />
+        <button onClick={to_tree}>←</button>
         <TextArea
           node_id={props.node_id}
           id={queue_textarea_id_of(props.node_id)}
@@ -2295,7 +2303,7 @@ const QueueEntry = (props: { node_id: types.TNodeId }) => {
         <EntryInfos node_id={props.node_id} />
       </div>
     ),
-    [props.node_id],
+    [props.node_id, to_tree],
   );
 
   return (
@@ -2336,6 +2344,8 @@ const TreeEntry = (props: { node_id: types.TNodeId }) => {
   const is_running = useIsRunning(props.node_id);
   const cache = useSelector((state) => state.caches[props.node_id]);
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
+  const to_queue = useToQueue(props.node_id);
+  const is_root = useSelector((state) => state.data.root === props.node_id);
   return (
     <EntryWrapper
       node_id={props.node_id}
@@ -2343,7 +2353,7 @@ const TreeEntry = (props: { node_id: types.TNodeId }) => {
       onMouseOut={on_mouse_out}
     >
       <div className="flex items-end w-fit">
-        <ToQueueLink node_id={props.node_id} />
+        {is_root ? null : <button onClick={to_queue}>→</button>}
         <TextArea
           node_id={props.node_id}
           id={tree_textarea_id_of(props.node_id)}
@@ -2640,18 +2650,17 @@ const ChildEdgeRow = (props: { edge_id: types.TEdgeId }) => {
   const toggle_edge_hide = React.useCallback(() => {
     dispatch(toggle_edge_hide_action(props.edge_id));
   }, [props.edge_id, dispatch]);
-  const to_tree_link = React.useMemo(
-    () => (
-      <span title={text}>
-        <ToTreeLink node_id={edge.c}>{text.slice(0, 15)}</ToTreeLink>
-      </span>
-    ),
-    [edge.c, text],
-  );
+  const to_tree = useToTree(edge.c);
   return React.useMemo(
     () => (
       <tr>
-        <td className="p-[0.25em]">{to_tree_link}</td>
+        <td
+          title={text}
+          onClick={to_tree}
+          className="p-[0.25em] cursor-pointer"
+        >
+          {text.slice(0, 15)}
+        </td>
         <td className="p-[0.25em]">
           <select value={edge.t} onChange={set_edge_type}>
             {types.edge_type_values.map((t, i) => (
@@ -2680,7 +2689,7 @@ const ChildEdgeRow = (props: { edge_id: types.TEdgeId }) => {
         </td>
       </tr>
     ),
-    [edge.t, hide, to_tree_link, delete_edge, set_edge_type, toggle_edge_hide],
+    [edge.t, hide, to_tree, delete_edge, set_edge_type, toggle_edge_hide, text],
   );
 };
 const ChildEdgeRow_of = utils.memoize1((edge_id: types.TEdgeId) => (
@@ -2727,18 +2736,17 @@ const ParentEdgeRow = (props: { edge_id: types.TEdgeId }) => {
   const toggle_edge_hide = React.useCallback(() => {
     dispatch(toggle_edge_hide_action(props.edge_id));
   }, [props.edge_id, dispatch]);
-  const to_tree_link = React.useMemo(
-    () => (
-      <span title={text}>
-        <ToTreeLink node_id={edge.p}>{text.slice(0, 15)}</ToTreeLink>
-      </span>
-    ),
-    [edge.p, text],
-  );
+  const to_tree = useToTree(edge.p);
   return React.useMemo(
     () => (
       <tr>
-        <td className="p-[0.25em]">{to_tree_link}</td>
+        <td
+          title={text}
+          onClick={to_tree}
+          className="p-[0.25em] cursor-pointer"
+        >
+          {text.slice(0, 15)}
+        </td>
         <td className="p-[0.25em]">
           <select value={edge.t} onChange={set_edge_type}>
             {types.edge_type_values.map((t, i) => (
@@ -2767,7 +2775,7 @@ const ParentEdgeRow = (props: { edge_id: types.TEdgeId }) => {
         </td>
       </tr>
     ),
-    [edge.t, hide, to_tree_link, delete_edge, set_edge_type, toggle_edge_hide],
+    [edge.t, hide, to_tree, delete_edge, set_edge_type, toggle_edge_hide, text],
   );
 };
 const ParentEdgeRow_of = utils.memoize1((edge_id: types.TEdgeId) => (
@@ -3066,37 +3074,21 @@ const moveDownButtonRefOf = utils.memoize1((_: types.TNodeId) =>
   React.createRef<HTMLButtonElement>(),
 );
 
-const ToTreeLink = (props: {
-  node_id: types.TNodeId;
-  children?: React.ReactNode;
-  title?: string;
-  className?: string;
-}) => {
+const useToTree = (node_id: types.TNodeId) => {
   const dispatch = useDispatch();
-  const on_click = React.useCallback(() => {
-    dispatch(show_path_to_selected_node(props.node_id));
-    focus(window.document.getElementById(tree_textarea_id_of(props.node_id)));
-  }, [props.node_id, dispatch]);
-  return (
-    <button onClick={on_click} title={props.title} className={props.className}>
-      {props.children === undefined ? "←" : props.children}
-    </button>
-  );
+  return React.useCallback(() => {
+    dispatch(show_path_to_selected_node(node_id));
+    setTimeout(
+      () => focus(window.document.getElementById(tree_textarea_id_of(node_id))),
+      100,
+    );
+  }, [node_id, dispatch]);
 };
 
-const ToQueueLink = (props: {
-  node_id: types.TNodeId;
-  children?: React.ReactNode;
-}) => {
-  const root = useSelector((state) => state.data.root);
-  const on_click = React.useCallback(() => {
-    focus(window.document.getElementById(queue_textarea_id_of(props.node_id)));
-  }, [props.node_id]);
-  return props.node_id === root ? null : (
-    <button onClick={on_click}>
-      {props.children === undefined ? "→" : props.children}
-    </button>
-  );
+const useToQueue = (node_id: types.TNodeId) => {
+  return React.useCallback(() => {
+    focus(window.document.getElementById(queue_textarea_id_of(node_id)));
+  }, [node_id]);
 };
 
 const DoneOrDontToTodoButton = (props: { node_id: types.TNodeId }) => {
