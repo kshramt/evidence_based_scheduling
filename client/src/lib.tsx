@@ -30,6 +30,7 @@ import * as saver from "./saver";
 import * as producer from "./producer";
 import * as total_time_utils from "./total_time_utils";
 import ScrollBackToTopButton from "./ScrollBackToTopButton";
+import * as serviceWorkerRegistration from "./serviceWorkerRegistration";
 
 const WEEK_0_BEGIN = new Date(Date.UTC(2021, 12 - 1, 27));
 const WEEK_MSEC = 86400 * 1000 * 7;
@@ -3684,3 +3685,8 @@ export const main = async () => {
     </React.StrictMode>,
   );
 };
+
+// If you want your app to work offline and load faster, you can change
+// unregister() to register() below. Note this comes with some pitfalls.
+// Learn more about service workers: https://cra.link/PWA
+serviceWorkerRegistration.register();
