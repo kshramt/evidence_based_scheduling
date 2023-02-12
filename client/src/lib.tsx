@@ -3571,7 +3571,9 @@ export const main = async () => {
     await client.client.getUserUsersUserIdGet(USER_ID);
   } catch (err: any) {
     if (err.status !== 404) {
-      throw err;
+      console.error(err);
+      root.render(<React.StrictMode>{error_element} </React.StrictMode>);
+      return;
     }
     await client.client.createUserUsersPost({ body: {} });
   }
