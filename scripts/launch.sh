@@ -33,7 +33,7 @@ readonly container_id_path="${tmp_dir}/container_id"
 docker compose -f docker-compose.yaml -f docker-compose.prod.yaml run --rm -d postgres > "${container_id_path}"
 container_id="$(cat "${container_id_path}")"
 readonly container_id
-docker container exec -e _POSTGRES_APP_USER_PASSWORD="${_POSTGRES_APP_USER_PASSWORD:?}" "${container_id}" /app/scripts/migrate.sh
+docker container exec -e _POSTGRES_APP_USER_PASSWORD="${_POSTGRES_APP_USER_PASSWORD:?}" -e ENV="${ENV:-prod}" "${container_id}" /app/scripts/migrate.sh
 docker container stop "${container_id}"
 
 # Start
