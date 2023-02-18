@@ -37,6 +37,7 @@ def run(args):
             ("prod_api", "/api"),
             ("prod_envoy", "/envoy"),
             ("prod_nginx", "/nginx"),
+            ("prod_postgres", "/postgres"),
         ):
             k = f"{target}-{platform.os}-{platform.arch}"
             v = {
@@ -50,9 +51,11 @@ def run(args):
                 "args": dict(arch=platform.arch),
                 "cache-from": [
                     f"type=registry,ref={args.base}{image_name}:{args.ref_b64}-{platform.os}-{platform.arch}-cache"
+                    f"type=registry,ref={args.base}{image_name}:latest-{platform.os}-{platform.arch}-cache"
                 ],
                 "cache-to": [
                     f"type=registry,ref={args.base}{image_name}:{args.ref_b64}-{platform.os}-{platform.arch}-cache,mode=max"
+                    f"type=registry,ref={args.base}{image_name}:latest-{platform.os}-{platform.arch}-cache,mode=max"
                 ],
             }
             spec["target"][k] = v

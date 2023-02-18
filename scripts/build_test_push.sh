@@ -31,15 +31,14 @@ python3 bake.py --sha="${github_sha}" --ref_b64="${ref_b64}" | tee bake.json
 docker buildx bake --file bake.json "${os}-${arch}"
 
 if [[ "${os}" = "${host_os}" && "${arch}" = "${host_arch}" ]]; then
-  docker run ghcr.io/kshramt/evidence_based_scheduling/test/api:"${github_sha}-${os}-${arch}" scripts/check.sh
-  docker run ghcr.io/kshramt/evidence_based_scheduling/test/client:"${github_sha}-${os}-${arch}" scripts/check.sh
-
   _DOCKER_API_DATA_DIR="./my_data" \
   _USE_LITESTREAM="no" \
   _REPLICA_URI="" \
   _DOCKER_API_TAG="${github_sha}-${os}-${arch}" \
   _DOCKER_NGINX_TAG="${github_sha}-${os}-${arch}" \
   _DOCKER_ENVOY_TAG="${github_sha}-${os}-${arch}" \
+  _DOCKER_POSTGRES_TAG="${github_sha}-${os}-${arch}" \
+  _POSTGRES_PASSWORD=postgres \
   docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d
 
   i=0

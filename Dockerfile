@@ -10,6 +10,9 @@ from nginx:1.23.3-alpine as base_nginx
 
 from envoyproxy/envoy:v1.25.1 as base_envoy
 
+from postgres:15.2-alpine as base_postgres
+arg arch
+
 from base_js as base_client
 workdir /app/client
 
@@ -22,6 +25,7 @@ run npm ci
 copy client .
 
 from builder_client as test_client
+run scripts/check.sh
 
 from builder_client as prod_client
 run npm run build
@@ -45,6 +49,7 @@ from prod_builder_api as test_api
 run python3 -m poetry install
 copy api .
 run python3 -m poetry install
+run scripts/check.sh
 
 from base_api as builder_litestream
 run apt-get update && apt-get install -y wget
@@ -65,3 +70,9 @@ from base_envoy as prod_envoy
 expose 8080
 workdir /app
 copy ./envoy.yaml /etc/envoy/envoy.yaml
+
+from base_postgres as prod_postgres
+run wget https://github.com/amacneil/dbmate/releases/download/v1.16.2/dbmate-linux-${arch} -O /usr/local/bin/dbmate \
+   && chmod +x /usr/local/bin/dbmate
+copy db/scripts/migrate.sh /app/scripts/migrate.sh
+copy db/migrations /app/db/migrations

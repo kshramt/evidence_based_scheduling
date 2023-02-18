@@ -10,5 +10,18 @@ services:
     depends_on:
       - api
       - nginx
+      - postgres
     ports:
       - "8080:8080"
+  postgres:
+    restart: always
+    environment:
+      LANG: C.utf8
+      POSTGRES_PASSWORD: ${_POSTGRES_PASSWORD?}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  pgdata:

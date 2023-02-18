@@ -13,3 +13,14 @@ services:
     build:
       context: .
       target: prod_envoy
+  postgres:
+    build:
+      context: .
+      target: prod_postgres
+  adminer:
+    image: adminer:4.8.1-standalone
+    restart: always
+    depends_on:
+      - postgres
+    ports:
+    - 9090:8080
