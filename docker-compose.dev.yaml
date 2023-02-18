@@ -1,0 +1,15 @@
+services:
+  api:
+    build: 
+      context: .
+      target: prod_api
+    environment:
+      - USE_LITESTREAM=no
+  nginx:
+    build: 
+      context: .
+      target: prod_nginx
+  envoy:
+    build:
+      context: .
+      target: prod_envoy

@@ -6,6 +6,10 @@ env PYTHONUNBUFFERED 1
 env PYTHONDONTWRITEBYTECODE 1
 arg arch
 
+from nginx:1.23.3-alpine as base_nginx
+
+from envoyproxy/envoy:v1.25.1 as base_envoy
+
 from base_js as base_client
 workdir /app/client
 
@@ -22,36 +26,42 @@ from builder_client as test_client
 from builder_client as prod_client
 run npm run build
 
+from base_nginx as prod_nginx
+copy --from=prod_client /app/client/build /usr/share/nginx/html
+copy nginx.conf /etc/nginx/nginx.conf
+
 from base_api as builder_api
 run apt-get update \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
 run pip install --no-cache-dir poetry==1.3.1
 copy api/poetry.toml api/pyproject.toml api/poetry.lock .
 
-from builder_api as prod_api
+from builder_api as prod_builder_api
 run python3 -m poetry install --only main
 copy api .
 run python3 -m poetry install --only main
 
-from prod_api as test_api
+from prod_builder_api as test_api
 run python3 -m poetry install
 copy api .
 run python3 -m poetry install
-# copy --from=test_client /app/client/build client
 
 from base_api as builder_litestream
 run apt-get update && apt-get install -y wget
 run wget https://github.com/benbjohnson/litestream/releases/download/v0.3.9/litestream-v0.3.9-linux-${arch}.deb
 run dpkg -i litestream-v0.3.9-linux-${arch}.deb
 
-from base_api as prod
-expose 8080
+from base_api as prod_api
 env DATA_DIR /data
 
 copy --from=builder_litestream /usr/bin/litestream /usr/bin/litestream
-copy --from=prod_api /app/.venv .venv
-copy --from=prod_api /app/log-config.json log-config.json
-copy --from=prod_api /app/api api
-copy --from=prod_api /app/scripts/run.sh scripts/run.sh
-copy --from=prod_client /app/client/build client
+copy --from=prod_builder_api /app/.venv .venv
+copy --from=prod_builder_api /app/log-config.json log-config.json
+copy --from=prod_builder_api /app/api api
+copy --from=prod_builder_api /app/scripts/run.sh scripts/run.sh
 entrypoint ["scripts/run.sh"]
+
+from base_envoy as prod_envoy
+expose 8080
+workdir /app
+copy ./envoy.yaml /etc/envoy/envoy.yaml

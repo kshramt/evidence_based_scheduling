@@ -1,0 +1,10 @@
+services:
+  api:
+    image: ghcr.io/kshramt/evidence_based_scheduling/api:${_DOCKER_API_VERSION:-latest}
+    environment:
+      - REPLICA_URI=${_REPLICA_URI}
+      - USE_LITESTREAM=${_USE_LITESTREAM:-yes}
+  nginx:
+    image: ghcr.io/kshramt/evidence_based_scheduling/nginx:${_DOCKER_NGINX_VERSION:-latest}
+  envoy:
+    image: ghcr.io/kshramt/evidence_based_scheduling/envoy:${_DOCKER_ENVOY_VERSION:-latest}
