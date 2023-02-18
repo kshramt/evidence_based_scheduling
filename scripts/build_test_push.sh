@@ -37,9 +37,9 @@ if [[ "${os}" = "${host_os}" && "${arch}" = "${host_arch}" ]]; then
   _DOCKER_API_DATA_DIR="./my_data" \
   _USE_LITESTREAM="no" \
   _REPLICA_URI="" \
-  _DOCKER_API_VERSION="${github_sha}-${os}-${arch}" \
-  _DOCKER_NGINX_VERSION="${github_sha}-${os}-${arch}" \
-  _DOCKER_ENVOY_VERSION="${github_sha}-${os}-${arch}" \
+  _DOCKER_API_TAG="${github_sha}-${os}-${arch}" \
+  _DOCKER_NGINX_TAG="${github_sha}-${os}-${arch}" \
+  _DOCKER_ENVOY_TAG="${github_sha}-${os}-${arch}" \
   docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d
 
   i=0

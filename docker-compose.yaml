@@ -2,7 +2,7 @@ services:
   api:
     restart: always
     volumes:
-      - ${DOCKER_API_DATA_DIR:-./data}:/data
+      - ${_DOCKER_API_DATA_DIR:-./data}:/data
   nginx:
     restart: always
   envoy:
