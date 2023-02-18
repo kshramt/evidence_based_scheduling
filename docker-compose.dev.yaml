@@ -17,6 +17,8 @@ services:
     build:
       context: .
       target: prod_postgres
+    ports:
+      - "5432:5432"
   adminer:
     image: adminer:4.8.1-standalone
     restart: always
