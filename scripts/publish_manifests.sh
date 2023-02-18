@@ -18,7 +18,7 @@ run_number="${3}"
 readonly run_number
 
 
-for service in api nginx envoy
+for service in api nginx envoy postgres
 do
   img="ghcr.io/kshramt/evidence_based_scheduling/${service}"
   docker manifest create "${img}:${github_sha}"{,-linux-{amd64,arm64}}

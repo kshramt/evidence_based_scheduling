@@ -54,7 +54,7 @@ if [[ "${os}" = "${host_os}" && "${arch}" = "${host_arch}" ]]; then
   fi
 fi
 
-for service in api nginx envoy
+for service in api nginx envoy postgres
 do
   img="ghcr.io/kshramt/evidence_based_scheduling/${service}"
   docker push "${img}":"${github_sha}-${os}-${arch}"
