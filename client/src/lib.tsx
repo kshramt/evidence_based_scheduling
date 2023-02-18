@@ -26,6 +26,9 @@ import * as producer from "./producer";
 import * as total_time_utils from "./total_time_utils";
 import * as serviceWorkerRegistration from "./serviceWorkerRegistration";
 import * as components from "./components";
+// import * as Auth from "./auth";
+
+// const auth = Auth.get_auth();
 
 const USER_ID = 1;
 const N_PREDICTED = 10;
