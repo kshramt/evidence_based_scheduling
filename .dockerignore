@@ -1,9 +1,11 @@
 .dockerignore
 .github/
 .gitignore
-.venv/
+**/.mypy_cache/
+**/.pytest_cache/
+**/.venv/
+**/node_modules/
 Dockerfile
 Makefile
 README.md
-node_modules/
 to_dot.py
