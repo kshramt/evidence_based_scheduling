@@ -32,11 +32,11 @@ def run(args):
     ):
         ks = []
         for target, image_name in (
-            ("test_api", "/test/api"),
-            ("test_client", "/test/client"),
-            ("prod_api", "/api"),
+            # ("test_api", "/test/api"),
+            # ("test_client", "/test/client"),
+            # ("prod_api", "/api"),
             ("prod_envoy", "/envoy"),
-            ("prod_nginx", "/nginx"),
+            # ("prod_nginx", "/nginx"),
         ):
             k = f"{target}-{platform.os}-{platform.arch}"
             v = {
