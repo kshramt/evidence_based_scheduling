@@ -1,0 +1,11 @@
+services:
+  api:
+    volumes:
+      - ${DOCKER_API_DATA_DIR:-./data}:/data
+  # nginx:
+  envoy:
+    depends_on:
+      - api
+      - nginx
+    ports:
+      - "8080:8080"

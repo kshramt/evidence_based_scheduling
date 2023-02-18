@@ -47,6 +47,10 @@ docker run \
 
 ## Development
 
+```bash
+nerdctl compose -f docker-compose.yaml -f docker-compose.dev.yaml build --build-arg arch="$(uname -m)" && nerdctl compose -f docker-compose.yaml -f docker-compose.dev.yaml up
+```
+
 ```
 UVICORN_PORT=5000 make run_api
 ```
