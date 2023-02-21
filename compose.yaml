@@ -1,0 +1,39 @@
+services:
+  api:
+    restart: always
+    volumes:
+      - ${_DOCKER_API_DATA_DIR:-./data}:/data
+  api_v1:
+    depends_on:
+      - postgres
+    restart: always
+    environment:
+      MY_DB_URI: user=app host=postgres dbname=postgres password=${_POSTGRES_APP_USER_PASSWORD?}
+  nginx:
+    restart: always
+  envoy:
+    restart: always
+    depends_on:
+      - api
+      - api_v1
+      - nginx
+    ports:
+      - "${ENVOY_HTTP_PORT:-8080}:8080"
+      - "${ENVOY_GRPC_PORT:-50051}:50051"
+  postgres:
+    command:
+      - -c
+      - logging_collector=on
+      - -c
+      - log_line_prefix='[%t]%u %d %p[%l]'
+      - -c
+      - log_min_duration_statement=5000
+    restart: always
+    environment:
+      LANG: C.UTF-8
+      POSTGRES_PASSWORD: ${_POSTGRES_PASSWORD?}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

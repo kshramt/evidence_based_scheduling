@@ -4,7 +4,7 @@ import argparse
 import dataclasses
 import json
 import logging
-import os
+import pathlib
 import sys
 
 __version__ = "0.1.0"
@@ -38,6 +38,8 @@ def run(args):
             ("prod_envoy", "/envoy"),
             ("prod_nginx", "/nginx"),
             ("prod_postgres", "/postgres"),
+            ("prod_api_v1", "/api_v1"),
+            ("tests_server", "/tests_server"),
         ):
             k = f"{target}-{platform.os}-{platform.arch}"
             v = {
@@ -45,11 +47,13 @@ def run(args):
                 "target": target,
                 "output": [f"type=docker"],
                 "tags": [
-                    f"{args.base}{image_name}:{args.sha}-{platform.os}-{platform.arch}"
+                    f"{args.base}{image_name}:h-{args.sha}-{platform.os}-{platform.arch}"
                 ],
                 "platforms": [f"{platform.os}/{platform.arch}"],
                 "args": dict(arch=platform.arch),
                 "cache-from": [
+                    f"type=registry,ref={args.base}{image_name}:{args.ref_b64}-{platform.os}-{platform.arch}"
+                    f"type=registry,ref={args.base}{image_name}:latest-{platform.os}-{platform.arch}"
                     f"type=registry,ref={args.base}{image_name}/cache:{args.ref_b64}-{platform.os}-{platform.arch}"
                     f"type=registry,ref={args.base}{image_name}/cache:latest-{platform.os}-{platform.arch}"
                 ],
@@ -113,7 +117,7 @@ def _add_handlers(logger, paths, level_stderr=logging.INFO, level_path=logging.D
     logger.addHandler(hdl)
 
     for path in paths:
-        mkdir(dirname(path))
+        pathlib.Path(path).parent.mkdir(exist_ok=True, parents=True)
         hdl_ = logging.FileHandler(path)
         hdl_.setFormatter(fmt)
         hdl_.setLevel(level_path)
