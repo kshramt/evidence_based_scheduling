@@ -16,8 +16,10 @@ static_resources:
             - name: local_service
               domains: ["*"]
               routes:
-              - match: { prefix: "/app" }
+              - match: { prefix: "/app/" }
                 route: { cluster: nginx_service, prefix_rewrite: "/" }
+              - match: { prefix: "/app" }
+                redirect: { path_redirect: "/app/" }
               - match: { prefix: "/" }
                 route: { cluster: api_service }
           http_filters:
