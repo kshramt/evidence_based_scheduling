@@ -1,12 +1,18 @@
 services:
   api:
-    build: 
+    build:
       context: .
       target: prod_api
     environment:
       - USE_LITESTREAM=no
+  api_v1:
+    build:
+      context: .
+      target: prod_api_v1
+    ports:
+      - "${API_V1_PORT:-8585}:50051"
   nginx:
-    build: 
+    build:
       context: .
       target: prod_nginx
   envoy:
@@ -18,11 +24,11 @@ services:
       context: .
       target: prod_postgres
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
   adminer:
     image: adminer:4.8.1-standalone
     restart: always
     depends_on:
       - postgres
     ports:
-    - 9090:8080
+    - "${ADMINER_PORT:-9090}:8080"

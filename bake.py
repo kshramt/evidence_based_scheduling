@@ -38,6 +38,8 @@ def run(args):
             ("prod_envoy", "/envoy"),
             ("prod_nginx", "/nginx"),
             ("prod_postgres", "/postgres"),
+            ("prod_api_v1", "/api_v1"),
+            ("tests_server", "/tests_server"),
         ):
             k = f"{target}-{platform.os}-{platform.arch}"
             v = {
@@ -45,11 +47,13 @@ def run(args):
                 "target": target,
                 "output": [f"type=docker"],
                 "tags": [
-                    f"{args.base}{image_name}:{args.sha}-{platform.os}-{platform.arch}"
+                    f"{args.base}{image_name}:h-{args.sha}-{platform.os}-{platform.arch}"
                 ],
                 "platforms": [f"{platform.os}/{platform.arch}"],
                 "args": dict(arch=platform.arch),
                 "cache-from": [
+                    f"type=registry,ref={args.base}{image_name}:{args.ref_b64}-{platform.os}-{platform.arch}"
+                    f"type=registry,ref={args.base}{image_name}:latest-{platform.os}-{platform.arch}"
                     f"type=registry,ref={args.base}{image_name}/cache:{args.ref_b64}-{platform.os}-{platform.arch}"
                     f"type=registry,ref={args.base}{image_name}/cache:latest-{platform.os}-{platform.arch}"
                 ],

@@ -48,7 +48,7 @@ docker run \
 ## Development
 
 ```bash
-nerdctl compose -f docker-compose.yaml -f docker-compose.dev.yaml build --build-arg arch="$(uname -m)" && nerdctl compose -f docker-compose.yaml -f docker-compose.dev.yaml up
+docker compose -f compose.yaml -f compose.dev.yaml up --build
 ```
 
 ```
