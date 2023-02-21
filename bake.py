@@ -32,8 +32,8 @@ def run(args):
     ):
         ks = []
         for target, image_name in (
-            ("test_api", "/test/api"),
-            ("test_client", "/test/client"),
+            ("test_api", "/api/test"),
+            ("test_client", "/client/test"),
             ("prod_api", "/api"),
             ("prod_envoy", "/envoy"),
             ("prod_nginx", "/nginx"),
@@ -50,12 +50,12 @@ def run(args):
                 "platforms": [f"{platform.os}/{platform.arch}"],
                 "args": dict(arch=platform.arch),
                 "cache-from": [
-                    f"type=registry,ref={args.base}{image_name}:{args.ref_b64}-{platform.os}-{platform.arch}-cache"
-                    f"type=registry,ref={args.base}{image_name}:latest-{platform.os}-{platform.arch}-cache"
+                    f"type=registry,ref={args.base}{image_name}/cache:{args.ref_b64}-{platform.os}-{platform.arch}"
+                    f"type=registry,ref={args.base}{image_name}/cache:latest-{platform.os}-{platform.arch}"
                 ],
                 "cache-to": [
-                    f"type=registry,ref={args.base}{image_name}:{args.ref_b64}-{platform.os}-{platform.arch}-cache,mode=max"
-                    f"type=registry,ref={args.base}{image_name}:latest-{platform.os}-{platform.arch}-cache,mode=max"
+                    f"type=registry,ref={args.base}{image_name}/cache:{args.ref_b64}-{platform.os}-{platform.arch},mode=max"
+                    f"type=registry,ref={args.base}{image_name}/cache:latest-{platform.os}-{platform.arch},mode=max"
                 ],
             }
             spec["target"][k] = v
