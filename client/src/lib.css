@@ -12,8 +12,7 @@
     background-color: inherit;
   }
   input,
-  textarea,
-  .textarea {
+  textarea {
     border-style: solid;
     border-width: 1px;
     border-color: gray;
@@ -52,6 +51,35 @@
     -webkit-appearance: none;
     margin: 0;
     -moz-appearance: textfield !important;
+  }
+
+  .auto_height_container {
+    position: relative;
+  }
+
+  .auto_height_spacer {
+    overflow: hidden;
+    visibility: hidden;
+    box-sizing: border-box;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    border: 1px solid;
+  }
+
+  .auto_height_textarea {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: block;
+    overflow: hidden;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    background-color: transparent;
+    font: inherit;
+    letter-spacing: inherit;
+    resize: none;
   }
 }
 

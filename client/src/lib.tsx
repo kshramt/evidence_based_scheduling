@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 import ReactDOM from "react-dom/client";
 import {
   Provider,
@@ -1390,7 +1390,7 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
     dispatch(assign_nodes_to_time_node_action(payload));
   }, [props.time_node_id, selected_node_ids, dispatch]);
   const dispatch_set_text_action = React.useCallback(
-    (e: React.ChangeEvent<HTMLDivElement>) => {
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       const el = e.target;
       dispatch(
         set_time_node_text_action({
@@ -1431,7 +1431,6 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
             <td>
               <AutoHeightTextArea
                 text={text}
-                onKeyDown={insert_plain_enter}
                 onBlur={dispatch_set_text_action}
                 onDoubleClick={prevent_propagation}
                 className="textarea whitespace-pre-wrap overflow-wrap-anywhere w-[17em] overflow-hidden p-[0.125em] bg-white dark:bg-gray-700"
@@ -3411,11 +3410,11 @@ const move_cursor_to_the_end = (e: React.FocusEvent<HTMLInputElement>) => {
 
 const TextArea = ({
   node_id,
-  ...div_props
-}: { node_id: types.TNodeId } & React.HTMLProps<HTMLDivElement>) => {
+  ...textarea_props
+}: { node_id: types.TNodeId } & React.HTMLProps<HTMLTextAreaElement>) => {
   const root = useSelector((state) => state.data.root);
   return node_id === root ? null : (
-    <TextAreaImpl node_id={node_id} {...div_props} />
+    <TextAreaImpl node_id={node_id} {...textarea_props} />
   );
 };
 
@@ -3425,19 +3424,20 @@ const prevent_propagation = (e: React.MouseEvent) => {
 
 const TextAreaImpl = ({
   node_id,
-  ...div_props
-}: { node_id: types.TNodeId } & React.HTMLProps<HTMLDivElement>) => {
+  ...textarea_props
+}: { node_id: types.TNodeId } & React.HTMLProps<HTMLTextAreaElement>) => {
   const state_text = useSelector((state) => state.data.nodes[node_id].text);
   const status = useSelector((state) => state.data.nodes[node_id].status);
   const dispatch = useDispatch();
 
   const dispatch_set_text_action = useCallback(
-    (e: React.ChangeEvent<HTMLDivElement>) => {
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      console.log("dispatch_set_text_action");
       const el = e.target;
       dispatch(
         set_text_action({
           k: node_id,
-          text: el.innerText,
+          text: el.value,
         }),
       );
     },
@@ -3446,50 +3446,65 @@ const TextAreaImpl = ({
   return (
     <AutoHeightTextArea
       text={state_text}
-      onKeyDown={insert_plain_enter}
       onBlur={dispatch_set_text_action}
       onDoubleClick={prevent_propagation}
       className={utils.join(
-        "textarea whitespace-pre-wrap overflow-wrap-anywhere w-[29em] overflow-hidden p-[0.125em] bg-white dark:bg-gray-700",
+        "whitespace-pre-wrap overflow-wrap-anywhere w-[29em] overflow-hidden p-[0.125em] bg-white dark:bg-gray-700",
         status === "done"
           ? "text-red-600 dark:text-red-400"
           : status === "dont"
           ? "text-gray-500"
           : undefined,
       )}
-      {...div_props}
+      {...textarea_props}
     />
   );
 };
 
 const AutoHeightTextArea = ({
   text,
-  ...div_props
+  className,
+  ...textarea_props
 }: {
   text: string;
-} & React.HTMLProps<HTMLDivElement>) => {
-  const [text_prev, set_text_prev] = useState(text);
-  if (text !== text_prev) {
-    set_text_prev(text);
-  }
+} & React.HTMLProps<HTMLTextAreaElement>) => {
+  const [local_text, set_local_text] = React.useState(text);
+  React.useEffect(() => {
+    set_local_text(text);
+  }, [text]);
+  const ref = React.useRef<HTMLDivElement>(null);
+  const on_change = React.useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const el = e.target;
+      const spacer = ref.current;
+      if (spacer) {
+        spacer.textContent = handle_trailing_newline(el.value);
+      }
+      set_local_text(el.value);
+    },
+    [ref],
+  );
+
   return (
-    <div
-      {...div_props}
-      contentEditable
-      suppressContentEditableWarning
-      onKeyDown={insert_plain_enter}
-    >
-      {text}
+    <div className="auto_height_container">
+      <div
+        className={utils.join(className, "auto_height_spacer")}
+        aria-hidden="true"
+        ref={ref}
+      >
+        {handle_trailing_newline(text)}
+      </div>
+      <textarea
+        className="auto_height_textarea"
+        onChange={on_change}
+        value={local_text}
+        {...textarea_props}
+      />
     </div>
   );
 };
 
-const insert_plain_enter = (event: React.KeyboardEvent<HTMLElement>) => {
-  if (event.key === "Enter") {
-    document.execCommand("insertLineBreak");
-    event.preventDefault();
-  }
-};
+const handle_trailing_newline = (x: string) => x + "\u200b";
 
 const LastRange = (props: { node_id: types.TNodeId }) => {
   const ranges = useSelector((state) => state.data.nodes[props.node_id].ranges);
