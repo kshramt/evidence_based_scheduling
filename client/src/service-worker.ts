@@ -23,7 +23,7 @@ clientsClaim();
 // even if you decide not to use precaching. See https://cra.link/PWA
 precacheAndRoute(self.__WB_MANIFEST);
 
-const network_first = new NetworkFirst();
+const network_first = new NetworkFirst({cacheName: "app"});
 registerRoute("/", network_first);
 registerRoute(/^\/app\/.+/, network_first);
 
