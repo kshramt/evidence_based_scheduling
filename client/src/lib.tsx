@@ -3478,7 +3478,7 @@ const AutoHeightTextArea = ({
       const el = e.target;
       const spacer = ref.current;
       if (spacer) {
-        spacer.textContent = ensure_non_zero_height(el.value);
+        spacer.textContent = handle_trailing_newline(el.value);
       }
       set_local_text(el.value);
     },
@@ -3492,7 +3492,7 @@ const AutoHeightTextArea = ({
         aria-hidden="true"
         ref={ref}
       >
-        {ensure_non_zero_height(text)}
+        {handle_trailing_newline(text)}
       </div>
       <textarea
         className="auto_height_textarea"
@@ -3504,7 +3504,7 @@ const AutoHeightTextArea = ({
   );
 };
 
-const ensure_non_zero_height = (x: string) => x || "\u200b";
+const handle_trailing_newline = (x: string) => x + "\u200b";
 
 const LastRange = (props: { node_id: types.TNodeId }) => {
   const ranges = useSelector((state) => state.data.nodes[props.node_id].ranges);
