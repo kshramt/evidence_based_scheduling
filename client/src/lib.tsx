@@ -3495,7 +3495,7 @@ const AutoHeightTextArea = ({
         {handle_trailing_newline(text)}
       </div>
       <textarea
-        className="auto_height_textarea"
+        className={utils.join(className, "auto_height_textarea")}
         onChange={on_change}
         value={local_text}
         {...textarea_props}
