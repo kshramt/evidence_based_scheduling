@@ -17,6 +17,7 @@
     border-width: 1px;
     border-color: gray;
   }
+  tr,
   li {
     content-visibility: auto;
     contain-intrinsic-size: auto 1em;
