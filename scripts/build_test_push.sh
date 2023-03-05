@@ -73,7 +73,7 @@ if [[ "${os}" = "${host_os}" && "${arch}" = "${host_arch}" ]]; then
     --mount "type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock" \
     -e "MY_COMPOSE_DIR=${PWD}" \
     -e MY_HOST="host.docker.internal" \
-    --add-host=host.docker.internal:host-gateway \
+    "${add_host}" \
     --init \
     --rm \
     "${img_prefix}/tests_server:h-${github_sha}-${os}-${arch}" \

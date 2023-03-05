@@ -1,32 +1,8 @@
 name: ci
 on: [push]
 jobs:
-  set-vars:
-    runs-on: ubuntu-latest
-    outputs:
-      ref-b64: ${{ steps.vars.outputs.ref-b64 }}
-      tmp-dir: ${{ steps.vars.outputs.tmp-dir }}
-      host-arch: ${{ steps.vars.outputs.host-arch }}
-      host-os: ${{ steps.vars.outputs.host-os }}
-    steps:
-    - id: vars
-      run: |
-        set -xv
-        set -o errexit
-        set -o pipefail
-        {
-        echo "ref-b64=$(echo "${{ github.ref }}" | base64 --wrap 0 | sed -e 's/=//g')"
-        echo "tmp-dir=$(mktemp -d)"
-        echo "host-arch=$(docker version --format '{{ (index .Server.Components 0).Details.Arch }}')"
-        echo "host-os=$(docker version --format '{{ (index .Server.Components 0).Details.Os }}')"
-        } >> "$GITHUB_OUTPUT"
   build-images:
-    needs: [set-vars]
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        os: [linux]
-        arch: [amd64, arm64]
     steps:
     - uses: actions/checkout@v3
     - uses: docker/setup-qemu-action@v2
@@ -36,15 +12,23 @@ jobs:
         registry: ghcr.io
         username: ${{ github.repository_owner }}
         password: ${{ secrets.GITHUB_TOKEN }}
-    - run: scripts/build_test_push.sh ${{ github.sha }} ${{ needs.set-vars.outputs.ref-b64 }} ${{ matrix.os }} ${{ matrix.arch }} ${{ github.ref }} ${{ github.run_number }} ${{ needs.set-vars.outputs.host-arch }} ${{ needs.set-vars.outputs.host-os }}
-  build-manifests:
-    needs: [build-images]
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - uses: docker/login-action@v2
-      with:
-        registry: ghcr.io
-        username: ${{ github.repository_owner }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    - run: scripts/publish_manifests.sh ${{ github.sha }} ${{ github.ref }} ${{ github.run_number }}
+    # - uses: docker/build-push-action@v4
+    #   with:
+    #     push: false
+    #     tags: r:3
+    #     cache-from: type=gha
+    #     cache-to: type=gha,mode=max
+    #     target: api
+    #     outputs: type=docker
+    # - uses: docker/build-push-action@v4
+    #   with:
+    #     push: false
+    #     tags: t:3
+    #     cache-from: type=gha
+    #     cache-to: type=gha,mode=max
+    #     target: tester
+    #     outputs: type=docker
+    - run: docker buildx build --load --target tester -t t:3 .
+    - run: docker buildx build --load --target api -t q:3 .
+    # - run: docker build --target api -t q:8 .
+    - run: DOCKER_BUILDKIT=1 docker run --add-host=host.docker.internal:host-gateway --mount type=bind,source="${HOME}/.docker/buildx",target="/root/.docker/buildx" --mount type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock --mount type=bind,source="$PWD",target="$PWD" -e WD="$PWD" --rm  t:3
