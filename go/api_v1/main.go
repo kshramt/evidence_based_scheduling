@@ -20,6 +20,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/kshramt/evidence_based_scheduling/api_v1_grpc"
 	dbpkg "github.com/kshramt/evidence_based_scheduling/db"
@@ -133,6 +134,55 @@ func (s *apiServer) CreateClient(ctx context.Context, req *api_v1_grpc.CreateCli
 	}
 	tx.Commit(ctx)
 	return res, nil
+}
+
+func (s *apiServer) GetPendingPatches(ctx context.Context, req *api_v1_grpc.GetPendingPatchesReq) (*api_v1_grpc.GetPendingPatchesResp, error) {
+	token, err := get_token(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	qtx := s.queries.WithTx(tx)
+
+	if req.ClientId == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "client_id is nil")
+	}
+	if req.Size == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "size is nil")
+	}
+	patches, err := qtx.GetPendingPatches(ctx, &dbpkg.GetPendingPatchesParams{UserID: token.UserId, ClientID: *req.ClientId, Limit: mini64(*req.Size, 200)})
+
+	if err != nil {
+		return nil, err
+	}
+	tx.Commit(ctx)
+	res := &api_v1_grpc.GetPendingPatchesResp{Patches: make([]*api_v1_grpc.GetPendingPatchesResp_Patch, 0, len(patches))}
+	fmt.Println(res, len(patches))
+	for i := range patches {
+		res.Patches = append(res.Patches, &api_v1_grpc.GetPendingPatchesResp_Patch{
+			ClientId: &patches[i].ClientID,
+			SessionId: &patches[i].SessionID,
+			PatchId: &patches[i].PatchID,
+			ParentClientId: &patches[i].ParentClientID,
+			ParentSessionId: &patches[i].ParentSessionID,
+			ParentPatchId: &patches[i].ParentPatchID,
+			Patch: &patches[i].Patch,
+			CreatedAt: timestamppb.New(patches[i].CreatedAt.Time),
+		})
+	}
+	return res, nil
+}
+
+func mini64(a, b int64) int64 {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func get_token(ctx context.Context) (*token, error) {

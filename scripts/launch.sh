@@ -44,3 +44,4 @@ docker container rm --force "${container_id}"
 
 # Start
 docker compose -f compose.yaml -f "compose.${ENV:-prod}.yaml" up -d
+# docker compose -f compose.yaml -f "compose.${ENV:-prod}.yaml" up &

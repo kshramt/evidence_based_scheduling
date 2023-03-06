@@ -30,6 +30,7 @@ async def test_walkthrough(
     ) as channel:
         stub = api_v1_pb2_grpc.ApiStub(channel)
 
+        # CreateUser
         _: api_v1_pb2.CreateUserResp = await stub.CreateUser(
             request=api_v1_pb2.CreateUserReq(user_id="test_user1")
         )
@@ -38,19 +39,39 @@ async def test_walkthrough(
             request=api_v1_pb2.CreateUserReq(user_id="test_user2")
         )
 
+        # CreateClient
         token = _get_token("test_user1")
-        resp: api_v1_pb2.CreateClientResp = await stub.CreateClient(
+        create_client_resp: api_v1_pb2.CreateClientResp = await stub.CreateClient(
             request=api_v1_pb2.CreateClientReq(name="test_client"),
             metadata=(("authorization", f"Bearer {token}"),),
         )
-        assert resp.HasField("client_id")
-        assert resp.client_id == 1
-        resp: api_v1_pb2.CreateClientResp = await stub.CreateClient(
+        assert create_client_resp.HasField("client_id")
+        assert create_client_resp.client_id == 1
+        create_client_resp: api_v1_pb2.CreateClientResp = await stub.CreateClient(
             request=api_v1_pb2.CreateClientReq(name="test_client"),
             metadata=(("authorization", f"Bearer {token}"),),
         )
-        assert resp.HasField("client_id")
-        assert resp.client_id == 2
+        assert create_client_resp.HasField("client_id")
+        assert create_client_resp.client_id == 2
+
+        # GetPendingPatches
+        get_pending_patches_resp: api_v1_pb2.GetPendingPatchesResp = (
+            await stub.GetPendingPatches(
+                request=api_v1_pb2.GetPendingPatchesReq(client_id=1, size=100),
+                metadata=(("authorization", f"Bearer {token}"),),
+            )
+        )
+        assert len(get_pending_patches_resp.patches) == 1
+        patch = get_pending_patches_resp.patches[0]
+        assert patch.client_id == 0
+        assert patch.session_id == 0
+        assert patch.patch_id == 0
+        assert patch.parent_client_id == 0
+        assert patch.parent_session_id == 0
+        assert patch.parent_patch_id == 0
+        assert json.loads(patch.patch) == [
+            {"op": "replace", "path": "", "value": {"data": None}}
+        ]
 
 
 def _get_token(user_id: str) -> str:

@@ -106,3 +106,26 @@ from
   inner join new_patches on app.clients.user_id = new_patches.user_id
   and app.clients.client_id != 0
   and app.clients.client_id != new_patches.client_id;
+
+-- name: GetPendingPatches :many
+select
+  patches.user_id,
+  patches.client_id,
+  patches.session_id,
+  patches.patch_id,
+  patches.parent_client_id,
+  patches.parent_session_id,
+  patches.parent_patch_id,
+  (patches.patch #>> '{}')::text as patch,
+  patches.created_at
+from
+  app.pending_patches pending_patches
+  inner join app.patches patches on pending_patches.user_id = patches.user_id
+  and pending_patches.producer_client_id = patches.client_id
+  and pending_patches.producer_session_id = patches.session_id
+  and pending_patches.producer_patch_id = patches.patch_id
+where
+  pending_patches.user_id = @user_id
+  and pending_patches.consumer_client_id = @client_id
+limit
+  @limit_::bigint;

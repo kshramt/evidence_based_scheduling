@@ -1,4 +1,4 @@
-# Evidence Based Scheduling
+= Evidence Based Scheduling
 
 [![ci](https://github.com/kshramt/evidence_based_scheduling/actions/workflows/ci.yml/badge.svg)](https://github.com/kshramt/evidence_based_scheduling/actions/workflows/ci.yml)
 
@@ -6,9 +6,10 @@ This is a TODO application, which supports [the evidence based scheduling](https
 
 The numbers shown on the right are the 0th, 10th, 33rd, 50th, 67th, 90th, and 100th percentiles of the estimated completion time in hours.
 
-## Usage
+== Usage
 
-```
+[source,bash]
+----
 docker run \
   --rm \
   --init \
@@ -43,20 +44,29 @@ docker run \
 # journalctl  CONTAINER_NAME=ebs
 
 # docker pull ghcr.io/kshramt/evidence_based_scheduling:latest && docker container stop ebs && docker container rm ebs
-```
+----
 
-## Development
+== Development
 
-```bash
+[source,bash]
+----
 docker compose -f compose.yaml -f compose.dev.yaml up --build
-```
+----
 
-```
+[source,bash]
+----
 UVICORN_PORT=5000 make run_api
-```
+----
 
-```
+[source,bash]
+----
 cd client
 PORT=3000 DANGEROUSLY_DISABLE_HOST_CHECK=true npm run start
 xdg-open http://localhost:3000
-```
+----
+
+[source,bash]
+----
+docker build -t t:2 --target tests_server .
+docker run --mount "type=bind,source=${PWD},target=${PWD}" --mount "type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock" --mount type=bind,source="${HOME}/.docker/buildx,target=/root/.docker/buildx" -e MY_HOST=host.docker.internal -e "MY_COMPOSE_DIR=${PWD}" --add-host=host.docker.internal:host-gateway --init --rm t:2 .venv/bin/python3 -m pytest -s src
+----
