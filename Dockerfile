@@ -112,7 +112,7 @@ from base_protoc as go_api_v1_grpc_builder
 workdir /app
 copy proto proto
 run mkdir -p api_v1_grpc \
-   && protoc -Iproto api_v1.proto --go_out api_v1_grpc --go_opt paths=source_relative --go-grpc_out api_v1_grpc --go-grpc_opt paths=source_relative  --go_opt Mapi_v1.proto=github.com/kshramt/evidence_based_scheduling/api_v1_grpc --go-grpc_opt Mapi_v1.proto=github.com/kshramt/evidence_based_scheduling/api_v1_grpc
+   && protoc --experimental_allow_proto3_optional -Iproto api_v1.proto --go_out api_v1_grpc --go_opt paths=source_relative --go-grpc_out api_v1_grpc --go-grpc_opt paths=source_relative  --go_opt Mapi_v1.proto=github.com/kshramt/evidence_based_scheduling/api_v1_grpc --go-grpc_opt Mapi_v1.proto=github.com/kshramt/evidence_based_scheduling/api_v1_grpc
 
 from base_protoc as tests_server_grpc_builder
 workdir /app
@@ -152,8 +152,8 @@ from base_poetry as tests_server
 copy --from=docker/buildx-bin:0.10.3 /buildx /usr/libexec/docker/cli-plugins/docker-buildx
 copy --from=docker_go_builder /go/bin/docker /usr/local/bin/docker
 copy --from=docker_go_builder /go/bin/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
-copy --from=tests_server_grpc_builder /app/gen src/gen
 copy tests/server/poetry.toml tests/server/pyproject.toml tests/server/poetry.lock .
 run --mount=type=cache,target=/root/.cache python3 -m poetry install --only main
 copy tests/server/src src
+copy --from=tests_server_grpc_builder /app/gen src/gen
 run --mount=type=cache,target=/root/.cache python3 -m poetry install --only main
