@@ -31,6 +31,11 @@ def adminer_port() -> str:
 
 
 @pytest.fixture
+def api_v1_port() -> str:
+    return _get_free_port()
+
+
+@pytest.fixture
 def envoy_http_port() -> str:
     return _get_free_port()
 
@@ -133,6 +138,7 @@ def compose_build_envs(
 @pytest.fixture
 def compose_up_envs(
     uuid1: str,
+    api_v1_port: str,
     compose_common_envs: None,
     envoy_http_port: str,
     envoy_grpc_port: str,

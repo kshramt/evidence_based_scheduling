@@ -71,7 +71,7 @@ if [[ "${os}" = "${host_os}" && "${arch}" = "${host_arch}" ]]; then
     --init \
     --rm \
     "${img_prefix}/tests_server:h-${github_sha}-${os}-${arch}" \
-    .venv/bin/python3 -m pytest -s src
+    .venv/bin/python3 -m pytest src
 fi
 
 for service in "${services[@]}"

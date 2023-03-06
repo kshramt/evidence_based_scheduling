@@ -37,7 +37,7 @@ with
 insert into
   app.pending_patches (
     user_id,
-    client_id,
+    consumer_client_id,
     producer_client_id,
     producer_session_id,
     producer_patch_id
@@ -58,14 +58,28 @@ from
 with
   new_patches as (
     insert into
-      app.patches (user_id, client_id, session_id, patch_id, patch)
+      app.patches (
+        user_id,
+        client_id,
+        session_id,
+        patch_id,
+        parent_client_id,
+        parent_session_id,
+        parent_patch_id,
+        patch,
+        created_at
+      )
     values
       (
         unnest(@user_ids::text[]),
         unnest(@client_ids::bigint[]),
         unnest(@session_ids::bigint[]),
         unnest(@patch_ids::bigint[]),
-        unnest(@patches::jsonb[])
+        unnest(@parent_client_ids::bigint[]),
+        unnest(@parent_session_ids::bigint[]),
+        unnest(@parent_patch_ids::bigint[]),
+        unnest(@patches::jsonb[]),
+        unnest(@created_at::timestamp with time zone [])
       )
     returning
       user_id,

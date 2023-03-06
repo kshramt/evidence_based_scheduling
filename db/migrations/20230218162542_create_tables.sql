@@ -2,7 +2,6 @@
 create table
   app.users (
     id text primary key,
-    email text not null unique,
     created_at timestamp with time zone not null default current_timestamp,
     updated_at timestamp with time zone not null default current_timestamp
   );

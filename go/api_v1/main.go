@@ -7,8 +7,10 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/jackc/pgx/v5"
+	pgtype "github.com/jackc/pgx/v5/pgtype"
 	pgxpool "github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -29,30 +31,34 @@ type apiServer struct {
 // 2. Create a new seq for the user.
 // 3. Create the system client for the user.
 // 4. Create the initial patch for the user.
-func createUser(ctx context.Context, qtx *dbpkg.Queries, user_id string) (*api_v1_grpc.CreateUserResp, error) {
-	_, err := qtx.RawCreateUser(ctx, user_id)
+func createUser(ctx context.Context, qtx *dbpkg.Queries, req *api_v1_grpc.CreateUserReq) (*api_v1_grpc.CreateUserResp, error) {
+	_, err := qtx.RawCreateUser(ctx, req.UserId)
 	if err != nil {
 		return nil, err
 	}
-	_, err = qtx.CreateSeq(ctx, user_id)
+	_, err = qtx.CreateSeq(ctx, req.UserId)
 	if err != nil {
 		return nil, err
 	}
-	_, err = createClient(ctx, qtx, user_id, 0, "System")
+	_, err = createClient(ctx, qtx, req.UserId, 0, "System")
 	if err != nil {
 		return nil, err
 	}
-	user_ids := []string{user_id}
+	user_ids := []string{req.UserId}
 	client_ids := []int64{0}
 	session_ids := []int64{0}
 	patch_ids := []int64{0}
 	patches := [][]byte{[]byte(`[{"op":"replace","path":"","value":{"data":null}}]`)}
 	err = qtx.CreatePatches(ctx, &dbpkg.CreatePatchesParams{
-		UserIds:    user_ids,
-		ClientIds:  client_ids,
-		SessionIds: session_ids,
-		PatchIds:   patch_ids,
-		Patches:    patches,
+		UserIds:          user_ids,
+		ClientIds:        client_ids,
+		SessionIds:       session_ids,
+		PatchIds:         patch_ids,
+		ParentClientIds:  client_ids,
+		ParentSessionIds: session_ids,
+		ParentPatchIds:   patch_ids,
+		Patches:          patches,
+		CreatedAt:        []pgtype.Timestamptz{{Time: time.Now(), Valid: true}},
 	})
 	if err != nil {
 		return nil, err
@@ -76,17 +82,13 @@ func createClient(ctx context.Context, qtx *dbpkg.Queries, user_id string, clien
 }
 
 func (s *apiServer) CreateUser(ctx context.Context, req *api_v1_grpc.CreateUserReq) (*api_v1_grpc.CreateUserResp, error) {
-	id, err := s.idgen.Next()
-	if err != nil {
-		return nil, err
-	}
 	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback(ctx)
 	qtx := s.queries.WithTx(tx)
-	res, err := createUser(ctx, qtx, idgens.Base62(id[:]))
+	res, err := createUser(ctx, qtx, req)
 	if err != nil {
 		return nil, err
 	}

@@ -8,9 +8,6 @@ service Api {
   // Create a user in the sign-up page.
   rpc CreateUser(CreateUserReq) returns (CreateUserResp);
 
-  // Get a user token in hte sign-in page.
-  rpc GetToken(GetTokenReq) returns (GetTokenResp);
-
   // As we know the user ID, we can check a client ID is assigned in the browser.
   // If none exists, create a client and use the clietn ID to popurate necessary DBs.
   rpc CreateClient(CreateClientReq) returns (CreateClientResp);
@@ -32,17 +29,10 @@ service Api {
 }
 
 message CreateUserReq {
-  string email = 1;
+  // `user_id` will be provided by an ID provider.
+  string user_id = 1;
 }
 message CreateUserResp {
-}
-
-message GetTokenReq {
-  string email = 1;
-}
-message GetTokenResp {
-  string user_id = 1;
-  string email = 2;
 }
 
 message CreateClientReq {
