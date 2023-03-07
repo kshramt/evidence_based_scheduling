@@ -45,8 +45,9 @@ async def test_walkthrough(
             request=api_v1_pb2.CreateClientReq(name="test_client"),
             metadata=(("authorization", f"Bearer {token}"),),
         )
+        client_id_1 = 1
         assert create_client_resp.HasField("client_id")
-        assert create_client_resp.client_id == 1
+        assert create_client_resp.client_id == client_id_1
         create_client_resp: api_v1_pb2.CreateClientResp = await stub.CreateClient(
             request=api_v1_pb2.CreateClientReq(name="test_client"),
             metadata=(("authorization", f"Bearer {token}"),),
@@ -57,7 +58,7 @@ async def test_walkthrough(
         # GetPendingPatches
         get_pending_patches_resp: api_v1_pb2.GetPendingPatchesResp = (
             await stub.GetPendingPatches(
-                request=api_v1_pb2.GetPendingPatchesReq(client_id=1, size=100),
+                request=api_v1_pb2.GetPendingPatchesReq(client_id=client_id_1, size=100),
                 metadata=(("authorization", f"Bearer {token}"),),
             )
         )
@@ -72,6 +73,33 @@ async def test_walkthrough(
         assert json.loads(patch.patch) == [
             {"op": "replace", "path": "", "value": {"data": None}}
         ]
+
+        # DeletePendingPatches
+        delete_pending_patches_resp: api_v1_pb2.DeletePendingPatchesResp = (
+            await stub.DeletePendingPatches(
+                request=api_v1_pb2.DeletePendingPatchesReq(
+                    client_id=client_id_1,
+                    patches=[
+                        api_v1_pb2.DeletePendingPatchesReq.Patch(
+                            client_id=patch.client_id,
+                            session_id=patch.session_id,
+                            patch_id=patch.patch_id,
+                        )
+                        for patch in get_pending_patches_resp.patches
+                    ],
+                ),
+                metadata=(("authorization", f"Bearer {token}"),),
+            )
+        )
+
+        # GetPendingPatches again
+        get_pending_patches_resp: api_v1_pb2.GetPendingPatchesResp = (
+            await stub.GetPendingPatches(
+                request=api_v1_pb2.GetPendingPatchesReq(client_id=client_id_1, size=100),
+                metadata=(("authorization", f"Bearer {token}"),),
+            )
+        )
+        assert len(get_pending_patches_resp.patches) == 0
 
 
 def _get_token(user_id: str) -> str:

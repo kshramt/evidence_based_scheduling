@@ -148,6 +148,7 @@ def compose_up_envs(
     with unittest.mock.patch.dict(
         os.environ,
         dict(
+            API_V1_PORT=api_v1_port,
             COMPOSE_PROJECT_NAME=uuid1,
             ENVOY_HTTP_PORT=envoy_http_port,
             ENVOY_GRPC_PORT=envoy_grpc_port,

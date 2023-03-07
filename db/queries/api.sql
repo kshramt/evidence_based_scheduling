@@ -116,7 +116,7 @@ select
   patches.parent_client_id,
   patches.parent_session_id,
   patches.parent_patch_id,
-  (patches.patch #>> '{}')::text as patch,
+  patches.patch,
   patches.created_at
 from
   app.pending_patches pending_patches
@@ -129,3 +129,21 @@ where
   and pending_patches.consumer_client_id = @client_id
 limit
   @limit_::bigint;
+
+-- name: DeletePendingPatches :exec
+delete from app.pending_patches
+where
+  (
+    user_id,
+    consumer_client_id,
+    producer_client_id,
+    producer_session_id,
+    producer_patch_id
+  ) in (
+    select
+      unnest(@user_ids::text[]),
+      unnest(@client_ids::bigint[]),
+      unnest(@producer_client_ids::bigint[]),
+      unnest(@producer_session_ids::bigint[]),
+      unnest(@producer_patch_ids::bigint[])
+  );

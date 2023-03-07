@@ -164,18 +164,65 @@ func (s *apiServer) GetPendingPatches(ctx context.Context, req *api_v1_grpc.GetP
 	res := &api_v1_grpc.GetPendingPatchesResp{Patches: make([]*api_v1_grpc.GetPendingPatchesResp_Patch, 0, len(patches))}
 	fmt.Println(res, len(patches))
 	for i := range patches {
+		patch := string(patches[i].Patch)
 		res.Patches = append(res.Patches, &api_v1_grpc.GetPendingPatchesResp_Patch{
-			ClientId: &patches[i].ClientID,
-			SessionId: &patches[i].SessionID,
-			PatchId: &patches[i].PatchID,
-			ParentClientId: &patches[i].ParentClientID,
+			ClientId:        &patches[i].ClientID,
+			SessionId:       &patches[i].SessionID,
+			PatchId:         &patches[i].PatchID,
+			ParentClientId:  &patches[i].ParentClientID,
 			ParentSessionId: &patches[i].ParentSessionID,
-			ParentPatchId: &patches[i].ParentPatchID,
-			Patch: &patches[i].Patch,
-			CreatedAt: timestamppb.New(patches[i].CreatedAt.Time),
+			ParentPatchId:   &patches[i].ParentPatchID,
+			Patch:           &patch,
+			CreatedAt:       timestamppb.New(patches[i].CreatedAt.Time),
 		})
 	}
 	return res, nil
+}
+
+func (s *apiServer) DeletePendingPatches(ctx context.Context, req *api_v1_grpc.DeletePendingPatchesReq) (*api_v1_grpc.DeletePendingPatchesResp, error) {
+	token, err := get_token(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	qtx := s.queries.WithTx(tx)
+
+	if req.ClientId == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "client_id is nil")
+	}
+	n := len(req.Patches)
+	user_ids := make([]string, 0, n)
+	client_ids := make([]int64, 0, n)
+	producer_client_ids := make([]int64, 0, n)
+	producer_session_ids := make([]int64, 0, n)
+	producer_patch_ids := make([]int64, 0, n)
+	for i := range req.Patches {
+		user_ids = append(user_ids, token.UserId)
+		client_ids = append(client_ids, *req.ClientId)
+		if req.Patches[i].ClientId == nil {
+			return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("producer_client_id is nil for patch %d", i))
+		}
+		producer_client_ids = append(producer_client_ids, *req.Patches[i].ClientId)
+		if req.Patches[i].SessionId == nil {
+			return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("producer_session_id is nil for patch %d", i))
+		}
+		producer_session_ids = append(producer_session_ids, *req.Patches[i].SessionId)
+		if req.Patches[i].PatchId == nil {
+			return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("producer_patch_id is nil for patch %d", i))
+		}
+		producer_patch_ids = append(producer_patch_ids, *req.Patches[i].PatchId)
+	}
+	err = qtx.DeletePendingPatches(ctx, &dbpkg.DeletePendingPatchesParams{UserIds: user_ids, ClientIds: client_ids, ProducerClientIds: producer_client_ids, ProducerSessionIds: producer_session_ids, ProducerPatchIds: producer_patch_ids})
+	if err != nil {
+		return nil, err
+	}
+	tx.Commit(ctx)
+	return &api_v1_grpc.DeletePendingPatchesResp{}, nil
 }
 
 func mini64(a, b int64) int64 {
