@@ -3,6 +3,8 @@ import collections.abc
 import json
 import os
 
+import google.protobuf.json_format
+import google.protobuf.timestamp_pb2
 import grpc
 import httpx
 import pytest
@@ -46,6 +48,7 @@ async def test_walkthrough(
             metadata=(("authorization", f"Bearer {token}"),),
         )
         client_id_1 = 1
+        client_id_2 = 2
         assert create_client_resp.HasField("client_id")
         assert create_client_resp.client_id == client_id_1
         create_client_resp: api_v1_pb2.CreateClientResp = await stub.CreateClient(
@@ -53,24 +56,26 @@ async def test_walkthrough(
             metadata=(("authorization", f"Bearer {token}"),),
         )
         assert create_client_resp.HasField("client_id")
-        assert create_client_resp.client_id == 2
+        assert create_client_resp.client_id == client_id_2
 
         # GetPendingPatches
         get_pending_patches_resp: api_v1_pb2.GetPendingPatchesResp = (
             await stub.GetPendingPatches(
-                request=api_v1_pb2.GetPendingPatchesReq(client_id=client_id_1, size=100),
+                request=api_v1_pb2.GetPendingPatchesReq(
+                    client_id=client_id_1, size=100
+                ),
                 metadata=(("authorization", f"Bearer {token}"),),
             )
         )
         assert len(get_pending_patches_resp.patches) == 1
-        patch = get_pending_patches_resp.patches[0]
-        assert patch.client_id == 0
-        assert patch.session_id == 0
-        assert patch.patch_id == 0
-        assert patch.parent_client_id == 0
-        assert patch.parent_session_id == 0
-        assert patch.parent_patch_id == 0
-        assert json.loads(patch.patch) == [
+        patch_0 = get_pending_patches_resp.patches[0]
+        assert patch_0.client_id == 0
+        assert patch_0.session_id == 0
+        assert patch_0.patch_id == 0
+        assert patch_0.parent_client_id == 0
+        assert patch_0.parent_session_id == 0
+        assert patch_0.parent_patch_id == 0
+        assert json.loads(patch_0.patch) == [
             {"op": "replace", "path": "", "value": {"data": None}}
         ]
 
@@ -95,11 +100,65 @@ async def test_walkthrough(
         # GetPendingPatches again
         get_pending_patches_resp: api_v1_pb2.GetPendingPatchesResp = (
             await stub.GetPendingPatches(
-                request=api_v1_pb2.GetPendingPatchesReq(client_id=client_id_1, size=100),
+                request=api_v1_pb2.GetPendingPatchesReq(
+                    client_id=client_id_1, size=100
+                ),
                 metadata=(("authorization", f"Bearer {token}"),),
             )
         )
         assert len(get_pending_patches_resp.patches) == 0
+
+        # CreatePatches
+        now = google.protobuf.timestamp_pb2.Timestamp()
+        now.GetCurrentTime()
+        patch_1 = api_v1_pb2.Patch(
+            client_id=client_id_1,
+            session_id=1,
+            patch_id=1,
+            patch=json.dumps(
+                [
+                    {
+                        "op": "replace",
+                        "path": "/data",
+                        "value": {"nodes": {"a": {"text": "test_text"}}},
+                    }
+                ]
+            ),
+            parent_client_id=0,
+            parent_session_id=0,
+            parent_patch_id=0,
+            created_at=now,
+        )
+
+        create_patches_resp: api_v1_pb2.CreatePatchesResp = await stub.CreatePatches(
+            request=api_v1_pb2.CreatePatchesReq(patches=[patch_1]),
+            metadata=(("authorization", f"Bearer {token}"),),
+        )
+        # GetPendingPatches from client_id_1
+        get_pending_patches_resp: api_v1_pb2.GetPendingPatchesResp = (
+            await stub.GetPendingPatches(
+                request=api_v1_pb2.GetPendingPatchesReq(
+                    client_id=client_id_1, size=100
+                ),
+                metadata=(("authorization", f"Bearer {token}"),),
+            )
+        )
+        assert len(get_pending_patches_resp.patches) == 0
+        # GetPendingPatches from client_id_2
+        get_pending_patches_resp: api_v1_pb2.GetPendingPatchesResp = (
+            await stub.GetPendingPatches(
+                request=api_v1_pb2.GetPendingPatchesReq(
+                    client_id=client_id_2, size=100
+                ),
+                metadata=(("authorization", f"Bearer {token}"),),
+            )
+        )
+        assert len(get_pending_patches_resp.patches) == 2
+        actual_0, actual_1 = sorted(
+            get_pending_patches_resp.patches, key=lambda p: p.created_at.ToDatetime()
+        )
+        assert actual_0 == patch_0
+        assert actual_1 == patch_1
 
 
 def _get_token(user_id: str) -> str:

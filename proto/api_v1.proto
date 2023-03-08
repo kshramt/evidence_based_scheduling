@@ -28,6 +28,17 @@ service Api {
   rpc PutCurrentPatchIdIfNotMOdified(PutCurrentPatchIdIfNotMOdifiedReq) returns (PutCurrentPatchIdIfNotMOdifiedResp);
 }
 
+message Patch {
+  optional int64 client_id = 1;
+  optional int64 session_id = 2;
+  optional int64 patch_id = 3;
+  optional int64 parent_client_id = 4;
+  optional int64 parent_session_id = 5;
+  optional int64 parent_patch_id = 6;
+  optional google.protobuf.Timestamp created_at = 7;
+  optional string patch = 8;;
+}
+
 message CreateUserReq {
   // `user_id` will be provided by an ID provider.
   optional string user_id = 1;
@@ -47,16 +58,6 @@ message GetPendingPatchesReq {
   optional int64 size = 2;
 }
 message GetPendingPatchesResp {
-  message Patch {
-    optional int64 client_id = 1;
-    optional int64 session_id = 2;
-    optional int64 patch_id = 3;
-    optional int64 parent_client_id = 4;
-    optional int64 parent_session_id = 5;
-    optional int64 parent_patch_id = 6;
-    optional google.protobuf.Timestamp created_at = 7;
-    optional string patch = 8;;
-  }
   repeated Patch patches = 1;
 }
 
@@ -73,12 +74,6 @@ message DeletePendingPatchesResp {
 }
 
 message CreatePatchesReq {
-  message Patch {
-    optional int64 patch_id = 2;
-    optional google.protobuf.Timestamp created_at = 3;
-    optional string patch = 4;
-  }
-  optional int64 client_id = 1;
   repeated Patch patches = 2;
 }
 message CreatePatchesResp {

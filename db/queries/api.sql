@@ -79,7 +79,7 @@ with
         unnest(@parent_session_ids::bigint[]),
         unnest(@parent_patch_ids::bigint[]),
         unnest(@patches::jsonb[]),
-        unnest(@created_at::timestamp with time zone [])
+        unnest(@created_ats::timestamp with time zone [])
       )
     returning
       user_id,

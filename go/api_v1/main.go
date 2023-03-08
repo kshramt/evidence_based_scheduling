@@ -35,7 +35,7 @@ type apiServer struct {
 }
 
 type token struct {
-	UserId string `json:"user_id"`
+	UserId *string `json:"user_id"`
 }
 
 // 1. Create a new user.
@@ -75,7 +75,7 @@ func createUser(ctx context.Context, qtx *dbpkg.Queries, user_id *string) (*api_
 		ParentSessionIds: session_ids,
 		ParentPatchIds:   patch_ids,
 		Patches:          patches,
-		CreatedAt:        []pgtype.Timestamptz{{Time: time.Now(), Valid: true}},
+		CreatedAts:       []pgtype.Timestamptz{{Time: time.Now(), Valid: true}},
 	})
 	if err != nil {
 		return nil, err
@@ -128,7 +128,7 @@ func (s *apiServer) CreateClient(ctx context.Context, req *api_v1_grpc.CreateCli
 	}
 	defer tx.Rollback(ctx)
 	qtx := s.queries.WithTx(tx)
-	res, err := createClient(ctx, qtx, token.UserId, -1, req.Name)
+	res, err := createClient(ctx, qtx, *token.UserId, -1, req.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -155,17 +155,17 @@ func (s *apiServer) GetPendingPatches(ctx context.Context, req *api_v1_grpc.GetP
 	if req.Size == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "size is nil")
 	}
-	patches, err := qtx.GetPendingPatches(ctx, &dbpkg.GetPendingPatchesParams{UserID: token.UserId, ClientID: *req.ClientId, Limit: mini64(*req.Size, 200)})
+	patches, err := qtx.GetPendingPatches(ctx, &dbpkg.GetPendingPatchesParams{UserID: *token.UserId, ClientID: *req.ClientId, Limit: mini64(*req.Size, 200)})
 
 	if err != nil {
 		return nil, err
 	}
 	tx.Commit(ctx)
-	res := &api_v1_grpc.GetPendingPatchesResp{Patches: make([]*api_v1_grpc.GetPendingPatchesResp_Patch, 0, len(patches))}
+	res := &api_v1_grpc.GetPendingPatchesResp{Patches: make([]*api_v1_grpc.Patch, 0, len(patches))}
 	fmt.Println(res, len(patches))
 	for i := range patches {
 		patch := string(patches[i].Patch)
-		res.Patches = append(res.Patches, &api_v1_grpc.GetPendingPatchesResp_Patch{
+		res.Patches = append(res.Patches, &api_v1_grpc.Patch{
 			ClientId:        &patches[i].ClientID,
 			SessionId:       &patches[i].SessionID,
 			PatchId:         &patches[i].PatchID,
@@ -202,7 +202,7 @@ func (s *apiServer) DeletePendingPatches(ctx context.Context, req *api_v1_grpc.D
 	producer_session_ids := make([]int64, 0, n)
 	producer_patch_ids := make([]int64, 0, n)
 	for i := range req.Patches {
-		user_ids = append(user_ids, token.UserId)
+		user_ids = append(user_ids, *token.UserId)
 		client_ids = append(client_ids, *req.ClientId)
 		if req.Patches[i].ClientId == nil {
 			return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("producer_client_id is nil for patch %d", i))
@@ -223,6 +223,91 @@ func (s *apiServer) DeletePendingPatches(ctx context.Context, req *api_v1_grpc.D
 	}
 	tx.Commit(ctx)
 	return &api_v1_grpc.DeletePendingPatchesResp{}, nil
+}
+
+func (s *apiServer) CreatePatches(ctx context.Context, req *api_v1_grpc.CreatePatchesReq) (*api_v1_grpc.CreatePatchesResp, error) {
+	token, err := get_token(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.CreatePatchesResp, error) {
+		n := len(req.Patches)
+		user_ids := make([]string, 0, n)
+		client_ids := make([]int64, 0, n)
+		session_ids := make([]int64, 0, n)
+		patch_ids := make([]int64, 0, n)
+		parent_client_ids := make([]int64, 0, n)
+		parent_session_ids := make([]int64, 0, n)
+		parent_patch_ids := make([]int64, 0, n)
+		patches := make([][]byte, 0, n)
+		created_ats := make([]pgtype.Timestamptz, 0, n)
+		for i := range req.Patches {
+			user_ids = append(user_ids, *token.UserId)
+			if req.Patches[i].ClientId == nil {
+				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("client_id is nil for patch %d", i))
+			}
+			client_ids = append(client_ids, *req.Patches[i].ClientId)
+			if req.Patches[i].SessionId == nil {
+				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("session_id is nil for patch %d", i))
+			}
+			session_ids = append(session_ids, *req.Patches[i].SessionId)
+			if req.Patches[i].PatchId == nil {
+				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("patch_id is nil for patch %d", i))
+			}
+			patch_ids = append(patch_ids, *req.Patches[i].PatchId)
+			if req.Patches[i].ParentClientId == nil {
+				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("parent_client_id is nil for patch %d", i))
+			}
+			parent_client_ids = append(parent_client_ids, *req.Patches[i].ParentClientId)
+			if req.Patches[i].ParentSessionId == nil {
+				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("parent_session_id is nil for patch %d", i))
+			}
+			parent_session_ids = append(parent_session_ids, *req.Patches[i].ParentSessionId)
+			if req.Patches[i].ParentPatchId == nil {
+				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("parent_patch_id is nil for patch %d", i))
+			}
+			parent_patch_ids = append(parent_patch_ids, *req.Patches[i].ParentPatchId)
+			if req.Patches[i].Patch == nil {
+				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("patch is nil for patch %d", i))
+			}
+			patches = append(patches, []byte(*req.Patches[i].Patch))
+			if req.Patches[i].CreatedAt == nil {
+				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("created_at is nil for patch %d", i))
+			}
+			created_ats = append(created_ats, pgtype.Timestamptz{Time: req.Patches[i].CreatedAt.AsTime(), Valid: true})
+		}
+		err = qtx.CreatePatches(ctx, &dbpkg.CreatePatchesParams{
+			UserIds:          user_ids,
+			ClientIds:        client_ids,
+			SessionIds:       session_ids,
+			PatchIds:         patch_ids,
+			ParentClientIds:  parent_client_ids,
+			ParentSessionIds: parent_session_ids,
+			ParentPatchIds:   parent_patch_ids,
+			Patches:          patches,
+			CreatedAts:       created_ats,
+		})
+		if err != nil {
+			return nil, err
+		}
+		return &api_v1_grpc.CreatePatchesResp{}, nil
+	})
+}
+
+func withTx[Res any](s *apiServer, ctx context.Context, fn func(qtx *dbpkg.Queries) (*Res, error)) (*Res, error) {
+	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	qtx := s.queries.WithTx(tx)
+
+	res, err := fn(qtx)
+	if err != nil {
+		return nil, err
+	}
+	tx.Commit(ctx)
+	return res, nil
 }
 
 func mini64(a, b int64) int64 {
@@ -258,6 +343,10 @@ func get_token(ctx context.Context) (*token, error) {
 	err = json.Unmarshal(json_str, &token)
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, "invalid json")
+	}
+	// Validate token
+	if token.UserId == nil {
+		return nil, status.Errorf(codes.Unauthenticated, "user_id is not set")
 	}
 	return &token, nil
 }
