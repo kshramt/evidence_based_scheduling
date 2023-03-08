@@ -42,29 +42,34 @@ type token struct {
 // 2. Create a new seq for the user.
 // 3. Create the system client for the user.
 // 4. Create the initial patch for the user.
-func createUser(ctx context.Context, qtx *dbpkg.Queries, user_id *string) (*api_v1_grpc.CreateUserResp, error) {
-	if user_id == nil {
-		return nil, status.Errorf(codes.InvalidArgument, "user_id is nil")
-	}
-	_, err := qtx.RawCreateUser(ctx, *user_id)
+func createUser(ctx context.Context, qtx *dbpkg.Queries, user_id string) (*api_v1_grpc.CreateUserResp, error) {
+	root_client_id := int64(0)
+	root_session_id := int64(0)
+	root_patch_id := int64(0)
+	_, err := qtx.RawCreateUser(ctx, &dbpkg.RawCreateUserParams{
+		ID:            user_id,
+		LeafClientID:  root_client_id,
+		LeafSessionID: root_session_id,
+		LeafPatchID:   root_patch_id,
+	})
 	if err != nil {
 		return nil, err
 	}
-	_, err = qtx.CreateSeq(ctx, *user_id)
+	_, err = qtx.CreateSeq(ctx, user_id)
 	if err != nil {
 		return nil, err
 	}
 	{
 		name := "System"
-		_, err = createClient(ctx, qtx, *user_id, 0, &name)
+		_, err = createClient(ctx, qtx, user_id, 0, &name)
 		if err != nil {
 			return nil, err
 		}
 	}
-	user_ids := []string{*user_id}
-	client_ids := []int64{0}
-	session_ids := []int64{0}
-	patch_ids := []int64{0}
+	user_ids := []string{user_id}
+	client_ids := []int64{int64(root_client_id)}
+	session_ids := []int64{int64(root_session_id)}
+	patch_ids := []int64{int64(root_patch_id)}
 	patches := [][]byte{[]byte(`[{"op":"replace","path":"","value":{"data":null}}]`)}
 	err = qtx.CreatePatches(ctx, &dbpkg.CreatePatchesParams{
 		UserIds:          user_ids,
@@ -102,18 +107,12 @@ func createClient(ctx context.Context, qtx *dbpkg.Queries, user_id string, clien
 }
 
 func (s *apiServer) CreateUser(ctx context.Context, req *api_v1_grpc.CreateUserReq) (*api_v1_grpc.CreateUserResp, error) {
-	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{})
-	if err != nil {
-		return nil, err
+	if req.UserId == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "user_id is nil")
 	}
-	defer tx.Rollback(ctx)
-	qtx := s.queries.WithTx(tx)
-	res, err := createUser(ctx, qtx, req.UserId)
-	if err != nil {
-		return nil, err
-	}
-	tx.Commit(ctx)
-	return res, nil
+	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.CreateUserResp, error) {
+		return createUser(ctx, qtx, *req.UserId)
+	})
 }
 
 func (s *apiServer) CreateClient(ctx context.Context, req *api_v1_grpc.CreateClientReq) (*api_v1_grpc.CreateClientResp, error) {
@@ -122,18 +121,9 @@ func (s *apiServer) CreateClient(ctx context.Context, req *api_v1_grpc.CreateCli
 		return nil, err
 	}
 
-	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{})
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback(ctx)
-	qtx := s.queries.WithTx(tx)
-	res, err := createClient(ctx, qtx, *token.UserId, -1, req.Name)
-	if err != nil {
-		return nil, err
-	}
-	tx.Commit(ctx)
-	return res, nil
+	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.CreateClientResp, error) {
+		return createClient(ctx, qtx, *token.UserId, -1, req.Name)
+	})
 }
 
 func (s *apiServer) GetPendingPatches(ctx context.Context, req *api_v1_grpc.GetPendingPatchesReq) (*api_v1_grpc.GetPendingPatchesResp, error) {
@@ -141,39 +131,31 @@ func (s *apiServer) GetPendingPatches(ctx context.Context, req *api_v1_grpc.GetP
 	if err != nil {
 		return nil, err
 	}
-
-	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{})
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback(ctx)
-	qtx := s.queries.WithTx(tx)
-
 	if req.ClientId == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "client_id is nil")
 	}
 	if req.Size == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "size is nil")
 	}
-	patches, err := qtx.GetPendingPatches(ctx, &dbpkg.GetPendingPatchesParams{UserID: *token.UserId, ClientID: *req.ClientId, Limit: mini64(*req.Size, 200)})
-
+	patches, err := withTx(s, ctx, func(qtx *dbpkg.Queries) (*[]*dbpkg.GetPendingPatchesRow, error) {
+		res, err := qtx.GetPendingPatches(ctx, &dbpkg.GetPendingPatchesParams{UserID: *token.UserId, ClientID: *req.ClientId, Limit: mini64(*req.Size, 200)})
+		return &res, err
+	})
 	if err != nil {
 		return nil, err
 	}
-	tx.Commit(ctx)
-	res := &api_v1_grpc.GetPendingPatchesResp{Patches: make([]*api_v1_grpc.Patch, 0, len(patches))}
-	fmt.Println(res, len(patches))
-	for i := range patches {
-		patch := string(patches[i].Patch)
+	res := &api_v1_grpc.GetPendingPatchesResp{Patches: make([]*api_v1_grpc.Patch, 0, len(*patches))}
+	for i := range *patches {
+		patch := string((*patches)[i].Patch)
 		res.Patches = append(res.Patches, &api_v1_grpc.Patch{
-			ClientId:        &patches[i].ClientID,
-			SessionId:       &patches[i].SessionID,
-			PatchId:         &patches[i].PatchID,
-			ParentClientId:  &patches[i].ParentClientID,
-			ParentSessionId: &patches[i].ParentSessionID,
-			ParentPatchId:   &patches[i].ParentPatchID,
+			ClientId:        &(*patches)[i].ClientID,
+			SessionId:       &(*patches)[i].SessionID,
+			PatchId:         &(*patches)[i].PatchID,
+			ParentClientId:  &(*patches)[i].ParentClientID,
+			ParentSessionId: &(*patches)[i].ParentSessionID,
+			ParentPatchId:   &(*patches)[i].ParentPatchID,
 			Patch:           &patch,
-			CreatedAt:       timestamppb.New(patches[i].CreatedAt.Time),
+			CreatedAt:       timestamppb.New((*patches)[i].CreatedAt.Time),
 		})
 	}
 	return res, nil
@@ -184,14 +166,6 @@ func (s *apiServer) DeletePendingPatches(ctx context.Context, req *api_v1_grpc.D
 	if err != nil {
 		return nil, err
 	}
-
-	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{})
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback(ctx)
-	qtx := s.queries.WithTx(tx)
-
 	if req.ClientId == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "client_id is nil")
 	}
@@ -217,12 +191,13 @@ func (s *apiServer) DeletePendingPatches(ctx context.Context, req *api_v1_grpc.D
 		}
 		producer_patch_ids = append(producer_patch_ids, *req.Patches[i].PatchId)
 	}
-	err = qtx.DeletePendingPatches(ctx, &dbpkg.DeletePendingPatchesParams{UserIds: user_ids, ClientIds: client_ids, ProducerClientIds: producer_client_ids, ProducerSessionIds: producer_session_ids, ProducerPatchIds: producer_patch_ids})
-	if err != nil {
-		return nil, err
-	}
-	tx.Commit(ctx)
-	return &api_v1_grpc.DeletePendingPatchesResp{}, nil
+	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.DeletePendingPatchesResp, error) {
+		err = qtx.DeletePendingPatches(ctx, &dbpkg.DeletePendingPatchesParams{UserIds: user_ids, ClientIds: client_ids, ProducerClientIds: producer_client_ids, ProducerSessionIds: producer_session_ids, ProducerPatchIds: producer_patch_ids})
+		if err != nil {
+			return nil, err
+		}
+		return &api_v1_grpc.DeletePendingPatchesResp{}, nil
+	})
 }
 
 func (s *apiServer) CreatePatches(ctx context.Context, req *api_v1_grpc.CreatePatchesReq) (*api_v1_grpc.CreatePatchesResp, error) {
@@ -230,52 +205,52 @@ func (s *apiServer) CreatePatches(ctx context.Context, req *api_v1_grpc.CreatePa
 	if err != nil {
 		return nil, err
 	}
-	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.CreatePatchesResp, error) {
-		n := len(req.Patches)
-		user_ids := make([]string, 0, n)
-		client_ids := make([]int64, 0, n)
-		session_ids := make([]int64, 0, n)
-		patch_ids := make([]int64, 0, n)
-		parent_client_ids := make([]int64, 0, n)
-		parent_session_ids := make([]int64, 0, n)
-		parent_patch_ids := make([]int64, 0, n)
-		patches := make([][]byte, 0, n)
-		created_ats := make([]pgtype.Timestamptz, 0, n)
-		for i := range req.Patches {
-			user_ids = append(user_ids, *token.UserId)
-			if req.Patches[i].ClientId == nil {
-				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("client_id is nil for patch %d", i))
-			}
-			client_ids = append(client_ids, *req.Patches[i].ClientId)
-			if req.Patches[i].SessionId == nil {
-				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("session_id is nil for patch %d", i))
-			}
-			session_ids = append(session_ids, *req.Patches[i].SessionId)
-			if req.Patches[i].PatchId == nil {
-				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("patch_id is nil for patch %d", i))
-			}
-			patch_ids = append(patch_ids, *req.Patches[i].PatchId)
-			if req.Patches[i].ParentClientId == nil {
-				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("parent_client_id is nil for patch %d", i))
-			}
-			parent_client_ids = append(parent_client_ids, *req.Patches[i].ParentClientId)
-			if req.Patches[i].ParentSessionId == nil {
-				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("parent_session_id is nil for patch %d", i))
-			}
-			parent_session_ids = append(parent_session_ids, *req.Patches[i].ParentSessionId)
-			if req.Patches[i].ParentPatchId == nil {
-				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("parent_patch_id is nil for patch %d", i))
-			}
-			parent_patch_ids = append(parent_patch_ids, *req.Patches[i].ParentPatchId)
-			if req.Patches[i].Patch == nil {
-				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("patch is nil for patch %d", i))
-			}
-			patches = append(patches, []byte(*req.Patches[i].Patch))
-			if req.Patches[i].CreatedAt == nil {
-				return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("created_at is nil for patch %d", i))
-			}
-			created_ats = append(created_ats, pgtype.Timestamptz{Time: req.Patches[i].CreatedAt.AsTime(), Valid: true})
+	n := len(req.Patches)
+	user_ids := make([]string, 0, n)
+	client_ids := make([]int64, 0, n)
+	session_ids := make([]int64, 0, n)
+	patch_ids := make([]int64, 0, n)
+	parent_client_ids := make([]int64, 0, n)
+	parent_session_ids := make([]int64, 0, n)
+	parent_patch_ids := make([]int64, 0, n)
+	patches := make([][]byte, 0, n)
+	created_ats := make([]pgtype.Timestamptz, 0, n)
+	for i := range req.Patches {
+		user_ids = append(user_ids, *token.UserId)
+		if req.Patches[i].ClientId == nil {
+			return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("client_id is nil for patch %d", i))
 		}
+		client_ids = append(client_ids, *req.Patches[i].ClientId)
+		if req.Patches[i].SessionId == nil {
+			return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("session_id is nil for patch %d", i))
+		}
+		session_ids = append(session_ids, *req.Patches[i].SessionId)
+		if req.Patches[i].PatchId == nil {
+			return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("patch_id is nil for patch %d", i))
+		}
+		patch_ids = append(patch_ids, *req.Patches[i].PatchId)
+		if req.Patches[i].ParentClientId == nil {
+			return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("parent_client_id is nil for patch %d", i))
+		}
+		parent_client_ids = append(parent_client_ids, *req.Patches[i].ParentClientId)
+		if req.Patches[i].ParentSessionId == nil {
+			return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("parent_session_id is nil for patch %d", i))
+		}
+		parent_session_ids = append(parent_session_ids, *req.Patches[i].ParentSessionId)
+		if req.Patches[i].ParentPatchId == nil {
+			return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("parent_patch_id is nil for patch %d", i))
+		}
+		parent_patch_ids = append(parent_patch_ids, *req.Patches[i].ParentPatchId)
+		if req.Patches[i].Patch == nil {
+			return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("patch is nil for patch %d", i))
+		}
+		patches = append(patches, []byte(*req.Patches[i].Patch))
+		if req.Patches[i].CreatedAt == nil {
+			return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("created_at is nil for patch %d", i))
+		}
+		created_ats = append(created_ats, pgtype.Timestamptz{Time: req.Patches[i].CreatedAt.AsTime(), Valid: true})
+	}
+	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.CreatePatchesResp, error) {
 		err = qtx.CreatePatches(ctx, &dbpkg.CreatePatchesParams{
 			UserIds:          user_ids,
 			ClientIds:        client_ids,
@@ -292,6 +267,27 @@ func (s *apiServer) CreatePatches(ctx context.Context, req *api_v1_grpc.CreatePa
 		}
 		return &api_v1_grpc.CreatePatchesResp{}, nil
 	})
+}
+
+func (s *apiServer) GetCurrentPatchId(ctx context.Context, req *api_v1_grpc.GetCurrentPatchIdReq) (*api_v1_grpc.GetCurrentPatchIdResp, error) {
+	token, err := get_token(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if req.ClientId == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "client_id is nil")
+	}
+	res, err := withTx(s, ctx, func(qtx *dbpkg.Queries) (*dbpkg.GetCurrentPatchIdRow, error) {
+		return qtx.GetCurrentPatchId(ctx, *token.UserId)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &api_v1_grpc.GetCurrentPatchIdResp{
+		ClientId:  &res.LeafClientID,
+		SessionId: &res.LeafSessionID,
+		PatchId:   &res.LeafPatchID,
+	}, nil
 }
 
 func withTx[Res any](s *apiServer, ctx context.Context, fn func(qtx *dbpkg.Queries) (*Res, error)) (*Res, error) {

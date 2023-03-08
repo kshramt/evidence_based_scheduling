@@ -1,8 +1,18 @@
 -- name: RawCreateUser :one
 insert into
-  app.users (id)
+  app.users (
+    id,
+    leaf_client_id,
+    leaf_session_id,
+    leaf_patch_id
+  )
 values
-  (@id)
+  (
+    @id,
+    @leaf_client_id,
+    @leaf_session_id,
+    @leaf_patch_id
+  )
 returning
   *;
 
@@ -147,3 +157,13 @@ where
       unnest(@producer_session_ids::bigint[]),
       unnest(@producer_patch_ids::bigint[])
   );
+
+-- name: GetCurrentPatchId :one
+select
+  leaf_client_id,
+  leaf_session_id,
+  leaf_patch_id
+from
+  app.users
+where
+  id = @id;

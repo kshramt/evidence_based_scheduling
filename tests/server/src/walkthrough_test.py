@@ -160,6 +160,19 @@ async def test_walkthrough(
         assert actual_0 == patch_0
         assert actual_1 == patch_1
 
+        # GetCurrentPatchId
+        get_current_patch_id_resp: api_v1_pb2.GetCurrentPatchIdResp = (
+            await stub.GetCurrentPatchId(
+                request=api_v1_pb2.GetCurrentPatchIdReq(
+                    client_id=client_id_1
+                ),
+                metadata=(("authorization", f"Bearer {token}"),),
+            )
+        )
+        assert get_current_patch_id_resp.client_id == 0
+        assert get_current_patch_id_resp.session_id == 0
+        assert get_current_patch_id_resp.patch_id == 0
+
 
 def _get_token(user_id: str) -> str:
     return base64.b64encode(
