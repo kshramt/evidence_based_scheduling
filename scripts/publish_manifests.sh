@@ -18,16 +18,16 @@ run_number="${3}"
 readonly run_number
 
 
-for service in api nginx envoy postgres
+for service in api nginx envoy postgres api_v1
 do
   img="ghcr.io/kshramt/evidence_based_scheduling/${service}"
-  docker manifest create "${img}:${github_sha}"{,-linux-{amd64,arm64}}
-  docker manifest push "${img}:${github_sha}"
+  docker manifest create "${img}:h-${github_sha}"{,-linux-{amd64,arm64}}
+  docker manifest push "${img}:h-${github_sha}"
 
   if [[ "${ref}" = "refs/heads/main" ]]; then
-    docker manifest create "${img}:"{"b${run_number}","${github_sha}"-linux-{amd64,arm64}}
-    docker manifest push "${img}:b${run_number}"
-    docker manifest create "${img}:"{latest,"${github_sha}"-linux-{amd64,arm64}}
+    docker manifest create "${img}:"{"b-${run_number}","h-${github_sha}"-linux-{amd64,arm64}}
+    docker manifest push "${img}:b-${run_number}"
+    docker manifest create "${img}:"{latest,h-"${github_sha}"-linux-{amd64,arm64}}
     docker manifest push "${img}:latest"
   fi
 done

@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+package api_v1;
+
+import "google/protobuf/timestamp.proto";
+
+service Api {
+  // Create a user in the sign-up page.
+  rpc CreateUser(CreateUserReq) returns (CreateUserResp);
+
+  // As we know the user ID, we can check a client ID is assigned in the browser.
+  // If none exists, create a client and use the clietn ID to popurate necessary DBs.
+  rpc CreateClient(CreateClientReq) returns (CreateClientResp);
+
+  // Retrieve un-synched patches from the remote.
+  rpc GetPendingPatches(GetPendingPatchesReq) returns (GetPendingPatchesResp);
+
+  // Delete remote patches that have been downloaded locally.
+  rpc DeletePendingPatches(DeletePendingPatchesReq) returns (DeletePendingPatchesResp);
+
+  // Push un-synched patches to the remote.
+  rpc CreatePatches(CreatePatchesReq) returns (CreatePatchesResp);
+
+  // Get the main branch.
+  rpc GetCurrentPatchId(GetCurrentPatchIdReq) returns (GetCurrentPatchIdResp);
+
+  // Update the main branch.
+  rpc UpdateCurrentPatchIdIfNotModified(UpdateCurrentPatchIdIfNotModifiedReq) returns (UpdateCurrentPatchIdIfNotModifiedResp);
+}
+
+message Patch {
+  optional int64 client_id = 1;
+  optional int64 session_id = 2;
+  optional int64 patch_id = 3;
+  optional int64 parent_client_id = 4;
+  optional int64 parent_session_id = 5;
+  optional int64 parent_patch_id = 6;
+  optional google.protobuf.Timestamp created_at = 7;
+  optional string patch = 8;;
+}
+
+message CreateUserReq {
+  // `user_id` will be provided by an ID provider.
+  optional string user_id = 1;
+}
+message CreateUserResp {
+}
+
+message CreateClientReq {
+  optional string name = 1;
+}
+message CreateClientResp {
+  optional int64 client_id = 1;
+}
+
+message GetPendingPatchesReq {
+  optional int64 client_id = 1;
+  optional int64 size = 2;
+}
+message GetPendingPatchesResp {
+  repeated Patch patches = 1;
+}
+
+message DeletePendingPatchesReq {
+  message Patch {
+    optional int64 client_id = 1;
+    optional int64 session_id = 3;
+    optional int64 patch_id = 4;
+  }
+  optional int64 client_id = 1;
+  repeated Patch patches = 2;
+}
+message DeletePendingPatchesResp {
+}
+
+message CreatePatchesReq {
+  repeated Patch patches = 2;
+}
+message CreatePatchesResp {
+}
+
+message GetCurrentPatchIdReq {
+  optional int64 client_id = 1;
+}
+message GetCurrentPatchIdResp {
+  optional int64 client_id = 1;
+  optional int64 session_id = 2;
+  optional int64 patch_id = 3;
+}
+
+message UpdateCurrentPatchIdIfNotModifiedReq {
+  optional int64 client_id = 1;
+  optional int64 session_id = 2;
+  optional int64 patch_id = 3;
+  optional int64 prev_client_id = 4;
+  optional int64 prev_session_id = 5;
+  optional int64 prev_patch_id = 6;
+}
+
+message UpdateCurrentPatchIdIfNotModifiedResp {
+  optional bool updated = 1;
+}

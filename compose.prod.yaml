@@ -4,6 +4,8 @@ services:
     environment:
       REPLICA_URI: ${_REPLICA_URI?}
       USE_LITESTREAM: ${_USE_LITESTREAM:-yes}
+  api_v1:
+    image: ghcr.io/kshramt/evidence_based_scheduling/api_v1:${_DOCKER_API_V1_TAG:-latest}
   nginx:
     image: ghcr.io/kshramt/evidence_based_scheduling/nginx:${_DOCKER_NGINX_TAG:-latest}
   envoy:
