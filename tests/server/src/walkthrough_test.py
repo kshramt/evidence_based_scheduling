@@ -169,9 +169,74 @@ async def test_walkthrough(
                 metadata=(("authorization", f"Bearer {token}"),),
             )
         )
+        assert get_current_patch_id_resp.HasField("client_id")
         assert get_current_patch_id_resp.client_id == 0
+        assert get_current_patch_id_resp.HasField("session_id")
         assert get_current_patch_id_resp.session_id == 0
+        assert get_current_patch_id_resp.HasField("patch_id")
         assert get_current_patch_id_resp.patch_id == 0
+
+        # UpdateCurrentPatchIdIfNotModified
+        update_current_patch_id_if_not_modified_resp: api_v1_pb2.UpdateCurrentPatchIdIfNotModifiedResp = (
+            await stub.UpdateCurrentPatchIdIfNotModified(
+                request=api_v1_pb2.UpdateCurrentPatchIdIfNotModifiedReq(
+                    client_id=client_id_1,
+                    session_id=1,
+                    patch_id=1,
+                    prev_client_id=100,
+                    prev_session_id=100,
+                    prev_patch_id=100,
+                ),
+                metadata=(("authorization", f"Bearer {token}"),),
+            )
+        )
+        assert update_current_patch_id_if_not_modified_resp.HasField("updated")
+        assert update_current_patch_id_if_not_modified_resp.updated == False
+        get_current_patch_id_resp: api_v1_pb2.GetCurrentPatchIdResp = (
+            await stub.GetCurrentPatchId(
+                request=api_v1_pb2.GetCurrentPatchIdReq(
+                    client_id=client_id_1
+                ),
+                metadata=(("authorization", f"Bearer {token}"),),
+            )
+        )
+        assert get_current_patch_id_resp.HasField("client_id")
+        assert get_current_patch_id_resp.client_id == 0
+        assert get_current_patch_id_resp.HasField("session_id")
+        assert get_current_patch_id_resp.session_id == 0
+        assert get_current_patch_id_resp.HasField("patch_id")
+        assert get_current_patch_id_resp.patch_id == 0
+
+        update_current_patch_id_if_not_modified_resp: api_v1_pb2.UpdateCurrentPatchIdIfNotModifiedResp = (
+            await stub.UpdateCurrentPatchIdIfNotModified(
+                request=api_v1_pb2.UpdateCurrentPatchIdIfNotModifiedReq(
+                    client_id=client_id_1,
+                    session_id=1,
+                    patch_id=1,
+                    prev_client_id=0,
+                    prev_session_id=0,
+                    prev_patch_id=0,
+                ),
+                metadata=(("authorization", f"Bearer {token}"),),
+            )
+        )
+        assert update_current_patch_id_if_not_modified_resp.HasField("updated")
+        assert update_current_patch_id_if_not_modified_resp.updated == True
+        get_current_patch_id_resp: api_v1_pb2.GetCurrentPatchIdResp = (
+            await stub.GetCurrentPatchId(
+                request=api_v1_pb2.GetCurrentPatchIdReq(
+                    client_id=client_id_1
+                ),
+                metadata=(("authorization", f"Bearer {token}"),),
+            )
+        )
+        assert get_current_patch_id_resp.HasField("client_id")
+        assert get_current_patch_id_resp.client_id == client_id_1
+        assert get_current_patch_id_resp.HasField("session_id")
+        assert get_current_patch_id_resp.session_id == 1
+        assert get_current_patch_id_resp.HasField("patch_id")
+        assert get_current_patch_id_resp.patch_id == 1
+
 
 
 def _get_token(user_id: str) -> str:

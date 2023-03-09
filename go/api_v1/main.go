@@ -290,6 +290,54 @@ func (s *apiServer) GetCurrentPatchId(ctx context.Context, req *api_v1_grpc.GetC
 	}, nil
 }
 
+func (s *apiServer) UpdateCurrentPatchIdIfNotModified(ctx context.Context, req *api_v1_grpc.UpdateCurrentPatchIdIfNotModifiedReq) (*api_v1_grpc.UpdateCurrentPatchIdIfNotModifiedResp, error) {
+	token, err := get_token(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if req.ClientId == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "client_id is nil")
+	}
+	if req.SessionId == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "session_id is nil")
+	}
+	if req.PatchId == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "patch_id is nil")
+	}
+	if req.PrevClientId == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "prev_client_id is nil")
+	}
+	if req.PrevSessionId == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "prev_session_id is nil")
+	}
+	if req.PrevPatchId == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "prev_patch_id is nil")
+	}
+	params := dbpkg.UpdateCurrentPatchIdIfNotModifiedParams{
+		UserID:        *token.UserId,
+		ClientID:      *req.ClientId,
+		SessionID:     *req.SessionId,
+		PatchID:       *req.PatchId,
+		PrevClientID:  *req.PrevClientId,
+		PrevSessionID: *req.PrevSessionId,
+		PrevPatchID:   *req.PrevPatchId,
+	}
+	n_updated, err := withTx(s, ctx, func(qtx *dbpkg.Queries) (*int64, error) {
+		n_updated, err := qtx.UpdateCurrentPatchIdIfNotModified(ctx, &params)
+		if err != nil {
+			return nil, err
+		}
+		return &n_updated, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	is_updated := 0 < *n_updated
+	return &api_v1_grpc.UpdateCurrentPatchIdIfNotModifiedResp{
+		Updated: &is_updated,
+	}, nil
+}
+
 func withTx[Res any](s *apiServer, ctx context.Context, fn func(qtx *dbpkg.Queries) (*Res, error)) (*Res, error) {
 	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {

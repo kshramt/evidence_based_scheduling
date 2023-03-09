@@ -24,8 +24,8 @@ service Api {
   // Get the main branch.
   rpc GetCurrentPatchId(GetCurrentPatchIdReq) returns (GetCurrentPatchIdResp);
 
-  // Put the main branch.
-  rpc PutCurrentPatchIdIfNotMOdified(PutCurrentPatchIdIfNotMOdifiedReq) returns (PutCurrentPatchIdIfNotMOdifiedResp);
+  // Update the main branch.
+  rpc UpdateCurrentPatchIdIfNotModified(UpdateCurrentPatchIdIfNotModifiedReq) returns (UpdateCurrentPatchIdIfNotModifiedResp);
 }
 
 message Patch {
@@ -88,7 +88,7 @@ message GetCurrentPatchIdResp {
   optional int64 patch_id = 3;
 }
 
-message PutCurrentPatchIdIfNotMOdifiedReq {
+message UpdateCurrentPatchIdIfNotModifiedReq {
   optional int64 client_id = 1;
   optional int64 session_id = 2;
   optional int64 patch_id = 3;
@@ -97,5 +97,6 @@ message PutCurrentPatchIdIfNotMOdifiedReq {
   optional int64 prev_patch_id = 6;
 }
 
-message PutCurrentPatchIdIfNotMOdifiedResp {
+message UpdateCurrentPatchIdIfNotModifiedResp {
+  optional bool updated = 1;
 }

@@ -167,3 +167,15 @@ from
   app.users
 where
   id = @id;
+
+-- name: UpdateCurrentPatchIdIfNotModified :execrows
+update app.users
+set
+  leaf_client_id = @client_id,
+  leaf_session_id = @session_id,
+  leaf_patch_id = @patch_id
+where
+  id = @user_id
+  and leaf_client_id = @prev_client_id
+  and leaf_session_id = @prev_session_id
+  and leaf_patch_id = @prev_patch_id;
