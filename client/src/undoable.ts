@@ -78,3 +78,9 @@ export const undoable_of = (
   };
   return undoable;
 };
+
+export const history_type_set = new Set<string>();
+export const register_history_type = <T extends {}>(x: T) => {
+  history_type_set.add(x.toString());
+  return x;
+};
