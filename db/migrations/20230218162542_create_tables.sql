@@ -1,4 +1,12 @@
 -- migrate:up
+create table
+  app.fake_idp_users (
+    id text primary key,
+    name text unique not null,
+    created_at timestamp with time zone not null default now(),
+    updated_at timestamp with time zone not null default now()
+  );
+
 create function app.update_updated_at_column () returns trigger as $$
 begin
   new.updated_at = now();

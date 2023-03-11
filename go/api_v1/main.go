@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	pgtype "github.com/jackc/pgx/v5/pgtype"
 	pgxpool "github.com/jackc/pgx/v5/pgxpool"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -22,6 +23,8 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	"github.com/kshramt/evidence_based_scheduling/api_v1_grpc"
 	dbpkg "github.com/kshramt/evidence_based_scheduling/db"
 	"github.com/kshramt/evidence_based_scheduling/idgens"
@@ -34,8 +37,42 @@ type apiServer struct {
 	idgen   *idgens.SortableIdGenerator
 }
 
-type token struct {
-	UserId *string `json:"user_id"`
+func (s *apiServer) FakeIdpCreateUser(ctx context.Context, req *api_v1_grpc.FakeIdpCreateUserReq) (*api_v1_grpc.Token, error) {
+	if req.Name == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "name is nil")
+	}
+	_user_id, err := s.idgen.Next()
+	if err != nil {
+		return nil, err
+	}
+	user_id := idgens.Base62(_user_id[:])
+	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.Token, error) {
+		err := qtx.FakeIdpCreateUser(ctx, &dbpkg.FakeIdpCreateUserParams{
+			Name: *req.Name,
+			ID:   user_id,
+		})
+		if err != nil {
+			return nil, err
+		}
+		_, err = createUser(ctx, qtx, user_id)
+		if err != nil {
+			return nil, err
+		}
+		return &api_v1_grpc.Token{UserId: &user_id}, nil
+	})
+}
+
+func (s *apiServer) FakeIdpGetIdToken(ctx context.Context, req *api_v1_grpc.FakeIdpGetIdTokenReq) (*api_v1_grpc.Token, error) {
+	if req.Name == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "name is nil")
+	}
+	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.Token, error) {
+		res, err := qtx.FakeIdpGetUserByName(ctx, *req.Name)
+		if err != nil {
+			return nil, err
+		}
+		return &api_v1_grpc.Token{UserId: &res.ID}, nil
+	})
 }
 
 // 1. Create a new user.
@@ -361,7 +398,7 @@ func mini64(a, b int64) int64 {
 	return b
 }
 
-func get_token(ctx context.Context) (*token, error) {
+func get_token(ctx context.Context) (*api_v1_grpc.Token, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return nil, status.Errorf(codes.Unauthenticated, "no metadata")
@@ -383,7 +420,7 @@ func get_token(ctx context.Context) (*token, error) {
 		return nil, status.Errorf(codes.Unauthenticated, "invalid base64")
 	}
 	// Parse json_str
-	var token token
+	var token api_v1_grpc.Token
 	err = json.Unmarshal(json_str, &token)
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, "invalid json")
@@ -411,7 +448,27 @@ func run() error {
 
 	queries := dbpkg.New(db)
 
-	s := grpc.NewServer()
+	logger := logrus.New()
+	logger.SetFormatter(&logrus.JSONFormatter{
+		TimestampFormat: time.RFC3339Nano,
+	})
+	logger.SetOutput(os.Stdout)
+
+	level, err := logrus.ParseLevel("Info")
+	if err != nil {
+		return fmt.Errorf("failed to parse log level: %w", err)
+	}
+	logger.SetLevel(level)
+
+	s := grpc.NewServer(
+		grpc_middleware.WithUnaryServerChain(
+			grpc_logrus.UnaryServerInterceptor(logrus.NewEntry(logger),
+				grpc_logrus.WithDecider(func(fullMethodName string, err error) bool {
+					return true
+				}),
+			),
+		),
+	)
 	api_v1_grpc.RegisterApiServer(s, &apiServer{queries: queries, idgen: idgen, db: db})
 	reflection.Register(s)
 

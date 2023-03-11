@@ -1,17 +1,19 @@
 import * as Idb from "idb";
 import { ApiClient } from "./api_v1_grpc/Api_v1ServiceClientPb";
-import * as Pb from "./api_v1_grpc/api_v1_pb.d";
+import * as Pb from "./api_v1_grpc/api_v1_pb";
 
-export const db = Idb.openDB<{ auth: { id_token: null | TIdToken } }>("db", 1, {
-  upgrade: (db) => {
-    db.createObjectStore("auth");
+export const db = Idb.openDB<{ auth: { id_token: null | TIdToken } }>(
+  "auth",
+  1,
+  {
+    upgrade: (db) => {
+      db.createObjectStore("auth");
+    },
   },
-});
-
-export type TUserId = string & { readonly tag: unique symbol };
+);
 
 export type TIdToken = {
-  user_id: TUserId;
+  user_id: string;
 };
 
 export class Auth {
@@ -32,26 +34,37 @@ export class Auth {
     });
   }
 
-  sign_up = async (user_id: string) => {
+  sign_up = async (name: string) => {
     if (this.id_token) {
       await this.sign_out();
     }
-    const req = new Pb.CreateUserReq();
-    req.setUserId(user_id);
-    await this._client.createUser(req, null);
-    this._set_id_token({ user_id: user_id as TUserId });
-    return this.id_token;
+    const req = new Pb.FakeIdpCreateUserReq();
+    req.setName(name);
+    const token = (await this._client.fakeIdpCreateUser(req, null)).toObject();
+    if (token.userId === undefined) {
+      throw new Error("Failed to create user");
+    }
+    const id_token = { user_id: token.userId };
+    this._set_id_token(id_token);
+    return id_token;
   };
-  sign_in = async (user_id: string) => {
+  sign_in = async (name: string) => {
     if (this.id_token) {
       await this.sign_out();
     }
-    this._set_id_token({ user_id: user_id as TUserId });
-    return this.id_token;
+    const req = new Pb.FakeIdpGetIdTokenReq();
+    req.setName(name);
+    const token = (await this._client.fakeIdpGetIdToken(req, null)).toObject();
+    if (token.userId === undefined) {
+      throw new Error("Failed to get an ID token");
+    }
+    const id_token = { user_id: token.userId };
+    this._set_id_token(id_token);
+    return id_token;
   };
   sign_out = async () => {
-    await _save_id_token(this.id_token);
-    this._invoke_hooks();
+    await this._set_id_token(null);
+    await this._invoke_hooks();
   };
   on_change = (hook: (id_token: null | TIdToken) => void) => {
     this._on_change_hooks.add(hook);

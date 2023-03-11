@@ -1921,7 +1921,6 @@ const TextAreaImpl = ({
 
   const dispatch_set_text_action = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      console.log("dispatch_set_text_action");
       const el = e.target;
       dispatch(
         actions.set_text_action({

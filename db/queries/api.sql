@@ -1,3 +1,17 @@
+-- name: FakeIdpCreateUser :exec
+insert into
+  app.fake_idp_users (id, name)
+values
+  (@id, @name);
+
+-- name: FakeIdpGetUserByName :one
+select
+  *
+from
+  app.fake_idp_users
+where
+  name = @name;
+
 -- name: RawCreateUser :one
 insert into
   app.users (

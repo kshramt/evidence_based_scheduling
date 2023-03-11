@@ -22,14 +22,21 @@ static_resources:
               domains: ["*"]
               routes:
               - match: { prefix: "/api_v1.Api/" }
-                redirect: { port_redirect: 50052 }
+                route: { cluster: envoy_50052_service }
               - match: { prefix: "/app/" }
                 route: { cluster: nginx_service, prefix_rewrite: "/" }
               - match: { prefix: "/app" }
                 redirect: { path_redirect: "/app/" }
               - match: { prefix: "/" }
                 route: { cluster: api_service }
+              cors:
+                allow_origin_string_match: 
+                - prefix: "localhost"
+                - prefix: "127.0.0.1"
           http_filters:
+          - name: envoy.filters.http.cors
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors
           - name: envoy.filters.http.router
             typed_config:
               "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
@@ -55,7 +62,7 @@ static_resources:
               domains: ["*"]
               routes:
               - match: { prefix: "/" }
-                redirect: { port_redirect: 50051 }
+                route: { cluster: envoy_50051_service }
           http_filters:
           - name: envoy.filters.http.grpc_web
             typed_config:
@@ -128,3 +135,28 @@ static_resources:
               socket_address:
                 address: nginx
                 port_value: 80
+  - name: envoy_50051_service
+    type: LOGICAL_DNS
+    lb_policy: ROUND_ROBIN
+    http2_protocol_options: {}
+    load_assignment:
+      cluster_name: envoy_50051_service
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: envoy
+                port_value: 50051
+  - name: envoy_50052_service
+    type: LOGICAL_DNS
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: envoy_50052_service
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: envoy
+                port_value: 50052

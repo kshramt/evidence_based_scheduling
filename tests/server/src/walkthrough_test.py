@@ -32,17 +32,48 @@ async def test_walkthrough(
     ) as channel:
         stub = api_v1_pb2_grpc.ApiStub(channel)
 
-        # CreateUser
-        _: api_v1_pb2.CreateUserResp = await stub.CreateUser(
-            request=api_v1_pb2.CreateUserReq(user_id="test_user1")
+        # FakeIdpCreateUser
+        fake_idp_create_user_resp: api_v1_pb2.FakeIdpCreateUserResp = (
+            await stub.FakeIdpCreateUser(
+                request=api_v1_pb2.FakeIdpCreateUserReq(
+                    name="test_user1",
+                )
+            )
         )
+        assert fake_idp_create_user_resp.HasField("user_id")
+        fake_idp_create_user_resp2: api_v1_pb2.FakeIdpCreateUserResp = (
+            await stub.FakeIdpCreateUser(
+                request=api_v1_pb2.FakeIdpCreateUserReq(
+                    name="test_user2",
+                )
+            )
+        )
+        assert fake_idp_create_user_resp2.HasField("user_id")
+        assert fake_idp_create_user_resp.user_id != fake_idp_create_user_resp2.user_id
 
-        _: api_v1_pb2.CreateUserResp = await stub.CreateUser(
-            request=api_v1_pb2.CreateUserReq(user_id="test_user2")
+        # FakeIdpGetIdToken
+        fake_idp_get_id_token_resp: api_v1_pb2.FakeIdpGetIdTokenResp = (
+            await stub.FakeIdpGetIdToken(
+                request=api_v1_pb2.FakeIdpGetIdTokenReq(
+                    name="test_user1",
+                )
+            )
         )
+        assert fake_idp_get_id_token_resp.HasField("user_id")
+        assert fake_idp_create_user_resp.user_id == fake_idp_get_id_token_resp.user_id
+
+        # FakeIdpCreateUser calls CreateUser via a "distributed transaction".
+        # # CreateUser
+        # _: api_v1_pb2.CreateUserResp = await stub.CreateUser(
+        #     request=api_v1_pb2.CreateUserReq(user_id=fake_idp_get_id_token_resp.user_id)
+        # )
+
+        # _: api_v1_pb2.CreateUserResp = await stub.CreateUser(
+        #     request=api_v1_pb2.CreateUserReq(user_id=fake_idp_create_user_resp2.user_id)
+        # )
 
         # CreateClient
-        token = _get_token("test_user1")
+        token = _get_token(fake_idp_get_id_token_resp.user_id)
         create_client_resp: api_v1_pb2.CreateClientResp = await stub.CreateClient(
             request=api_v1_pb2.CreateClientReq(name="test_client"),
             metadata=(("authorization", f"Bearer {token}"),),

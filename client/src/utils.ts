@@ -122,10 +122,6 @@ export const cumsum = (xs: number[]) => {
   return ret;
 };
 
-export const prevent_propagation = (e: React.MouseEvent) => {
-  e.stopPropagation();
-};
-
 export const focus = (r: null | HTMLElement) => {
   if (r) {
     r.focus();
@@ -142,4 +138,8 @@ export const tree_textarea_id_of = (node_id: types.TNodeId) => {
 };
 export const queue_textarea_id_of = (node_id: types.TNodeId) => {
   return `q-${node_id}`;
+};
+
+export const prevent_propagation = (e: React.MouseEvent) => {
+  e.stopPropagation();
 };
