@@ -37,6 +37,31 @@ static_resources:
           - name: envoy.filters.http.cors
             typed_config:
               "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors
+          - name: envoy.filters.http.compressor
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.compressor.v3.Compressor
+              response_direction_config:
+                common_config:
+                  content_type:
+                  - application/javascript
+                  - application/json
+                  - application/xhtml+xml
+                  - image/svg+xml
+                  - text/css
+                  - text/html
+                  - text/plain
+                  - text/xml
+                  - application/grpc
+                  - application/grpc+proto
+                  - application/grpc+json
+                  - application/grpc-web
+                  - application/grpc-web+proto
+                  - application/grpc-web-text
+                  - application/grpc-web-text+proto
+              compressor_library:
+                name: for_response
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.compression.gzip.compressor.v3.Gzip
           - name: envoy.filters.http.router
             typed_config:
               "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
