@@ -16,16 +16,16 @@ where
 insert into
   app.users (
     id,
-    leaf_client_id,
-    leaf_session_id,
-    leaf_patch_id
+    head_client_id,
+    head_session_id,
+    head_patch_id
   )
 values
   (
     @id,
-    @leaf_client_id,
-    @leaf_session_id,
-    @leaf_patch_id
+    @head_client_id,
+    @head_session_id,
+    @head_patch_id
   )
 returning
   *;
@@ -105,6 +105,7 @@ with
         unnest(@patches::jsonb[]),
         unnest(@created_ats::timestamp with time zone [])
       )
+    on conflict do nothing
     returning
       user_id,
       client_id,
@@ -130,6 +131,8 @@ from
   inner join new_patches on app.clients.user_id = new_patches.user_id
   and app.clients.client_id != 0
   and app.clients.client_id != new_patches.client_id;
+
+;
 
 -- name: GetPendingPatches :many
 select
@@ -172,24 +175,43 @@ where
       unnest(@producer_patch_ids::bigint[])
   );
 
--- name: GetCurrentPatchId :one
+-- name: GetHead :one
 select
-  leaf_client_id,
-  leaf_session_id,
-  leaf_patch_id
+  u.head_client_id,
+  u.head_session_id,
+  u.head_patch_id,
+  p.created_at,
+  c.name
 from
-  app.users
+  app.users u,
+  app.patches p,
+  app.clients c
 where
-  id = @id;
+  u.id = @id
+  and p.user_id = @id
+  and p.client_id = u.head_client_id
+  and p.session_id = u.head_session_id
+  and p.patch_id = u.head_patch_id
+  and c.user_id = @id
+  and c.client_id = u.head_client_id;
 
--- name: UpdateCurrentPatchIdIfNotModified :execrows
+-- name: UpdateHeadIfNotModified :execrows
 update app.users
 set
-  leaf_client_id = @client_id,
-  leaf_session_id = @session_id,
-  leaf_patch_id = @patch_id
+  head_client_id = @client_id,
+  head_session_id = @session_id,
+  head_patch_id = @patch_id
 where
   id = @user_id
-  and leaf_client_id = @prev_client_id
-  and leaf_session_id = @prev_session_id
-  and leaf_patch_id = @prev_patch_id;
+  and head_client_id = @prev_client_id
+  and head_session_id = @prev_session_id
+  and head_patch_id = @prev_patch_id;
+
+-- name: UpdateHead :exec
+update app.users
+set
+  head_client_id = @client_id,
+  head_session_id = @session_id,
+  head_patch_id = @patch_id
+where
+  id = @user_id;

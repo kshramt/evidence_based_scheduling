@@ -2,15 +2,11 @@ import * as Idb from "idb";
 import { ApiClient } from "./api_v1_grpc/Api_v1ServiceClientPb";
 import * as Pb from "./api_v1_grpc/api_v1_pb";
 
-export const db = Idb.openDB<{ auth: { id_token: null | TIdToken } }>(
-  "auth",
-  1,
-  {
-    upgrade: (db) => {
-      db.createObjectStore("auth");
-    },
+const db = Idb.openDB<{ auth: { id_token: null | TIdToken } }>("auth", 1, {
+  upgrade: (db) => {
+    db.createObjectStore("auth");
   },
-);
+});
 
 export type TIdToken = {
   user_id: string;
@@ -64,11 +60,10 @@ export class Auth {
   };
   sign_out = async () => {
     await this._set_id_token(null);
-    await this._invoke_hooks();
   };
   on_change = (hook: (id_token: null | TIdToken) => void) => {
     this._on_change_hooks.add(hook);
-    _run_hooks(hook, this.id_token);
+    _run_hook(hook, this.id_token);
     return () => {
       this._on_change_hooks.delete(hook);
     };
@@ -80,20 +75,16 @@ export class Auth {
   };
   _invoke_hooks = () => {
     this._on_change_hooks.forEach((hook) => {
-      _run_hooks(hook, this.id_token);
+      _run_hook(hook, this.id_token);
     });
   };
 }
-
-export const get_auth = () => {
-  return new Auth();
-};
 
 const _save_id_token = async (id_token: null | TIdToken) => {
   return await (await db).put("auth", id_token, "id_token");
 };
 
-const _run_hooks = (
+const _run_hook = (
   hook: (id_token: null | TIdToken) => void,
   id_token: null | TIdToken,
 ) => {

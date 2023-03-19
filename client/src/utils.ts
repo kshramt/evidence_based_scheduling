@@ -129,7 +129,7 @@ export const focus = (r: null | HTMLElement) => {
 };
 
 export const get_is_mobile = () => {
-  const ua = window.navigator.userAgent;
+  const ua = navigator.userAgent;
   return /(Mobi|Tablet|iPad)/.test(ua);
 };
 

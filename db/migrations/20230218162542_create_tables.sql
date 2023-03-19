@@ -17,9 +17,9 @@ $$ language plpgsql;
 create table
   app.users (
     id text primary key,
-    leaf_client_id bigint not null,
-    leaf_session_id bigint not null,
-    leaf_patch_id bigint not null,
+    head_client_id bigint not null,
+    head_session_id bigint not null,
+    head_patch_id bigint not null,
     created_at timestamp with time zone not null default now(),
     updated_at timestamp with time zone not null default now()
   );
@@ -70,11 +70,11 @@ create table
   );
 
 alter table app.users
-add constraint fk_leaf_patch foreign key (
+add constraint fk_head_patch foreign key (
   id,
-  leaf_client_id,
-  leaf_session_id,
-  leaf_patch_id
+  head_client_id,
+  head_session_id,
+  head_patch_id
 ) references app.patches (user_id, client_id, session_id, patch_id) match full deferrable initially deferred;
 
 create table

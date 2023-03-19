@@ -176,12 +176,15 @@ const Menu = () => {
     () => dispatch(actions.stop_all_action()),
     [dispatch],
   );
+  const session = React.useContext(states.session_key_context);
   const [show_todo_only, set_show_todo_only] = Recoil.useRecoilState(
-    states.show_todo_only_state,
+    states.show_todo_only_atom_map.get(session),
   );
   const [show_strong_edge_only, set_show_strong_edge_only] =
-    Recoil.useRecoilState(states.show_strong_edge_only_state);
-  const set_show_mobile = Recoil.useSetRecoilState(states.show_mobile_state);
+    Recoil.useRecoilState(states.show_strong_edge_only_atom_map.get(session));
+  const set_show_mobile = Recoil.useSetRecoilState(
+    states.show_mobile_atom_map.get(session),
+  );
   const _undo = useCallback(() => {
     dispatch({ type: undoable.UNDO_TYPE });
   }, [dispatch]);
@@ -724,9 +727,12 @@ const EdgeList_of = utils.memoize1((node_id: types.TNodeId) => (
 ));
 
 const Edge = (props: { edge_id: types.TEdgeId }) => {
-  const show_todo_only = Recoil.useRecoilValue(states.show_todo_only_state);
+  const session = React.useContext(states.session_key_context);
+  const show_todo_only = Recoil.useRecoilValue(
+    states.show_todo_only_atom_map.get(session),
+  );
   const show_strong_edge_only = Recoil.useRecoilValue(
-    states.show_strong_edge_only_state,
+    states.show_strong_edge_only_atom_map.get(session),
   );
   const edge = useSelector((state) => state.data.edges[props.edge_id]);
   const child_node_status = useSelector(
@@ -846,10 +852,13 @@ const MobileMenu = () => {
     () => dispatch(actions.stop_all_action()),
     [dispatch],
   );
+  const session = React.useContext(states.session_key_context);
   const [show_todo_only, set_show_todo_only] = Recoil.useRecoilState(
-    states.show_todo_only_state,
+    states.show_todo_only_atom_map.get(session),
   );
-  const set_show_mobile = Recoil.useSetRecoilState(states.show_mobile_state);
+  const set_show_mobile = Recoil.useSetRecoilState(
+    states.show_mobile_atom_map.get(session),
+  );
   const _undo = useCallback(() => {
     dispatch({ type: undoable.UNDO_TYPE });
   }, [dispatch]);
@@ -934,7 +943,10 @@ const MobileQueueColumn = () => {
 const MobileQueueNodes = () => {
   const queue = useSelector((state) => state.data.queue);
   const nodes = useSelector((state) => state.data.nodes);
-  const show_todo_only = Recoil.useRecoilValue(states.show_todo_only_state);
+  const session = React.useContext(states.session_key_context);
+  const show_todo_only = Recoil.useRecoilValue(
+    states.show_todo_only_atom_map.get(session),
+  );
   const node_filter_query = Recoil.useRecoilValue_TRANSITION_SUPPORT_UNSTABLE(
     states.node_filter_query_slow_state,
   );
@@ -1621,7 +1633,10 @@ const StartConcurrentButton = (props: { node_id: types.TNodeId }) => {
 
 const AddButton = (props: { node_id: types.TNodeId }) => {
   const dispatch = useDispatch();
-  const show_mobile = Recoil.useRecoilValue(states.show_mobile_state);
+  const session = React.useContext(states.session_key_context);
+  const show_mobile = Recoil.useRecoilValue(
+    states.show_mobile_atom_map.get(session),
+  );
   const handle_click = React.useCallback(() => {
     dispatch(
       actions.add_action({ node_id: props.node_id, show_mobile: show_mobile }),
@@ -2069,9 +2084,7 @@ const doFocusMoveDownButton = (node_id: types.TNodeId) => {
 const doFocusTextArea = (node_id: types.TNodeId) => {
   setTimeout(
     () =>
-      utils.focus(
-        window.document.getElementById(utils.tree_textarea_id_of(node_id)),
-      ),
+      utils.focus(document.getElementById(utils.tree_textarea_id_of(node_id))),
     100,
   );
 };
@@ -2118,7 +2131,7 @@ const useToTree = (node_id: types.TNodeId) => {
     setTimeout(
       () =>
         utils.focus(
-          window.document.getElementById(utils.tree_textarea_id_of(node_id)),
+          document.getElementById(utils.tree_textarea_id_of(node_id)),
         ),
       100,
     );
@@ -2127,9 +2140,7 @@ const useToTree = (node_id: types.TNodeId) => {
 
 const useToQueue = (node_id: types.TNodeId) => {
   return React.useCallback(() => {
-    utils.focus(
-      window.document.getElementById(utils.queue_textarea_id_of(node_id)),
-    );
+    utils.focus(document.getElementById(utils.queue_textarea_id_of(node_id)));
   }, [node_id]);
 };
 

@@ -70,7 +70,8 @@ run set -xv \
 workdir /app
 copy proto proto
 run mkdir -p api_v1_grpc \
-   && protoc --experimental_allow_proto3_optional -Iproto api_v1.proto --js_out import_style=commonjs,binary:api_v1_grpc --grpc-web_out import_style=typescript,mode=grpcwebtext:api_v1_grpc
+   && protoc --experimental_allow_proto3_optional -Iproto api_v1.proto --js_out import_style=commonjs,binary:api_v1_grpc --grpc-web_out import_style=typescript,mode=grpcweb:api_v1_grpc
+# Use grpcwebtext if you want to use server-side streaming.
 
 from base_client as builder_client
 copy client/package.json client/package-lock.json ./
