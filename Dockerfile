@@ -89,31 +89,8 @@ from base_nginx as prod_nginx
 copy --from=prod_client /app/client/build /usr/share/nginx/html
 copy nginx.conf /etc/nginx/nginx.conf
 
-from base_poetry as builder_api
-copy api/poetry.toml api/pyproject.toml api/poetry.lock .
-
-from builder_api as prod_builder_api
-run --mount=type=cache,target=/root/.cache python3 -m poetry install --only main
-copy api .
-run --mount=type=cache,target=/root/.cache python3 -m poetry install --only main
-
-from prod_builder_api as test_api
-run --mount=type=cache,target=/root/.cache python3 -m poetry install
-copy api .
-run --mount=type=cache,target=/root/.cache python3 -m poetry install
-run --mount=type=cache,target=/root/.cache scripts/check.sh
-
 from base_go as builder_litestream
 run --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install github.com/benbjohnson/litestream/cmd/litestream@v0.3.9
-
-from base_py as prod_api
-env DATA_DIR /data
-copy --from=builder_litestream /go/bin/litestream /usr/local/bin/litestream
-copy --from=prod_builder_api /app/.venv .venv
-copy --from=prod_builder_api /app/log-config.json log-config.json
-copy --from=prod_builder_api /app/api api
-copy --from=prod_builder_api /app/scripts/run.sh scripts/run.sh
-entrypoint ["scripts/run.sh"]
 
 from base_envoy as prod_envoy
 expose 8080
