@@ -244,22 +244,30 @@ export const main = async () => {
       </Center>
     </React.StrictMode>,
   );
+  const render = () => {
+    root.render(
+      <React.StrictMode>
+        <AppOrAuth />
+      </React.StrictMode>,
+    );
+  };
   if (!(await navigator?.storage?.persist())) {
     root.render(
       <React.StrictMode>
         <Center>
           <span>Persistent storage is not available.</span>
         </Center>
+        <button
+          onClick={render}
+          className="hidden"
+          id="skip-persistent-storage-check"
+        />
       </React.StrictMode>,
     );
     return;
   }
 
-  root.render(
-    <React.StrictMode>
-      <AppOrAuth />
-    </React.StrictMode>,
-  );
+  render();
   return;
 };
 

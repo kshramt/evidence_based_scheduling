@@ -40,6 +40,7 @@ def run(args):
             ("prod_postgres", "/postgres"),
             ("prod_api_v1", "/api_v1"),
             ("tests_server", "/tests_server"),
+            ("tests_e2e", "/tests_e2e"),
         ):
             k = f"{target}-{platform.os}-{platform.arch}"
             v = {

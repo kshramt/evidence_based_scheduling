@@ -188,6 +188,19 @@ copy --from=docker_go_builder /go/bin/docker /usr/local/bin/docker
 copy --from=docker_go_builder /go/bin/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
 copy tests/server/poetry.toml tests/server/pyproject.toml tests/server/poetry.lock .
 run --mount=type=cache,target=/root/.cache python3 -m poetry install --only main
-copy tests/server/src src
 copy --from=tests_server_grpc_builder /app/gen src/gen
+copy tests/server/src src
+run --mount=type=cache,target=/root/.cache python3 -m poetry install --only main
+
+from base_poetry as tests_e2e
+copy --from=docker/buildx-bin:0.10.3 /buildx /usr/libexec/docker/cli-plugins/docker-buildx
+copy --from=docker_go_builder /go/bin/docker /usr/local/bin/docker
+copy --from=docker_go_builder /go/bin/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
+copy tests/e2e/poetry.toml tests/e2e/pyproject.toml tests/e2e/poetry.lock .
+run --mount=type=cache,target=/root/.cache python3 -m poetry install --only main
+run --mount=type=cache,target=/var/cache/apt,sharing=locked \
+   --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+   python3 -m poetry run python3 -m playwright install-deps
+run python3 -m poetry run python3 -m playwright install
+copy tests/e2e/src src
 run --mount=type=cache,target=/root/.cache python3 -m poetry install --only main
