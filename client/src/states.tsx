@@ -189,7 +189,6 @@ const get_state_and_patch = async (arg: {
   // Populate data.
   const t1 = performance.now();
   const loaded = await get_patches_for_local_head(arg);
-  console.debug("loaded", loaded);
   let snapshot = loaded.snapshot;
   {
     for (const patch of loaded.patches) {
@@ -608,7 +607,6 @@ export class PersistentStateManager {
   #run_patch_saving_loop = async () => {
     while (true) {
       const patch = await this.#patch_queue.pop();
-      console.debug(JSON.stringify(patch));
       if (patch === null) {
         return;
       }
