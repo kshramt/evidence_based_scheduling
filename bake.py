@@ -32,9 +32,7 @@ def run(args):
     ):
         ks = []
         for target, image_name in (
-            ("test_api", "/api/test"),
             ("test_client", "/client/test"),
-            ("prod_api", "/api"),
             ("prod_envoy", "/envoy"),
             ("prod_nginx", "/nginx"),
             ("prod_postgres", "/postgres"),

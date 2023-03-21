@@ -1,10 +1,4 @@
 services:
-  api:
-    build:
-      context: .
-      target: prod_api
-    environment:
-      - USE_LITESTREAM=no
   api_v1:
     build:
       context: .

@@ -28,7 +28,7 @@ host_os="${8}"
 readonly host_os
 readonly img_prefix=ghcr.io/kshramt/evidence_based_scheduling
 
-readonly services=( api nginx envoy postgres api_v1 )
+readonly services=( nginx envoy postgres api_v1 )
 
 python3 bake.py --sha="${github_sha}" --ref_b64="${ref_b64}" | tee bake.json
 docker buildx bake --file bake.json "${os}-${arch}"
@@ -41,9 +41,6 @@ done
 wait
 
 if [[ "${os}" = "${host_os}" && "${arch}" = "${host_arch}" ]]; then
-  _DOCKER_API_DATA_DIR="./my_data" \
-  _USE_LITESTREAM="no" \
-  _REPLICA_URI="" \
   TAG="h-${github_sha}-${os}-${arch}" \
   _POSTGRES_PASSWORD=postgres \
   _POSTGRES_APP_USER_PASSWORD=app \

@@ -1,8 +1,4 @@
 services:
-  api:
-    restart: always
-    volumes:
-      - ${_DOCKER_API_DATA_DIR:-./data}:/data
   api_v1:
     depends_on:
       - postgres
@@ -14,7 +10,6 @@ services:
   envoy:
     restart: always
     depends_on:
-      - api
       - api_v1
       - nginx
     ports:

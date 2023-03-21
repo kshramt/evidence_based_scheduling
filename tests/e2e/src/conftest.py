@@ -116,8 +116,6 @@ def compose_common_envs() -> collections.abc.Generator[None, Any, None]:
         dict(
             _POSTGRES_PASSWORD="postgres",
             _POSTGRES_APP_USER_PASSWORD="app",
-            _REPLICA_URI="",
-            _USE_LITESTREAM="no",
             ENV="dev",
         ),
     ):
