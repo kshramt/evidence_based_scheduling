@@ -32,19 +32,50 @@ async def test_walkthrough(
     ) as channel:
         stub = api_v1_pb2_grpc.ApiStub(channel)
 
-        # CreateUser
-        _: api_v1_pb2.CreateUserResp = await stub.CreateUser(
-            request=api_v1_pb2.CreateUserReq(user_id="test_user1")
+        # FakeIdpCreateUser
+        fake_idp_create_user_resp: api_v1_pb2.FakeIdpCreateUserResp = (
+            await stub.FakeIdpCreateUser(
+                request=api_v1_pb2.FakeIdpCreateUserReq(
+                    name="test_user1",
+                )
+            )
         )
+        assert fake_idp_create_user_resp.HasField("user_id")
+        fake_idp_create_user_resp2: api_v1_pb2.FakeIdpCreateUserResp = (
+            await stub.FakeIdpCreateUser(
+                request=api_v1_pb2.FakeIdpCreateUserReq(
+                    name="test_user2",
+                )
+            )
+        )
+        assert fake_idp_create_user_resp2.HasField("user_id")
+        assert fake_idp_create_user_resp.user_id != fake_idp_create_user_resp2.user_id
 
-        _: api_v1_pb2.CreateUserResp = await stub.CreateUser(
-            request=api_v1_pb2.CreateUserReq(user_id="test_user2")
+        # FakeIdpGetIdToken
+        fake_idp_get_id_token_resp: api_v1_pb2.FakeIdpGetIdTokenResp = (
+            await stub.FakeIdpGetIdToken(
+                request=api_v1_pb2.FakeIdpGetIdTokenReq(
+                    name="test_user1",
+                )
+            )
         )
+        assert fake_idp_get_id_token_resp.HasField("user_id")
+        assert fake_idp_create_user_resp.user_id == fake_idp_get_id_token_resp.user_id
+
+        # FakeIdpCreateUser calls CreateUser via a "distributed transaction".
+        # # CreateUser
+        # _: api_v1_pb2.CreateUserResp = await stub.CreateUser(
+        #     request=api_v1_pb2.CreateUserReq(user_id=fake_idp_get_id_token_resp.user_id)
+        # )
+
+        # _: api_v1_pb2.CreateUserResp = await stub.CreateUser(
+        #     request=api_v1_pb2.CreateUserReq(user_id=fake_idp_create_user_resp2.user_id)
+        # )
 
         # CreateClient
-        token = _get_token("test_user1")
+        token = _get_token(fake_idp_get_id_token_resp.user_id)
         create_client_resp: api_v1_pb2.CreateClientResp = await stub.CreateClient(
-            request=api_v1_pb2.CreateClientReq(name="test_client"),
+            request=api_v1_pb2.CreateClientReq(name="test_client1"),
             metadata=(("authorization", f"Bearer {token}"),),
         )
         client_id_1 = 1
@@ -52,7 +83,7 @@ async def test_walkthrough(
         assert create_client_resp.HasField("client_id")
         assert create_client_resp.client_id == client_id_1
         create_client_resp: api_v1_pb2.CreateClientResp = await stub.CreateClient(
-            request=api_v1_pb2.CreateClientReq(name="test_client"),
+            request=api_v1_pb2.CreateClientReq(name="test_client2"),
             metadata=(("authorization", f"Bearer {token}"),),
         )
         assert create_client_resp.HasField("client_id")
@@ -160,10 +191,10 @@ async def test_walkthrough(
         assert actual_0 == patch_0
         assert actual_1 == patch_1
 
-        # GetCurrentPatchId
-        get_current_patch_id_resp: api_v1_pb2.GetCurrentPatchIdResp = (
-            await stub.GetCurrentPatchId(
-                request=api_v1_pb2.GetCurrentPatchIdReq(
+        # GetHead
+        get_current_patch_id_resp: api_v1_pb2.GetHeadResp = (
+            await stub.GetHead(
+                request=api_v1_pb2.GetHeadReq(
                     client_id=client_id_1
                 ),
                 metadata=(("authorization", f"Bearer {token}"),),
@@ -175,11 +206,14 @@ async def test_walkthrough(
         assert get_current_patch_id_resp.session_id == 0
         assert get_current_patch_id_resp.HasField("patch_id")
         assert get_current_patch_id_resp.patch_id == 0
+        assert get_current_patch_id_resp.HasField("created_at")
+        assert get_current_patch_id_resp.HasField("name")
+        assert get_current_patch_id_resp.name == "System"
 
-        # UpdateCurrentPatchIdIfNotModified
-        update_current_patch_id_if_not_modified_resp: api_v1_pb2.UpdateCurrentPatchIdIfNotModifiedResp = (
-            await stub.UpdateCurrentPatchIdIfNotModified(
-                request=api_v1_pb2.UpdateCurrentPatchIdIfNotModifiedReq(
+        # UpdateHeadIfNotModified
+        update_current_patch_id_if_not_modified_resp: api_v1_pb2.UpdateHeadIfNotModifiedResp = (
+            await stub.UpdateHeadIfNotModified(
+                request=api_v1_pb2.UpdateHeadIfNotModifiedReq(
                     client_id=client_id_1,
                     session_id=1,
                     patch_id=1,
@@ -192,9 +226,9 @@ async def test_walkthrough(
         )
         assert update_current_patch_id_if_not_modified_resp.HasField("updated")
         assert update_current_patch_id_if_not_modified_resp.updated == False
-        get_current_patch_id_resp: api_v1_pb2.GetCurrentPatchIdResp = (
-            await stub.GetCurrentPatchId(
-                request=api_v1_pb2.GetCurrentPatchIdReq(
+        get_current_patch_id_resp: api_v1_pb2.GetHeadResp = (
+            await stub.GetHead(
+                request=api_v1_pb2.GetHeadReq(
                     client_id=client_id_1
                 ),
                 metadata=(("authorization", f"Bearer {token}"),),
@@ -207,9 +241,9 @@ async def test_walkthrough(
         assert get_current_patch_id_resp.HasField("patch_id")
         assert get_current_patch_id_resp.patch_id == 0
 
-        update_current_patch_id_if_not_modified_resp: api_v1_pb2.UpdateCurrentPatchIdIfNotModifiedResp = (
-            await stub.UpdateCurrentPatchIdIfNotModified(
-                request=api_v1_pb2.UpdateCurrentPatchIdIfNotModifiedReq(
+        update_current_patch_id_if_not_modified_resp: api_v1_pb2.UpdateHeadIfNotModifiedResp = (
+            await stub.UpdateHeadIfNotModified(
+                request=api_v1_pb2.UpdateHeadIfNotModifiedReq(
                     client_id=client_id_1,
                     session_id=1,
                     patch_id=1,
@@ -222,9 +256,9 @@ async def test_walkthrough(
         )
         assert update_current_patch_id_if_not_modified_resp.HasField("updated")
         assert update_current_patch_id_if_not_modified_resp.updated == True
-        get_current_patch_id_resp: api_v1_pb2.GetCurrentPatchIdResp = (
-            await stub.GetCurrentPatchId(
-                request=api_v1_pb2.GetCurrentPatchIdReq(
+        get_current_patch_id_resp: api_v1_pb2.GetHeadResp = (
+            await stub.GetHead(
+                request=api_v1_pb2.GetHeadReq(
                     client_id=client_id_1
                 ),
                 metadata=(("authorization", f"Bearer {token}"),),
@@ -236,6 +270,9 @@ async def test_walkthrough(
         assert get_current_patch_id_resp.session_id == 1
         assert get_current_patch_id_resp.HasField("patch_id")
         assert get_current_patch_id_resp.patch_id == 1
+        assert get_current_patch_id_resp.HasField("created_at")
+        assert get_current_patch_id_resp.HasField("name")
+        assert get_current_patch_id_resp.name == "test_client1"
 
 
 

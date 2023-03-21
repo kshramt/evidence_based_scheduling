@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	pgtype "github.com/jackc/pgx/v5/pgtype"
 	pgxpool "github.com/jackc/pgx/v5/pgxpool"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -22,6 +23,8 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	"github.com/kshramt/evidence_based_scheduling/api_v1_grpc"
 	dbpkg "github.com/kshramt/evidence_based_scheduling/db"
 	"github.com/kshramt/evidence_based_scheduling/idgens"
@@ -34,8 +37,42 @@ type apiServer struct {
 	idgen   *idgens.SortableIdGenerator
 }
 
-type token struct {
-	UserId *string `json:"user_id"`
+func (s *apiServer) FakeIdpCreateUser(ctx context.Context, req *api_v1_grpc.FakeIdpCreateUserReq) (*api_v1_grpc.Token, error) {
+	if req.Name == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "name is nil")
+	}
+	_user_id, err := s.idgen.Next()
+	if err != nil {
+		return nil, err
+	}
+	user_id := idgens.Base62(_user_id[:])
+	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.Token, error) {
+		err := qtx.FakeIdpCreateUser(ctx, &dbpkg.FakeIdpCreateUserParams{
+			Name: *req.Name,
+			ID:   user_id,
+		})
+		if err != nil {
+			return nil, err
+		}
+		_, err = createUser(ctx, qtx, user_id)
+		if err != nil {
+			return nil, err
+		}
+		return &api_v1_grpc.Token{UserId: &user_id}, nil
+	})
+}
+
+func (s *apiServer) FakeIdpGetIdToken(ctx context.Context, req *api_v1_grpc.FakeIdpGetIdTokenReq) (*api_v1_grpc.Token, error) {
+	if req.Name == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "name is nil")
+	}
+	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.Token, error) {
+		res, err := qtx.FakeIdpGetUserByName(ctx, *req.Name)
+		if err != nil {
+			return nil, err
+		}
+		return &api_v1_grpc.Token{UserId: &res.ID}, nil
+	})
 }
 
 // 1. Create a new user.
@@ -48,9 +85,9 @@ func createUser(ctx context.Context, qtx *dbpkg.Queries, user_id string) (*api_v
 	root_patch_id := int64(0)
 	_, err := qtx.RawCreateUser(ctx, &dbpkg.RawCreateUserParams{
 		ID:            user_id,
-		LeafClientID:  root_client_id,
-		LeafSessionID: root_session_id,
-		LeafPatchID:   root_patch_id,
+		HeadClientID:  root_client_id,
+		HeadSessionID: root_session_id,
+		HeadPatchID:   root_patch_id,
 	})
 	if err != nil {
 		return nil, err
@@ -269,7 +306,7 @@ func (s *apiServer) CreatePatches(ctx context.Context, req *api_v1_grpc.CreatePa
 	})
 }
 
-func (s *apiServer) GetCurrentPatchId(ctx context.Context, req *api_v1_grpc.GetCurrentPatchIdReq) (*api_v1_grpc.GetCurrentPatchIdResp, error) {
+func (s *apiServer) GetHead(ctx context.Context, req *api_v1_grpc.GetHeadReq) (*api_v1_grpc.GetHeadResp, error) {
 	token, err := get_token(ctx)
 	if err != nil {
 		return nil, err
@@ -277,20 +314,22 @@ func (s *apiServer) GetCurrentPatchId(ctx context.Context, req *api_v1_grpc.GetC
 	if req.ClientId == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "client_id is nil")
 	}
-	res, err := withTx(s, ctx, func(qtx *dbpkg.Queries) (*dbpkg.GetCurrentPatchIdRow, error) {
-		return qtx.GetCurrentPatchId(ctx, *token.UserId)
+	res, err := withTx(s, ctx, func(qtx *dbpkg.Queries) (*dbpkg.GetHeadRow, error) {
+		return qtx.GetHead(ctx, *token.UserId)
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &api_v1_grpc.GetCurrentPatchIdResp{
-		ClientId:  &res.LeafClientID,
-		SessionId: &res.LeafSessionID,
-		PatchId:   &res.LeafPatchID,
+	return &api_v1_grpc.GetHeadResp{
+		ClientId:  &res.HeadClientID,
+		SessionId: &res.HeadSessionID,
+		PatchId:   &res.HeadPatchID,
+		CreatedAt: timestamppb.New(res.CreatedAt.Time),
+		Name:      &res.Name,
 	}, nil
 }
 
-func (s *apiServer) UpdateCurrentPatchIdIfNotModified(ctx context.Context, req *api_v1_grpc.UpdateCurrentPatchIdIfNotModifiedReq) (*api_v1_grpc.UpdateCurrentPatchIdIfNotModifiedResp, error) {
+func (s *apiServer) UpdateHeadIfNotModified(ctx context.Context, req *api_v1_grpc.UpdateHeadIfNotModifiedReq) (*api_v1_grpc.UpdateHeadIfNotModifiedResp, error) {
 	token, err := get_token(ctx)
 	if err != nil {
 		return nil, err
@@ -313,7 +352,7 @@ func (s *apiServer) UpdateCurrentPatchIdIfNotModified(ctx context.Context, req *
 	if req.PrevPatchId == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "prev_patch_id is nil")
 	}
-	params := dbpkg.UpdateCurrentPatchIdIfNotModifiedParams{
+	params := dbpkg.UpdateHeadIfNotModifiedParams{
 		UserID:        *token.UserId,
 		ClientID:      *req.ClientId,
 		SessionID:     *req.SessionId,
@@ -323,7 +362,7 @@ func (s *apiServer) UpdateCurrentPatchIdIfNotModified(ctx context.Context, req *
 		PrevPatchID:   *req.PrevPatchId,
 	}
 	n_updated, err := withTx(s, ctx, func(qtx *dbpkg.Queries) (*int64, error) {
-		n_updated, err := qtx.UpdateCurrentPatchIdIfNotModified(ctx, &params)
+		n_updated, err := qtx.UpdateHeadIfNotModified(ctx, &params)
 		if err != nil {
 			return nil, err
 		}
@@ -333,9 +372,38 @@ func (s *apiServer) UpdateCurrentPatchIdIfNotModified(ctx context.Context, req *
 		return nil, err
 	}
 	is_updated := 0 < *n_updated
-	return &api_v1_grpc.UpdateCurrentPatchIdIfNotModifiedResp{
+	return &api_v1_grpc.UpdateHeadIfNotModifiedResp{
 		Updated: &is_updated,
 	}, nil
+}
+
+func (s *apiServer) UpdateHead(ctx context.Context, req *api_v1_grpc.UpdateHeadReq) (*api_v1_grpc.UpdateHeadResp, error) {
+	token, err := get_token(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if req.ClientId == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "client_id is nil")
+	}
+	if req.SessionId == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "session_id is nil")
+	}
+	if req.PatchId == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "patch_id is nil")
+	}
+	params := dbpkg.UpdateHeadParams{
+		UserID:        *token.UserId,
+		ClientID:      *req.ClientId,
+		SessionID:     *req.SessionId,
+		PatchID:       *req.PatchId,
+	}
+	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.UpdateHeadResp, error) {
+		err := qtx.UpdateHead(ctx, &params)
+		if err != nil {
+			return nil, err
+		}
+		return &api_v1_grpc.UpdateHeadResp{}, nil
+	})
 }
 
 func withTx[Res any](s *apiServer, ctx context.Context, fn func(qtx *dbpkg.Queries) (*Res, error)) (*Res, error) {
@@ -361,7 +429,7 @@ func mini64(a, b int64) int64 {
 	return b
 }
 
-func get_token(ctx context.Context) (*token, error) {
+func get_token(ctx context.Context) (*api_v1_grpc.Token, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return nil, status.Errorf(codes.Unauthenticated, "no metadata")
@@ -383,7 +451,7 @@ func get_token(ctx context.Context) (*token, error) {
 		return nil, status.Errorf(codes.Unauthenticated, "invalid base64")
 	}
 	// Parse json_str
-	var token token
+	var token api_v1_grpc.Token
 	err = json.Unmarshal(json_str, &token)
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, "invalid json")
@@ -411,7 +479,27 @@ func run() error {
 
 	queries := dbpkg.New(db)
 
-	s := grpc.NewServer()
+	logger := logrus.New()
+	logger.SetFormatter(&logrus.JSONFormatter{
+		TimestampFormat: time.RFC3339Nano,
+	})
+	logger.SetOutput(os.Stdout)
+
+	level, err := logrus.ParseLevel("Info")
+	if err != nil {
+		return fmt.Errorf("failed to parse log level: %w", err)
+	}
+	logger.SetLevel(level)
+
+	s := grpc.NewServer(
+		grpc_middleware.WithUnaryServerChain(
+			grpc_logrus.UnaryServerInterceptor(logrus.NewEntry(logger),
+				grpc_logrus.WithDecider(func(fullMethodName string, err error) bool {
+					return true
+				}),
+			),
+		),
+	)
 	api_v1_grpc.RegisterApiServer(s, &apiServer{queries: queries, idgen: idgen, db: db})
 	reflection.Register(s)
 

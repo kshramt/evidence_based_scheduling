@@ -1,4 +1,9 @@
 import { ThunkDispatch } from "redux-thunk";
+import {
+  TypedUseSelectorHook,
+  useDispatch as _useDispatch,
+  useSelector as _useSelector,
+} from "react-redux";
 
 import * as toast from "./toast";
 
@@ -219,3 +224,6 @@ const is_TCoveyQuadrant = (
 };
 
 export type AppDispatch = ThunkDispatch<IState, {}, TAnyPayloadAction>;
+
+export const useDispatch = () => _useDispatch<AppDispatch>();
+export const useSelector: TypedUseSelectorHook<IState> = _useSelector;

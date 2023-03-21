@@ -1,5 +1,4 @@
 import React from "react";
-import * as redux from "redux";
 
 import * as client from "./client";
 import * as rate_limit from "./rate_limit";
@@ -11,9 +10,6 @@ let ORIGIN_ID = -1;
 
 const patch_queue = rate_limit.rate_limit_of(300);
 const data_id_queue = rate_limit.rate_limit_of(300);
-let stored_patch:
-  | undefined
-  | { user_id: number; patch: producer.TOperation[] } = undefined;
 
 type TState = null | { updated_at: string } | "no-matching-parent";
 
@@ -96,7 +92,7 @@ export const push_patch = (user_id: number, patch: producer.TOperation[]) => {
 push_patch.add_before_process_hook = patch_queue.add_before_process_hook;
 push_patch.add_after_process_hook = patch_queue.add_after_process_hook;
 
-export const patch_saver_of = (
+export const get_patch_saver = (
   reducer_with_patch: (
     state: undefined | types.IState,
     action: types.TAnyPayloadAction,
@@ -114,26 +110,11 @@ export const patch_saver_of = (
       return reducer_with_patch(state, action);
     }
     const reduced = reducer_with_patch(state, action);
-    if (stored_patch !== undefined) {
-      throw new Error(`stored_patch !== undefined: ${stored_patch}`);
-    }
-    stored_patch = { user_id, patch: reduced.patch };
+    push_patch(user_id, reduced.patch);
     return reduced;
   };
   return patch_saver;
 };
-
-export const middleware =
-  () => (next_dispatch: redux.Dispatch) => (action: redux.AnyAction) => {
-    const ret = next_dispatch(action);
-    if (stored_patch === undefined) {
-      throw new Error(`stored_patch === undefined`);
-    }
-    const sp = stored_patch;
-    stored_patch = undefined;
-    push_patch(sp.user_id, sp.patch);
-    return ret;
-  };
 
 const post_patch_of = (user_id: number, patch: string) => {
   const post_patch = async () => {
@@ -195,32 +176,4 @@ const post_data_id_of = (user_id: number, force_update: boolean = false) => {
     return true;
   };
   return post_data_id;
-};
-
-export const useCheckUpdates = (user_id: number) => {
-  React.useEffect(() => {
-    const handle_focus = async () => {
-      if (document.hidden) {
-        return;
-      }
-      const res = await client.client.getIdOfDataOfUserUsersUserIdDataIdGet(
-        user_id,
-      );
-      if (res.body.value !== PARENT_ID) {
-        set_state(() => {
-          return {
-            updated_at: res.body.updated_at,
-          };
-        });
-      }
-    };
-
-    window.addEventListener("focus", handle_focus);
-    window.addEventListener("visibilitychange", handle_focus);
-
-    return () => {
-      window.removeEventListener("focus", handle_focus);
-      window.removeEventListener("visibilitychange", handle_focus);
-    };
-  }, [user_id]);
 };

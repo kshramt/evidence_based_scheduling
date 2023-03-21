@@ -5,7 +5,13 @@ package api_v1;
 import "google/protobuf/timestamp.proto";
 
 service Api {
-  // Create a user in the sign-up page.
+  // Create a user for the fake ID provider.
+  rpc FakeIdpCreateUser(FakeIdpCreateUserReq) returns (Token);
+
+  // Get an ID token from the ID provider.
+  rpc FakeIdpGetIdToken(FakeIdpGetIdTokenReq) returns (Token);
+
+  // Create a user by the given `user_id`.
   rpc CreateUser(CreateUserReq) returns (CreateUserResp);
 
   // As we know the user ID, we can check a client ID is assigned in the browser.
@@ -22,10 +28,17 @@ service Api {
   rpc CreatePatches(CreatePatchesReq) returns (CreatePatchesResp);
 
   // Get the main branch.
-  rpc GetCurrentPatchId(GetCurrentPatchIdReq) returns (GetCurrentPatchIdResp);
+  rpc GetHead(GetHeadReq) returns (GetHeadResp);
+
+  // Update the main branch if not modified.
+  rpc UpdateHeadIfNotModified(UpdateHeadIfNotModifiedReq) returns (UpdateHeadIfNotModifiedResp);
 
   // Update the main branch.
-  rpc UpdateCurrentPatchIdIfNotModified(UpdateCurrentPatchIdIfNotModifiedReq) returns (UpdateCurrentPatchIdIfNotModifiedResp);
+  rpc UpdateHead(UpdateHeadReq) returns (UpdateHeadResp);
+}
+
+message Token {
+  optional string user_id = 1;
 }
 
 message Patch {
@@ -37,6 +50,14 @@ message Patch {
   optional int64 parent_patch_id = 6;
   optional google.protobuf.Timestamp created_at = 7;
   optional string patch = 8;;
+}
+
+message FakeIdpCreateUserReq {
+  optional string name = 1;
+}
+
+message FakeIdpGetIdTokenReq {
+  optional string name = 1;
 }
 
 message CreateUserReq {
@@ -79,16 +100,18 @@ message CreatePatchesReq {
 message CreatePatchesResp {
 }
 
-message GetCurrentPatchIdReq {
+message GetHeadReq {
   optional int64 client_id = 1;
 }
-message GetCurrentPatchIdResp {
+message GetHeadResp {
   optional int64 client_id = 1;
   optional int64 session_id = 2;
   optional int64 patch_id = 3;
+  optional google.protobuf.Timestamp created_at = 4;
+  optional string name = 5;
 }
 
-message UpdateCurrentPatchIdIfNotModifiedReq {
+message UpdateHeadIfNotModifiedReq {
   optional int64 client_id = 1;
   optional int64 session_id = 2;
   optional int64 patch_id = 3;
@@ -97,6 +120,15 @@ message UpdateCurrentPatchIdIfNotModifiedReq {
   optional int64 prev_patch_id = 6;
 }
 
-message UpdateCurrentPatchIdIfNotModifiedResp {
+message UpdateHeadIfNotModifiedResp {
   optional bool updated = 1;
+}
+
+message UpdateHeadReq {
+  optional int64 client_id = 1;
+  optional int64 session_id = 2;
+  optional int64 patch_id = 3;
+}
+
+message UpdateHeadResp {
 }

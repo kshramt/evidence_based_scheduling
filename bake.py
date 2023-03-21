@@ -40,26 +40,31 @@ def run(args):
             ("prod_postgres", "/postgres"),
             ("prod_api_v1", "/api_v1"),
             ("tests_server", "/tests_server"),
+            ("tests_e2e", "/tests_e2e"),
         ):
             k = f"{target}-{platform.os}-{platform.arch}"
             v = {
                 "dockerfile": f"Dockerfile",
                 "target": target,
-                "output": [f"type=docker"],
-                "tags": [
-                    f"{args.base}{image_name}:h-{args.sha}-{platform.os}-{platform.arch}"
+                "output": [
+                    f"type=docker",
                 ],
-                "platforms": [f"{platform.os}/{platform.arch}"],
+                "tags": [
+                    f"{args.base}{image_name}:h-{args.sha}-{platform.os}-{platform.arch}",
+                ],
+                "platforms": [
+                    f"{platform.os}/{platform.arch}",
+                ],
                 "args": dict(arch=platform.arch),
                 "cache-from": [
-                    f"type=registry,ref={args.base}{image_name}:{args.ref_b64}-{platform.os}-{platform.arch}"
-                    f"type=registry,ref={args.base}{image_name}:latest-{platform.os}-{platform.arch}"
-                    f"type=registry,ref={args.base}{image_name}/cache:{args.ref_b64}-{platform.os}-{platform.arch}"
-                    f"type=registry,ref={args.base}{image_name}/cache:latest-{platform.os}-{platform.arch}"
+                    f"type=registry,ref={args.base}{image_name}/cache:{args.ref_b64}-{platform.os}-{platform.arch}",
+                    f"type=registry,ref={args.base}{image_name}/cache:latest-{platform.os}-{platform.arch}",
+                    f"type=registry,ref={args.base}{image_name}:{args.ref_b64}-{platform.os}-{platform.arch}",
+                    f"type=registry,ref={args.base}{image_name}:latest-{platform.os}-{platform.arch}",
                 ],
                 "cache-to": [
-                    f"type=registry,ref={args.base}{image_name}/cache:{args.ref_b64}-{platform.os}-{platform.arch},mode=max"
-                    f"type=registry,ref={args.base}{image_name}/cache:latest-{platform.os}-{platform.arch},mode=max"
+                    f"type=registry,ref={args.base}{image_name}/cache:{args.ref_b64}-{platform.os}-{platform.arch},mode=max",
+                    f"type=registry,ref={args.base}{image_name}/cache:latest-{platform.os}-{platform.arch},mode=max",
                 ],
             }
             spec["target"][k] = v
