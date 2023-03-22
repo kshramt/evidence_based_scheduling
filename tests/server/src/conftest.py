@@ -153,6 +153,7 @@ def compose_up_envs(
             ADMINER_PORT=adminer_port,
             POSTGRES_PORT=postgres_port,
             PULL="no",
+            MY_HOST_PGDATA=f"./pytest_pgdata_{uuid1}",
         ),
     ):
         yield

@@ -26,6 +26,8 @@ export _DOCKER_NGINX_TAG="${TAG:-latest}"
 export _DOCKER_ENVOY_TAG="${TAG:-latest}"
 export _DOCKER_POSTGRES_TAG="${TAG:-latest}"
 
+mkdir -p "${MY_HOST_PGDATA:-./pgdata}" || :
+
 if [[ "${ENV:-prod}" = "prod" ]]; then
    if [[ "${PULL:-yes}" = "yes" ]]; then
       docker compose -f compose.yaml -f "compose.${ENV:-prod}.yaml" pull

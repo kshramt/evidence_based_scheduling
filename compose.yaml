@@ -28,7 +28,7 @@ services:
       LANG: C.UTF-8
       POSTGRES_PASSWORD: ${_POSTGRES_PASSWORD?}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ${MY_HOST_PGDATA:-./pgdata}:/var/lib/postgresql/data
 
-volumes:
-  pgdata:
+# volumes:
+#   pgdata:
