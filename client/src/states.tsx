@@ -917,7 +917,7 @@ const save_and_remove_remote_pending_patches = async (
   while (true) {
     const req = new Pb.GetPendingPatchesReq();
     req.setClientId(client_id);
-    req.setSize(200);
+    req.setSize(2000);
     const res = await wrapper(() =>
       grpc_client.getPendingPatches(req, {
         Authorization: bearer,
