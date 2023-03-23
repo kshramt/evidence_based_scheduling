@@ -1,6 +1,7 @@
 import * as Idb from "idb";
-import { ApiClient } from "./api_v1_grpc/Api_v1ServiceClientPb";
-import * as Pb from "./api_v1_grpc/api_v1_pb";
+import * as Connect from "@bufbuild/connect";
+import { createGrpcWebTransport } from "@bufbuild/connect-web";
+import * as C from "./api_v1_grpc/api_v1_connect";
 
 const db = Idb.openDB<{ auth: { id_token: null | TIdToken } }>("auth", 1, {
   upgrade: (db) => {
@@ -14,12 +15,15 @@ export type TIdToken = {
 
 export class Auth {
   id_token: null | TIdToken;
-  _client: ApiClient;
+  _client: Connect.PromiseClient<typeof C.Api>;
   _on_change_hooks: Set<(id_token: null | TIdToken) => void>;
 
   constructor() {
     this._on_change_hooks = new Set();
-    this._client = new ApiClient(window.location.origin);
+    this._client = Connect.createPromiseClient(
+      C.Api,
+      createGrpcWebTransport({ baseUrl: window.location.origin }),
+    );
     this.id_token = null;
     db.then((db) => {
       db.get("auth", "id_token").then((id_token) => {
@@ -34,11 +38,9 @@ export class Auth {
     if (this.id_token) {
       await this.sign_out();
     }
-    const req = new Pb.FakeIdpCreateUserReq();
-    req.setName(name);
-    const token = (await this._client.fakeIdpCreateUser(req, null)).toObject();
+    const token = await this._client.fakeIdpCreateUser({ name });
     if (token.userId === undefined) {
-      throw new Error("Failed to create user");
+      throw new Error("`userId` is not set");
     }
     const id_token = { user_id: token.userId };
     this._set_id_token(id_token);
@@ -48,9 +50,7 @@ export class Auth {
     if (this.id_token) {
       await this.sign_out();
     }
-    const req = new Pb.FakeIdpGetIdTokenReq();
-    req.setName(name);
-    const token = (await this._client.fakeIdpGetIdToken(req, null)).toObject();
+    const token = await this._client.fakeIdpGetIdToken({ name });
     if (token.userId === undefined) {
       throw new Error("Failed to get an ID token");
     }

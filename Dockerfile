@@ -73,11 +73,19 @@ run mkdir -p api_v1_grpc \
    && protoc --experimental_allow_proto3_optional -Iproto api_v1.proto --js_out import_style=commonjs,binary:api_v1_grpc --grpc-web_out import_style=typescript,mode=grpcweb:api_v1_grpc
 # Use grpcwebtext if you want to use server-side streaming.
 
-from base_client as builder_client
+from base_client as client_npm_ci
 copy client/package.json client/package-lock.json ./
 run --mount=type=cache,target=/root/.cache npm ci
+
+from client_npm_ci as client_proto
+copy proto ../proto
+run cd ../proto \
+   && PATH="${PWD}/../client/node_modules/.bin:${PATH}" buf generate --config buf.yaml --template buf.gen-client.yaml \
+   && sed -i -e 's/api_v1_pb.js"/api_v1_pb"/' ../client/src/api_v1_grpc/api_v1_connect.ts
+
+from client_npm_ci as builder_client
 copy client .
-copy --from=client_grpc_builder /app/api_v1_grpc /app/client/src/api_v1_grpc
+copy --from=client_proto /app/client/src/api_v1_grpc /app/client/src/api_v1_grpc
 
 from builder_client as test_client
 run --mount=type=cache,target=/root/.cache scripts/check.sh
