@@ -921,13 +921,10 @@ const save_and_remove_remote_pending_patches = async (
   },
 ) => {
   const bearer = _get_bearer(id_token);
+  const req = { clientId: BigInt(client_id), size: BigInt(2000) };
+  const opts = { headers: { authorization: bearer } };
   while (true) {
-    const resp = await wrapper(() =>
-      grpc_client.getPendingPatches(
-        { clientId: BigInt(client_id), size: BigInt(2000) },
-        { headers: { authorization: bearer } },
-      ),
-    );
+    const resp = await wrapper(() => grpc_client.getPendingPatches(req, opts));
     if (resp.patches.length === 0) {
       return;
     }
@@ -1000,12 +997,9 @@ const save_and_remove_remote_pending_patches = async (
             patchId: k.patch_id,
           }),
       );
-      await wrapper(() =>
-        grpc_client.deletePendingPatches(
-          { clientId: BigInt(client_id), patches: ps },
-          { headers: { authorization: bearer } },
-        ),
-      );
+      const req = { clientId: BigInt(client_id), patches: ps };
+      const opts = { headers: { authorization: bearer } };
+      await wrapper(() => grpc_client.deletePendingPatches(req, opts));
     }
   }
 };
