@@ -1,18 +1,18 @@
 import React, { useCallback } from "react";
 import * as Recoil from "recoil";
 
-import * as types from "src/types";
-import { useDispatch, useSelector } from "src/types";
-import * as actions from "src/actions";
-import * as consts from "src/consts";
-import * as states from "src/states";
-import * as total_time_utils from "src/total_time_utils";
-import * as utils from "src/utils";
-import { prevent_propagation } from "src/utils";
-import * as ops from "src/ops";
-import * as toast from "src/toast";
-import * as undoable from "src/undoable";
-import ScrollBackToTopButton from "src/ScrollBackToTopButton";
+import * as types from "./types";
+import { useDispatch, useSelector } from "./types";
+import * as actions from "./actions";
+import * as consts from "./consts";
+import * as states from "./states";
+import * as total_time_utils from "./total_time_utils";
+import * as utils from "./utils";
+import { prevent_propagation } from "./utils";
+import * as ops from "./ops";
+import * as toast from "./toast";
+import * as undoable from "./undoable";
+import ScrollBackToTopButton from "./ScrollBackToTopButton";
 
 const MENU_HEIGHT = "3rem" as const;
 const SCROLL_BACK_TO_TOP_MARK = (
@@ -868,7 +868,7 @@ const MobileMenu = () => {
   }, [dispatch]);
   return (
     <div
-      className={`flex items-center fixed z-[999999] gap-x-[0.25em] w-full top-0  bg-gray-200 dark:bg-gray-900`}
+      className={`flex items-center overflow-x-auto fixed z-[999999] gap-x-[0.25em] w-full top-0  bg-gray-200 dark:bg-gray-900`}
       style={{ height: MENU_HEIGHT }}
     >
       <button

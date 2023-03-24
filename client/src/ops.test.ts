@@ -1,8 +1,9 @@
+import { it, expect, vi } from "vitest";
 import * as ops from "./ops";
 import * as types from "./types";
 
-jest.mock("./toast", () => {
-  const original = jest.requireActual("./toast");
+vi.mock("./toast", () => {
+  const original = vi.importActual("./toast");
   return {
     ...original,
     add: console.log,

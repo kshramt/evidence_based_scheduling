@@ -94,7 +94,7 @@ from builder_client as prod_client
 run --mount=type=cache,target=/root/.cache npm run build
 
 from base_nginx as prod_nginx
-copy --from=prod_client /app/client/build /usr/share/nginx/html
+copy --from=prod_client /app/client/dist /usr/share/nginx/html
 copy nginx.conf /etc/nginx/nginx.conf
 
 from base_go as builder_litestream

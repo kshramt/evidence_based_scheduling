@@ -1,3 +1,4 @@
+import { it, expect } from "vitest";
 import { sum, cumsum, Multinomial } from "./utils";
 
 it("sum", () => {
