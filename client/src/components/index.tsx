@@ -815,6 +815,7 @@ const QueueEntry = (props: { node_id: types.TNodeId }) => {
         <TextArea
           node_id={props.node_id}
           id={utils.queue_textarea_id_of(props.node_id)}
+          className="w-[29em]"
         />
         <EntryInfos node_id={props.node_id} />
       </div>
@@ -964,7 +965,7 @@ const MobileQueueNodes = () => {
     <>
       {node_ids.map((node_id) => (
         <EntryWrapper node_id={node_id} key={node_id}>
-          <TextArea node_id={node_id} style={{ width: "100vw" }} />
+          <TextArea node_id={node_id} className="w-[100vw]" />
           <MobileEntryButtons node_id={node_id} />
           <Details node_id={node_id} />
         </EntryWrapper>
@@ -994,6 +995,7 @@ const TreeEntry = (props: { node_id: types.TNodeId }) => {
         <TextArea
           node_id={props.node_id}
           id={utils.tree_textarea_id_of(props.node_id)}
+          className="w-[29em]"
         />
         <EntryInfos node_id={props.node_id} />
       </div>
@@ -1918,16 +1920,18 @@ const CopyNodeIdButton = (props: { node_id: types.TNodeId }) => {
 
 const TextArea = ({
   node_id,
+  className,
   ...textarea_props
 }: { node_id: types.TNodeId } & React.HTMLProps<HTMLTextAreaElement>) => {
   const root = useSelector((state) => state.data.root);
   return node_id === root ? null : (
-    <TextAreaImpl node_id={node_id} {...textarea_props} />
+    <TextAreaImpl node_id={node_id} {...textarea_props} className={className} />
   );
 };
 
 const TextAreaImpl = ({
   node_id,
+  className,
   ...textarea_props
 }: { node_id: types.TNodeId } & React.HTMLProps<HTMLTextAreaElement>) => {
   const state_text = useSelector((state) => state.data.nodes[node_id].text);
@@ -1952,7 +1956,8 @@ const TextAreaImpl = ({
       onBlur={dispatch_set_text_action}
       onDoubleClick={prevent_propagation}
       className={utils.join(
-        "whitespace-pre-wrap overflow-wrap-anywhere w-[29em] overflow-hidden p-[0.125em] bg-white dark:bg-gray-700 z-0",
+        "whitespace-pre-wrap overflow-wrap-anywhere overflow-hidden p-[0.125em] bg-white dark:bg-gray-700 z-0",
+        className,
         status === "done"
           ? "text-red-600 dark:text-red-400"
           : status === "dont"
