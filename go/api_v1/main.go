@@ -175,7 +175,7 @@ func (s *apiServer) GetPendingPatches(ctx context.Context, req *api_v1_grpc.GetP
 		return nil, status.Errorf(codes.InvalidArgument, "size is nil")
 	}
 	patches, err := withTx(s, ctx, func(qtx *dbpkg.Queries) (*[]*dbpkg.GetPendingPatchesRow, error) {
-		res, err := qtx.GetPendingPatches(ctx, &dbpkg.GetPendingPatchesParams{UserID: *token.UserId, ClientID: *req.ClientId, Limit: mini64(*req.Size, 200)})
+		res, err := qtx.GetPendingPatches(ctx, &dbpkg.GetPendingPatchesParams{UserID: *token.UserId, ClientID: *req.ClientId, Limit: mini64(*req.Size, 10000)})
 		return &res, err
 	})
 	if err != nil {

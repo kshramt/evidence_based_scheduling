@@ -3,11 +3,11 @@ import * as React from "react";
 import * as Idb from "idb";
 import { createStore, applyMiddleware } from "redux";
 import thunk from "redux-thunk";
-import * as timestamp_pb from "google-protobuf/google/protobuf/timestamp_pb";
+import * as Connect from "@bufbuild/connect";
+import * as B from "@bufbuild/protobuf";
+import { createGrpcWebTransport } from "@bufbuild/connect-web";
 
 import * as Auth from "./auth";
-import { ApiClient } from "./api_v1_grpc/Api_v1ServiceClientPb";
-import * as Pb from "./api_v1_grpc/api_v1_pb";
 import * as types from "./types";
 import * as producer from "./producer";
 import * as ops from "./ops";
@@ -17,6 +17,8 @@ import * as reducers from "./reducers";
 import * as undoable from "./undoable";
 import * as queues from "./queues";
 import * as retryers from "./retryers";
+import * as C from "./api_v1_grpc/api_v1_connect";
+import * as Pb from "./api_v1_grpc/api_v1_pb";
 import * as pb2 from "./pb2";
 
 type THead = {
@@ -104,22 +106,22 @@ const get_db = async (db_name: string) => {
 };
 
 const get_client_id = async (
-  client: ApiClient,
+  client: Connect.PromiseClient<typeof C.Api>,
   db: Awaited<ReturnType<typeof get_db>>,
   id_token: Auth.TIdToken,
 ) => {
   let client_id = await db.get("numbers", "client_id");
   if (client_id === undefined) {
-    const req = new Pb.CreateClientReq();
-    req.setName(navigator.userAgent);
-    const resp = await client.createClient(req, {
-      Authorization: _get_bearer(id_token),
-    });
-    if (!resp.hasClientId()) {
+    const resp = await client.createClient(
+      { name: navigator.userAgent },
+      {
+        headers: { authorization: _get_bearer(id_token) },
+      },
+    );
+    if (resp.clientId === undefined) {
       throw new Error("createClient returned no client_id");
     }
-    resp.toObject();
-    client_id = resp.getClientId();
+    client_id = Number(resp.clientId);
     const tx = db.transaction("numbers", "readwrite");
     const store = tx.objectStore("numbers");
     const val = await store.get("client_id");
@@ -343,7 +345,7 @@ export const session_key_context = React.createContext({
 //    This head is used to provide `client_id`, `session_id`, and `patch_id` for `#save_patch`.
 //    The value is initialized with `client_id`, `session_id`, and `patch_id = 0`.
 export class PersistentStateManager {
-  grpc_client: ApiClient;
+  grpc_client: Connect.PromiseClient<typeof C.Api>;
   db: Awaited<ReturnType<typeof get_db>>;
   client_id: number;
   session_id: number;
@@ -356,7 +358,7 @@ export class PersistentStateManager {
   #head_queue: queues.Queue<null | THead> = new queues.Queue();
   #sync_store: ReturnType<typeof _get_store> = _get_store();
   constructor(
-    grpc_client: ApiClient,
+    grpc_client: Connect.PromiseClient<typeof C.Api>,
     db: Awaited<ReturnType<typeof get_db>>,
     client_id: number,
     session_id: number,
@@ -467,7 +469,6 @@ export class PersistentStateManager {
 
   #push_and_remove_local_pending_patches = async () => {
     const bearer = _get_bearer(this.id_token);
-    const req = new Pb.CreatePatchesReq();
     let n_total = 0;
     while (true) {
       const heads = await this.db.getAll("pending_patches", undefined, 200);
@@ -478,7 +479,7 @@ export class PersistentStateManager {
       {
         const tx = this.db.transaction("patches", "readonly");
         const store = tx.objectStore("patches");
-        const patches = [];
+        const patches: Pb.Patch[] = [];
         for (const head of heads) {
           const p = await store.get([
             head.client_id,
@@ -488,24 +489,26 @@ export class PersistentStateManager {
           if (p === undefined) {
             throw new Error(`Patch not found: ${head}`);
           }
-          const r = new Pb.Patch();
-          r.setClientId(p.client_id);
-          r.setSessionId(p.session_id);
-          r.setPatchId(p.patch_id);
-          r.setPatch(p.patch);
-          r.setCreatedAt(timestamp_pb.Timestamp.fromDate(p.created_at));
-          r.setParentClientId(p.parent_client_id);
-          r.setParentSessionId(p.parent_session_id);
-          r.setParentPatchId(p.parent_patch_id);
-          patches.push(r);
+          patches.push(
+            new Pb.Patch({
+              clientId: BigInt(p.client_id),
+              sessionId: BigInt(p.session_id),
+              patchId: BigInt(p.patch_id),
+              patch: p.patch,
+              createdAt: B.Timestamp.fromDate(p.created_at),
+              parentClientId: BigInt(p.parent_client_id),
+              parentSessionId: BigInt(p.parent_session_id),
+              parentPatchId: BigInt(p.parent_patch_id),
+            }),
+          );
         }
         await tx.done;
-        req.setPatchesList(patches);
-        await retryer.with_retry(() =>
-          this.grpc_client.createPatches(req, {
-            Authorization: bearer,
-          }),
-        );
+        await retryer.with_retry(() => {
+          return this.grpc_client.createPatches(
+            { patches },
+            { headers: { authorization: bearer } },
+          );
+        });
       }
       {
         const tx = this.db.transaction("pending_patches", "readwrite");
@@ -542,22 +545,23 @@ export class PersistentStateManager {
     local: THead;
   }) => {
     const bearer = _get_bearer(this.id_token);
-    const req = new Pb.UpdateHeadIfNotModifiedReq();
-    req.setClientId(heads.local.client_id);
-    req.setSessionId(heads.local.session_id);
-    req.setPatchId(heads.local.patch_id);
-    req.setPrevClientId(heads.remote.client_id);
-    req.setPrevSessionId(heads.remote.session_id);
-    req.setPrevPatchId(heads.remote.patch_id);
     const resp = await retryer.with_retry(() =>
-      this.grpc_client.updateHeadIfNotModified(req, {
-        Authorization: bearer,
-      }),
+      this.grpc_client.updateHeadIfNotModified(
+        {
+          clientId: BigInt(heads.local.client_id),
+          sessionId: BigInt(heads.local.session_id),
+          patchId: BigInt(heads.local.patch_id),
+          prevClientId: BigInt(heads.remote.client_id),
+          prevSessionId: BigInt(heads.remote.session_id),
+          prevPatchId: BigInt(heads.remote.patch_id),
+        },
+        { headers: { authorization: bearer } },
+      ),
     );
-    if (!resp.hasUpdated()) {
+    if (resp.updated === undefined) {
       throw new Error("updated is not set");
     }
-    if (resp.getUpdated()) {
+    if (resp.updated) {
       await this.#save_remote_head(heads.local);
     } else {
       const resp = await get_remote_head_and_save_remote_pending_patches(
@@ -670,13 +674,14 @@ export class PersistentStateManager {
       window.location.reload();
     }, []);
     const use_local = React.useCallback(async () => {
-      const req = new Pb.UpdateHeadReq();
-      req.setClientId(this.heads.remote.client_id);
-      req.setSessionId(this.heads.remote.session_id);
-      req.setPatchId(this.heads.remote.patch_id);
-      await this.grpc_client.updateHead(req, {
-        Authorization: _get_bearer(this.id_token),
-      });
+      await this.grpc_client.updateHead(
+        {
+          clientId: BigInt(this.heads.remote.client_id),
+          sessionId: BigInt(this.heads.remote.session_id),
+          patchId: BigInt(this.heads.remote.patch_id),
+        },
+        { headers: { authorization: _get_bearer(this.id_token) } },
+      );
       this.#sync_store.set_state(() => null);
     }, []);
     if (state === null) {
@@ -759,7 +764,10 @@ export const get_PersistentStateManager = async (
 ) => {
   // Open DB
   const db = await get_db(`user-${id_token.user_id}`);
-  const grpc_client = new ApiClient(window.location.origin);
+  const grpc_client = Connect.createPromiseClient(
+    C.Api,
+    createGrpcWebTransport({ baseUrl: window.location.origin }),
+  );
 
   // Set client_id
   const client_id = await get_client_id(grpc_client, db, id_token);
@@ -878,20 +886,19 @@ export const get_PersistentStateManager = async (
 
 const get_remote_head_and_save_remote_pending_patches = async (
   client_id: number,
-  grpc_client: ApiClient,
+  grpc_client: Connect.PromiseClient<typeof C.Api>,
   id_token: Auth.TIdToken,
   db: Awaited<ReturnType<typeof get_db>>,
   wrapper: typeof retryer.with_retry = (fn) => {
     return fn();
   },
 ) => {
-  const req = new Pb.GetHeadReq();
-  req.setClientId(client_id);
   const resp = pb2.decode_GetHeadResp(
     await wrapper(() =>
-      grpc_client.getHead(req, {
-        Authorization: _get_bearer(id_token),
-      }),
+      grpc_client.getHead(
+        { clientId: BigInt(client_id) },
+        { headers: { authorization: _get_bearer(id_token) } },
+      ),
     ),
   );
   await save_and_remove_remote_pending_patches(
@@ -907,104 +914,92 @@ const get_remote_head_and_save_remote_pending_patches = async (
 const save_and_remove_remote_pending_patches = async (
   id_token: Auth.TIdToken,
   client_id: number,
-  grpc_client: ApiClient,
+  grpc_client: Connect.PromiseClient<typeof C.Api>,
   db: Awaited<ReturnType<typeof get_db>>,
   wrapper: typeof retryer.with_retry = (fn) => {
     return fn();
   },
 ) => {
   const bearer = _get_bearer(id_token);
+  const req = { clientId: BigInt(client_id), size: BigInt(2000) };
+  const opts = { headers: { authorization: bearer } };
   while (true) {
-    const req = new Pb.GetPendingPatchesReq();
-    req.setClientId(client_id);
-    req.setSize(200);
-    const res = await wrapper(() =>
-      grpc_client.getPendingPatches(req, {
-        Authorization: bearer,
-      }),
-    );
-    const patches = res.getPatchesList();
-    if (patches.length === 0) {
+    const resp = await wrapper(() => grpc_client.getPendingPatches(req, opts));
+    if (resp.patches.length === 0) {
       return;
     }
     const ks = [];
     const tx = db.transaction("patches", "readwrite");
     const store = tx.objectStore("patches");
-    for (const patch of patches) {
-      if (!patch.hasClientId()) {
+    for (const patch of resp.patches) {
+      if (patch.clientId === undefined) {
         throw new Error(`getPendingPatches returned no client_id for ${patch}`);
       }
-      if (!patch.hasSessionId()) {
+      if (patch.sessionId === undefined) {
         throw new Error(
           `getPendingPatches returned no session_id for ${patch}`,
         );
       }
-      if (!patch.hasPatchId()) {
+      if (patch.patchId === undefined) {
         throw new Error(`getPendingPatches returned no patch_id for ${patch}`);
       }
-      if (!patch.hasPatch) {
+      if (patch.patch === undefined) {
         throw new Error(`getPendingPatches returned no patch for ${patch}`);
       }
-      if (!patch.hasParentClientId()) {
+      if (patch.parentClientId === undefined) {
         throw new Error(
           `getPendingPatches returned no parent_client_id for ${patch}`,
         );
       }
-      if (!patch.hasParentSessionId()) {
+      if (patch.parentSessionId === undefined) {
         throw new Error(
           `getPendingPatches returned no parent_session_id for ${patch}`,
         );
       }
-      if (!patch.hasParentPatchId()) {
+      if (patch.parentPatchId === undefined) {
         throw new Error(
           `getPendingPatches returned no parent_patch_id for ${patch}`,
         );
       }
-      if (!patch.hasCreatedAt()) {
+      if (patch.createdAt === undefined) {
         throw new Error(
           `getPendingPatches returned no created_at for ${patch}`,
         );
       }
-      const ca = patch.getCreatedAt();
-      if (ca === undefined) {
+      if (patch.createdAt === undefined) {
         throw new Error(
           `Must not happen: patch.getCreatedAt() === undefined for ${patch}`,
         );
       }
       await store.put({
-        client_id: patch.getClientId(),
-        session_id: patch.getSessionId(),
-        patch_id: patch.getPatchId(),
-        patch: patch.getPatch(),
-        parent_client_id: patch.getParentClientId(),
-        parent_session_id: patch.getParentSessionId(),
-        parent_patch_id: patch.getParentPatchId(),
-        created_at: ca.toDate(),
+        client_id: Number(patch.clientId),
+        session_id: Number(patch.sessionId),
+        patch_id: Number(patch.patchId),
+        patch: patch.patch,
+        parent_client_id: Number(patch.parentClientId),
+        parent_session_id: Number(patch.parentSessionId),
+        parent_patch_id: Number(patch.parentPatchId),
+        created_at: patch.createdAt.toDate(),
       });
       ks.push({
-        client_id: patch.getClientId(),
-        session_id: patch.getSessionId(),
-        patch_id: patch.getPatchId(),
+        client_id: patch.clientId,
+        session_id: patch.sessionId,
+        patch_id: patch.patchId,
       });
     }
     await tx.done;
     {
-      const req = new Pb.DeletePendingPatchesReq();
-      req.setClientId(client_id);
-      const ps = [];
-      for (const k of ks) {
-        const p = new Pb.DeletePendingPatchesReq.Patch();
-        p.setClientId(k.client_id);
-        p.setSessionId(k.session_id);
-        p.setPatchId(k.patch_id);
-        ps.push(p);
-      }
-      req.setPatchesList(ps);
-      await wrapper(() =>
-        grpc_client.deletePendingPatches(req, {
-          Authorization: bearer,
-        }),
+      const ps = ks.map(
+        (k) =>
+          new Pb.DeletePendingPatchesReq_Patch({
+            clientId: k.client_id,
+            sessionId: k.session_id,
+            patchId: k.patch_id,
+          }),
       );
+      const req = { clientId: BigInt(client_id), patches: ps };
+      const opts = { headers: { authorization: bearer } };
+      await wrapper(() => grpc_client.deletePendingPatches(req, opts));
     }
   }
 };

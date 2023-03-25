@@ -1,6 +1,6 @@
-import { register_history_type } from "src/undoable";
-import * as types from "src/types";
-import * as rtk from "src/rtk";
+import { register_history_type } from "./undoable";
+import * as types from "./types";
+import * as rtk from "./rtk";
 
 export const start_action = register_history_type(
   rtk.action_of_of<{ node_id: types.TNodeId; is_concurrent: boolean }>(

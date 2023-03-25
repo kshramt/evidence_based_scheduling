@@ -1,7 +1,8 @@
 services:
   api_v1:
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     restart: always
     environment:
       MY_DB_URI: user=app host=postgres dbname=postgres password=${_POSTGRES_APP_USER_PASSWORD?}
@@ -29,6 +30,10 @@ services:
       POSTGRES_PASSWORD: ${_POSTGRES_PASSWORD?}
     volumes:
       - ${MY_HOST_PGDATA:-./pgdata}:/var/lib/postgresql/data
-
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 # volumes:
 #   pgdata:

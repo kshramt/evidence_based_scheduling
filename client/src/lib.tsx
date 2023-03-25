@@ -185,13 +185,6 @@ const AppComponentImpl = (props: {
       <Provider store={store}>
         <App />
         <ctx.Component />
-        <button
-          className="btn-icon"
-          onClick={ctx.auth.sign_out}
-          onDoubleClick={utils.prevent_propagation}
-        >
-          Sign-out
-        </button>
       </Provider>
     </states.session_key_context.Provider>
   );
