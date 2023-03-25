@@ -15,7 +15,4 @@ export SHELLOPTS := pipefail:errexit:nounset:noclobber
 check: check_client
 check_client:
 	pushd client
-	node_modules/.bin/tsc --noEmit
-	node_modules/.bin/react-scripts test --ci --watchAll false
-	node_modules/.bin/eslint --max-warnings 0 src
-	node_modules/.bin/prettier --check src
+	scripts/check.sh

@@ -1,18 +1,18 @@
 import React, { useCallback } from "react";
 import * as Recoil from "recoil";
 
-import * as types from "src/types";
-import { useDispatch, useSelector } from "src/types";
-import * as actions from "src/actions";
-import * as consts from "src/consts";
-import * as states from "src/states";
-import * as total_time_utils from "src/total_time_utils";
-import * as utils from "src/utils";
-import { prevent_propagation } from "src/utils";
-import * as ops from "src/ops";
-import * as toast from "src/toast";
-import * as undoable from "src/undoable";
-import ScrollBackToTopButton from "src/ScrollBackToTopButton";
+import * as types from "./types";
+import { useDispatch, useSelector } from "./types";
+import * as actions from "./actions";
+import * as consts from "./consts";
+import * as states from "./states";
+import * as total_time_utils from "./total_time_utils";
+import * as utils from "./utils";
+import { prevent_propagation } from "./utils";
+import * as ops from "./ops";
+import * as toast from "./toast";
+import * as undoable from "./undoable";
+import ScrollBackToTopButton from "./ScrollBackToTopButton";
 
 const MENU_HEIGHT = "3rem" as const;
 const SCROLL_BACK_TO_TOP_MARK = (
@@ -815,6 +815,7 @@ const QueueEntry = (props: { node_id: types.TNodeId }) => {
         <TextArea
           node_id={props.node_id}
           id={utils.queue_textarea_id_of(props.node_id)}
+          className="w-[29em]"
         />
         <EntryInfos node_id={props.node_id} />
       </div>
@@ -867,7 +868,7 @@ const MobileMenu = () => {
   }, [dispatch]);
   return (
     <div
-      className={`flex items-center fixed z-[999999] gap-x-[0.25em] w-full top-0  bg-gray-200 dark:bg-gray-900`}
+      className={`flex items-center overflow-x-auto fixed z-[999999] gap-x-[0.25em] w-full top-0  bg-gray-200 dark:bg-gray-900`}
       style={{ height: MENU_HEIGHT }}
     >
       <button
@@ -964,7 +965,7 @@ const MobileQueueNodes = () => {
     <>
       {node_ids.map((node_id) => (
         <EntryWrapper node_id={node_id} key={node_id}>
-          <TextArea node_id={node_id} style={{ width: "100vw" }} />
+          <TextArea node_id={node_id} className="w-[100vw]" />
           <MobileEntryButtons node_id={node_id} />
           <Details node_id={node_id} />
         </EntryWrapper>
@@ -994,6 +995,7 @@ const TreeEntry = (props: { node_id: types.TNodeId }) => {
         <TextArea
           node_id={props.node_id}
           id={utils.tree_textarea_id_of(props.node_id)}
+          className="w-[29em]"
         />
         <EntryInfos node_id={props.node_id} />
       </div>
@@ -1918,16 +1920,18 @@ const CopyNodeIdButton = (props: { node_id: types.TNodeId }) => {
 
 const TextArea = ({
   node_id,
+  className,
   ...textarea_props
 }: { node_id: types.TNodeId } & React.HTMLProps<HTMLTextAreaElement>) => {
   const root = useSelector((state) => state.data.root);
   return node_id === root ? null : (
-    <TextAreaImpl node_id={node_id} {...textarea_props} />
+    <TextAreaImpl node_id={node_id} {...textarea_props} className={className} />
   );
 };
 
 const TextAreaImpl = ({
   node_id,
+  className,
   ...textarea_props
 }: { node_id: types.TNodeId } & React.HTMLProps<HTMLTextAreaElement>) => {
   const state_text = useSelector((state) => state.data.nodes[node_id].text);
@@ -1952,7 +1956,8 @@ const TextAreaImpl = ({
       onBlur={dispatch_set_text_action}
       onDoubleClick={prevent_propagation}
       className={utils.join(
-        "whitespace-pre-wrap overflow-wrap-anywhere w-[29em] overflow-hidden p-[0.125em] bg-white dark:bg-gray-700 z-0",
+        "whitespace-pre-wrap overflow-wrap-anywhere overflow-hidden p-[0.125em] bg-white dark:bg-gray-700 z-0",
+        className,
         status === "done"
           ? "text-red-600 dark:text-red-400"
           : status === "dont"

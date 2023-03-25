@@ -1,7 +1,8 @@
 import collections.abc
+import time
 
-import pytest
 import playwright.sync_api
+import pytest
 
 
 def test_walkthrough(
@@ -14,8 +15,17 @@ def test_walkthrough(
     page = context.new_page()
     page.goto(f"http://{my_host}:{envoy_http_port}/app")
     # Click an invisible button.
-    page.evaluate(
-        '()=>{document.getElementById("skip-persistent-storage-check").click()}'
-    )
+    i = 0
+    while True:
+        i += 1
+        try:
+            page.evaluate(
+                '()=>{document.getElementById("skip-persistent-storage-check").click()}'
+            )
+            break
+        except Exception:
+            if 10 < i:
+                raise
+            time.sleep(0.1)
     page.locator("#sign-up-name").fill("user1")
     page.get_by_role("button", name="Sign-up").click()

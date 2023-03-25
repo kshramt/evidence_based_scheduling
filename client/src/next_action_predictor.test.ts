@@ -1,3 +1,4 @@
+import { it, expect } from "vitest";
 import { TriGramPredictor, BiGramPredictor } from "./next_action_predictor";
 
 it("TriGramPredictor(1)", () => {

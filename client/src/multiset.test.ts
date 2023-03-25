@@ -1,3 +1,4 @@
+import { it, expect } from "vitest";
 import { MultiSet } from "./multiset";
 
 it("sum", () => {

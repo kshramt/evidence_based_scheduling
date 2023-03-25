@@ -23,6 +23,7 @@ services:
     image: adminer:4.8.1-standalone
     restart: always
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     ports:
     - "${ADMINER_PORT:-9090}:8080"
