@@ -20,6 +20,7 @@ import * as retryers from "./retryers";
 import * as C from "./api_v1_grpc/api_v1_connect";
 import * as Pb from "./api_v1_grpc/api_v1_pb";
 import * as pb2 from "./pb2";
+import * as utils from "./utils";
 
 type THead = {
   client_id: number;
@@ -855,7 +856,7 @@ export const get_PersistentStateManager = async (
       res.session_key,
       Recoil.atom({
         key: "show_mobile",
-        default: false,
+        default: utils.get_is_mobile(),
         effects: [boolean_effect],
       }),
     );
