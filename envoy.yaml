@@ -43,6 +43,7 @@ static_resources:
                   content_type:
                   - application/javascript
                   - application/json
+                  - application/manifest+json
                   - application/xhtml+xml
                   - image/svg+xml
                   - text/css

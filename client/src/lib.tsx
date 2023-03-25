@@ -8,7 +8,6 @@ import * as states from "./states";
 import * as toast from "./toast";
 import "./lib.css";
 import * as utils from "./utils";
-import * as serviceWorkerRegistration from "./serviceWorkerRegistration";
 import * as components from "./components";
 import * as Auth from "./auth";
 
@@ -263,8 +262,3 @@ export const main = async () => {
   render();
   return;
 };
-
-// If you want your app to work offline and load faster, you can change
-// unregister() to register() below. Note this comes with some pitfalls.
-// Learn more about service workers: https://cra.link/PWA
-serviceWorkerRegistration.register();
