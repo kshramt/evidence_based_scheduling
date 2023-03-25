@@ -12,12 +12,15 @@ export default defineConfig({
       filename: "sw.ts",
       srcDir: "src",
       devOptions: { enabled: true },
-      workbox: { globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,woff,woff2}"] },
+      injectManifest: {
+        globPatterns: ["**"],
+      },
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "masked-icon.svg"],
       manifest: {
         name: "Evidence Based Scheduling",
         short_name: "EBS",
-        description: "Evidence based TODO app with DAG based dependency management",
+        description:
+          "Evidence based TODO app with DAG based dependency management",
         theme_color: "#000000",
         icons: [
           {
@@ -35,9 +38,9 @@ export default defineConfig({
             sizes: "512x512",
             type: "image/png",
             purpose: "any maskable",
-          }
-        ]
-      }
+          },
+        ],
+      },
     }),
   ],
   server: {
