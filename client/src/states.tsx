@@ -851,33 +851,13 @@ export const get_PersistentStateManager = async (
       }
     });
   };
-  const boolean_effect2: Recoil.AtomEffect<boolean> = ({
-    node,
-    onSet,
-    setSelf,
-  }) => {
-    setSelf(
-      (async () => {
-        await db.put("booleans", true, node.key);
-        const value = await db.get("booleans", node.key);
-        return value === undefined ? new Recoil.DefaultValue() : value;
-      })(),
-    );
-    onSet((new_value, _, is_reset) => {
-      if (is_reset) {
-        db.delete("booleans", node.key);
-      } else {
-        db.put("booleans", new_value, node.key);
-      }
-    });
-  };
   if (!show_mobile_atom_map.has(res.session_key)) {
     show_mobile_atom_map.set(
       res.session_key,
       Recoil.atom({
         key: "show_mobile",
         default: utils.get_is_mobile(),
-        effects: [boolean_effect2],
+        effects: [boolean_effect],
       }),
     );
   }
