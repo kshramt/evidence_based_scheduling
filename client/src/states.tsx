@@ -20,7 +20,7 @@ import * as retryers from "./retryers";
 import * as C from "./api_v1_grpc/api_v1_connect";
 import * as Pb from "./api_v1_grpc/api_v1_pb";
 import * as pb2 from "./pb2";
-import * as utils from "./utils";
+// import * as utils from "./utils";
 
 type THead = {
   client_id: number;
@@ -839,8 +839,8 @@ export const get_PersistentStateManager = async (
   }) => {
     setSelf(
       (async () => {
-        const value = await db.get("booleans", node.key);
-        return value === undefined ? new Recoil.DefaultValue() : value;
+        // const value = await db.get("booleans", node.key);
+        return true; // value === undefined ? new Recoil.DefaultValue() : value;
       })(),
     );
     onSet((new_value, _, is_reset) => {
@@ -856,7 +856,7 @@ export const get_PersistentStateManager = async (
       res.session_key,
       Recoil.atom({
         key: "show_mobile",
-        default: utils.get_is_mobile(),
+        default: true, // utils.get_is_mobile(),
         effects: [boolean_effect],
       }),
     );
