@@ -39,9 +39,10 @@ self.addEventListener("message", (event) => {
 });
 
 self.addEventListener("install", (event) => {
+  const base = new URL(".", self.location.pathname).pathname;
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(["/", "index.html"]);
+      return cache.addAll([`${base}index.html`, base]);
     }),
   );
 });
