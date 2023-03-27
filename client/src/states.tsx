@@ -751,6 +751,9 @@ export class PersistentStateManager {
       window.addEventListener("focus", handle_focus);
       window.addEventListener("visibilitychange", handle_focus);
 
+      // Check for update on load.
+      handle_focus();
+
       return () => {
         window.removeEventListener("focus", handle_focus);
         window.removeEventListener("visibilitychange", handle_focus);
