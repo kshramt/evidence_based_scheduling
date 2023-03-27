@@ -1,6 +1,6 @@
-import * as Pb from "./api_v1_grpc/api_v1_pb";
+import * as Pb from "./gen/api/v1/api_pb";
 
-export const decode_GetHeadResp = (resp: Pb.GetHeadResp) => {
+export const decode_GetHeadResp = (resp: Pb.GetHeadResponse) => {
   if (resp.clientId === undefined) {
     throw new Error("client_id is not set");
   }

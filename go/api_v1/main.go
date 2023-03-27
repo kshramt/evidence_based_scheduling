@@ -25,19 +25,19 @@ import (
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
-	"github.com/kshramt/evidence_based_scheduling/api_v1_grpc"
 	dbpkg "github.com/kshramt/evidence_based_scheduling/db"
+	api_v1_grpc "github.com/kshramt/evidence_based_scheduling/gen/api/v1"
 	"github.com/kshramt/evidence_based_scheduling/idgens"
 )
 
 type apiServer struct {
-	api_v1_grpc.UnimplementedApiServer
+	api_v1_grpc.UnimplementedApiServiceServer
 	queries *dbpkg.Queries
 	db      *pgxpool.Pool
 	idgen   *idgens.SortableIdGenerator
 }
 
-func (s *apiServer) FakeIdpCreateUser(ctx context.Context, req *api_v1_grpc.FakeIdpCreateUserReq) (*api_v1_grpc.Token, error) {
+func (s *apiServer) FakeIdpCreateUser(ctx context.Context, req *api_v1_grpc.FakeIdpCreateUserRequest) (*api_v1_grpc.FakeIdpCreateUserResponse, error) {
 	if req.Name == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "name is nil")
 	}
@@ -46,7 +46,7 @@ func (s *apiServer) FakeIdpCreateUser(ctx context.Context, req *api_v1_grpc.Fake
 		return nil, err
 	}
 	user_id := idgens.Base62(_user_id[:])
-	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.Token, error) {
+	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.FakeIdpCreateUserResponse, error) {
 		err := qtx.FakeIdpCreateUser(ctx, &dbpkg.FakeIdpCreateUserParams{
 			Name: *req.Name,
 			ID:   user_id,
@@ -58,20 +58,22 @@ func (s *apiServer) FakeIdpCreateUser(ctx context.Context, req *api_v1_grpc.Fake
 		if err != nil {
 			return nil, err
 		}
-		return &api_v1_grpc.Token{UserId: &user_id}, nil
+		return &api_v1_grpc.FakeIdpCreateUserResponse{
+			Token: &api_v1_grpc.Token{UserId: &user_id},
+		}, nil
 	})
 }
 
-func (s *apiServer) FakeIdpGetIdToken(ctx context.Context, req *api_v1_grpc.FakeIdpGetIdTokenReq) (*api_v1_grpc.Token, error) {
+func (s *apiServer) FakeIdpGetIdToken(ctx context.Context, req *api_v1_grpc.FakeIdpGetIdTokenRequest) (*api_v1_grpc.FakeIdpGetIdTokenResponse, error) {
 	if req.Name == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "name is nil")
 	}
-	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.Token, error) {
+	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.FakeIdpGetIdTokenResponse, error) {
 		res, err := qtx.FakeIdpGetUserByName(ctx, *req.Name)
 		if err != nil {
 			return nil, err
 		}
-		return &api_v1_grpc.Token{UserId: &res.ID}, nil
+		return &api_v1_grpc.FakeIdpGetIdTokenResponse{Token: &api_v1_grpc.Token{UserId: &res.ID}}, nil
 	})
 }
 
@@ -79,7 +81,7 @@ func (s *apiServer) FakeIdpGetIdToken(ctx context.Context, req *api_v1_grpc.Fake
 // 2. Create a new seq for the user.
 // 3. Create the system client for the user.
 // 4. Create the initial patch for the user.
-func createUser(ctx context.Context, qtx *dbpkg.Queries, user_id string) (*api_v1_grpc.CreateUserResp, error) {
+func createUser(ctx context.Context, qtx *dbpkg.Queries, user_id string) (*api_v1_grpc.CreateUserResponse, error) {
 	root_client_id := int64(0)
 	root_session_id := int64(0)
 	root_patch_id := int64(0)
@@ -122,10 +124,10 @@ func createUser(ctx context.Context, qtx *dbpkg.Queries, user_id string) (*api_v
 	if err != nil {
 		return nil, err
 	}
-	return &api_v1_grpc.CreateUserResp{}, nil
+	return &api_v1_grpc.CreateUserResponse{}, nil
 }
 
-func createClient(ctx context.Context, qtx *dbpkg.Queries, user_id string, client_id int64, name *string) (*api_v1_grpc.CreateClientResp, error) {
+func createClient(ctx context.Context, qtx *dbpkg.Queries, user_id string, client_id int64, name *string) (*api_v1_grpc.CreateClientResponse, error) {
 	if name == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "name is nil")
 	}
@@ -140,30 +142,30 @@ func createClient(ctx context.Context, qtx *dbpkg.Queries, user_id string, clien
 	if err != nil {
 		return nil, err
 	}
-	return &api_v1_grpc.CreateClientResp{ClientId: &client_id}, nil
+	return &api_v1_grpc.CreateClientResponse{ClientId: &client_id}, nil
 }
 
-func (s *apiServer) CreateUser(ctx context.Context, req *api_v1_grpc.CreateUserReq) (*api_v1_grpc.CreateUserResp, error) {
+func (s *apiServer) CreateUser(ctx context.Context, req *api_v1_grpc.CreateUserRequest) (*api_v1_grpc.CreateUserResponse, error) {
 	if req.UserId == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "user_id is nil")
 	}
-	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.CreateUserResp, error) {
+	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.CreateUserResponse, error) {
 		return createUser(ctx, qtx, *req.UserId)
 	})
 }
 
-func (s *apiServer) CreateClient(ctx context.Context, req *api_v1_grpc.CreateClientReq) (*api_v1_grpc.CreateClientResp, error) {
+func (s *apiServer) CreateClient(ctx context.Context, req *api_v1_grpc.CreateClientRequest) (*api_v1_grpc.CreateClientResponse, error) {
 	token, err := get_token(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.CreateClientResp, error) {
+	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.CreateClientResponse, error) {
 		return createClient(ctx, qtx, *token.UserId, -1, req.Name)
 	})
 }
 
-func (s *apiServer) GetPendingPatches(ctx context.Context, req *api_v1_grpc.GetPendingPatchesReq) (*api_v1_grpc.GetPendingPatchesResp, error) {
+func (s *apiServer) GetPendingPatches(ctx context.Context, req *api_v1_grpc.GetPendingPatchesRequest) (*api_v1_grpc.GetPendingPatchesResponse, error) {
 	token, err := get_token(ctx)
 	if err != nil {
 		return nil, err
@@ -181,7 +183,7 @@ func (s *apiServer) GetPendingPatches(ctx context.Context, req *api_v1_grpc.GetP
 	if err != nil {
 		return nil, err
 	}
-	res := &api_v1_grpc.GetPendingPatchesResp{Patches: make([]*api_v1_grpc.Patch, 0, len(*patches))}
+	res := &api_v1_grpc.GetPendingPatchesResponse{Patches: make([]*api_v1_grpc.Patch, 0, len(*patches))}
 	for i := range *patches {
 		patch := string((*patches)[i].Patch)
 		res.Patches = append(res.Patches, &api_v1_grpc.Patch{
@@ -198,7 +200,7 @@ func (s *apiServer) GetPendingPatches(ctx context.Context, req *api_v1_grpc.GetP
 	return res, nil
 }
 
-func (s *apiServer) DeletePendingPatches(ctx context.Context, req *api_v1_grpc.DeletePendingPatchesReq) (*api_v1_grpc.DeletePendingPatchesResp, error) {
+func (s *apiServer) DeletePendingPatches(ctx context.Context, req *api_v1_grpc.DeletePendingPatchesRequest) (*api_v1_grpc.DeletePendingPatchesResponse, error) {
 	token, err := get_token(ctx)
 	if err != nil {
 		return nil, err
@@ -228,16 +230,16 @@ func (s *apiServer) DeletePendingPatches(ctx context.Context, req *api_v1_grpc.D
 		}
 		producer_patch_ids = append(producer_patch_ids, *req.Patches[i].PatchId)
 	}
-	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.DeletePendingPatchesResp, error) {
+	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.DeletePendingPatchesResponse, error) {
 		err = qtx.DeletePendingPatches(ctx, &dbpkg.DeletePendingPatchesParams{UserIds: user_ids, ClientIds: client_ids, ProducerClientIds: producer_client_ids, ProducerSessionIds: producer_session_ids, ProducerPatchIds: producer_patch_ids})
 		if err != nil {
 			return nil, err
 		}
-		return &api_v1_grpc.DeletePendingPatchesResp{}, nil
+		return &api_v1_grpc.DeletePendingPatchesResponse{}, nil
 	})
 }
 
-func (s *apiServer) CreatePatches(ctx context.Context, req *api_v1_grpc.CreatePatchesReq) (*api_v1_grpc.CreatePatchesResp, error) {
+func (s *apiServer) CreatePatches(ctx context.Context, req *api_v1_grpc.CreatePatchesRequest) (*api_v1_grpc.CreatePatchesResponse, error) {
 	token, err := get_token(ctx)
 	if err != nil {
 		return nil, err
@@ -287,7 +289,7 @@ func (s *apiServer) CreatePatches(ctx context.Context, req *api_v1_grpc.CreatePa
 		}
 		created_ats = append(created_ats, pgtype.Timestamptz{Time: req.Patches[i].CreatedAt.AsTime(), Valid: true})
 	}
-	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.CreatePatchesResp, error) {
+	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.CreatePatchesResponse, error) {
 		err = qtx.CreatePatches(ctx, &dbpkg.CreatePatchesParams{
 			UserIds:          user_ids,
 			ClientIds:        client_ids,
@@ -302,11 +304,11 @@ func (s *apiServer) CreatePatches(ctx context.Context, req *api_v1_grpc.CreatePa
 		if err != nil {
 			return nil, err
 		}
-		return &api_v1_grpc.CreatePatchesResp{}, nil
+		return &api_v1_grpc.CreatePatchesResponse{}, nil
 	})
 }
 
-func (s *apiServer) GetHead(ctx context.Context, req *api_v1_grpc.GetHeadReq) (*api_v1_grpc.GetHeadResp, error) {
+func (s *apiServer) GetHead(ctx context.Context, req *api_v1_grpc.GetHeadRequest) (*api_v1_grpc.GetHeadResponse, error) {
 	token, err := get_token(ctx)
 	if err != nil {
 		return nil, err
@@ -320,7 +322,7 @@ func (s *apiServer) GetHead(ctx context.Context, req *api_v1_grpc.GetHeadReq) (*
 	if err != nil {
 		return nil, err
 	}
-	return &api_v1_grpc.GetHeadResp{
+	return &api_v1_grpc.GetHeadResponse{
 		ClientId:  &res.HeadClientID,
 		SessionId: &res.HeadSessionID,
 		PatchId:   &res.HeadPatchID,
@@ -329,7 +331,7 @@ func (s *apiServer) GetHead(ctx context.Context, req *api_v1_grpc.GetHeadReq) (*
 	}, nil
 }
 
-func (s *apiServer) UpdateHeadIfNotModified(ctx context.Context, req *api_v1_grpc.UpdateHeadIfNotModifiedReq) (*api_v1_grpc.UpdateHeadIfNotModifiedResp, error) {
+func (s *apiServer) UpdateHeadIfNotModified(ctx context.Context, req *api_v1_grpc.UpdateHeadIfNotModifiedRequest) (*api_v1_grpc.UpdateHeadIfNotModifiedResponse, error) {
 	token, err := get_token(ctx)
 	if err != nil {
 		return nil, err
@@ -372,12 +374,12 @@ func (s *apiServer) UpdateHeadIfNotModified(ctx context.Context, req *api_v1_grp
 		return nil, err
 	}
 	is_updated := 0 < *n_updated
-	return &api_v1_grpc.UpdateHeadIfNotModifiedResp{
+	return &api_v1_grpc.UpdateHeadIfNotModifiedResponse{
 		Updated: &is_updated,
 	}, nil
 }
 
-func (s *apiServer) UpdateHead(ctx context.Context, req *api_v1_grpc.UpdateHeadReq) (*api_v1_grpc.UpdateHeadResp, error) {
+func (s *apiServer) UpdateHead(ctx context.Context, req *api_v1_grpc.UpdateHeadRequest) (*api_v1_grpc.UpdateHeadResponse, error) {
 	token, err := get_token(ctx)
 	if err != nil {
 		return nil, err
@@ -392,17 +394,17 @@ func (s *apiServer) UpdateHead(ctx context.Context, req *api_v1_grpc.UpdateHeadR
 		return nil, status.Errorf(codes.InvalidArgument, "patch_id is nil")
 	}
 	params := dbpkg.UpdateHeadParams{
-		UserID:        *token.UserId,
-		ClientID:      *req.ClientId,
-		SessionID:     *req.SessionId,
-		PatchID:       *req.PatchId,
+		UserID:    *token.UserId,
+		ClientID:  *req.ClientId,
+		SessionID: *req.SessionId,
+		PatchID:   *req.PatchId,
 	}
-	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.UpdateHeadResp, error) {
+	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*api_v1_grpc.UpdateHeadResponse, error) {
 		err := qtx.UpdateHead(ctx, &params)
 		if err != nil {
 			return nil, err
 		}
-		return &api_v1_grpc.UpdateHeadResp{}, nil
+		return &api_v1_grpc.UpdateHeadResponse{}, nil
 	})
 }
 
@@ -500,7 +502,7 @@ func run() error {
 			),
 		),
 	)
-	api_v1_grpc.RegisterApiServer(s, &apiServer{queries: queries, idgen: idgen, db: db})
+	api_v1_grpc.RegisterApiServiceServer(s, &apiServer{queries: queries, idgen: idgen, db: db})
 	reflection.Register(s)
 
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", 50051))

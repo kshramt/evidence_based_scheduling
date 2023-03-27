@@ -9,7 +9,7 @@ import grpc
 import httpx
 import pytest
 
-from src.gen import api_v1_pb2, api_v1_pb2_grpc
+from src.gen.api.v1 import api_pb2, api_pb2_grpc
 
 
 @pytest.mark.asyncio
@@ -30,69 +30,72 @@ async def test_walkthrough(
     async with grpc.aio.insecure_channel(
         f"dns:///{my_host}:{os.environ['ENVOY_GRPC_PORT']}"
     ) as channel:
-        stub = api_v1_pb2_grpc.ApiStub(channel)
+        stub = api_pb2_grpc.ApiServiceStub(channel)
 
         # FakeIdpCreateUser
-        fake_idp_create_user_resp: api_v1_pb2.FakeIdpCreateUserResp = (
+        fake_idp_create_user_resp: api_pb2.FakeIdpCreateUserResponse = (
             await stub.FakeIdpCreateUser(
-                request=api_v1_pb2.FakeIdpCreateUserReq(
+                request=api_pb2.FakeIdpCreateUserRequest(
                     name="test_user1",
                 )
             )
         )
-        assert fake_idp_create_user_resp.HasField("user_id")
-        fake_idp_create_user_resp2: api_v1_pb2.FakeIdpCreateUserResp = (
+        assert fake_idp_create_user_resp.HasField("token")
+        assert fake_idp_create_user_resp.token.HasField("user_id")
+        fake_idp_create_user_resp2: api_pb2.FakeIdpCreateUserResponse = (
             await stub.FakeIdpCreateUser(
-                request=api_v1_pb2.FakeIdpCreateUserReq(
+                request=api_pb2.FakeIdpCreateUserRequest(
                     name="test_user2",
                 )
             )
         )
-        assert fake_idp_create_user_resp2.HasField("user_id")
-        assert fake_idp_create_user_resp.user_id != fake_idp_create_user_resp2.user_id
+        assert fake_idp_create_user_resp2.HasField("token")
+        assert fake_idp_create_user_resp2.token.HasField("user_id")
+        assert fake_idp_create_user_resp.token.user_id != fake_idp_create_user_resp2.token.user_id
 
         # FakeIdpGetIdToken
-        fake_idp_get_id_token_resp: api_v1_pb2.FakeIdpGetIdTokenResp = (
+        fake_idp_get_id_token_resp: api_pb2.FakeIdpGetIdTokenResponse = (
             await stub.FakeIdpGetIdToken(
-                request=api_v1_pb2.FakeIdpGetIdTokenReq(
+                request=api_pb2.FakeIdpGetIdTokenRequest(
                     name="test_user1",
                 )
             )
         )
-        assert fake_idp_get_id_token_resp.HasField("user_id")
-        assert fake_idp_create_user_resp.user_id == fake_idp_get_id_token_resp.user_id
+        assert fake_idp_get_id_token_resp.HasField("token")
+        assert fake_idp_get_id_token_resp.token.HasField("user_id")
+        assert fake_idp_create_user_resp.token.user_id == fake_idp_get_id_token_resp.token.user_id
 
         # FakeIdpCreateUser calls CreateUser via a "distributed transaction".
         # # CreateUser
-        # _: api_v1_pb2.CreateUserResp = await stub.CreateUser(
-        #     request=api_v1_pb2.CreateUserReq(user_id=fake_idp_get_id_token_resp.user_id)
+        # _: api_pb2.CreateUserResponse = await stub.CreateUser(
+        #     request=api_pb2.CreateUserRequest(user_id=fake_idp_get_id_token_resp.token.user_id)
         # )
 
-        # _: api_v1_pb2.CreateUserResp = await stub.CreateUser(
-        #     request=api_v1_pb2.CreateUserReq(user_id=fake_idp_create_user_resp2.user_id)
+        # _: api_pb2.CreateUserResponse = await stub.CreateUser(
+        #     request=api_pb2.CreateUserRequest(user_id=fake_idp_create_user_resp2.token.user_id)
         # )
 
         # CreateClient
-        token = _get_token(fake_idp_get_id_token_resp.user_id)
-        create_client_resp: api_v1_pb2.CreateClientResp = await stub.CreateClient(
-            request=api_v1_pb2.CreateClientReq(name="test_client1"),
+        token = _get_token(fake_idp_get_id_token_resp.token.user_id)
+        create_client_resp: api_pb2.CreateClientResponse = await stub.CreateClient(
+            request=api_pb2.CreateClientRequest(name="test_client1"),
             metadata=(("authorization", f"Bearer {token}"),),
         )
         client_id_1 = 1
         client_id_2 = 2
         assert create_client_resp.HasField("client_id")
         assert create_client_resp.client_id == client_id_1
-        create_client_resp: api_v1_pb2.CreateClientResp = await stub.CreateClient(
-            request=api_v1_pb2.CreateClientReq(name="test_client2"),
+        create_client_resp: api_pb2.CreateClientResponse = await stub.CreateClient(
+            request=api_pb2.CreateClientRequest(name="test_client2"),
             metadata=(("authorization", f"Bearer {token}"),),
         )
         assert create_client_resp.HasField("client_id")
         assert create_client_resp.client_id == client_id_2
 
         # GetPendingPatches
-        get_pending_patches_resp: api_v1_pb2.GetPendingPatchesResp = (
+        get_pending_patches_resp: api_pb2.GetPendingPatchesResponse = (
             await stub.GetPendingPatches(
-                request=api_v1_pb2.GetPendingPatchesReq(
+                request=api_pb2.GetPendingPatchesRequest(
                     client_id=client_id_1, size=100
                 ),
                 metadata=(("authorization", f"Bearer {token}"),),
@@ -111,12 +114,12 @@ async def test_walkthrough(
         ]
 
         # DeletePendingPatches
-        delete_pending_patches_resp: api_v1_pb2.DeletePendingPatchesResp = (
+        delete_pending_patches_resp: api_pb2.DeletePendingPatchesResponse = (
             await stub.DeletePendingPatches(
-                request=api_v1_pb2.DeletePendingPatchesReq(
+                request=api_pb2.DeletePendingPatchesRequest(
                     client_id=client_id_1,
                     patches=[
-                        api_v1_pb2.DeletePendingPatchesReq.Patch(
+                        api_pb2.DeletePendingPatchesRequest.Patch(
                             client_id=patch.client_id,
                             session_id=patch.session_id,
                             patch_id=patch.patch_id,
@@ -129,9 +132,9 @@ async def test_walkthrough(
         )
 
         # GetPendingPatches again
-        get_pending_patches_resp: api_v1_pb2.GetPendingPatchesResp = (
+        get_pending_patches_resp: api_pb2.GetPendingPatchesResponse = (
             await stub.GetPendingPatches(
-                request=api_v1_pb2.GetPendingPatchesReq(
+                request=api_pb2.GetPendingPatchesRequest(
                     client_id=client_id_1, size=100
                 ),
                 metadata=(("authorization", f"Bearer {token}"),),
@@ -142,7 +145,7 @@ async def test_walkthrough(
         # CreatePatches
         now = google.protobuf.timestamp_pb2.Timestamp()
         now.GetCurrentTime()
-        patch_1 = api_v1_pb2.Patch(
+        patch_1 = api_pb2.Patch(
             client_id=client_id_1,
             session_id=1,
             patch_id=1,
@@ -161,14 +164,16 @@ async def test_walkthrough(
             created_at=now,
         )
 
-        create_patches_resp: api_v1_pb2.CreatePatchesResp = await stub.CreatePatches(
-            request=api_v1_pb2.CreatePatchesReq(patches=[patch_1]),
-            metadata=(("authorization", f"Bearer {token}"),),
+        create_patches_resp: api_pb2.CreatePatchesResponse = (
+            await stub.CreatePatches(
+                request=api_pb2.CreatePatchesRequest(patches=[patch_1]),
+                metadata=(("authorization", f"Bearer {token}"),),
+            )
         )
         # GetPendingPatches from client_id_1
-        get_pending_patches_resp: api_v1_pb2.GetPendingPatchesResp = (
+        get_pending_patches_resp: api_pb2.GetPendingPatchesResponse = (
             await stub.GetPendingPatches(
-                request=api_v1_pb2.GetPendingPatchesReq(
+                request=api_pb2.GetPendingPatchesRequest(
                     client_id=client_id_1, size=100
                 ),
                 metadata=(("authorization", f"Bearer {token}"),),
@@ -176,9 +181,9 @@ async def test_walkthrough(
         )
         assert len(get_pending_patches_resp.patches) == 0
         # GetPendingPatches from client_id_2
-        get_pending_patches_resp: api_v1_pb2.GetPendingPatchesResp = (
+        get_pending_patches_resp: api_pb2.GetPendingPatchesResponse = (
             await stub.GetPendingPatches(
-                request=api_v1_pb2.GetPendingPatchesReq(
+                request=api_pb2.GetPendingPatchesRequest(
                     client_id=client_id_2, size=100
                 ),
                 metadata=(("authorization", f"Bearer {token}"),),
@@ -192,13 +197,9 @@ async def test_walkthrough(
         assert actual_1 == patch_1
 
         # GetHead
-        get_current_patch_id_resp: api_v1_pb2.GetHeadResp = (
-            await stub.GetHead(
-                request=api_v1_pb2.GetHeadReq(
-                    client_id=client_id_1
-                ),
-                metadata=(("authorization", f"Bearer {token}"),),
-            )
+        get_current_patch_id_resp: api_pb2.GetHeadResponse = await stub.GetHead(
+            request=api_pb2.GetHeadRequest(client_id=client_id_1),
+            metadata=(("authorization", f"Bearer {token}"),),
         )
         assert get_current_patch_id_resp.HasField("client_id")
         assert get_current_patch_id_resp.client_id == 0
@@ -211,28 +212,22 @@ async def test_walkthrough(
         assert get_current_patch_id_resp.name == "System"
 
         # UpdateHeadIfNotModified
-        update_current_patch_id_if_not_modified_resp: api_v1_pb2.UpdateHeadIfNotModifiedResp = (
-            await stub.UpdateHeadIfNotModified(
-                request=api_v1_pb2.UpdateHeadIfNotModifiedReq(
-                    client_id=client_id_1,
-                    session_id=1,
-                    patch_id=1,
-                    prev_client_id=100,
-                    prev_session_id=100,
-                    prev_patch_id=100,
-                ),
-                metadata=(("authorization", f"Bearer {token}"),),
-            )
+        update_current_patch_id_if_not_modified_resp: api_pb2.UpdateHeadIfNotModifiedResponse = await stub.UpdateHeadIfNotModified(
+            request=api_pb2.UpdateHeadIfNotModifiedRequest(
+                client_id=client_id_1,
+                session_id=1,
+                patch_id=1,
+                prev_client_id=100,
+                prev_session_id=100,
+                prev_patch_id=100,
+            ),
+            metadata=(("authorization", f"Bearer {token}"),),
         )
         assert update_current_patch_id_if_not_modified_resp.HasField("updated")
         assert update_current_patch_id_if_not_modified_resp.updated == False
-        get_current_patch_id_resp: api_v1_pb2.GetHeadResp = (
-            await stub.GetHead(
-                request=api_v1_pb2.GetHeadReq(
-                    client_id=client_id_1
-                ),
-                metadata=(("authorization", f"Bearer {token}"),),
-            )
+        get_current_patch_id_resp: api_pb2.GetHeadResponse = await stub.GetHead(
+            request=api_pb2.GetHeadRequest(client_id=client_id_1),
+            metadata=(("authorization", f"Bearer {token}"),),
         )
         assert get_current_patch_id_resp.HasField("client_id")
         assert get_current_patch_id_resp.client_id == 0
@@ -241,28 +236,22 @@ async def test_walkthrough(
         assert get_current_patch_id_resp.HasField("patch_id")
         assert get_current_patch_id_resp.patch_id == 0
 
-        update_current_patch_id_if_not_modified_resp: api_v1_pb2.UpdateHeadIfNotModifiedResp = (
-            await stub.UpdateHeadIfNotModified(
-                request=api_v1_pb2.UpdateHeadIfNotModifiedReq(
-                    client_id=client_id_1,
-                    session_id=1,
-                    patch_id=1,
-                    prev_client_id=0,
-                    prev_session_id=0,
-                    prev_patch_id=0,
-                ),
-                metadata=(("authorization", f"Bearer {token}"),),
-            )
+        update_current_patch_id_if_not_modified_resp: api_pb2.UpdateHeadIfNotModifiedResponse = await stub.UpdateHeadIfNotModified(
+            request=api_pb2.UpdateHeadIfNotModifiedRequest(
+                client_id=client_id_1,
+                session_id=1,
+                patch_id=1,
+                prev_client_id=0,
+                prev_session_id=0,
+                prev_patch_id=0,
+            ),
+            metadata=(("authorization", f"Bearer {token}"),),
         )
         assert update_current_patch_id_if_not_modified_resp.HasField("updated")
         assert update_current_patch_id_if_not_modified_resp.updated == True
-        get_current_patch_id_resp: api_v1_pb2.GetHeadResp = (
-            await stub.GetHead(
-                request=api_v1_pb2.GetHeadReq(
-                    client_id=client_id_1
-                ),
-                metadata=(("authorization", f"Bearer {token}"),),
-            )
+        get_current_patch_id_resp: api_pb2.GetHeadResponse = await stub.GetHead(
+            request=api_pb2.GetHeadRequest(client_id=client_id_1),
+            metadata=(("authorization", f"Bearer {token}"),),
         )
         assert get_current_patch_id_resp.HasField("client_id")
         assert get_current_patch_id_resp.client_id == client_id_1
@@ -273,7 +262,6 @@ async def test_walkthrough(
         assert get_current_patch_id_resp.HasField("created_at")
         assert get_current_patch_id_resp.HasField("name")
         assert get_current_patch_id_resp.name == "test_client1"
-
 
 
 def _get_token(user_id: str) -> str:

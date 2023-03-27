@@ -49,30 +49,6 @@ run --mount=type=cache,target=/root/.cache python3 -m poetry install --only main
 from base_js as base_client
 workdir /app/client
 
-from base_protoc as client_grpc_builder
-run --mount=type=cache,target=/var/cache/apt,sharing=locked \
-   --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-   apt-get update \
-   && DEBIAN_FRONTEND=noninteractive apt-get install -y wget unzip
-workdir /tmp
-run set -xv \
-   && os="$(uname -s | tr '[:upper:]' '[:lower:]')" \
-   && arch="$(uname -m)" \
-   && if [ $arch = "arm64" ]; then arch="aarch64"; elif [ $arch = "amd64" ]; then arch="x86_64"; fi \
-   && wget https://github.com/grpc/grpc-web/releases/download/1.4.2/protoc-gen-grpc-web-1.4.2-"${os}"-"${arch}" \
-   -O /usr/local/bin/protoc-gen-grpc-web \
-   && chmod u+x /usr/local/bin/protoc-gen-grpc-web \
-   && if [ $arch = "aarch64" ]; then arch="aarch_64"; fi \
-   && wget https://github.com/protocolbuffers/protobuf-javascript/releases/download/v3.21.2/protobuf-javascript-3.21.2-"${os}"-"${arch}".zip \
-   -O pj.zip \
-   && unzip pj.zip -d pj \
-   && mv pj/bin/protoc-gen-js /usr/local/bin/protoc-gen-js
-workdir /app
-copy proto proto
-run mkdir -p api_v1_grpc \
-   && protoc --experimental_allow_proto3_optional -Iproto api_v1.proto --js_out import_style=commonjs,binary:api_v1_grpc --grpc-web_out import_style=typescript,mode=grpcweb:api_v1_grpc
-# Use grpcwebtext if you want to use server-side streaming.
-
 from base_client as client_npm_ci
 copy client/package.json client/package-lock.json ./
 run --mount=type=cache,target=/root/.cache npm ci
@@ -81,11 +57,11 @@ from client_npm_ci as client_proto
 copy proto ../proto
 run cd ../proto \
    && PATH="${PWD}/../client/node_modules/.bin:${PATH}" buf generate --config buf.yaml --template buf.gen-client.yaml \
-   && sed -i -e 's/api_v1_pb.js"/api_v1_pb"/' ../client/src/api_v1_grpc/api_v1_connect.ts
+   && sed -i -e 's/api_pb.js"/api_pb"/' ../client/src/gen/api/v1/api_connect.ts
 
 from client_npm_ci as builder_client
 copy client .
-copy --from=client_proto /app/client/src/api_v1_grpc /app/client/src/api_v1_grpc
+copy --from=client_proto /app/client/src/gen /app/client/src/gen
 
 from builder_client as test_client
 run --mount=type=cache,target=/root/.cache scripts/check.sh
@@ -130,16 +106,16 @@ run /usr/local/bin/sqlc --experimental generate
 from base_protoc as go_api_v1_grpc_builder
 workdir /app
 copy proto proto
-run mkdir -p api_v1_grpc \
-   && protoc --experimental_allow_proto3_optional -Iproto api_v1.proto --go_out api_v1_grpc --go_opt paths=source_relative --go-grpc_out api_v1_grpc --go-grpc_opt paths=source_relative  --go_opt Mapi_v1.proto=github.com/kshramt/evidence_based_scheduling/api_v1_grpc --go-grpc_opt Mapi_v1.proto=github.com/kshramt/evidence_based_scheduling/api_v1_grpc
+run mkdir -p gen/api/v1 \
+   && protoc --experimental_allow_proto3_optional -Iproto api/v1/api.proto --go_out gen --go_opt paths=source_relative --go-grpc_out gen --go-grpc_opt paths=source_relative  --go_opt Mapi/v1/api.proto=github.com/kshramt/evidence_based_scheduling/gen/api/v1 --go-grpc_opt Mapi/v1/api.proto=github.com/kshramt/evidence_based_scheduling/gen/api/v1
 
 from base_protoc as tests_server_grpc_builder
 workdir /app
 copy proto proto
-run mkdir -p gen \
-   && touch gen/__init__.py \
-   && /grpc_py/.venv/bin/python3 -m grpc_tools.protoc -Iproto api_v1.proto --python_out=gen --pyi_out=gen --grpc_python_out=gen \
-   && sed -i 's/^import .*_pb2 as/from . \0/' gen/api_v1_pb2_grpc.py
+run mkdir -p gen/api/v1 \
+   && touch gen/__init__.py gen/api/__init__.py gen/api/v1/__init__.py \
+   && /grpc_py/.venv/bin/python3 -m grpc_tools.protoc -Iproto api/v1/api.proto --python_out=gen --pyi_out=gen --grpc_python_out=gen \
+   && sed -i 's/^from api\.v.* import/from . import/' gen/api/v1/api_pb2_grpc.py
 
 from base_go as base_go_builder
 workdir /app
@@ -147,7 +123,7 @@ copy go/go.mod go/go.sum ./
 run --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go mod download
 copy go .
 copy --from=go_db_builder /app/go/db db
-copy --from=go_api_v1_grpc_builder /app/api_v1_grpc api_v1_grpc
+copy --from=go_api_v1_grpc_builder /app/gen gen
 run --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go vet -v ./...
 run --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go test -v ./...
 
@@ -173,8 +149,8 @@ copy --from=docker_go_builder /go/bin/docker /usr/local/bin/docker
 copy --from=docker_go_builder /go/bin/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
 copy tests/server/poetry.toml tests/server/pyproject.toml tests/server/poetry.lock .
 run --mount=type=cache,target=/root/.cache python3 -m poetry install --only main
-copy --from=tests_server_grpc_builder /app/gen src/gen
 copy tests/server/src src
+copy --from=tests_server_grpc_builder /app/gen src/gen
 run --mount=type=cache,target=/root/.cache python3 -m poetry install --only main
 
 from base_poetry as tests_e2e
@@ -188,4 +164,5 @@ run --mount=type=cache,target=/var/cache/apt,sharing=locked \
    python3 -m poetry run python3 -m playwright install-deps
 run python3 -m poetry run python3 -m playwright install
 copy tests/e2e/src src
+copy --from=tests_server_grpc_builder /app/gen src/gen
 run --mount=type=cache,target=/root/.cache python3 -m poetry install --only main

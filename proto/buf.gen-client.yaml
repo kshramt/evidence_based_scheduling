@@ -1,8 +1,8 @@
 version: v1
 plugins:
   - plugin: es
-    out: ../client/src/api_v1_grpc
+    out: ../client/src/gen
     opt: target=ts
   - plugin: connect-es
-    out: ../client/src/api_v1_grpc
+    out: ../client/src/gen
     opt: target=ts
