@@ -689,8 +689,8 @@ export class PersistentStateManager {
       return null;
     }
     return (
-      <div className="flex justify-center h-[100vh] w-full items-center fixed z-[999999] font-bold top-0 left-0">
-        <span>
+      <div className="flex justify-center h-[100vh] w-full items-center fixed z-[999999] top-0 left-0 pt-[1em] pb-[1em]">
+        <div className="w-[80vw] bg-gray-200 dark:bg-gray-900">
           The remote head have been updated by {state.name}{" "}
           {JSON.stringify(state.head)} (expected{" "}
           {JSON.stringify(this.heads.remote)}) at {state.updated_at}. Please{" "}
@@ -702,7 +702,7 @@ export class PersistentStateManager {
             use the current state
           </button>
           .
-        </span>
+        </div>
       </div>
     );
   };
