@@ -691,17 +691,22 @@ export class PersistentStateManager {
     return (
       <div className="flex justify-center h-[100vh] w-full items-center fixed z-[999999] top-0 left-0 pt-[1em] pb-[1em]">
         <div className="w-[80vw] bg-gray-200 dark:bg-gray-900">
-          The remote head have been updated by {state.name}{" "}
-          {JSON.stringify(state.head)} (expected{" "}
-          {JSON.stringify(this.heads.remote)}) at {state.updated_at}. Please{" "}
-          <button onClick={use_remote} className="btn-icon">
-            reload
-          </button>{" "}
-          or continue to{" "}
-          <button onClick={use_local} className="btn-icon">
-            use the current state
-          </button>
-          .
+          <div className="flex justify-center">
+            <button onClick={use_remote} className="btn-icon">
+              Reload
+            </button>
+          </div>
+          <div>
+            The remote head have been updated by {state.name}{" "}
+            {JSON.stringify(state.head)} (expected{" "}
+            {JSON.stringify(this.heads.remote)}) at {state.updated_at}. continue
+            to{" "}
+          </div>
+          <div className="flex justify-center">
+            <button onClick={use_local} className="btn-icon">
+              Use current
+            </button>
+          </div>
         </div>
       </div>
     );
