@@ -17,8 +17,8 @@ import * as reducers from "./reducers";
 import * as undoable from "./undoable";
 import * as queues from "./queues";
 import * as retryers from "./retryers";
-import * as C from "./api_v1_grpc/api_v1_connect";
-import * as Pb from "./api_v1_grpc/api_v1_pb";
+import * as C from "./gen/api/v1/api_connect";
+import * as Pb from "./gen/api/v1/api_pb";
 import * as pb2 from "./pb2";
 import * as utils from "./utils";
 
@@ -107,7 +107,7 @@ const get_db = async (db_name: string) => {
 };
 
 const get_client_id = async (
-  client: Connect.PromiseClient<typeof C.Api>,
+  client: Connect.PromiseClient<typeof C.ApiService>,
   db: Awaited<ReturnType<typeof get_db>>,
   id_token: Auth.TIdToken,
 ) => {
@@ -346,7 +346,7 @@ export const session_key_context = React.createContext({
 //    This head is used to provide `client_id`, `session_id`, and `patch_id` for `#save_patch`.
 //    The value is initialized with `client_id`, `session_id`, and `patch_id = 0`.
 export class PersistentStateManager {
-  grpc_client: Connect.PromiseClient<typeof C.Api>;
+  grpc_client: Connect.PromiseClient<typeof C.ApiService>;
   db: Awaited<ReturnType<typeof get_db>>;
   client_id: number;
   session_id: number;
@@ -359,7 +359,7 @@ export class PersistentStateManager {
   #head_queue: queues.Queue<null | THead> = new queues.Queue();
   #sync_store: ReturnType<typeof _get_store> = _get_store();
   constructor(
-    grpc_client: Connect.PromiseClient<typeof C.Api>,
+    grpc_client: Connect.PromiseClient<typeof C.ApiService>,
     db: Awaited<ReturnType<typeof get_db>>,
     client_id: number,
     session_id: number,
@@ -689,8 +689,8 @@ export class PersistentStateManager {
       return null;
     }
     return (
-      <div className="flex justify-center h-[100vh] w-full items-center fixed z-[999999] font-bold top-0 left-0">
-        <span>
+      <div className="flex justify-center h-[100vh] w-full items-center fixed z-[999999] top-0 left-0 pt-[1em] pb-[1em]">
+        <div className="w-[80vw] bg-gray-200 dark:bg-gray-900">
           The remote head have been updated by {state.name}{" "}
           {JSON.stringify(state.head)} (expected{" "}
           {JSON.stringify(this.heads.remote)}) at {state.updated_at}. Please{" "}
@@ -702,7 +702,7 @@ export class PersistentStateManager {
             use the current state
           </button>
           .
-        </span>
+        </div>
       </div>
     );
   };
@@ -769,7 +769,7 @@ export const get_PersistentStateManager = async (
   // Open DB
   const db = await get_db(`user-${id_token.user_id}`);
   const grpc_client = Connect.createPromiseClient(
-    C.Api,
+    C.ApiService,
     createGrpcWebTransport({ baseUrl: window.location.origin }),
   );
 
@@ -890,7 +890,7 @@ export const get_PersistentStateManager = async (
 
 const get_remote_head_and_save_remote_pending_patches = async (
   client_id: number,
-  grpc_client: Connect.PromiseClient<typeof C.Api>,
+  grpc_client: Connect.PromiseClient<typeof C.ApiService>,
   id_token: Auth.TIdToken,
   db: Awaited<ReturnType<typeof get_db>>,
   wrapper: typeof retryer.with_retry = (fn) => {
@@ -918,7 +918,7 @@ const get_remote_head_and_save_remote_pending_patches = async (
 const save_and_remove_remote_pending_patches = async (
   id_token: Auth.TIdToken,
   client_id: number,
-  grpc_client: Connect.PromiseClient<typeof C.Api>,
+  grpc_client: Connect.PromiseClient<typeof C.ApiService>,
   db: Awaited<ReturnType<typeof get_db>>,
   wrapper: typeof retryer.with_retry = (fn) => {
     return fn();
@@ -995,7 +995,7 @@ const save_and_remove_remote_pending_patches = async (
     {
       const ps = ks.map(
         (k) =>
-          new Pb.DeletePendingPatchesReq_Patch({
+          new Pb.DeletePendingPatchesRequest_Patch({
             clientId: k.client_id,
             sessionId: k.session_id,
             patchId: k.patch_id,

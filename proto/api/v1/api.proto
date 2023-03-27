@@ -1,40 +1,42 @@
 syntax = "proto3";
 
-package api_v1;
+package api.v1;
+
+option go_package = "github.com/kshramt/evidence_based_scheduling/gen/api/v1;apiv1";
 
 import "google/protobuf/timestamp.proto";
 
-service Api {
+service ApiService {
   // Create a user for the fake ID provider.
-  rpc FakeIdpCreateUser(FakeIdpCreateUserReq) returns (Token);
+  rpc FakeIdpCreateUser(FakeIdpCreateUserRequest) returns (FakeIdpCreateUserResponse);
 
   // Get an ID token from the ID provider.
-  rpc FakeIdpGetIdToken(FakeIdpGetIdTokenReq) returns (Token);
+  rpc FakeIdpGetIdToken(FakeIdpGetIdTokenRequest) returns (FakeIdpGetIdTokenResponse);
 
   // Create a user by the given `user_id`.
-  rpc CreateUser(CreateUserReq) returns (CreateUserResp);
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
 
   // As we know the user ID, we can check a client ID is assigned in the browser.
   // If none exists, create a client and use the clietn ID to popurate necessary DBs.
-  rpc CreateClient(CreateClientReq) returns (CreateClientResp);
+  rpc CreateClient(CreateClientRequest) returns (CreateClientResponse);
 
   // Retrieve un-synched patches from the remote.
-  rpc GetPendingPatches(GetPendingPatchesReq) returns (GetPendingPatchesResp);
+  rpc GetPendingPatches(GetPendingPatchesRequest) returns (GetPendingPatchesResponse);
 
   // Delete remote patches that have been downloaded locally.
-  rpc DeletePendingPatches(DeletePendingPatchesReq) returns (DeletePendingPatchesResp);
+  rpc DeletePendingPatches(DeletePendingPatchesRequest) returns (DeletePendingPatchesResponse);
 
   // Push un-synched patches to the remote.
-  rpc CreatePatches(CreatePatchesReq) returns (CreatePatchesResp);
+  rpc CreatePatches(CreatePatchesRequest) returns (CreatePatchesResponse);
 
   // Get the main branch.
-  rpc GetHead(GetHeadReq) returns (GetHeadResp);
+  rpc GetHead(GetHeadRequest) returns (GetHeadResponse);
 
   // Update the main branch if not modified.
-  rpc UpdateHeadIfNotModified(UpdateHeadIfNotModifiedReq) returns (UpdateHeadIfNotModifiedResp);
+  rpc UpdateHeadIfNotModified(UpdateHeadIfNotModifiedRequest) returns (UpdateHeadIfNotModifiedResponse);
 
   // Update the main branch.
-  rpc UpdateHead(UpdateHeadReq) returns (UpdateHeadResp);
+  rpc UpdateHead(UpdateHeadRequest) returns (UpdateHeadResponse);
 }
 
 message Token {
@@ -49,40 +51,47 @@ message Patch {
   optional int64 parent_session_id = 5;
   optional int64 parent_patch_id = 6;
   optional google.protobuf.Timestamp created_at = 7;
-  optional string patch = 8;;
+  optional string patch = 8;
 }
 
-message FakeIdpCreateUserReq {
+message FakeIdpCreateUserRequest {
   optional string name = 1;
 }
 
-message FakeIdpGetIdTokenReq {
+message FakeIdpCreateUserResponse {
+  optional Token token = 1;
+}
+
+message FakeIdpGetIdTokenRequest {
   optional string name = 1;
 }
 
-message CreateUserReq {
+message FakeIdpGetIdTokenResponse {
+  optional Token token = 1;
+}
+
+message CreateUserRequest {
   // `user_id` will be provided by an ID provider.
   optional string user_id = 1;
 }
-message CreateUserResp {
-}
+message CreateUserResponse {}
 
-message CreateClientReq {
+message CreateClientRequest {
   optional string name = 1;
 }
-message CreateClientResp {
+message CreateClientResponse {
   optional int64 client_id = 1;
 }
 
-message GetPendingPatchesReq {
+message GetPendingPatchesRequest {
   optional int64 client_id = 1;
   optional int64 size = 2;
 }
-message GetPendingPatchesResp {
+message GetPendingPatchesResponse {
   repeated Patch patches = 1;
 }
 
-message DeletePendingPatchesReq {
+message DeletePendingPatchesRequest {
   message Patch {
     optional int64 client_id = 1;
     optional int64 session_id = 3;
@@ -91,19 +100,16 @@ message DeletePendingPatchesReq {
   optional int64 client_id = 1;
   repeated Patch patches = 2;
 }
-message DeletePendingPatchesResp {
-}
+message DeletePendingPatchesResponse {}
 
-message CreatePatchesReq {
+message CreatePatchesRequest {
   repeated Patch patches = 2;
 }
-message CreatePatchesResp {
-}
+message CreatePatchesResponse {}
 
-message GetHeadReq {
-  optional int64 client_id = 1;
+message GetHeadRequest {
 }
-message GetHeadResp {
+message GetHeadResponse {
   optional int64 client_id = 1;
   optional int64 session_id = 2;
   optional int64 patch_id = 3;
@@ -111,7 +117,7 @@ message GetHeadResp {
   optional string name = 5;
 }
 
-message UpdateHeadIfNotModifiedReq {
+message UpdateHeadIfNotModifiedRequest {
   optional int64 client_id = 1;
   optional int64 session_id = 2;
   optional int64 patch_id = 3;
@@ -120,15 +126,14 @@ message UpdateHeadIfNotModifiedReq {
   optional int64 prev_patch_id = 6;
 }
 
-message UpdateHeadIfNotModifiedResp {
+message UpdateHeadIfNotModifiedResponse {
   optional bool updated = 1;
 }
 
-message UpdateHeadReq {
+message UpdateHeadRequest {
   optional int64 client_id = 1;
   optional int64 session_id = 2;
   optional int64 patch_id = 3;
 }
 
-message UpdateHeadResp {
-}
+message UpdateHeadResponse {}

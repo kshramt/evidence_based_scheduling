@@ -1,7 +1,7 @@
 import * as Idb from "idb";
 import * as Connect from "@bufbuild/connect";
 import { createGrpcWebTransport } from "@bufbuild/connect-web";
-import * as C from "./api_v1_grpc/api_v1_connect";
+import * as C from "./gen/api/v1/api_connect";
 
 const db = Idb.openDB<{ auth: { id_token: null | TIdToken } }>("auth", 1, {
   upgrade: (db) => {
@@ -15,13 +15,13 @@ export type TIdToken = {
 
 export class Auth {
   id_token: null | TIdToken;
-  _client: Connect.PromiseClient<typeof C.Api>;
+  _client: Connect.PromiseClient<typeof C.ApiService>;
   _on_change_hooks: Set<(id_token: null | TIdToken) => void>;
 
   constructor() {
     this._on_change_hooks = new Set();
     this._client = Connect.createPromiseClient(
-      C.Api,
+      C.ApiService,
       createGrpcWebTransport({ baseUrl: window.location.origin }),
     );
     this.id_token = null;
@@ -38,11 +38,14 @@ export class Auth {
     if (this.id_token) {
       await this.sign_out();
     }
-    const token = await this._client.fakeIdpCreateUser({ name });
-    if (token.userId === undefined) {
+    const resp = await this._client.fakeIdpCreateUser({ name });
+    if (resp.token === undefined) {
+      throw new Error("`token` is not set");
+    }
+    if (resp.token.userId === undefined) {
       throw new Error("`userId` is not set");
     }
-    const id_token = { user_id: token.userId };
+    const id_token = { user_id: resp.token.userId };
     this._set_id_token(id_token);
     return id_token;
   };
@@ -50,11 +53,14 @@ export class Auth {
     if (this.id_token) {
       await this.sign_out();
     }
-    const token = await this._client.fakeIdpGetIdToken({ name });
-    if (token.userId === undefined) {
+    const resp = await this._client.fakeIdpGetIdToken({ name });
+    if (resp.token === undefined) {
+      throw new Error("`token` is not set");
+    }
+    if (resp.token.userId === undefined) {
       throw new Error("Failed to get an ID token");
     }
-    const id_token = { user_id: token.userId };
+    const id_token = { user_id: resp.token.userId };
     this._set_id_token(id_token);
     return id_token;
   };
