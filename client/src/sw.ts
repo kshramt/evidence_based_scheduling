@@ -41,7 +41,7 @@ self.addEventListener("message", (event) => {
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.add("index.html");
+      return cache.addAll(["/", "index.html"]);
     }),
   );
 });
