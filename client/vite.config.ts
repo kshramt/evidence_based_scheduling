@@ -15,12 +15,12 @@ export default defineConfig({
       injectManifest: {
         globPatterns: ["**"],
       },
-      includeAssets: ["favicon.ico", "apple-touch-icon.png", "masked-icon.svg"],
       manifest: {
         name: "Evidence Based Scheduling",
         short_name: "EBS",
         description:
           "Evidence based TODO app with DAG based dependency management",
+        display: "standalone",
         theme_color: "#000000",
         icons: [
           {
