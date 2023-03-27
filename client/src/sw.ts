@@ -22,8 +22,10 @@ declare const self: ServiceWorkerGlobalScope;
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 
+const CACHE_NAME = "app";
+
 const network_first = new NetworkFirst({
-  cacheName: "app",
+  cacheName: CACHE_NAME,
   networkTimeoutSeconds: 5,
 });
 setDefaultHandler(network_first);
@@ -34,6 +36,14 @@ self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") {
     self.skipWaiting();
   }
+});
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.add("index.html");
+    }),
+  );
 });
 
 clientsClaim();

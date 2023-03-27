@@ -1,4 +1,4 @@
-;import { defineConfig } from "vite";
+import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
@@ -14,6 +14,14 @@ export default defineConfig({
       devOptions: { enabled: true },
       injectManifest: {
         globPatterns: ["**"],
+        manifestTransforms: [
+          async (manifestEntries) => {
+            const manifest = manifestEntries.filter(
+              (entry) => entry.url !== "index.html",
+            );
+            return { manifest, warnings: [] };
+          },
+        ],
       },
       manifest: {
         name: "Evidence Based Scheduling",
