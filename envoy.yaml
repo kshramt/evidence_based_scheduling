@@ -21,7 +21,7 @@ static_resources:
             - name: local_service
               domains: ["*"]
               routes:
-              - match: { prefix: "/api_v1.Api/" }
+              - match: { prefix: "/api.v1.ApiService/" }
                 route: { cluster: envoy_50052_service }
               - match: { prefix: "/app/" }
                 route: { cluster: nginx_service, prefix_rewrite: "/" }

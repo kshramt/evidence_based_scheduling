@@ -198,7 +198,7 @@ async def test_walkthrough(
 
         # GetHead
         get_current_patch_id_resp: api_pb2.GetHeadResponse = await stub.GetHead(
-            request=api_pb2.GetHeadRequest(client_id=client_id_1),
+            request=api_pb2.GetHeadRequest(),
             metadata=(("authorization", f"Bearer {token}"),),
         )
         assert get_current_patch_id_resp.HasField("client_id")
@@ -226,7 +226,7 @@ async def test_walkthrough(
         assert update_current_patch_id_if_not_modified_resp.HasField("updated")
         assert update_current_patch_id_if_not_modified_resp.updated == False
         get_current_patch_id_resp: api_pb2.GetHeadResponse = await stub.GetHead(
-            request=api_pb2.GetHeadRequest(client_id=client_id_1),
+            request=api_pb2.GetHeadRequest(),
             metadata=(("authorization", f"Bearer {token}"),),
         )
         assert get_current_patch_id_resp.HasField("client_id")
@@ -250,7 +250,7 @@ async def test_walkthrough(
         assert update_current_patch_id_if_not_modified_resp.HasField("updated")
         assert update_current_patch_id_if_not_modified_resp.updated == True
         get_current_patch_id_resp: api_pb2.GetHeadResponse = await stub.GetHead(
-            request=api_pb2.GetHeadRequest(client_id=client_id_1),
+            request=api_pb2.GetHeadRequest(),
             metadata=(("authorization", f"Bearer {token}"),),
         )
         assert get_current_patch_id_resp.HasField("client_id")

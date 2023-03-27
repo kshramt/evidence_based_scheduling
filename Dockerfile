@@ -20,32 +20,6 @@ run --mount=type=cache,target=/root/.cache pip install poetry==1.3.1
 
 from golang:1.20.1-bullseye as base_go
 
-from base_go as protoc_gen_go_grpc_builder
-run --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2.0
-
-from base_go as protoc_gen_go_builder
-run --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28.1
-
-from base_poetry as base_protoc
-run --mount=type=cache,target=/var/cache/apt,sharing=locked \
-   --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-   apt-get update \
-   && DEBIAN_FRONTEND=noninteractive apt-get install -y wget unzip
-workdir /tmp
-run os="$(uname -s | tr '[:upper:]' '[:lower:]')" \
-   && arch="$(uname -m)" \
-   && if [ $arch = "arm64" ]; then arch="aarch_64"; elif [ $arch = "aarch64" ]; then arch="aarch_64"; elif [ $arch = "amd64" ]; then arch="x86_64"; fi \
-   && wget https://github.com/protocolbuffers/protobuf/releases/download/v22.1/protoc-22.1-"${os}"-"${arch}".zip \
-   -O protoc.zip \
-   && unzip protoc.zip -d protoc \
-   && mv protoc/bin/protoc /usr/local/bin/protoc \
-   && mv protoc/include/* /usr/local/include/
-copy --from=protoc_gen_go_grpc_builder /go/bin/protoc-gen-go-grpc /usr/local/bin/protoc-gen-go-grpc
-copy --from=protoc_gen_go_builder /go/bin/protoc-gen-go /usr/local/bin/protoc-gen-go
-workdir /grpc_py
-copy grpc_py/poetry.toml grpc_py/pyproject.toml grpc_py/poetry.lock .
-run --mount=type=cache,target=/root/.cache python3 -m poetry install --only main
-
 from base_js as base_client
 workdir /app/client
 
@@ -72,9 +46,6 @@ run --mount=type=cache,target=/root/.cache npm run build
 from base_nginx as prod_nginx
 copy --from=prod_client /app/client/dist /usr/share/nginx/html
 copy nginx.conf /etc/nginx/nginx.conf
-
-from base_go as builder_litestream
-run --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install github.com/benbjohnson/litestream/cmd/litestream@v0.3.9
 
 from base_envoy as prod_envoy
 expose 8080
@@ -103,13 +74,29 @@ copy db db
 copy sqlc.yaml .
 run /usr/local/bin/sqlc --experimental generate
 
-from base_protoc as go_api_v1_grpc_builder
+from base_go as buf_builder
+run --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install github.com/bufbuild/buf/cmd/buf@v1.15.1
+
+from base_go as protoc_gen_connect_go_builder
+run --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install github.com/bufbuild/connect-go/cmd/protoc-gen-connect-go@v1.5.2
+
+from base_go as protoc_gen_go_builder
+run --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.30.0
+
+from base_go as go_api_v1_grpc_builder
+copy --from=protoc_gen_go_builder /go/bin/protoc-gen-go /usr/local/bin/protoc-gen-go
+copy --from=buf_builder /go/bin/buf /usr/local/bin/buf
+copy --from=protoc_gen_connect_go_builder /go/bin/protoc-gen-connect-go /usr/local/bin/protoc-gen-connect-go
 workdir /app
 copy proto proto
-run mkdir -p gen/api/v1 \
-   && protoc --experimental_allow_proto3_optional -Iproto api/v1/api.proto --go_out gen --go_opt paths=source_relative --go-grpc_out gen --go-grpc_opt paths=source_relative  --go_opt Mapi/v1/api.proto=github.com/kshramt/evidence_based_scheduling/gen/api/v1 --go-grpc_opt Mapi/v1/api.proto=github.com/kshramt/evidence_based_scheduling/gen/api/v1
+run cd proto \
+   && buf lint \
+   && buf generate --config buf.yaml --template buf.gen-go.yaml
 
-from base_protoc as tests_server_grpc_builder
+from base_poetry as tests_server_grpc_builder
+workdir /grpc_py
+copy grpc_py/poetry.toml grpc_py/pyproject.toml grpc_py/poetry.lock .
+run --mount=type=cache,target=/root/.cache python3 -m poetry install --only main
 workdir /app
 copy proto proto
 run mkdir -p gen/api/v1 \
@@ -123,7 +110,7 @@ copy go/go.mod go/go.sum ./
 run --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go mod download
 copy go .
 copy --from=go_db_builder /app/go/db db
-copy --from=go_api_v1_grpc_builder /app/gen gen
+copy --from=go_api_v1_grpc_builder /app/go/gen gen
 run --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go vet -v ./...
 run --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go test -v ./...
 

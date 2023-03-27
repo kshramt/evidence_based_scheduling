@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package api.v1;
 
+option go_package = "github.com/kshramt/evidence_based_scheduling/gen/api/v1;apiv1";
+
 import "google/protobuf/timestamp.proto";
 
 service ApiService {
@@ -106,7 +108,6 @@ message CreatePatchesRequest {
 message CreatePatchesResponse {}
 
 message GetHeadRequest {
-  optional int64 client_id = 1;
 }
 message GetHeadResponse {
   optional int64 client_id = 1;

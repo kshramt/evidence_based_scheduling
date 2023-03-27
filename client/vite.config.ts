@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+;import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
@@ -45,7 +45,7 @@ export default defineConfig({
   ],
   server: {
     proxy: {
-      "/api_v1.Api": {
+      "/api.v1.ApiService": {
         target: "http://localhost:8080",
         changeOrigin: true,
         secure: false,
