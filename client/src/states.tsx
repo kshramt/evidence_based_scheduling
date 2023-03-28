@@ -975,11 +975,6 @@ const save_and_remove_remote_pending_patches = async (
           `getPendingPatches returned no created_at for ${patch}`,
         );
       }
-      if (patch.createdAt === undefined) {
-        throw new Error(
-          `Must not happen: patch.getCreatedAt() === undefined for ${patch}`,
-        );
-      }
       await store.put({
         client_id: Number(patch.clientId),
         session_id: Number(patch.sessionId),
