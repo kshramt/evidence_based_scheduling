@@ -30,15 +30,8 @@ const network_first = new NetworkFirst({
 });
 setDefaultHandler(network_first);
 
-// This allows the web app to trigger skipWaiting via
-// registration.waiting.postMessage({type: 'SKIP_WAITING'})
-self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "SKIP_WAITING") {
-    self.skipWaiting();
-  }
-});
-
 self.addEventListener("install", (event) => {
+  self.skipWaiting();
   const base = new URL(".", self.location.toString()).pathname;
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
