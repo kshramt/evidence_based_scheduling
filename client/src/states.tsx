@@ -389,12 +389,14 @@ export class PersistentStateManager {
     this.#head_queue.push(null);
   };
 
-  get_redux_store = async (head: THead) => {
+  get_redux_store = async (local_head: THead) => {
     const { state, patch } = await get_state_and_patch({
-      head,
+      head: local_head,
       db: this.db,
     });
 
+    // Try to sync `local_head` to the remote.
+    this.#head_queue.push(local_head);
     // Save `patch`.
     this.#save_patch({
       patch,
@@ -541,20 +543,28 @@ export class PersistentStateManager {
     this.heads.remote.patch_id = head.patch_id;
   };
 
-  #update_remote_head_if_not_modified = async (heads: {
-    remote: THead;
-    local: THead;
-  }) => {
+  #update_remote_head_if_not_modified = async () => {
     const bearer = _get_bearer(this.id_token);
+    if (this.heads.sync === null) {
+      return;
+    }
+    const sync_head = { ...this.heads.sync };
+    if (
+      sync_head.client_id === this.heads.remote.client_id &&
+      sync_head.session_id === this.heads.remote.session_id &&
+      sync_head.patch_id === this.heads.remote.patch_id
+    ) {
+      return;
+    }
     const resp = await retryer.with_retry(() =>
       this.grpc_client.updateHeadIfNotModified(
         {
-          clientId: BigInt(heads.local.client_id),
-          sessionId: BigInt(heads.local.session_id),
-          patchId: BigInt(heads.local.patch_id),
-          prevClientId: BigInt(heads.remote.client_id),
-          prevSessionId: BigInt(heads.remote.session_id),
-          prevPatchId: BigInt(heads.remote.patch_id),
+          clientId: BigInt(sync_head.client_id),
+          sessionId: BigInt(sync_head.session_id),
+          patchId: BigInt(sync_head.patch_id),
+          prevClientId: BigInt(this.heads.remote.client_id),
+          prevSessionId: BigInt(this.heads.remote.session_id),
+          prevPatchId: BigInt(this.heads.remote.patch_id),
         },
         { headers: { authorization: bearer } },
       ),
@@ -563,7 +573,7 @@ export class PersistentStateManager {
       throw new Error("updated is not set");
     }
     if (resp.updated) {
-      await this.#save_remote_head(heads.local);
+      await this.#save_remote_head(sync_head);
     } else {
       const resp = await get_remote_head_and_save_remote_pending_patches(
         this.client_id,
@@ -592,9 +602,7 @@ export class PersistentStateManager {
       if (head === null) {
         return;
       }
-      if ((await this.#push_and_remove_local_pending_patches()) < 1) {
-        continue;
-      }
+      await this.#push_and_remove_local_pending_patches();
       if (this.heads.sync === null) {
         this.heads.sync = { ...head };
       } else {
@@ -602,10 +610,7 @@ export class PersistentStateManager {
         this.heads.sync.session_id = head.session_id;
         this.heads.sync.patch_id = head.patch_id;
       }
-      await this.#update_remote_head_if_not_modified({
-        local: head,
-        remote: this.heads.remote,
-      });
+      await this.#update_remote_head_if_not_modified();
     }
   };
 
@@ -675,14 +680,20 @@ export class PersistentStateManager {
       window.location.reload();
     }, []);
     const use_local = React.useCallback(async () => {
+      await this.#push_and_remove_local_pending_patches();
+      const new_head =
+        this.heads.sync === null
+          ? { ...this.heads.remote }
+          : { ...this.heads.sync };
       await this.grpc_client.updateHead(
         {
-          clientId: BigInt(this.heads.remote.client_id),
-          sessionId: BigInt(this.heads.remote.session_id),
-          patchId: BigInt(this.heads.remote.patch_id),
+          clientId: BigInt(new_head.client_id),
+          sessionId: BigInt(new_head.session_id),
+          patchId: BigInt(new_head.patch_id),
         },
         { headers: { authorization: _get_bearer(this.id_token) } },
       );
+      await this.#save_remote_head(new_head);
       this.#sync_store.set_state(() => null);
     }, []);
     if (state === null) {
@@ -699,8 +710,7 @@ export class PersistentStateManager {
           <div>
             The remote head have been updated by {state.name}{" "}
             {JSON.stringify(state.head)} (expected{" "}
-            {JSON.stringify(this.heads.remote)}) at {state.updated_at}. continue
-            to{" "}
+            {JSON.stringify(this.heads.remote)}) at {state.updated_at}.
           </div>
           <div className="flex justify-center">
             <button onClick={use_local} className="btn-icon">
