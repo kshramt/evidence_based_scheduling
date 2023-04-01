@@ -1251,78 +1251,8 @@ const ChildEdgeTable = (props: { node_id: types.TNodeId }) => {
     </table>
   );
 };
-const ChildEdgeRow = (props: { edge_id: types.TEdgeId }) => {
-  const edge = useSelector((state) => state.data.edges[props.edge_id]);
-  const text = useSelector((state) => state.data.nodes[edge.c].text);
-  const hide = useSelector((state) => state.data.edges[props.edge_id].hide);
-  const dispatch = useDispatch();
-  const delete_edge = React.useCallback(
-    () => dispatch(actions.delete_edge_action(props.edge_id)),
-    [props.edge_id, dispatch],
-  );
-  const set_edge_type = React.useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const edge_type = e.target.value;
-      if (types.is_TEdgeType(edge_type)) {
-        dispatch(
-          actions.set_edge_type_action({
-            edge_id: props.edge_id,
-            edge_type,
-          }),
-        );
-      } else {
-        toast.add("error", `Invalid edge type: ${edge_type}`);
-      }
-    },
-    [props.edge_id, dispatch],
-  );
-  const toggle_edge_hide = React.useCallback(() => {
-    dispatch(actions.toggle_edge_hide_action(props.edge_id));
-  }, [props.edge_id, dispatch]);
-  const to_tree = useToTree(edge.c);
-  return React.useMemo(
-    () => (
-      <tr>
-        <td
-          title={text}
-          onClick={to_tree}
-          className="p-[0.25em] cursor-pointer"
-        >
-          {text.slice(0, 15)}
-        </td>
-        <td className="p-[0.25em]">
-          <select value={edge.t} onChange={set_edge_type}>
-            {types.edge_type_values.map((t, i) => (
-              <option value={t} key={i}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </td>
-        <td className="p-[0.25em]">
-          <input
-            type="radio"
-            checked={!hide}
-            onClick={toggle_edge_hide}
-            onChange={_suppress_missing_onChange_handler_warning}
-          />
-        </td>
-        <td className="p-[0.25em]">
-          <button
-            className="btn-icon"
-            onClick={delete_edge}
-            onDoubleClick={prevent_propagation}
-          >
-            {consts.DELETE_MARK}
-          </button>
-        </td>
-      </tr>
-    ),
-    [edge.t, hide, to_tree, delete_edge, set_edge_type, toggle_edge_hide, text],
-  );
-};
 const ChildEdgeRow_of = utils.memoize1((edge_id: types.TEdgeId) => (
-  <ChildEdgeRow edge_id={edge_id} key={edge_id} />
+  <EdgeRow edge_id={edge_id} key={edge_id} target={"c"} />
 ));
 
 const ParentEdgeTable = (props: { node_id: types.TNodeId }) => {
@@ -1337,9 +1267,12 @@ const ParentEdgeTable = (props: { node_id: types.TNodeId }) => {
     </table>
   );
 };
-const ParentEdgeRow = (props: { edge_id: types.TEdgeId }) => {
+const ParentEdgeRow_of = utils.memoize1((edge_id: types.TEdgeId) => (
+  <EdgeRow edge_id={edge_id} key={edge_id} target={"p"} />
+));
+
+const EdgeRow = (props: { edge_id: types.TEdgeId; target: "p" | "c" }) => {
   const edge = useSelector((state) => state.data.edges[props.edge_id]);
-  const text = useSelector((state) => state.data.nodes[edge.p].text);
   const hide = useSelector((state) => state.data.edges[props.edge_id].hide);
   const dispatch = useDispatch();
   const delete_edge = React.useCallback(
@@ -1365,17 +1298,11 @@ const ParentEdgeRow = (props: { edge_id: types.TEdgeId }) => {
   const toggle_edge_hide = React.useCallback(() => {
     dispatch(actions.toggle_edge_hide_action(props.edge_id));
   }, [props.edge_id, dispatch]);
-  const to_tree = useToTree(edge.p);
+  const node_id = edge[props.target];
   return React.useMemo(
     () => (
       <tr>
-        <td
-          title={text}
-          onClick={to_tree}
-          className="p-[0.25em] cursor-pointer"
-        >
-          {text.slice(0, 15)}
-        </td>
+        <EdgeRowContent node_id={node_id} />
         <td className="p-[0.25em]">
           <select value={edge.t} onChange={set_edge_type}>
             {types.edge_type_values.map((t, i) => (
@@ -1404,12 +1331,30 @@ const ParentEdgeRow = (props: { edge_id: types.TEdgeId }) => {
         </td>
       </tr>
     ),
-    [edge.t, hide, to_tree, delete_edge, set_edge_type, toggle_edge_hide, text],
+    [edge.t, hide, node_id, delete_edge, set_edge_type, toggle_edge_hide],
   );
 };
-const ParentEdgeRow_of = utils.memoize1((edge_id: types.TEdgeId) => (
-  <ParentEdgeRow edge_id={edge_id} key={edge_id} />
-));
+
+const EdgeRowContent = (props: { node_id: types.TNodeId }) => {
+  const to_tree = useToTree(props.node_id);
+  const text = useSelector((state) => state.data.nodes[props.node_id].text);
+  const disabled = useSelector((state) => {
+    return (
+      props.node_id === state.data.root ||
+      state.data.nodes[props.node_id].status !== "todo"
+    );
+  });
+  return (
+    <>
+      <td>
+        <TopButton node_id={props.node_id} disabled={disabled} />
+      </td>
+      <td title={text} onClick={to_tree} className="p-[0.25em] cursor-pointer">
+        {text.slice(0, 15)}
+      </td>
+    </>
+  );
+};
 
 const useIsRunning = (node_id: types.TNodeId) => {
   const ranges = useSelector((state) => state.data.nodes[node_id].ranges);
@@ -1677,7 +1622,7 @@ const StopButton = React.forwardRef(
   },
 );
 
-const TopButton = (props: { node_id: types.TNodeId }) => {
+const TopButton = (props: { node_id: types.TNodeId; disabled?: boolean }) => {
   const dispatch = useDispatch();
   const on_click = React.useCallback(() => {
     dispatch(actions.top_action(props.node_id));
@@ -1687,6 +1632,7 @@ const TopButton = (props: { node_id: types.TNodeId }) => {
       className="btn-icon"
       onClick={on_click}
       onDoubleClick={prevent_propagation}
+      disabled={props.disabled}
     >
       {consts.TOP_MARK}
     </button>
