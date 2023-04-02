@@ -216,19 +216,19 @@ const Menu = (props: { ctx: states.PersistentStateManager }) => {
           <li>
             <button
               className="btn-icon mr-[0.5em]"
-              onClick={check_remote_head}
+              onClick={get_toggle(set_show_mobile)}
               onDoubleClick={prevent_propagation}
             >
-              Check remote
+              {consts.MOBILE_MARK}
             </button>
           </li>
           <li>
             <button
               className="btn-icon mr-[0.5em]"
-              onClick={get_toggle(set_show_mobile)}
+              onClick={check_remote_head}
               onDoubleClick={prevent_propagation}
             >
-              {consts.MOBILE_MARK}
+              Check remote
             </button>
           </li>
         </ul>
@@ -902,19 +902,19 @@ const MobileMenu = (props: { ctx: states.PersistentStateManager }) => {
           <li>
             <button
               className="btn-icon mr-[0.5em]"
-              onClick={check_remote_head}
+              onClick={get_toggle(set_show_mobile)}
               onDoubleClick={prevent_propagation}
             >
-              Check remote
+              {consts.DESKTOP_MARK}
             </button>
           </li>
           <li>
             <button
               className="btn-icon mr-[0.5em]"
-              onClick={get_toggle(set_show_mobile)}
+              onClick={check_remote_head}
               onDoubleClick={prevent_propagation}
             >
-              {consts.DESKTOP_MARK}
+              Check remote
             </button>
           </li>
         </ul>
