@@ -30,6 +30,7 @@ export default defineConfig({
           "Evidence based TODO app with DAG based dependency management",
         display: "standalone",
         theme_color: "#000000",
+        background_color: "#000000",
         icons: [
           {
             src: "pwa-192x192.png",
