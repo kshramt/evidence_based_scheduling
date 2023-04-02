@@ -2,15 +2,10 @@ import React, { useState, useRef, useEffect } from "react";
 
 const MenuButton = (props: { children: React.ReactNode }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [menuListPosition, setMenuListPosition] = useState({ top: 0, left: 0 });
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const menuListRef = useRef<HTMLDivElement>(null);
 
   const handleButtonClick = React.useCallback(() => {
-    if (menuButtonRef.current) {
-      const rect = menuButtonRef.current.getBoundingClientRect();
-      setMenuListPosition({ top: rect.bottom, left: rect.left });
-    }
     setIsOpen(!isOpen);
   }, [isOpen]);
 
@@ -45,14 +40,7 @@ const MenuButton = (props: { children: React.ReactNode }) => {
         <span className="material-icons">menu</span>
       </button>
       {isOpen && (
-        <div
-          ref={menuListRef}
-          className="fixed z-40"
-          style={{
-            top: menuListPosition.top,
-            left: menuListPosition.left,
-          }}
-        >
+        <div ref={menuListRef} className="fixed z-40">
           {props.children}
         </div>
       )}
