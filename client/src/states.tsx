@@ -700,7 +700,7 @@ export class PersistentStateManager {
       return null;
     }
     return (
-      <div className="flex justify-center h-[100vh] w-full items-center fixed z-[999999] top-0 left-0 pt-[1em] pb-[1em]">
+      <div className="flex justify-center h-[100vh] w-full items-center fixed z-50 top-0 left-0 pt-[1em] pb-[1em]">
         <div className="w-[80vw] bg-gray-200 dark:bg-gray-900">
           <div className="flex justify-center">
             <button onClick={use_remote} className="btn-icon">
@@ -735,29 +735,7 @@ export class PersistentStateManager {
         try {
           awaited = true;
           await retryers.get_online_promise();
-          const resp = await get_remote_head_and_save_remote_pending_patches(
-            this.client_id,
-            this.grpc_client,
-            this.id_token,
-            this.db,
-          );
-          if (
-            resp.client_id !== this.heads.remote.client_id ||
-            resp.session_id !== this.heads.remote.session_id ||
-            resp.patch_id !== this.heads.remote.patch_id
-          ) {
-            this.#sync_store.set_state(() => {
-              return {
-                updated_at: resp.created_at.toISOString(),
-                name: resp.name,
-                head: {
-                  client_id: resp.client_id,
-                  session_id: resp.session_id,
-                  patch_id: resp.patch_id,
-                },
-              };
-            });
-          }
+          await this.check_remote_head();
         } finally {
           awaited = false;
         }
@@ -774,6 +752,31 @@ export class PersistentStateManager {
         window.removeEventListener("visibilitychange", handle_focus);
       };
     }, []);
+  };
+  check_remote_head = async () => {
+    const resp = await get_remote_head_and_save_remote_pending_patches(
+      this.client_id,
+      this.grpc_client,
+      this.id_token,
+      this.db,
+    );
+    if (
+      resp.client_id !== this.heads.remote.client_id ||
+      resp.session_id !== this.heads.remote.session_id ||
+      resp.patch_id !== this.heads.remote.patch_id
+    ) {
+      this.#sync_store.set_state(() => {
+        return {
+          updated_at: resp.created_at.toISOString(),
+          name: resp.name,
+          head: {
+            client_id: resp.client_id,
+            session_id: resp.session_id,
+            patch_id: resp.patch_id,
+          },
+        };
+      });
+    }
   };
 }
 

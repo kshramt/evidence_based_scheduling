@@ -11,7 +11,7 @@ import * as utils from "./utils";
 import * as components from "./components";
 import * as Auth from "./auth";
 
-const App = () => {
+const App = (props: { ctx: states.PersistentStateManager }) => {
   const show_mobile = Recoil.useRecoilValue(
     states.show_mobile_atom_map.get(
       React.useContext(states.session_key_context),
@@ -21,11 +21,15 @@ const App = () => {
   return React.useMemo(
     () => (
       <>
-        {show_mobile ? <components.MobileApp /> : <components.DesktopApp />}
+        {show_mobile ? (
+          <components.MobileApp ctx={props.ctx} />
+        ) : (
+          <components.DesktopApp ctx={props.ctx} />
+        )}
         {toast.component}
       </>
     ),
-    [show_mobile],
+    [show_mobile, props.ctx],
   );
 };
 
@@ -182,7 +186,7 @@ const AppComponentImpl = (props: {
   return (
     <states.session_key_context.Provider value={ctx.session_key}>
       <Provider store={store}>
-        <App />
+        <App ctx={ctx} />
         <ctx.Component />
       </Provider>
     </states.session_key_context.Provider>

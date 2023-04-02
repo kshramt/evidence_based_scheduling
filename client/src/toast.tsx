@@ -53,7 +53,7 @@ const store = store_of();
 const Component = () => {
   const state = React.useSyncExternalStore(store.subscribe, store.get_state);
   return (
-    <ul className="list-none fixed z-[999999] font-bold p-[1em] bottom-4 right-4">
+    <ul className="list-none fixed z-50 font-bold p-[1em] bottom-4 right-4">
       {state.map((message) => (
         <li
           key={message.id}

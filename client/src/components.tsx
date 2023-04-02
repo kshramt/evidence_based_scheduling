@@ -13,6 +13,7 @@ import * as ops from "./ops";
 import * as toast from "./toast";
 import * as undoable from "./undoable";
 import ScrollBackToTopButton from "./ScrollBackToTopButton";
+import MenuButton from "./MenuButton";
 
 const MENU_HEIGHT = "3rem" as const;
 const SCROLL_BACK_TO_TOP_MARK = (
@@ -22,19 +23,19 @@ const WEEK_0_BEGIN = new Date(Date.UTC(2021, 12 - 1, 27));
 const WEEK_MSEC = 86400 * 1000 * 7;
 const EMPTY_STRING = "";
 
-export const MobileApp = () => {
+export const MobileApp = (props: { ctx: states.PersistentStateManager }) => {
   return (
     <>
-      <MobileMenu />
+      <MobileMenu ctx={props.ctx} />
       <MobileBody />
     </>
   );
 };
 
-export const DesktopApp = () => {
+export const DesktopApp = (props: { ctx: states.PersistentStateManager }) => {
   return (
     <>
-      <Menu />
+      <Menu ctx={props.ctx} />
       <Body />
     </>
   );
@@ -72,7 +73,7 @@ const MobileNodeFilterQueryInput = () => {
         className="h-[2em] border-none w-[8em]"
       />
       <button
-        className="btn-icon"
+        className="icon-icon"
         onClick={clear_input}
         onDoubleClick={prevent_propagation}
       >
@@ -163,13 +164,13 @@ const NodeIdsInput = () => {
 
 const SBTTB = () => {
   return (
-    <ScrollBackToTopButton className="sticky top-[60%] left-[50%] -translate-x-1/2 -translate-y-1/2 px-[0.15rem] dark:bg-gray-300 bg-gray-600 dark:hover:bg-gray-400 hover:bg-gray-500 text-center min-w-[3rem] h-[3rem] text-[2rem] border-none shadow-none opacity-70 hover:opacity-100 float-left mt-[-3rem] z-50">
+    <ScrollBackToTopButton className="sticky top-[60%] left-[50%] -translate-x-1/2 -translate-y-1/2 px-[0.15rem] dark:bg-gray-300 bg-gray-600 dark:hover:bg-gray-400 hover:bg-gray-500 text-center min-w-[3rem] h-[3rem] text-[2rem] border-none shadow-none opacity-70 hover:opacity-100 float-left mt-[-3rem] z-40">
       {SCROLL_BACK_TO_TOP_MARK}
     </ScrollBackToTopButton>
   );
 };
 
-const Menu = () => {
+const Menu = (props: { ctx: states.PersistentStateManager }) => {
   const root = useSelector((state) => state.data.root);
   const dispatch = useDispatch();
   const stop_all = useCallback(
@@ -200,11 +201,38 @@ const Menu = () => {
   const move_important_node_to_top = useCallback(() => {
     dispatch(actions.move_important_node_to_top_action());
   }, [dispatch]);
+  const check_remote_head = useCallback(async () => {
+    try {
+      await props.ctx.check_remote_head();
+    } catch {}
+  }, [props.ctx]);
   return (
     <div
-      className={`flex items-center overflow-x-auto fixed z-[999999] pl-[1em] gap-x-[0.25em] w-full top-0  bg-gray-200 dark:bg-gray-900`}
+      className={`flex items-center overflow-x-auto fixed z-30 pl-[1em] gap-x-[0.25em] w-full top-0  bg-gray-200 dark:bg-gray-900`}
       style={{ height: MENU_HEIGHT }}
     >
+      <MenuButton>
+        <ul>
+          <li>
+            <button
+              className="btn-icon mr-[0.5em]"
+              onClick={check_remote_head}
+              onDoubleClick={prevent_propagation}
+            >
+              Check remote
+            </button>
+          </li>
+          <li>
+            <button
+              className="btn-icon mr-[0.5em]"
+              onClick={get_toggle(set_show_mobile)}
+              onDoubleClick={prevent_propagation}
+            >
+              {consts.MOBILE_MARK}
+            </button>
+          </li>
+        </ul>
+      </MenuButton>
       <button
         className="btn-icon"
         onClick={stop_all}
@@ -270,13 +298,6 @@ const Menu = () => {
       <NodeIdsInput />
       <span className="grow" />
       <NLeftButton />
-      <button
-        className="btn-icon mr-[0.5em]"
-        onClick={get_toggle(set_show_mobile)}
-        onDoubleClick={prevent_propagation}
-      >
-        {consts.MOBILE_MARK}
-      </button>
     </div>
   );
 };
@@ -846,7 +867,7 @@ const QueueEntry_of = utils.memoize1((node_id: types.TNodeId) => (
   <QueueEntry node_id={node_id} />
 ));
 
-const MobileMenu = () => {
+const MobileMenu = (props: { ctx: states.PersistentStateManager }) => {
   const root = useSelector((state) => state.data.root);
   const dispatch = useDispatch();
   const stop_all = useCallback(
@@ -866,11 +887,38 @@ const MobileMenu = () => {
   const _redo = useCallback(() => {
     dispatch({ type: undoable.REDO_TYPE });
   }, [dispatch]);
+  const check_remote_head = useCallback(async () => {
+    try {
+      await props.ctx.check_remote_head();
+    } catch {}
+  }, [props.ctx]);
   return (
     <div
-      className={`flex items-center overflow-x-auto fixed z-[999999] gap-x-[0.25em] w-full top-0  bg-gray-200 dark:bg-gray-900`}
+      className={`flex items-center overflow-x-auto fixed z-30 gap-x-[0.25em] w-full top-0  bg-gray-200 dark:bg-gray-900`}
       style={{ height: MENU_HEIGHT }}
     >
+      <MenuButton>
+        <ul>
+          <li>
+            <button
+              className="btn-icon mr-[0.5em]"
+              onClick={check_remote_head}
+              onDoubleClick={prevent_propagation}
+            >
+              Check remote
+            </button>
+          </li>
+          <li>
+            <button
+              className="btn-icon mr-[0.5em]"
+              onClick={get_toggle(set_show_mobile)}
+              onDoubleClick={prevent_propagation}
+            >
+              {consts.DESKTOP_MARK}
+            </button>
+          </li>
+        </ul>
+      </MenuButton>
       <button
         className="btn-icon"
         onClick={stop_all}
@@ -906,13 +954,6 @@ const MobileMenu = () => {
       <MobileNodeFilterQueryInput />
       <span className="grow" />
       <NLeftButton />
-      <button
-        className="btn-icon mr-[0.5em]"
-        onClick={get_toggle(set_show_mobile)}
-        onDoubleClick={prevent_propagation}
-      >
-        {consts.DESKTOP_MARK}
-      </button>
     </div>
   );
 };
