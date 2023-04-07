@@ -31,7 +31,7 @@ const MenuButton = (props: { children: React.ReactNode }) => {
   }, [handleClickOutside]);
 
   return (
-    <div className="relative">
+    <div>
       <button
         ref={menuButtonRef}
         onClick={handleButtonClick}
