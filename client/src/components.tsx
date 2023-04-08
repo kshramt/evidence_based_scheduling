@@ -822,6 +822,7 @@ const QueueEntry = (props: { node_id: types.TNodeId }) => {
   const is_todo = status === "todo";
   const is_running = useIsRunning(props.node_id);
   const to_tree = useToTree(props.node_id);
+  const handle_click = useRegisterNodeId(props.node_id);
   const el = React.useMemo(
     () => (
       <div className="flex items-end w-fit">
@@ -830,11 +831,12 @@ const QueueEntry = (props: { node_id: types.TNodeId }) => {
           node_id={props.node_id}
           id={utils.queue_textarea_id_of(props.node_id)}
           className="w-[29em]"
+          onClick={handle_click}
         />
         <EntryInfos node_id={props.node_id} />
       </div>
     ),
-    [props.node_id, to_tree],
+    [props.node_id, to_tree, handle_click],
   );
 
   return (
@@ -1012,6 +1014,8 @@ const TreeEntry = (props: { node_id: types.TNodeId }) => {
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
   const to_queue = useToQueue(props.node_id);
   const is_root = useSelector((state) => state.data.root === props.node_id);
+  const handle_click = useRegisterNodeId(props.node_id);
+
   return (
     <EntryWrapper
       node_id={props.node_id}
@@ -1024,6 +1028,7 @@ const TreeEntry = (props: { node_id: types.TNodeId }) => {
           node_id={props.node_id}
           id={utils.tree_textarea_id_of(props.node_id)}
           className="w-[29em]"
+          onClick={handle_click}
         />
         <EntryInfos node_id={props.node_id} />
       </div>
@@ -1041,6 +1046,21 @@ const TreeEntry = (props: { node_id: types.TNodeId }) => {
 const TreeEntry_of = utils.memoize1((node_id: types.TNodeId) => {
   return <TreeEntry node_id={node_id} />;
 });
+
+const useRegisterNodeId = (node_id: types.TNodeId) => {
+  const set_node_ids = Recoil.useSetRecoilState(states.node_ids_state);
+
+  return React.useCallback(
+    (e: React.MouseEvent<HTMLElement>) => {
+      const multi = e.ctrlKey || e.metaKey;
+      set_node_ids((node_ids: string) => {
+        const res = multi ? node_id + " " + node_ids : node_id;
+        return res;
+      });
+    },
+    [node_id, set_node_ids],
+  );
+};
 
 const Details = (props: { node_id: types.TNodeId }) => {
   const show_detail = useSelector(
@@ -1506,7 +1526,6 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
         {is_root || !is_todo || <MoveUpButton node_id={props.node_id} />}
         {is_root || !is_todo || <MoveDownButton node_id={props.node_id} />}
         <DeleteButton node_id={props.node_id} />
-        <CopyNodeIdButton node_id={props.node_id} />
         {is_todo && <AddButton node_id={props.node_id} />}
         <ShowDetailButton node_id={props.node_id} />
       </div>
