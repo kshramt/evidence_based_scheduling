@@ -38,26 +38,8 @@ do
   img="${img_prefix}/${service}"
   docker push "${img}":"h-${github_sha}-${os}-${arch}" &
 done
-wait
 
 if [[ "${os}" = "${host_os}" && "${arch}" = "${host_arch}" ]]; then
-  TAG="h-${github_sha}-${os}-${arch}" \
-  _POSTGRES_PASSWORD=postgres \
-  _POSTGRES_APP_USER_PASSWORD=app \
-  scripts/launch.sh
-
-  i=0
-  for _i in {1..10}; do
-    if curl localhost:8080/healthz; then
-      break;
-    fi
-    (( ++i ))
-    sleep 1
-  done
-  if [[ ${i} -ge 10 ]]; then
-      exit 1
-  fi
-
   docker run \
     --mount "type=bind,source=${PWD},target=${PWD}" \
     --mount "type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock" \
@@ -80,6 +62,26 @@ if [[ "${os}" = "${host_os}" && "${arch}" = "${host_arch}" ]]; then
     --rm \
     "${img_prefix}/tests_server:h-${github_sha}-${os}-${arch}" \
     .venv/bin/python3 -m pytest -s src
+
+  # Wait `docker push`
+  wait
+
+  TAG="h-${github_sha}-${os}-${arch}" \
+  _POSTGRES_PASSWORD=postgres \
+  _POSTGRES_APP_USER_PASSWORD=app \
+  scripts/launch.sh
+
+  i=0
+  for _i in {1..10}; do
+    if curl localhost:8080/healthz; then
+      break;
+    fi
+    (( ++i ))
+    sleep 1
+  done
+  if [[ ${i} -ge 10 ]]; then
+      exit 1
+  fi
 fi
 
 for service in "${services[@]}"
