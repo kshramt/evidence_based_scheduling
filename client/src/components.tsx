@@ -15,7 +15,6 @@ import * as undoable from "./undoable";
 import ScrollBackToTopButton from "./ScrollBackToTopButton";
 import MenuButton from "./MenuButton";
 
-const MENU_HEIGHT = "3rem" as const;
 const SCROLL_BACK_TO_TOP_MARK = (
   <span className="material-icons">vertical_align_top</span>
 );
@@ -208,8 +207,7 @@ const Menu = (props: { ctx: states.PersistentStateManager }) => {
   }, [props.ctx]);
   return (
     <div
-      className={`flex items-center overflow-x-auto fixed z-30 pl-[1em] gap-x-[0.25em] w-full top-0  bg-gray-200 dark:bg-gray-900`}
-      style={{ height: MENU_HEIGHT }}
+      className={`flex items-center overflow-x-auto h-[3.01rem] pl-[1em] gap-x-[0.25em] w-full top-0  bg-gray-200 dark:bg-gray-900`}
     >
       <MenuButton>
         <ul>
@@ -307,12 +305,7 @@ const Body = () => {
     return state.data.root;
   });
   return (
-    <div
-      className="flex w-full h-screen gap-x-[1em] overflow-y-hidden"
-      style={{
-        paddingTop: MENU_HEIGHT,
-      }}
-    >
+    <div className="flex w-full h-[calc(100vh-3.01rem)] gap-x-[1em] overflow-y-hidden">
       <CoveyQuadrants />
       <div className={`overflow-y-scroll shrink-0`}>
         <Timeline />
@@ -894,8 +887,7 @@ const MobileMenu = (props: { ctx: states.PersistentStateManager }) => {
   }, [props.ctx]);
   return (
     <div
-      className={`flex items-center overflow-x-auto fixed z-30 gap-x-[0.25em] w-full top-0  bg-gray-200 dark:bg-gray-900`}
-      style={{ height: MENU_HEIGHT }}
+      className={`flex items-center overflow-x-auto gap-x-[0.25em] h-[3.01rem] w-full top-0 bg-gray-200 dark:bg-gray-900`}
     >
       <MenuButton>
         <ul>
@@ -960,12 +952,7 @@ const MobileMenu = (props: { ctx: states.PersistentStateManager }) => {
 
 const MobileBody = () => {
   return (
-    <div
-      className="flex w-full h-screen gap-x-8 overflow-y-hidden"
-      style={{
-        paddingTop: MENU_HEIGHT,
-      }}
-    >
+    <div className="flex w-full h-[calc(100vh-3.01rem)] gap-x-8 overflow-y-hidden">
       <div className={`overflow-y-scroll shrink-0`}>
         <MobileQueueColumn />
       </div>
@@ -1943,7 +1930,7 @@ const TextAreaImpl = ({
       onBlur={dispatch_set_text_action}
       onDoubleClick={prevent_propagation}
       className={utils.join(
-        "whitespace-pre-wrap overflow-wrap-anywhere overflow-hidden p-[0.125em] bg-white dark:bg-gray-700 z-0",
+        "whitespace-pre-wrap overflow-wrap-anywhere overflow-hidden p-[0.125em] bg-white dark:bg-gray-700",
         className,
         status === "done"
           ? "text-red-600 dark:text-red-400"

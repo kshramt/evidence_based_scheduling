@@ -40,7 +40,7 @@ const MenuButton = (props: { children: React.ReactNode }) => {
         <span className="material-icons">menu</span>
       </button>
       {isOpen && (
-        <div ref={menuListRef} className="fixed z-30">
+        <div ref={menuListRef} className="absolute z-10">
           {props.children}
         </div>
       )}
