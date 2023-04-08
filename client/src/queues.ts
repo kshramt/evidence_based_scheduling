@@ -11,11 +11,11 @@ export class Queue<T> {
     }
     this.#resolves.shift()!(value);
   };
-  pop = () => {
+  pop = async () => {
     if (this.#promises.length === 0) {
       this.#add_pair();
     }
-    return this.#promises.shift()!;
+    return await this.#promises.shift()!;
   };
   #add_pair = () => {
     this.#promises.push(
