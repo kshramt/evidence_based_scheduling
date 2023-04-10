@@ -781,7 +781,7 @@ const TodoQueueNode = (props: { node_id: types.TNodeId }) => {
   }
   const should_hide = _should_hide_of(node_filter_query, text, props.node_id);
   return (
-    <tr className={utils.join("align-baseline", should_hide && "collapse")}>
+    <tr className={utils.join("align-baseline", should_hide && "hidden")}>
       <td className="row-id" />
       {QueueEntry_of(props.node_id)}
     </tr>
@@ -802,7 +802,7 @@ const NonTodoQueueNode = (props: { node_id: types.TNodeId }) => {
   }
   const should_hide = _should_hide_of(node_filter_query, text, props.node_id);
   return (
-    <tr className={utils.join("align-baseline", should_hide && "collapse")}>
+    <tr className={utils.join("align-baseline", should_hide && "hidden")}>
       <td className="row-id" />
       {QueueEntry_of(props.node_id)}
     </tr>
