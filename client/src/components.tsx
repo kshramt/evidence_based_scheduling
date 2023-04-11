@@ -106,6 +106,7 @@ const NodeFilterQueryInput = () => {
       set_node_filter_query_slow(v);
     });
   }, [set_node_filter_query_fast, set_node_filter_query_slow]);
+  const ref = useMetaK();
   return (
     <>
       {consts.SEARCH_MARK}
@@ -114,6 +115,7 @@ const NodeFilterQueryInput = () => {
           value={node_filter_query}
           onChange={handle_change}
           className="h-[2em] border-none"
+          ref={ref}
         />
         <button
           className="btn-icon"
@@ -125,6 +127,26 @@ const NodeFilterQueryInput = () => {
       </div>
     </>
   );
+};
+
+const useMetaK = () => {
+  const ref = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.metaKey && event.key === "k") {
+        event.preventDefault();
+        ref.current?.focus();
+        ref.current?.select();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+  return ref;
 };
 
 const NodeIdsInput = () => {
