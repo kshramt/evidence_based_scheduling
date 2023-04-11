@@ -175,7 +175,7 @@ export const get_root_reducer_def = (
       if (last_range && last_range.end === null) {
         return;
       }
-      _top(state, node_id);
+      _topQueue(state, node_id);
       assert(() => [
         state.data.nodes[node_id].status === "todo",
         "Must not happen",
@@ -755,25 +755,28 @@ const collect_ranges_from_strong_descendants = (
 };
 
 const _top = (draft: immer.Draft<types.IState>, node_id: types.TNodeId) => {
-  if (draft.data.nodes[node_id].status === "todo") {
-    _topTree(draft, node_id);
-    _topQueue(draft, node_id);
-  } else {
+  if (draft.data.nodes[node_id].status !== "todo") {
     toast.add("error", `Non-todo node ${node_id} cannot be moved.`);
+    return;
   }
+  _topTree(draft, node_id);
+  _topQueue(draft, node_id);
 };
 
 const _topTree = (draft: immer.Draft<types.IState>, node_id: types.TNodeId) => {
-  while (ops.keys_of(draft.data.nodes[node_id].parents).length) {
-    for (const edge_id of ops.sorted_keys_of(
-      draft.data.nodes[node_id].parents,
-    )) {
-      const edge = draft.data.edges[edge_id];
-      if (edge.t === "strong" && draft.data.nodes[edge.p].status === "todo") {
-        ops.move_to_front(draft.data.nodes[edge.p].children, edge_id);
-        node_id = edge.p;
-        break;
-      }
+  if (draft.data.nodes[node_id].status !== "todo") {
+    toast.add("error", `Non-todo node ${node_id} cannot be moved.`);
+    return;
+  }
+  const parents = ops.sorted_keys_of(draft.data.nodes[node_id].parents);
+  if (parents.length < 1) {
+    return;
+  }
+  for (const edge_id of parents) {
+    const edge = draft.data.edges[edge_id];
+    if (edge.t === "strong" && draft.data.nodes[edge.p].status === "todo") {
+      ops.move_to_front(draft.data.nodes[edge.p].children, edge_id);
+      return;
     }
   }
 };
@@ -782,6 +785,10 @@ const _topQueue = (
   draft: immer.Draft<types.IState>,
   node_id: types.TNodeId,
 ) => {
+  if (draft.data.nodes[node_id].status !== "todo") {
+    toast.add("error", `Non-todo node ${node_id} cannot be moved.`);
+    return;
+  }
   ops.move_to_front(draft.data.queue, node_id);
   const node_ids =
     draft.data.nodes[node_id].status === "todo"
