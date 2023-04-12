@@ -21,6 +21,8 @@ const SCROLL_BACK_TO_TOP_MARK = (
 const WEEK_0_BEGIN = new Date(Date.UTC(2021, 12 - 1, 27));
 const WEEK_MSEC = 86400 * 1000 * 7;
 const EMPTY_STRING = "";
+const TABINDEX_SEARCH_INPUT = 10;
+const TABINDEX_FIRST_QUEUE_TEXTAREA = 20;
 
 export const MobileApp = (props: { ctx: states.PersistentStateManager }) => {
   return (
@@ -116,6 +118,7 @@ const NodeFilterQueryInput = () => {
           onChange={handle_change}
           className="h-[2em] border-none"
           ref={ref}
+          tabIndex={TABINDEX_SEARCH_INPUT}
         />
         <button
           className="btn-icon"
@@ -717,10 +720,23 @@ const PlannedNode = (props: {
 
 const TodoQueueNodes = () => {
   const queue = useSelector((state) => state.todo_node_ids);
+  const rows = [];
+  if (0 < queue.length) {
+    rows.push(
+      <TodoQueueNode
+        node_id={queue[0]}
+        key={queue[0]}
+        tabIndex={TABINDEX_FIRST_QUEUE_TEXTAREA}
+      />,
+    );
+    for (let i = 1; i < queue.length; i++) {
+      rows.push(<TodoQueueNode node_id={queue[i]} key={queue[i]} />);
+    }
+  }
 
   return (
     <table>
-      <tbody>{queue.map(TodoQueueNode_of)}</tbody>
+      <tbody>{rows}</tbody>
     </table>
   );
 };
@@ -792,7 +808,10 @@ const Edge_of = utils.memoize1((edge_id: types.TEdgeId) => (
   <Edge edge_id={edge_id} key={edge_id} />
 ));
 
-const TodoQueueNode = (props: { node_id: types.TNodeId }) => {
+const TodoQueueNode = (props: {
+  node_id: types.TNodeId;
+  tabIndex?: number;
+}) => {
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
   const node_filter_query = Recoil.useRecoilValue_TRANSITION_SUPPORT_UNSTABLE(
     states.node_filter_query_slow_state,
@@ -805,13 +824,10 @@ const TodoQueueNode = (props: { node_id: types.TNodeId }) => {
   return (
     <tr className={utils.join("align-baseline", should_hide && "hidden")}>
       <td className="row-id" />
-      {QueueEntry_of(props.node_id)}
+      <QueueEntry node_id={props.node_id} tabIndex={props.tabIndex} />
     </tr>
   );
 };
-const TodoQueueNode_of = utils.memoize1((node_id: types.TNodeId) => (
-  <TodoQueueNode node_id={node_id} key={node_id} />
-));
 
 const NonTodoQueueNode = (props: { node_id: types.TNodeId }) => {
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
@@ -826,7 +842,7 @@ const NonTodoQueueNode = (props: { node_id: types.TNodeId }) => {
   return (
     <tr className={utils.join("align-baseline", should_hide && "hidden")}>
       <td className="row-id" />
-      {QueueEntry_of(props.node_id)}
+      <QueueEntry node_id={props.node_id} />
     </tr>
   );
 };
@@ -834,7 +850,7 @@ const NonTodoQueueNode_of = utils.memoize1((node_id: types.TNodeId) => (
   <NonTodoQueueNode node_id={node_id} key={node_id} />
 ));
 
-const QueueEntry = (props: { node_id: types.TNodeId }) => {
+const QueueEntry = (props: { node_id: types.TNodeId; tabIndex?: number }) => {
   const { is_hover, on_mouse_over, on_mouse_out } = useHover();
   const show_detail = useSelector(
     (state) => state.caches[props.node_id].show_detail,
@@ -854,11 +870,12 @@ const QueueEntry = (props: { node_id: types.TNodeId }) => {
           id={utils.queue_textarea_id_of(props.node_id)}
           className="w-[29em]"
           onClick={handle_click}
+          tabIndex={props.tabIndex}
         />
         <EntryInfos node_id={props.node_id} />
       </div>
     ),
-    [props.node_id, to_tree, handle_click],
+    [props.node_id, to_tree, handle_click, props.tabIndex],
   );
 
   return (
@@ -880,9 +897,6 @@ const QueueEntry = (props: { node_id: types.TNodeId }) => {
     </EntryWrapper>
   );
 };
-const QueueEntry_of = utils.memoize1((node_id: types.TNodeId) => (
-  <QueueEntry node_id={node_id} />
-));
 
 const MobileMenu = (props: { ctx: states.PersistentStateManager }) => {
   const root = useSelector((state) => state.data.root);
