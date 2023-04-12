@@ -429,6 +429,7 @@ export const get_root_reducer_def = (
         );
         return;
       }
+      _topQueue(state, node_id);
       stop(state, node_id, vid);
       state.data.nodes[node_id].status = "done";
       state.data.nodes[node_id].end_time = Date.now();
@@ -438,7 +439,6 @@ export const get_root_reducer_def = (
         state.todo_node_ids.splice(i, 1);
         state.non_todo_node_ids.splice(0, 0, node_id);
       }
-      _topQueue(state, node_id);
     });
     builder(actions.todoToDont, (state, action) => {
       const node_id = action.payload;
@@ -450,6 +450,7 @@ export const get_root_reducer_def = (
         );
         return;
       }
+      _topQueue(state, node_id);
       stop(state, node_id, vid);
       state.data.nodes[node_id].status = "dont";
       state.data.nodes[node_id].end_time = Date.now();
@@ -459,7 +460,6 @@ export const get_root_reducer_def = (
         state.todo_node_ids.splice(i, 1);
         state.non_todo_node_ids.splice(0, 0, node_id);
       }
-      _topQueue(state, node_id);
     });
     builder(actions.done_or_dont_to_todo_action, (state, action) => {
       const node_id = action.payload;
