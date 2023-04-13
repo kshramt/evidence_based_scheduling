@@ -21,8 +21,6 @@ const SCROLL_BACK_TO_TOP_MARK = (
 const WEEK_0_BEGIN = new Date(Date.UTC(2021, 12 - 1, 27));
 const WEEK_MSEC = 86400 * 1000 * 7;
 const EMPTY_STRING = "";
-const TABINDEX_SEARCH_INPUT = 10;
-const TABINDEX_FIRST_QUEUE_TEXTAREA = 20;
 
 export const MobileApp = (props: { ctx: states.PersistentStateManager }) => {
   return (
@@ -123,7 +121,6 @@ const NodeFilterQueryInput = () => {
           onKeyDown={handleKeyDown}
           className="h-[2em] border-none"
           ref={ref}
-          tabIndex={TABINDEX_SEARCH_INPUT}
         />
         <button
           className="btn-icon"
@@ -738,46 +735,37 @@ const PlannedNode = (props: {
 
 const TodoQueueNodes = () => {
   const queue = useQueue("todo_node_ids");
-  const rows = [];
-  if (0 < queue.length) {
-    rows.push(
-      <QueueNode
-        node_id={queue[0]}
-        key={queue[0]}
-        tabIndex={TABINDEX_FIRST_QUEUE_TEXTAREA}
-      />,
-    );
-    for (let i = 1; i < queue.length; i++) {
-      rows.push(<QueueNode node_id={queue[i]} key={queue[i]} />);
-    }
-  }
 
   return (
     <table>
-      <tbody>{rows}</tbody>
+      <tbody>
+        {queue.map((node_id) => (
+          <QueueNode node_id={node_id} key={node_id} />
+        ))}
+      </tbody>
     </table>
   );
 };
 
-const TreeNode = (props: { node_id: types.TNodeId }) => {
+const TreeNode = React.memo((props: { node_id: types.TNodeId }) => {
   return (
     <>
       <TreeEntry node_id={props.node_id} />
       <EdgeList node_id={props.node_id} />
     </>
   );
-};
+});
 
 const NonTodoQueueNodes = () => {
   const queue = useQueue("non_todo_node_ids");
-  const rows = [];
-  for (let i = 0; i < queue.length; i++) {
-    rows.push(<QueueNode node_id={queue[i]} key={queue[i]} />);
-  }
 
   return (
     <table>
-      <tbody>{rows}</tbody>
+      <tbody>
+        {queue.map((node_id) => (
+          <QueueNode node_id={node_id} key={node_id} />
+        ))}
+      </tbody>
     </table>
   );
 };
@@ -827,64 +815,57 @@ const Edge = React.memo((props: { edge_id: types.TEdgeId }) => {
   );
 });
 
-const QueueNode = React.memo(
-  (props: { node_id: types.TNodeId; tabIndex?: number }) => {
-    return (
-      <tr className={utils.join("align-baseline")}>
-        <td className="row-id" />
-        <QueueEntry {...props} />
-      </tr>
-    );
-  },
-);
+const QueueNode = React.memo((props: { node_id: types.TNodeId }) => {
+  return (
+    <tr className={utils.join("align-baseline")}>
+      <td className="row-id" />
+      <QueueEntry {...props} />
+    </tr>
+  );
+});
 
-const QueueEntry = React.memo(
-  (props: { node_id: types.TNodeId; tabIndex?: number }) => {
-    const { is_hover, on_mouse_over, on_mouse_out } = useHover();
-    const show_detail = useSelector(
-      (state) => state.caches[props.node_id].show_detail,
-    );
-    const cache = useSelector((state) => state.caches[props.node_id]);
-    const status = useSelector(
-      (state) => state.data.nodes[props.node_id].status,
-    );
-    const is_todo = status === "todo";
-    const is_running = useIsRunning(props.node_id);
-    const to_tree = useToTree(props.node_id);
-    const handle_click = useRegisterNodeId(props.node_id);
-    const handleKeyDown = useTaskShortcutKeys(props.node_id);
+const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
+  const { is_hover, on_mouse_over, on_mouse_out } = useHover();
+  const show_detail = useSelector(
+    (state) => state.caches[props.node_id].show_detail,
+  );
+  const cache = useSelector((state) => state.caches[props.node_id]);
+  const status = useSelector((state) => state.data.nodes[props.node_id].status);
+  const is_todo = status === "todo";
+  const is_running = useIsRunning(props.node_id);
+  const to_tree = useToTree(props.node_id);
+  const handle_click = useRegisterNodeId(props.node_id);
+  const handleKeyDown = useTaskShortcutKeys(props.node_id);
 
-    return (
-      <EntryWrapper
-        node_id={props.node_id}
-        onMouseOver={on_mouse_over}
-        onMouseOut={on_mouse_out}
-        component="td"
-      >
-        <div className="flex items-end w-fit">
-          <button onClick={to_tree}>←</button>
-          <TextArea
-            node_id={props.node_id}
-            id={utils.queue_textarea_id_of(props.node_id)}
-            className="w-[29em]"
-            onClick={handle_click}
-            onKeyDown={handleKeyDown}
-            tabIndex={props.tabIndex}
-          />
-          <EntryInfos node_id={props.node_id} />
-        </div>
-        {is_todo &&
-          0 <= cache.leaf_estimates_sum &&
-          digits1(cache.leaf_estimates_sum) + " | "}
-        {is_todo && cache.percentiles.map(digits1).join(", ")}
-        {(is_hover || is_running || show_detail) && (
-          <EntryButtons node_id={props.node_id} />
-        )}
-        <Details node_id={props.node_id} />
-      </EntryWrapper>
-    );
-  },
-);
+  return (
+    <EntryWrapper
+      node_id={props.node_id}
+      onMouseOver={on_mouse_over}
+      onMouseOut={on_mouse_out}
+      component="td"
+    >
+      <div className="flex items-end w-fit">
+        <button onClick={to_tree}>←</button>
+        <TextArea
+          node_id={props.node_id}
+          id={utils.queue_textarea_id_of(props.node_id)}
+          className="w-[29em]"
+          onClick={handle_click}
+          onKeyDown={handleKeyDown}
+        />
+        <EntryInfos node_id={props.node_id} />
+      </div>
+      {is_todo &&
+        0 <= cache.leaf_estimates_sum &&
+        digits1(cache.leaf_estimates_sum) + " | "}
+      {is_todo && cache.percentiles.map(digits1).join(", ")}
+      {(is_hover || is_running || show_detail) && (
+        <EntryButtons node_id={props.node_id} />
+      )}
+      <Details node_id={props.node_id} />
+    </EntryWrapper>
+  );
+});
 
 const MobileMenu = (props: { ctx: states.PersistentStateManager }) => {
   const root = useSelector((state) => state.data.root);
