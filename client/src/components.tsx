@@ -21,6 +21,8 @@ const SCROLL_BACK_TO_TOP_MARK = (
 const WEEK_0_BEGIN = new Date(Date.UTC(2021, 12 - 1, 27));
 const WEEK_MSEC = 86400 * 1000 * 7;
 const EMPTY_STRING = "";
+const TABINDEX_SEARCH_INPUT = 10;
+const TABINDEX_FIRST_QUEUE_TEXTAREA = 20;
 
 export const MobileApp = (props: { ctx: states.PersistentStateManager }) => {
   return (
@@ -107,6 +109,10 @@ const NodeFilterQueryInput = () => {
     });
   }, [set_node_filter_query_fast, set_node_filter_query_slow]);
   const ref = useMetaK();
+  const queue = useQueue("todo_node_ids");
+  const node_id = queue[0] || null;
+  const handleKeyDown = useTaskShortcutKeys(node_id);
+
   return (
     <>
       {consts.SEARCH_MARK}
@@ -114,8 +120,10 @@ const NodeFilterQueryInput = () => {
         <input
           value={node_filter_query}
           onChange={handle_change}
+          onKeyDown={handleKeyDown}
           className="h-[2em] border-none"
           ref={ref}
+          tabIndex={TABINDEX_SEARCH_INPUT}
         />
         <button
           className="btn-icon"
@@ -127,6 +135,19 @@ const NodeFilterQueryInput = () => {
       </div>
     </>
   );
+};
+
+const useQueue = (column: "todo_node_ids" | "non_todo_node_ids") => {
+  const node_filter_query = Recoil.useRecoilValue_TRANSITION_SUPPORT_UNSTABLE(
+    states.node_filter_query_slow_state,
+  );
+  const queue = useSelector((state) =>
+    state[column].filter((node_id) => {
+      const node = state.data.nodes[node_id];
+      return !_should_hide_of(node_filter_query, node.text, node_id);
+    }),
+  );
+  return queue;
 };
 
 const useMetaK = () => {
@@ -334,7 +355,7 @@ const Body = () => {
       </div>
       <div className={`overflow-y-scroll shrink-0`}>
         <SBTTB />
-        {TreeNode_of(root)}
+        <TreeNode node_id={root} />
       </div>
       <div className={`overflow-y-scroll shrink-0`}>
         <SBTTB />
@@ -716,11 +737,24 @@ const PlannedNode = (props: {
 };
 
 const TodoQueueNodes = () => {
-  const queue = useSelector((state) => state.todo_node_ids);
+  const queue = useQueue("todo_node_ids");
+  const rows = [];
+  if (0 < queue.length) {
+    rows.push(
+      <QueueNode
+        node_id={queue[0]}
+        key={queue[0]}
+        tabIndex={TABINDEX_FIRST_QUEUE_TEXTAREA}
+      />,
+    );
+    for (let i = 1; i < queue.length; i++) {
+      rows.push(<QueueNode node_id={queue[i]} key={queue[i]} />);
+    }
+  }
 
   return (
     <table>
-      <tbody>{queue.map(TodoQueueNode_of)}</tbody>
+      <tbody>{rows}</tbody>
     </table>
   );
 };
@@ -728,41 +762,43 @@ const TodoQueueNodes = () => {
 const TreeNode = (props: { node_id: types.TNodeId }) => {
   return (
     <>
-      {TreeEntry_of(props.node_id)}
-      {EdgeList_of(props.node_id)}
+      <TreeEntry node_id={props.node_id} />
+      <EdgeList node_id={props.node_id} />
     </>
   );
 };
-const TreeNode_of = utils.memoize1((node_id: types.TNodeId) => (
-  <TreeNode node_id={node_id} />
-));
 
 const NonTodoQueueNodes = () => {
-  const queue = useSelector((state) => state.non_todo_node_ids);
+  const queue = useQueue("non_todo_node_ids");
+  const rows = [];
+  for (let i = 0; i < queue.length; i++) {
+    rows.push(<QueueNode node_id={queue[i]} key={queue[i]} />);
+  }
 
   return (
     <table>
-      <tbody>{queue.map(NonTodoQueueNode_of)}</tbody>
+      <tbody>{rows}</tbody>
     </table>
   );
 };
 
-const EdgeList = (props: { node_id: types.TNodeId }) => {
+const EdgeList = React.memo((props: { node_id: types.TNodeId }) => {
   const children = useSelector(
     (state) => state.data.nodes[props.node_id].children,
   );
   const edge_ids = ops.sorted_keys_of(children);
   return edge_ids.length ? (
     <table>
-      <tbody>{edge_ids.map(Edge_of)}</tbody>
+      <tbody>
+        {edge_ids.map((edge_id) => (
+          <Edge edge_id={edge_id} key={edge_id} />
+        ))}
+      </tbody>
     </table>
   ) : null;
-};
-const EdgeList_of = utils.memoize1((node_id: types.TNodeId) => (
-  <EdgeList node_id={node_id} />
-));
+});
 
-const Edge = (props: { edge_id: types.TEdgeId }) => {
+const Edge = React.memo((props: { edge_id: types.TEdgeId }) => {
   const session = React.useContext(states.session_key_context);
   const show_todo_only = Recoil.useRecoilValue(
     states.show_todo_only_atom_map.get(session),
@@ -784,105 +820,71 @@ const Edge = (props: { edge_id: types.TEdgeId }) => {
   return (
     <tr className="align-baseline">
       <td className="row-id" />
-      <td>{TreeNode_of(edge.c)}</td>
+      <td>
+        <TreeNode node_id={edge.c} />
+      </td>
     </tr>
   );
-};
-const Edge_of = utils.memoize1((edge_id: types.TEdgeId) => (
-  <Edge edge_id={edge_id} key={edge_id} />
-));
+});
 
-const TodoQueueNode = (props: { node_id: types.TNodeId }) => {
-  const status = useSelector((state) => state.data.nodes[props.node_id].status);
-  const node_filter_query = Recoil.useRecoilValue_TRANSITION_SUPPORT_UNSTABLE(
-    states.node_filter_query_slow_state,
-  );
-  const text = useSelector((state) => state.data.nodes[props.node_id].text);
-  if (status !== "todo") {
-    return null;
-  }
-  const should_hide = _should_hide_of(node_filter_query, text, props.node_id);
-  return (
-    <tr className={utils.join("align-baseline", should_hide && "hidden")}>
-      <td className="row-id" />
-      {QueueEntry_of(props.node_id)}
-    </tr>
-  );
-};
-const TodoQueueNode_of = utils.memoize1((node_id: types.TNodeId) => (
-  <TodoQueueNode node_id={node_id} key={node_id} />
-));
+const QueueNode = React.memo(
+  (props: { node_id: types.TNodeId; tabIndex?: number }) => {
+    return (
+      <tr className={utils.join("align-baseline")}>
+        <td className="row-id" />
+        <QueueEntry {...props} />
+      </tr>
+    );
+  },
+);
 
-const NonTodoQueueNode = (props: { node_id: types.TNodeId }) => {
-  const status = useSelector((state) => state.data.nodes[props.node_id].status);
-  const node_filter_query = Recoil.useRecoilValue_TRANSITION_SUPPORT_UNSTABLE(
-    states.node_filter_query_slow_state,
-  );
-  const text = useSelector((state) => state.data.nodes[props.node_id].text);
-  if (status === "todo") {
-    return null;
-  }
-  const should_hide = _should_hide_of(node_filter_query, text, props.node_id);
-  return (
-    <tr className={utils.join("align-baseline", should_hide && "hidden")}>
-      <td className="row-id" />
-      {QueueEntry_of(props.node_id)}
-    </tr>
-  );
-};
-const NonTodoQueueNode_of = utils.memoize1((node_id: types.TNodeId) => (
-  <NonTodoQueueNode node_id={node_id} key={node_id} />
-));
+const QueueEntry = React.memo(
+  (props: { node_id: types.TNodeId; tabIndex?: number }) => {
+    const { is_hover, on_mouse_over, on_mouse_out } = useHover();
+    const show_detail = useSelector(
+      (state) => state.caches[props.node_id].show_detail,
+    );
+    const cache = useSelector((state) => state.caches[props.node_id]);
+    const status = useSelector(
+      (state) => state.data.nodes[props.node_id].status,
+    );
+    const is_todo = status === "todo";
+    const is_running = useIsRunning(props.node_id);
+    const to_tree = useToTree(props.node_id);
+    const handle_click = useRegisterNodeId(props.node_id);
+    const handleKeyDown = useTaskShortcutKeys(props.node_id);
 
-const QueueEntry = (props: { node_id: types.TNodeId }) => {
-  const { is_hover, on_mouse_over, on_mouse_out } = useHover();
-  const show_detail = useSelector(
-    (state) => state.caches[props.node_id].show_detail,
-  );
-  const cache = useSelector((state) => state.caches[props.node_id]);
-  const status = useSelector((state) => state.data.nodes[props.node_id].status);
-  const is_todo = status === "todo";
-  const is_running = useIsRunning(props.node_id);
-  const to_tree = useToTree(props.node_id);
-  const handle_click = useRegisterNodeId(props.node_id);
-  const el = React.useMemo(
-    () => (
-      <div className="flex items-end w-fit">
-        <button onClick={to_tree}>←</button>
-        <TextArea
-          node_id={props.node_id}
-          id={utils.queue_textarea_id_of(props.node_id)}
-          className="w-[29em]"
-          onClick={handle_click}
-        />
-        <EntryInfos node_id={props.node_id} />
-      </div>
-    ),
-    [props.node_id, to_tree, handle_click],
-  );
-
-  return (
-    <EntryWrapper
-      node_id={props.node_id}
-      onMouseOver={on_mouse_over}
-      onMouseOut={on_mouse_out}
-      component="td"
-    >
-      {el}
-      {is_todo &&
-        0 <= cache.leaf_estimates_sum &&
-        digits1(cache.leaf_estimates_sum) + " | "}
-      {is_todo && cache.percentiles.map(digits1).join(", ")}
-      {(is_hover || is_running || show_detail) && (
-        <EntryButtons node_id={props.node_id} />
-      )}
-      {Details_of(props.node_id)}
-    </EntryWrapper>
-  );
-};
-const QueueEntry_of = utils.memoize1((node_id: types.TNodeId) => (
-  <QueueEntry node_id={node_id} />
-));
+    return (
+      <EntryWrapper
+        node_id={props.node_id}
+        onMouseOver={on_mouse_over}
+        onMouseOut={on_mouse_out}
+        component="td"
+      >
+        <div className="flex items-end w-fit">
+          <button onClick={to_tree}>←</button>
+          <TextArea
+            node_id={props.node_id}
+            id={utils.queue_textarea_id_of(props.node_id)}
+            className="w-[29em]"
+            onClick={handle_click}
+            onKeyDown={handleKeyDown}
+            tabIndex={props.tabIndex}
+          />
+          <EntryInfos node_id={props.node_id} />
+        </div>
+        {is_todo &&
+          0 <= cache.leaf_estimates_sum &&
+          digits1(cache.leaf_estimates_sum) + " | "}
+        {is_todo && cache.percentiles.map(digits1).join(", ")}
+        {(is_hover || is_running || show_detail) && (
+          <EntryButtons node_id={props.node_id} />
+        )}
+        <Details node_id={props.node_id} />
+      </EntryWrapper>
+    );
+  },
+);
 
 const MobileMenu = (props: { ctx: states.PersistentStateManager }) => {
   const root = useSelector((state) => state.data.root);
@@ -1026,7 +1028,7 @@ const MobileQueueNodes = () => {
   );
 };
 
-const TreeEntry = (props: { node_id: types.TNodeId }) => {
+const TreeEntry = React.memo((props: { node_id: types.TNodeId }) => {
   const show_detail = useSelector(
     (state) => state.caches[props.node_id].show_detail,
   );
@@ -1037,6 +1039,7 @@ const TreeEntry = (props: { node_id: types.TNodeId }) => {
   const to_queue = useToQueue(props.node_id);
   const is_root = useSelector((state) => state.data.root === props.node_id);
   const handle_click = useRegisterNodeId(props.node_id);
+  const handleKeyDown = useTaskShortcutKeys(props.node_id);
 
   return (
     <EntryWrapper
@@ -1051,6 +1054,7 @@ const TreeEntry = (props: { node_id: types.TNodeId }) => {
           id={utils.tree_textarea_id_of(props.node_id)}
           className="w-[29em]"
           onClick={handle_click}
+          onKeyDown={handleKeyDown}
         />
         <EntryInfos node_id={props.node_id} />
       </div>
@@ -1061,12 +1065,9 @@ const TreeEntry = (props: { node_id: types.TNodeId }) => {
       {(is_hover || is_running || show_detail) && (
         <EntryButtons node_id={props.node_id} />
       )}
-      {Details_of(props.node_id)}
+      <Details node_id={props.node_id} />
     </EntryWrapper>
   );
-};
-const TreeEntry_of = utils.memoize1((node_id: types.TNodeId) => {
-  return <TreeEntry node_id={node_id} />;
 });
 
 const useRegisterNodeId = (node_id: types.TNodeId) => {
@@ -1084,15 +1085,44 @@ const useRegisterNodeId = (node_id: types.TNodeId) => {
   );
 };
 
-const Details = (props: { node_id: types.TNodeId }) => {
+const useTaskShortcutKeys = (node_id: null | types.TNodeId) => {
+  const dispatch = useDispatch();
+  const session = React.useContext(states.session_key_context);
+  const show_mobile = Recoil.useRecoilValue(
+    states.show_mobile_atom_map.get(session),
+  );
+  const is_running = useIsRunning(node_id);
+  return React.useCallback(
+    (event: React.KeyboardEvent<HTMLElement>) => {
+      if (node_id === null) {
+        return;
+      }
+      if (event.ctrlKey || event.metaKey) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          dispatch(actions.add_action({ node_id, show_mobile }));
+          dispatch(focus_text_area_action_of(node_id));
+        } else if (event.key === ".") {
+          event.preventDefault();
+          if (is_running) {
+            dispatch(actions.stop_action(node_id));
+          } else {
+            dispatch(actions.start_action({ node_id, is_concurrent: true }));
+            doFocusStopButton(node_id);
+          }
+        }
+      }
+    },
+    [node_id, is_running, show_mobile, dispatch],
+  );
+};
+
+const Details = React.memo((props: { node_id: types.TNodeId }) => {
   const show_detail = useSelector(
     (state) => state.caches[props.node_id].show_detail,
   );
   return show_detail ? <DetailsImpl node_id={props.node_id} /> : null;
-};
-const Details_of = utils.memoize1((node_id: types.TNodeId) => (
-  <Details node_id={node_id} />
-));
+});
 
 const DetailsImpl = (props: { node_id: types.TNodeId }) => {
   const [new_edge_type, set_new_edge_type] =
@@ -1309,103 +1339,103 @@ const RangesTableRow = (props: { node_id: types.TNodeId; i_range: number }) => {
   );
 };
 
-const ChildEdgeTable = (props: { node_id: types.TNodeId }) => {
+const ChildEdgeTable = React.memo((props: { node_id: types.TNodeId }) => {
   const children = useSelector(
     (state) => state.data.nodes[props.node_id].children,
   );
   return (
     <table className="table-auto">
       <tbody className="block max-h-[10em] overflow-y-scroll">
-        {ops.sorted_keys_of(children).map(ChildEdgeRow_of)}
+        {ops.sorted_keys_of(children).map((edge_id) => (
+          <EdgeRow edge_id={edge_id} key={edge_id} target="c" />
+        ))}
       </tbody>
     </table>
   );
-};
-const ChildEdgeRow_of = utils.memoize1((edge_id: types.TEdgeId) => (
-  <EdgeRow edge_id={edge_id} key={edge_id} target={"c"} />
-));
+});
 
-const ParentEdgeTable = (props: { node_id: types.TNodeId }) => {
+const ParentEdgeTable = React.memo((props: { node_id: types.TNodeId }) => {
   const parents = useSelector(
     (state) => state.data.nodes[props.node_id].parents,
   );
   return (
     <table className="table-auto">
       <tbody className="block max-h-[10em] overflow-y-scroll">
-        {ops.sorted_keys_of(parents).map(ParentEdgeRow_of)}
+        {ops.sorted_keys_of(parents).map((edge_id) => (
+          <EdgeRow edge_id={edge_id} key={edge_id} target={"p"} />
+        ))}
       </tbody>
     </table>
   );
-};
-const ParentEdgeRow_of = utils.memoize1((edge_id: types.TEdgeId) => (
-  <EdgeRow edge_id={edge_id} key={edge_id} target={"p"} />
-));
+});
 
-const EdgeRow = (props: { edge_id: types.TEdgeId; target: "p" | "c" }) => {
-  const edge = useSelector((state) => state.data.edges[props.edge_id]);
-  const hide = useSelector((state) => state.data.edges[props.edge_id].hide);
-  const dispatch = useDispatch();
-  const delete_edge = React.useCallback(
-    () => dispatch(actions.delete_edge_action(props.edge_id)),
-    [props.edge_id, dispatch],
-  );
-  const set_edge_type = React.useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const edge_type = e.target.value;
-      if (types.is_TEdgeType(edge_type)) {
-        dispatch(
-          actions.set_edge_type_action({
-            edge_id: props.edge_id,
-            edge_type,
-          }),
-        );
-      } else {
-        toast.add("error", `Invalid edge type: ${edge_type}`);
-      }
-    },
-    [props.edge_id, dispatch],
-  );
-  const toggle_edge_hide = React.useCallback(() => {
-    dispatch(actions.toggle_edge_hide_action(props.edge_id));
-  }, [props.edge_id, dispatch]);
-  const node_id = edge[props.target];
-  return React.useMemo(
-    () => (
-      <tr>
-        <EdgeRowContent node_id={node_id} />
-        <td className="p-[0.25em]">
-          <select value={edge.t} onChange={set_edge_type}>
-            {types.edge_type_values.map((t, i) => (
-              <option value={t} key={i}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </td>
-        <td className="p-[0.25em]">
-          <input
-            type="radio"
-            checked={!hide}
-            onClick={toggle_edge_hide}
-            onChange={_suppress_missing_onChange_handler_warning}
-          />
-        </td>
-        <td className="p-[0.25em]">
-          <button
-            className="btn-icon"
-            onClick={delete_edge}
-            onDoubleClick={prevent_propagation}
-          >
-            {consts.DELETE_MARK}
-          </button>
-        </td>
-      </tr>
-    ),
-    [edge.t, hide, node_id, delete_edge, set_edge_type, toggle_edge_hide],
-  );
-};
+const EdgeRow = React.memo(
+  (props: { edge_id: types.TEdgeId; target: "p" | "c" }) => {
+    const edge = useSelector((state) => state.data.edges[props.edge_id]);
+    const hide = useSelector((state) => state.data.edges[props.edge_id].hide);
+    const dispatch = useDispatch();
+    const delete_edge = React.useCallback(
+      () => dispatch(actions.delete_edge_action(props.edge_id)),
+      [props.edge_id, dispatch],
+    );
+    const set_edge_type = React.useCallback(
+      (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const edge_type = e.target.value;
+        if (types.is_TEdgeType(edge_type)) {
+          dispatch(
+            actions.set_edge_type_action({
+              edge_id: props.edge_id,
+              edge_type,
+            }),
+          );
+        } else {
+          toast.add("error", `Invalid edge type: ${edge_type}`);
+        }
+      },
+      [props.edge_id, dispatch],
+    );
+    const toggle_edge_hide = React.useCallback(() => {
+      dispatch(actions.toggle_edge_hide_action(props.edge_id));
+    }, [props.edge_id, dispatch]);
+    const node_id = edge[props.target];
+    return React.useMemo(
+      () => (
+        <tr>
+          <EdgeRowContent node_id={node_id} />
+          <td className="p-[0.25em]">
+            <select value={edge.t} onChange={set_edge_type}>
+              {types.edge_type_values.map((t, i) => (
+                <option value={t} key={i}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </td>
+          <td className="p-[0.25em]">
+            <input
+              type="radio"
+              checked={!hide}
+              onClick={toggle_edge_hide}
+              onChange={_suppress_missing_onChange_handler_warning}
+            />
+          </td>
+          <td className="p-[0.25em]">
+            <button
+              className="btn-icon"
+              onClick={delete_edge}
+              onDoubleClick={prevent_propagation}
+            >
+              {consts.DELETE_MARK}
+            </button>
+          </td>
+        </tr>
+      ),
+      [edge.t, hide, node_id, delete_edge, set_edge_type, toggle_edge_hide],
+    );
+  },
+);
 
-const EdgeRowContent = (props: { node_id: types.TNodeId }) => {
+const EdgeRowContent = React.memo((props: { node_id: types.TNodeId }) => {
   const to_tree = useToTree(props.node_id);
   const text = useSelector((state) => state.data.nodes[props.node_id].text);
   const disabled = useSelector((state) => {
@@ -1424,10 +1454,13 @@ const EdgeRowContent = (props: { node_id: types.TNodeId }) => {
       </td>
     </>
   );
-};
+});
 
-const useIsRunning = (node_id: types.TNodeId) => {
-  const ranges = useSelector((state) => state.data.nodes[node_id].ranges);
+const useIsRunning = (node_id: null | types.TNodeId) => {
+  const ranges = useSelector((state) =>
+    node_id === null ? null : state.data.nodes[node_id].ranges,
+  );
+  if (ranges === null) return false;
   const last_range = ranges.at(-1);
   const is_running = last_range && last_range.end === null;
   return is_running;
