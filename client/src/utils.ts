@@ -143,3 +143,12 @@ export const queue_textarea_id_of = (node_id: types.TNodeId) => {
 export const prevent_propagation = (e: React.MouseEvent) => {
   e.stopPropagation();
 };
+
+export function dnd_move<X>(xs: X[], i_from: number, i_to: number) {
+  if (i_from !== i_to) {
+    const x = xs[i_from];
+    xs.splice(i_from, 1);
+    xs.splice(i_to, 0, x);
+  }
+  return xs;
+}

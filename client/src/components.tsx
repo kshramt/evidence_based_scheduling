@@ -1,5 +1,6 @@
 import React, { useCallback } from "react";
 import * as Recoil from "recoil";
+import * as Dnd from "react-dnd";
 
 import * as types from "./types";
 import { useDispatch, useSelector } from "./types";
@@ -22,23 +23,27 @@ const WEEK_0_BEGIN = new Date(Date.UTC(2021, 12 - 1, 27));
 const WEEK_MSEC = 86400 * 1000 * 7;
 const EMPTY_STRING = "";
 
-export const MobileApp = (props: { ctx: states.PersistentStateManager }) => {
-  return (
-    <>
-      <MobileMenu ctx={props.ctx} />
-      <MobileBody />
-    </>
-  );
-};
+export const MobileApp = React.memo(
+  (props: { ctx: states.PersistentStateManager }) => {
+    return (
+      <>
+        <MobileMenu ctx={props.ctx} />
+        <MobileBody />
+      </>
+    );
+  },
+);
 
-export const DesktopApp = (props: { ctx: states.PersistentStateManager }) => {
-  return (
-    <>
-      <Menu ctx={props.ctx} />
-      <Body />
-    </>
-  );
-};
+export const DesktopApp = React.memo(
+  (props: { ctx: states.PersistentStateManager }) => {
+    return (
+      <>
+        <Menu ctx={props.ctx} />
+        <Body />
+      </>
+    );
+  },
+);
 
 const MobileNodeFilterQueryInput = () => {
   const [node_filter_query, set_node_filter_query_fast] = Recoil.useRecoilState(
@@ -390,11 +395,7 @@ const PinnedSubTrees = React.memo(() => {
   return (
     <>
       {pinned_sub_trees.map((node_id) => {
-        return (
-          <div className={`overflow-y-scroll shrink-0`}>
-            <TreeNode key={node_id} node_id={node_id} />
-          </div>
-        );
+        return <DndTreeNode key={node_id} node_id={node_id} />;
       })}
     </>
   );
@@ -784,6 +785,61 @@ const TodoQueueNodes = () => {
     </table>
   );
 };
+
+const DndTreeNode = React.memo((props: { node_id: types.TNodeId }) => {
+  const dispatch = useDispatch();
+  const [{ isDragging }, drag] = Dnd.useDrag(
+    {
+      type: "tree_node",
+      item: { node_id: props.node_id },
+      collect: (monitor) => ({
+        isDragging: !!monitor.isDragging(),
+      }),
+    },
+    [props.node_id],
+  );
+  const [{ canDrop }, drop] = Dnd.useDrop(
+    {
+      accept: "tree_node",
+      drop: (item: { node_id: types.TNodeId }) => {
+        if (item.node_id === props.node_id) {
+          return;
+        }
+        dispatch(
+          actions.move_pinned_sub_tree_action({
+            from: item.node_id,
+            to: props.node_id,
+          }),
+        );
+      },
+      collect: (monitor) => ({
+        canDrop:
+          !!monitor.canDrop() && monitor.getItem().node_id !== props.node_id,
+      }),
+    },
+    [props.node_id, dispatch],
+  );
+  const ref = React.useCallback(
+    (el: HTMLDivElement | null) => {
+      drag(drop(el));
+    },
+    [drag, drop],
+  );
+  return (
+    <div
+      ref={ref}
+      className={utils.join(
+        isDragging ? "opacity-50" : "opacity-100",
+        "overflow-y-scroll shrink-0 relative",
+      )}
+    >
+      <TreeNode node_id={props.node_id} />
+      {canDrop && (
+        <div className="absolute top-0 left-0 h-full w-full z-10 opacity-50 bg-yellow-200 dark:bg-yellow-900" />
+      )}
+    </div>
+  );
+});
 
 const TreeNode = React.memo((props: { node_id: types.TNodeId }) => {
   return (

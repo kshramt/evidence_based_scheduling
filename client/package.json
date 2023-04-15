@@ -16,6 +16,8 @@
     "idb": "^7.1.1",
     "immer": "^9.0.17",
     "react": "^18.2.0",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^18.2.0",
     "react-redux": "^8.0.5",
     "recoil": "^0.7.6",

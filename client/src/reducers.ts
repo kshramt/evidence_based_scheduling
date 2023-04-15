@@ -22,6 +22,14 @@ export const get_root_reducer_def = (
       reduce: rtk.TReduce<types.IState, Payload>,
     ) => void,
   ) => {
+    builder(actions.move_pinned_sub_tree_action, (state, action) => {
+      const i_from = state.data.pinned_sub_trees.indexOf(action.payload.from);
+      const i_to = state.data.pinned_sub_trees.indexOf(action.payload.to);
+      if (i_from === -1 || i_to === -1 || i_from === i_to) {
+        return;
+      }
+      utils.dnd_move(state.data.pinned_sub_trees, i_from, i_to);
+    });
     builder(actions.toggle_pin_action, (state, action) => {
       const node_id = action.payload.node_id;
       if (state.data.pinned_sub_trees.includes(node_id)) {
