@@ -2230,7 +2230,7 @@ const digits1 = (x: number) => {
   return Math.round(x * 10) / 10;
 };
 
-const last_range_of = (ranges: types.IRange[]): null | types.IRange => {
+const last_range_of = (ranges: types.TRange[]): null | types.TRange => {
   const n = ranges.length;
   if (n < 1) {
     return null;

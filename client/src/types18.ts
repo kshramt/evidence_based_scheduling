@@ -2,44 +2,21 @@ import * as toast from "./toast";
 
 import * as producer from "./producer";
 
-import * as types_prev from "./types17";
-import type { IEdges, TNodes, TNodeId, TOrderedTNodeIds } from "./types16";
-import {
-  is_IEdges,
-  is_TNodes,
-  is_TNodeId,
-  is_TOrderedTNodeIds,
-  is_object,
-  record_if_false_of,
-} from "./types16";
-
-export type {
-  IEdge,
-  IEdges,
-  TNode,
-  TNodes,
-  IRange,
-  IVids,
-  TActionWithPayload,
-  TActionWithoutPayload,
-  TAnyPayloadAction,
-  TEdgeId,
-  TEdgeType,
+import type {
   TNodeId,
-  TOrderedTEdgeIds,
+  TEdges,
+  TNodes,
   TOrderedTNodeIds,
-  TStatus,
-} from "./types17";
-export {
-  edge_type_values,
-  is_IEdges,
-  is_TNodes,
-  is_TEdgeType,
+} from "./common_types1";
+import {
   is_TNodeId,
-  is_TOrderedTNodeIds,
+  is_TEdges,
   is_object,
   record_if_false_of,
-} from "./types17";
+  is_TNodes,
+  is_TOrderedTNodeIds,
+} from "./common_types1";
+import * as types_prev from "./types17";
 
 export const VERSION = 18 as const;
 
@@ -111,7 +88,7 @@ type TCache = {
   percentiles: number[]; // 0, 10, 33, 50, 67, 90, 100
   leaf_estimates_sum: number;
   show_detail: boolean;
-  child_edges: IEdges;
+  child_edges: TEdges;
   child_nodes: TNodes;
 };
 
@@ -127,7 +104,7 @@ export interface IState {
 }
 
 export interface IData {
-  readonly edges: IEdges;
+  readonly edges: TEdges;
   readonly root: TNodeId;
   id_seq: number;
   readonly nodes: TNodes;
@@ -140,7 +117,7 @@ export const is_IData = (
   record_if_false: ReturnType<typeof record_if_false_of>,
 ): data is IData =>
   record_if_false(is_object(data), "is_object") &&
-  record_if_false(is_IEdges(data.edges, record_if_false), "edges") &&
+  record_if_false(is_TEdges(data.edges, record_if_false), "edges") &&
   record_if_false(is_TNodeId(data.root), "root") &&
   record_if_false(typeof data.id_seq === "number", "id_seq") &&
   record_if_false(is_TNodes(data.nodes, record_if_false), "nodes") &&

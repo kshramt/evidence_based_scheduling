@@ -680,7 +680,7 @@ const _set_total_time = (
 };
 
 const total_time_of = (state: types.IState, node_id: types.TNodeId) => {
-  const ranges_list: types.IRange[][] = [];
+  const ranges_list: types.TRange[][] = [];
   collect_ranges_from_strong_descendants(
     node_id,
     state,
@@ -731,7 +731,7 @@ const collect_ranges_from_strong_descendants = (
   node_id: types.TNodeId,
   state: types.IState,
   vid: number,
-  ranges_list: types.IRange[][],
+  ranges_list: types.TRange[][],
 ) => {
   if (utils.vids[node_id] === vid) {
     return;
@@ -849,14 +849,14 @@ const _estimate = (
 const todo_leafs_of = (
   node_id: types.TNodeId,
   state: types.IState,
-  edge_filter: (edge: types.IEdge) => boolean,
+  edge_filter: (edge: types.TEdge) => boolean,
 ) => {
   return _todo_leafs_of(node_id, state, edge_filter, utils.visit_counter_of());
 };
 function* _todo_leafs_of(
   node_id: types.TNodeId,
   state: types.IState,
-  edge_filter: (edge: types.IEdge) => boolean,
+  edge_filter: (edge: types.TEdge) => boolean,
   vid: number,
 ): Iterable<[types.TNodeId, types.TNode]> {
   if (utils.vids[node_id] === vid) {

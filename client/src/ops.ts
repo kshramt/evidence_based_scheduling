@@ -16,7 +16,7 @@ const new_node_id_of = (state: types.IState) =>
   new_id_of(state) as types.TNodeId;
 const new_edge_id_of = (state: types.IState) =>
   new_id_of(state) as types.TEdgeId;
-const new_id_of = (state: types.IState) =>
+const new_id_of = (state: Draft<types.IState>) =>
   id_string_of_number(++state.data.id_seq);
 const id_string_of_number = (x: number) => x.toString(36);
 
@@ -37,6 +37,7 @@ export const emptyStateOf = (): types.IState => {
     root,
     id_seq,
     nodes,
+    pinned_sub_trees: [],
     queue: {},
     timeline: {
       year_begin: new Date().getFullYear(),
@@ -84,7 +85,7 @@ const new_node_value_of = (
     end_time: null,
     estimate: consts.NO_ESTIMATION,
     parents,
-    ranges: [] as types.IRange[],
+    ranges: [] as types.TRange[],
     start_time: Date.now(),
     status: "todo" as types.TStatus,
     text,
@@ -144,7 +145,7 @@ export const add_node = (
   return node_id;
 };
 
-export const add_edges = (edges: types.IEdge[], draft: Draft<types.IState>) => {
+export const add_edges = (edges: types.TEdge[], draft: Draft<types.IState>) => {
   for (const edge of edges) {
     if (edge.c === draft.data.root) {
       toast.add(
@@ -261,7 +262,7 @@ export const make_nodes_of_toc = (
   add_edges(edges, draft);
 };
 
-const add_weak_edges_from_toc = (toc: ITocNode, edges: types.IEdge[]) => {
+const add_weak_edges_from_toc = (toc: ITocNode, edges: types.TEdge[]) => {
   let current = toc;
   while (current.parent) {
     const i = current.parent.children.indexOf(current);

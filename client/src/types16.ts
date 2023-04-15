@@ -2,54 +2,22 @@ import * as toast from "./toast";
 
 import * as producer from "./producer";
 
-import * as types_prev from "./types15";
 import type {
   TNodeId,
+  TEdges,
+  TNodes,
   TOrderedTNodeIds,
-  TOrderedTEdgeIds,
-  IRange,
-  IEdges,
-  TStatus,
-} from "./types15";
+} from "./common_types1";
 import {
   is_TNodeId,
-  is_TOrderedTNodeIds,
-  is_TOrderedTEdgeIds,
-  is_IRange,
-  is_IEdges,
+  is_TEdges,
   is_object,
-  is_TStatus,
   record_if_false_of,
-} from "./types15";
+  is_TOrderedTNodeIds,
+  is_TNodes,
+} from "./common_types1";
 
-export type {
-  TEdgeId,
-  TNodeId,
-  TOrderedTNodeIds,
-  TOrderedTEdgeIds,
-  IVids,
-  IRange,
-  IEdges,
-  IEdge,
-  TEdgeType,
-  TStatus,
-  TActionWithoutPayload,
-  TActionWithPayload,
-  TAnyPayloadAction,
-} from "./types15";
-export {
-  is_TEdgeId,
-  is_TNodeId,
-  is_TOrderedTNodeIds,
-  is_TOrderedTEdgeIds,
-  is_IRange,
-  is_IEdges,
-  edge_type_values,
-  is_TEdgeType,
-  is_object,
-  is_TStatus,
-  record_if_false_of,
-} from "./types15";
+import * as types_prev from "./types15";
 
 export const VERSION = 16 as const;
 
@@ -124,7 +92,7 @@ export interface IState {
 }
 
 export interface IData {
-  readonly edges: IEdges;
+  readonly edges: TEdges;
   readonly root: TNodeId;
   id_seq: number;
   readonly nodes: TNodes;
@@ -138,7 +106,7 @@ export const is_IData = (
   record_if_false: ReturnType<typeof record_if_false_of>,
 ): data is IData =>
   record_if_false(is_object(data), "is_object") &&
-  record_if_false(is_IEdges(data.edges, record_if_false), "edges") &&
+  record_if_false(is_TEdges(data.edges, record_if_false), "edges") &&
   record_if_false(is_TNodeId(data.root), "root") &&
   record_if_false(typeof data.id_seq === "number", "id_seq") &&
   record_if_false(is_TNodes(data.nodes, record_if_false), "nodes") &&
@@ -150,42 +118,6 @@ export const is_IData = (
   ) &&
   record_if_false(data.version === VERSION, "version");
 
-export type TNodes = {
-  [k: TNodeId]: TNode;
-};
-export const is_TNodes = (
-  x: any,
-  record_if_false: ReturnType<typeof record_if_false_of>,
-): x is TNodes =>
-  record_if_false.check_object(x, (v) => is_TNode(v, record_if_false));
-
-export type TNode = {
-  readonly children: TOrderedTEdgeIds;
-  readonly end_time: null | number;
-  readonly estimate: number;
-  readonly parents: TOrderedTEdgeIds;
-  readonly ranges: IRange[];
-  readonly start_time: number;
-  readonly status: TStatus;
-  readonly text: string;
-};
-const is_TNode = (
-  x: any,
-  record_if_false: ReturnType<typeof record_if_false_of>,
-): x is TNode =>
-  record_if_false(is_object(x), "is_object") &&
-  record_if_false(is_TOrderedTEdgeIds(x.children), "children") &&
-  record_if_false(
-    x.end_time === null || typeof x.end_time === "number",
-    "end_time",
-  ) &&
-  record_if_false(typeof x.estimate === "number", "estimate") &&
-  record_if_false(is_TOrderedTEdgeIds(x.parents), "parents") &&
-  record_if_false(record_if_false.check_array(x.ranges, is_IRange), "ranges") &&
-  record_if_false(typeof x.start_time === "number", "start_time") &&
-  record_if_false(is_TStatus(x.status), "status") &&
-  record_if_false(typeof x.text === "string", "text");
-
 export interface ICaches {
   [k: TNodeId]: ICache;
 }
@@ -195,8 +127,8 @@ interface ICache {
   percentiles: number[]; // 0, 10, 33, 50, 67, 90, 100
   leaf_estimates_sum: number;
   show_detail: boolean;
-  parent_edges: IEdges;
+  parent_edges: TEdges;
   parent_nodes: TNodes;
-  child_edges: IEdges;
+  child_edges: TEdges;
   child_nodes: TNodes;
 }

@@ -78,7 +78,7 @@ export const useClipboard = () => {
 
 let _VISIT_COUNTER = 0;
 export const visit_counter_of = () => ++_VISIT_COUNTER;
-export const vids: types.IVids = {};
+export const vids: types.TVids = {};
 
 export const datetime_local_of_milliseconds = (milliseconds: number) => {
   const date = new Date(milliseconds);

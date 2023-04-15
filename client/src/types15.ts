@@ -2,12 +2,25 @@ import * as toast from "./toast";
 
 import * as producer from "./producer";
 
+import type {
+  TNodeId,
+  TRange,
+  TEdges,
+  TStatus,
+  TOrderedTNodeIds,
+  TOrderedTEdgeIds,
+} from "./common_types1";
+import {
+  is_TNodeId,
+  is_TRange,
+  is_TEdges,
+  is_object,
+  is_TStatus,
+  record_if_false_of,
+  is_TOrderedTEdgeIds,
+  is_TOrderedTNodeIds,
+} from "./common_types1";
 import * as types_prev from "./types14";
-import type { TEdgeId, TNodeId } from "./types14";
-import { is_TEdgeId, is_TNodeId } from "./types14";
-
-export type { TEdgeId, TNodeId } from "./types14";
-export { is_TEdgeId, is_TNodeId } from "./types14";
 
 export const VERSION = 15 as const;
 
@@ -90,47 +103,6 @@ const current_of_prev = (data_prev: {
   };
 };
 
-export const is_object = (x: any) =>
-  x && typeof x === "object" && x.constructor === Object;
-
-export const record_if_false_of = () => {
-  const path: string[] = [];
-  const record_if_false = (x: boolean, k: string, v: any = undefined) => {
-    if (!x) {
-      path.push(k);
-      path.push(v);
-    }
-    return x;
-  };
-  record_if_false.path = path;
-  record_if_false.check_array = (x: any, pred: (x: any) => boolean) =>
-    record_if_false(Array.isArray(x), "isArray") &&
-    x.every((v: any, i: number) => record_if_false(pred(v), i.toString()));
-  record_if_false.check_object = (x: any, pred: (x: any) => boolean) =>
-    record_if_false(is_object(x), "is_object") &&
-    Object.entries(x).every(([k, v]: [string, any]) =>
-      record_if_false(pred(v), k),
-    );
-  return record_if_false;
-};
-type TRecordIfFalse = ReturnType<typeof record_if_false_of>;
-
-// export type TNodeId = string & { readonly tag: unique symbol };
-// export const is_TNodeId = (x: any): x is TNodeId => typeof x === "string";
-// export type TEdgeId = string & { readonly tag: unique symbol };
-// const is_TEdgeId = (x: any): x is TEdgeId => typeof x === "string";
-
-export type TActionWithoutPayload = { type: string };
-export type TActionWithPayload<Payload> = {
-  type: string;
-  payload: Payload;
-};
-export type TAnyPayloadAction = TActionWithoutPayload | TActionWithPayload<any>;
-
-const status_values = ["done", "dont", "todo"] as const;
-export type TStatus = (typeof status_values)[number];
-export const is_TStatus = (x: any): x is TStatus => status_values.includes(x);
-
 export interface IState {
   readonly data: IData;
   readonly caches: ICaches;
@@ -139,7 +111,7 @@ export interface IState {
 }
 
 export interface IData {
-  readonly edges: IEdges;
+  readonly edges: TEdges;
   readonly root: TNodeId;
   id_seq: number;
   readonly nodes: INodes;
@@ -150,10 +122,10 @@ export interface IData {
 }
 export const is_IData = (
   data: any,
-  record_if_false: TRecordIfFalse,
+  record_if_false: ReturnType<typeof record_if_false_of>,
 ): data is IData =>
   record_if_false(is_object(data), "is_object") &&
-  record_if_false(is_IEdges(data.edges, record_if_false), "edges") &&
+  record_if_false(is_TEdges(data.edges, record_if_false), "edges") &&
   record_if_false(is_TNodeId(data.root), "root") &&
   record_if_false(typeof data.id_seq === "number", "id_seq") &&
   record_if_false(is_INodes(data.nodes, record_if_false), "nodes") &&
@@ -168,7 +140,10 @@ export const is_IData = (
 export interface INodes {
   [k: TNodeId]: INode;
 }
-const is_INodes = (x: any, record_if_false: TRecordIfFalse): x is INodes =>
+const is_INodes = (
+  x: any,
+  record_if_false: ReturnType<typeof record_if_false_of>,
+): x is INodes =>
   record_if_false.check_object(x, (v) => is_INode(v, record_if_false));
 
 export interface INode {
@@ -176,13 +151,16 @@ export interface INode {
   readonly end_time: null | number;
   readonly estimate: number;
   readonly parents: TOrderedTEdgeIds;
-  readonly ranges: IRange[];
+  readonly ranges: TRange[];
   readonly start_time: number;
   readonly status: TStatus;
   readonly style: IStyle;
   readonly text: string;
 }
-const is_INode = (x: any, record_if_false: TRecordIfFalse): x is INode =>
+const is_INode = (
+  x: any,
+  record_if_false: ReturnType<typeof record_if_false_of>,
+): x is INode =>
   record_if_false(is_object(x), "is_object") &&
   record_if_false(is_TOrderedTEdgeIds(x.children), "children") &&
   record_if_false(
@@ -191,52 +169,17 @@ const is_INode = (x: any, record_if_false: TRecordIfFalse): x is INode =>
   ) &&
   record_if_false(typeof x.estimate === "number", "estimate") &&
   record_if_false(is_TOrderedTEdgeIds(x.parents), "parents") &&
-  record_if_false(record_if_false.check_array(x.ranges, is_IRange), "ranges") &&
+  record_if_false(record_if_false.check_array(x.ranges, is_TRange), "ranges") &&
   record_if_false(typeof x.start_time === "number", "start_time") &&
   record_if_false(is_TStatus(x.status), "status") &&
   record_if_false(is_IStyle(x.style), "style") &&
   record_if_false(typeof x.text === "string", "text");
-
-export interface IEdges {
-  [edge_id: TEdgeId]: IEdge;
-}
-export const is_IEdges = (
-  edges: any,
-  record_if_false: TRecordIfFalse,
-): edges is IEdges => record_if_false.check_object(edges, is_IEdge);
-
-export const edge_type_values = ["weak", "strong"] as const;
-export type TEdgeType = (typeof edge_type_values)[number];
-export const is_TEdgeType = (x: any): x is TEdgeType =>
-  edge_type_values.includes(x);
-
-export interface IEdge {
-  readonly c: TNodeId;
-  readonly p: TNodeId;
-  readonly t: TEdgeType;
-  readonly hide?: boolean;
-}
-const is_IEdge = (x: any): x is IEdge =>
-  is_object(x) &&
-  is_TNodeId(x.c) &&
-  is_TNodeId(x.p) &&
-  is_TEdgeType(x.t) &&
-  [undefined, true, false].includes(x.hide);
 
 interface IStyle {
   readonly height: string;
 }
 const is_IStyle = (x: any): x is IStyle =>
   is_object(x) && typeof x.height === "string";
-
-export interface IRange {
-  readonly start: number;
-  end: null | number;
-}
-export const is_IRange = (x: any): x is IRange =>
-  is_object(x) &&
-  typeof x.start === "number" &&
-  (x.end === null || typeof x.end === "number");
 
 export interface ICaches {
   [k: TNodeId]: ICache;
@@ -247,25 +190,8 @@ interface ICache {
   percentiles: number[]; // 0, 10, 33, 50, 67, 90, 100
   leaf_estimates_sum: number;
   show_detail: boolean;
-  parent_edges: IEdges;
+  parent_edges: TEdges;
   parent_nodes: INodes;
-  child_edges: IEdges;
+  child_edges: TEdges;
   child_nodes: INodes;
-}
-
-export type TOrderedTNodeIds = Record<TNodeId, number>;
-export const is_TOrderedTNodeIds = (x: any): x is TOrderedTNodeIds =>
-  is_object(x) &&
-  Object.entries(x).every(
-    (kv) => is_TNodeId(kv[0]) && typeof kv[1] === "number",
-  );
-export type TOrderedTEdgeIds = Record<TEdgeId, number>;
-export const is_TOrderedTEdgeIds = (x: any): x is TOrderedTEdgeIds =>
-  is_object(x) &&
-  Object.entries(x).every(
-    (kv) => is_TEdgeId(kv[0]) && typeof kv[1] === "number",
-  );
-
-export interface IVids {
-  [k: TNodeId]: undefined | number;
 }

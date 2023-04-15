@@ -101,7 +101,7 @@ export const set_range_value_action = register_history_type(
   rtk.action_of_of<{
     node_id: types.TNodeId;
     i_range: number;
-    k: keyof types.IRange;
+    k: keyof types.TRange;
     v: string;
   }>("set_range_value_action"),
 );
@@ -141,7 +141,7 @@ export const toggle_edge_hide_action = register_history_type(
   rtk.action_of_of<types.TEdgeId>("toggle_edge_hide_action"),
 );
 export const add_edges_action = register_history_type(
-  rtk.action_of_of<types.IEdge[]>("add_edges_action"),
+  rtk.action_of_of<types.TEdge[]>("add_edges_action"),
 );
 export const set_n_unsaved_patches_action = rtk.action_of_of<number>(
   "set_n_unsaved_patches_action",
