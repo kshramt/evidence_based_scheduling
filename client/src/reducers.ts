@@ -22,6 +22,14 @@ export const get_root_reducer_def = (
       reduce: rtk.TReduce<types.IState, Payload>,
     ) => void,
   ) => {
+    builder(actions.toggle_pin_action, (state, action) => {
+      const node_id = action.payload.node_id;
+      if (state.data.pinned_sub_trees.includes(node_id)) {
+        ops.delete_at_val(state.data.pinned_sub_trees, node_id);
+      } else {
+        state.data.pinned_sub_trees.push(node_id);
+      }
+    });
     builder(actions.set_n_unsaved_patches_action, (state, action) => {
       state.n_unsaved_patches = action.payload;
     });
@@ -69,6 +77,7 @@ export const get_root_reducer_def = (
       delete state.data.queue[node_id];
       delete state.data.nodes[node_id];
       delete state.caches[node_id];
+      ops.delete_at_val(state.data.pinned_sub_trees, node_id);
       for (const parent_node_id of affected_parent_node_ids) {
         _set_total_time_of_ancestors(state, parent_node_id, vid);
       }

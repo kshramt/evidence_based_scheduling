@@ -2,6 +2,10 @@ import { register_history_type } from "./undoable";
 import * as types from "./types";
 import * as rtk from "./rtk";
 
+export const toggle_pin_action = register_history_type(
+  rtk.action_of_of<{ node_id: types.TNodeId }>("toggle_pin_action"),
+);
+
 export const start_action = register_history_type(
   rtk.action_of_of<{ node_id: types.TNodeId; is_concurrent: boolean }>(
     "start_action",
