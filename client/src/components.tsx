@@ -1185,7 +1185,6 @@ const useTaskShortcutKeys = (node_id: null | types.TNodeId) => {
             dispatch(actions.stop_action(node_id));
           } else {
             dispatch(actions.start_action({ node_id, is_concurrent: true }));
-            doFocusStopButton(node_id);
           }
         }
       }
@@ -1727,7 +1726,6 @@ const StartButton = (props: { node_id: types.TNodeId }) => {
     dispatch(
       actions.start_action({ node_id: props.node_id, is_concurrent: false }),
     );
-    doFocusStopButton(props.node_id);
   }, [props.node_id, dispatch]);
   return (
     <button
@@ -1745,7 +1743,6 @@ const StartConcurrentButton = (props: { node_id: types.TNodeId }) => {
     dispatch(
       actions.start_action({ node_id: props.node_id, is_concurrent: true }),
     );
-    doFocusStopButton(props.node_id);
   }, [props.node_id, dispatch]);
   return (
     <button
@@ -2199,10 +2196,6 @@ const AutoHeightTextArea = ({
 };
 
 const handle_trailing_newline = (x: string) => x + "\u200b";
-
-const doFocusStopButton = (node_id: types.TNodeId) => {
-  setTimeout(() => utils.focus(stopButtonRefOf(node_id).current), 100);
-};
 
 const doFocusMoveUpButton = (node_id: types.TNodeId) => {
   setTimeout(() => utils.focus(moveUpButtonRefOf(node_id).current), 100);
