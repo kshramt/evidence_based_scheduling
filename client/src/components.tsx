@@ -814,7 +814,9 @@ const DndTreeNode = React.memo((props: { node_id: types.TNodeId }) => {
       },
       collect: (monitor) => ({
         canDrop:
-          !!monitor.canDrop() && monitor.getItem().node_id !== props.node_id,
+          !!monitor.canDrop() &&
+          !!monitor.isOver() &&
+          monitor.getItem().node_id !== props.node_id,
       }),
     },
     [props.node_id, dispatch],
