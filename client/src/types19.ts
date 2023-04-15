@@ -1,55 +1,27 @@
-import { ThunkDispatch } from "redux-thunk";
-
 import * as toast from "./toast";
 
 import * as producer from "./producer";
 
-import * as types_prev from "./types18";
 import type {
-  IEdges,
-  TCaches,
-  TNodes,
-  TAnyPayloadAction,
   TNodeId,
+  TEdges,
+  TNodes,
   TOrderedTNodeIds,
-} from "./types18";
+  TTimeline,
+} from "./common_types1";
 import {
-  is_IEdges,
-  is_TNodes,
   is_TNodeId,
-  is_TOrderedTNodeIds,
   is_object,
+  is_TEdges,
   record_if_false_of,
-} from "./types18";
+  is_TNodes,
+  is_TOrderedTNodeIds,
+  is_TTimeline,
+} from "./common_types1";
+import * as types_prev from "./types18";
+import type { TCaches } from "./types18";
 
-export type {
-  IEdge,
-  IEdges,
-  TCaches,
-  TNode,
-  TNodes,
-  IRange,
-  IVids,
-  TActionWithPayload,
-  TActionWithoutPayload,
-  TAnyPayloadAction,
-  TEdgeId,
-  TEdgeType,
-  TNodeId,
-  TOrderedTEdgeIds,
-  TOrderedTNodeIds,
-  TStatus,
-} from "./types18";
-export {
-  edge_type_values,
-  is_IEdges,
-  is_TNodes,
-  is_TEdgeType,
-  is_TNodeId,
-  is_TOrderedTNodeIds,
-  is_object,
-  record_if_false_of,
-} from "./types18";
+export type { TCaches } from "./types18";
 
 export const VERSION = 19 as const;
 
@@ -127,9 +99,9 @@ export interface IState {
 }
 
 export interface IData {
-  readonly edges: IEdges;
+  readonly edges: TEdges;
   readonly root: TNodeId;
-  id_seq: number;
+  readonly id_seq: number;
   readonly nodes: TNodes;
   readonly queue: TOrderedTNodeIds;
   readonly timeline: TTimeline;
@@ -140,56 +112,10 @@ export const is_IData = (
   record_if_false: ReturnType<typeof record_if_false_of>,
 ): data is IData =>
   record_if_false(is_object(data), "is_object") &&
-  record_if_false(is_IEdges(data.edges, record_if_false), "edges") &&
+  record_if_false(is_TEdges(data.edges, record_if_false), "edges") &&
   record_if_false(is_TNodeId(data.root), "root") &&
   record_if_false(typeof data.id_seq === "number", "id_seq") &&
   record_if_false(is_TNodes(data.nodes, record_if_false), "nodes") &&
   record_if_false(is_TOrderedTNodeIds(data.queue), "queue") &&
   record_if_false(is_TTimeline(data.timeline, record_if_false), "timeline") &&
   record_if_false(data.version === VERSION, "version");
-
-export type TTimeline = {
-  readonly year_begin: number;
-  readonly count: number;
-  readonly time_nodes: { [time_node_id: TTimeNodeId]: TTimeNode };
-};
-export const is_TTimeline = (
-  data: any,
-  record_if_false: ReturnType<typeof record_if_false_of>,
-): data is TTimeline =>
-  record_if_false(is_object(data), "is_object") &&
-  record_if_false(typeof data.year_begin === "number", "year_begin") &&
-  record_if_false(typeof data.count === "number", "count") &&
-  record_if_false.check_object(data.time_nodes, (v) =>
-    is_TTimeNode(v, record_if_false),
-  );
-
-export type TTimeNode = {
-  readonly created_at: number;
-  readonly nodes: { readonly [node_id: TNodeId]: number };
-  readonly show_children: "none" | "partial" | "full";
-  readonly text: string;
-  readonly tz: number;
-};
-export const is_TTimeNode = (
-  data: any,
-  record_if_false: ReturnType<typeof record_if_false_of>,
-): data is TTimeNode =>
-  record_if_false(is_object(data), "is_object") &&
-  record_if_false(typeof data.created_at === "number", "created_at") &&
-  record_if_false(typeof data.tz === "number", "tz") &&
-  record_if_false(typeof data.text === "string", "text") &&
-  record_if_false(
-    data.show_children === "none" ||
-      data.show_children === "partial" ||
-      data.show_children === "full",
-    "show_children",
-    data.show_children,
-  ) &&
-  record_if_false(is_TOrderedTNodeIds(data.nodes), "nodes");
-
-export type TTimeNodeId = string & { readonly tag: unique symbol };
-export const is_TTimeNodeId = (x: any): x is TTimeNodeId =>
-  typeof x === "string";
-
-export type AppDispatch = ThunkDispatch<IState, {}, TAnyPayloadAction>;

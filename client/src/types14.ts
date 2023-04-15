@@ -1,5 +1,13 @@
 import * as toast from "./toast";
 import * as producer from "./producer";
+import type { TNodeId, TEdgeId, TRange, TEdges } from "./common_types1";
+import {
+  is_TNodeId,
+  is_TEdgeId,
+  is_TRange,
+  is_TEdges,
+  is_object,
+} from "./common_types1";
 
 const VERSION = 14 as const;
 
@@ -20,9 +28,6 @@ export const parse_data = (x: {
   console.warn("!is_IData", record_if_false.path);
   return { success: false };
 };
-
-const is_object = (x: any) =>
-  x && typeof x === "object" && x.constructor === Object;
 
 const record_if_false_of = () => {
   const path: string[] = [];
@@ -45,17 +50,12 @@ const record_if_false_of = () => {
 };
 type TRecordIfFalse = ReturnType<typeof record_if_false_of>;
 
-export type TNodeId = string & { readonly tag: unique symbol };
-export const is_TNodeId = (x: any): x is TNodeId => typeof x === "string";
-export type TEdgeId = string & { readonly tag: unique symbol };
-export const is_TEdgeId = (x: any): x is TEdgeId => typeof x === "string";
-
 const status_values = ["done", "dont", "todo"] as const;
 type TStatus = (typeof status_values)[number];
 const is_TStatus = (x: any): x is TStatus => status_values.includes(x);
 
 export interface IData {
-  readonly edges: IEdges;
+  readonly edges: TEdges;
   readonly root: TNodeId;
   id_seq: number;
   readonly nodes: INodes;
@@ -66,7 +66,7 @@ export interface IData {
 }
 const is_IData = (data: any, record_if_false: TRecordIfFalse): data is IData =>
   record_if_false(is_object(data), "is_object") &&
-  record_if_false(is_IEdges(data.edges, record_if_false), "edges") &&
+  record_if_false(is_TEdges(data.edges, record_if_false), "edges") &&
   record_if_false(is_TNodeId(data.root), "root") &&
   record_if_false(typeof data.id_seq === "number", "id_seq") &&
   record_if_false(is_INodes(data.nodes, record_if_false), "nodes") &&
@@ -92,7 +92,7 @@ interface INode {
   readonly end_time: null | number;
   readonly estimate: number;
   readonly parents: TEdgeId[];
-  readonly ranges: IRange[];
+  readonly ranges: TRange[];
   readonly start_time: number;
   readonly status: TStatus;
   readonly style: IStyle;
@@ -114,48 +114,14 @@ const is_INode = (x: any, record_if_false: TRecordIfFalse): x is INode =>
     record_if_false.check_array(x.parents, is_TEdgeId),
     "parents",
   ) &&
-  record_if_false(record_if_false.check_array(x.ranges, is_IRange), "ranges") &&
+  record_if_false(record_if_false.check_array(x.ranges, is_TRange), "ranges") &&
   record_if_false(typeof x.start_time === "number", "start_time") &&
   record_if_false(is_TStatus(x.status), "status") &&
   record_if_false(is_IStyle(x.style), "style") &&
   record_if_false(typeof x.text === "string", "text");
-
-interface IEdges {
-  [edge_id: TEdgeId]: IEdge;
-}
-const is_IEdges = (
-  edges: any,
-  record_if_false: TRecordIfFalse,
-): edges is IEdges => record_if_false.check_object(edges, is_IEdge);
-
-const edge_type_values = ["weak", "strong"] as const;
-type TEdgeType = (typeof edge_type_values)[number];
-const is_TEdgeType = (x: any): x is TEdgeType => edge_type_values.includes(x);
-
-interface IEdge {
-  readonly c: TNodeId;
-  readonly p: TNodeId;
-  readonly t: TEdgeType;
-  readonly hide?: boolean;
-}
-const is_IEdge = (x: any): x is IEdge =>
-  is_object(x) &&
-  is_TNodeId(x.c) &&
-  is_TNodeId(x.p) &&
-  is_TEdgeType(x.t) &&
-  [undefined, true, false].includes(x.hide);
 
 interface IStyle {
   readonly height: string;
 }
 const is_IStyle = (x: any): x is IStyle =>
   is_object(x) && typeof x.height === "string";
-
-interface IRange {
-  readonly start: number;
-  end: null | number;
-}
-const is_IRange = (x: any): x is IRange =>
-  is_object(x) &&
-  typeof x.start === "number" &&
-  (x.end === null || typeof x.end === "number");

@@ -1,5 +1,6 @@
 import React, { useCallback } from "react";
 import * as Recoil from "recoil";
+import * as Dnd from "react-dnd";
 
 import * as types from "./types";
 import { useDispatch, useSelector } from "./types";
@@ -22,23 +23,27 @@ const WEEK_0_BEGIN = new Date(Date.UTC(2021, 12 - 1, 27));
 const WEEK_MSEC = 86400 * 1000 * 7;
 const EMPTY_STRING = "";
 
-export const MobileApp = (props: { ctx: states.PersistentStateManager }) => {
-  return (
-    <>
-      <MobileMenu ctx={props.ctx} />
-      <MobileBody />
-    </>
-  );
-};
+export const MobileApp = React.memo(
+  (props: { ctx: states.PersistentStateManager }) => {
+    return (
+      <>
+        <MobileMenu ctx={props.ctx} />
+        <MobileBody />
+      </>
+    );
+  },
+);
 
-export const DesktopApp = (props: { ctx: states.PersistentStateManager }) => {
-  return (
-    <>
-      <Menu ctx={props.ctx} />
-      <Body />
-    </>
-  );
-};
+export const DesktopApp = React.memo(
+  (props: { ctx: states.PersistentStateManager }) => {
+    return (
+      <>
+        <Menu ctx={props.ctx} />
+        <Body />
+      </>
+    );
+  },
+);
 
 const MobileNodeFilterQueryInput = () => {
   const [node_filter_query, set_node_filter_query_fast] = Recoil.useRecoilState(
@@ -347,6 +352,7 @@ const Body = () => {
   return (
     <div className="flex w-full h-[calc(100vh-3.01rem)] gap-x-[1em] overflow-y-hidden">
       <CoveyQuadrants />
+      <PinnedSubTrees />
       <div className={`overflow-y-scroll shrink-0`}>
         <Timeline />
       </div>
@@ -382,6 +388,39 @@ const CoveyQuadrants = () => {
   );
 };
 
+const PinnedSubTrees = React.memo(() => {
+  const pinned_sub_trees = useSelector((state) => {
+    return state.data.pinned_sub_trees;
+  });
+  return (
+    <>
+      {pinned_sub_trees.map((node_id) => {
+        return <DndTreeNode key={node_id} node_id={node_id} />;
+      })}
+    </>
+  );
+});
+
+const TogglePinButton = (props: { node_id: types.TNodeId }) => {
+  const dispatch = useDispatch();
+  const pinned_sub_trees = useSelector((state) => {
+    return state.data.pinned_sub_trees;
+  });
+  const on_click = React.useCallback(() => {
+    dispatch(actions.toggle_pin_action({ node_id: props.node_id }));
+  }, [props.node_id, dispatch]);
+  const is_pinned = pinned_sub_trees.includes(props.node_id);
+  return (
+    <button
+      className="btn-icon"
+      onClick={on_click}
+      onDoubleClick={prevent_propagation}
+    >
+      {is_pinned ? "Unpin" : "Pin"}
+    </button>
+  );
+};
+
 const DoneOrDontToTodoButton = (props: { node_id: types.TNodeId }) => {
   const dispatch = useDispatch();
   const on_click = React.useCallback(() => {
@@ -398,7 +437,7 @@ const DoneOrDontToTodoButton = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const EstimationInput = (props: { node_id: types.TNodeId }) => {
+const EstimationInput = React.memo((props: { node_id: types.TNodeId }) => {
   const estimate = useSelector(
     (state) => state.data.nodes[props.node_id].estimate,
   );
@@ -426,7 +465,7 @@ const EstimationInput = (props: { node_id: types.TNodeId }) => {
       className="w-[3em]"
     />
   );
-};
+});
 
 const CoveyQuadrant = (props: {
   quadrant_id:
@@ -746,6 +785,61 @@ const TodoQueueNodes = () => {
     </table>
   );
 };
+
+const DndTreeNode = React.memo((props: { node_id: types.TNodeId }) => {
+  const dispatch = useDispatch();
+  const [{ isDragging }, drag] = Dnd.useDrag(
+    {
+      type: "tree_node",
+      item: { node_id: props.node_id },
+      collect: (monitor) => ({
+        isDragging: !!monitor.isDragging(),
+      }),
+    },
+    [props.node_id],
+  );
+  const [{ canDrop }, drop] = Dnd.useDrop(
+    {
+      accept: "tree_node",
+      drop: (item: { node_id: types.TNodeId }) => {
+        if (item.node_id === props.node_id) {
+          return;
+        }
+        dispatch(
+          actions.move_pinned_sub_tree_action({
+            from: item.node_id,
+            to: props.node_id,
+          }),
+        );
+      },
+      collect: (monitor) => ({
+        canDrop:
+          !!monitor.canDrop() && monitor.getItem().node_id !== props.node_id,
+      }),
+    },
+    [props.node_id, dispatch],
+  );
+  const ref = React.useCallback(
+    (el: HTMLDivElement | null) => {
+      drag(drop(el));
+    },
+    [drag, drop],
+  );
+  return (
+    <div
+      ref={ref}
+      className={utils.join(
+        isDragging ? "opacity-50" : "opacity-100",
+        "overflow-y-scroll shrink-0 relative",
+      )}
+    >
+      <TreeNode node_id={props.node_id} />
+      {canDrop && (
+        <div className="absolute top-0 left-0 h-full w-full z-10 opacity-50 bg-yellow-200 dark:bg-yellow-900" />
+      )}
+    </div>
+  );
+});
 
 const TreeNode = React.memo((props: { node_id: types.TNodeId }) => {
   return (
@@ -1105,7 +1199,7 @@ const Details = React.memo((props: { node_id: types.TNodeId }) => {
   return show_detail ? <DetailsImpl node_id={props.node_id} /> : null;
 });
 
-const DetailsImpl = (props: { node_id: types.TNodeId }) => {
+const DetailsImpl = React.memo((props: { node_id: types.TNodeId }) => {
   const [new_edge_type, set_new_edge_type] =
     React.useState<types.TEdgeType>("weak");
   const handle_new_edge_type_change = useCallback(
@@ -1150,6 +1244,7 @@ const DetailsImpl = (props: { node_id: types.TNodeId }) => {
     <div className="pt-[0.25em] bg-gray-200 dark:bg-gray-900">
       {hline}
       <div className="flex w-fit gap-x-[0.25em] items-baseline">
+        <TogglePinButton node_id={props.node_id} />
         <ParseTocButton node_id={props.node_id} />
       </div>
       {hline}
@@ -1186,7 +1281,7 @@ const DetailsImpl = (props: { node_id: types.TNodeId }) => {
       {hline}
     </div>
   );
-};
+});
 
 const RangesTable = (props: { node_id: types.TNodeId }) => {
   const rows_per_page = 10;
@@ -2230,7 +2325,7 @@ const digits1 = (x: number) => {
   return Math.round(x * 10) / 10;
 };
 
-const last_range_of = (ranges: types.IRange[]): null | types.IRange => {
+const last_range_of = (ranges: types.TRange[]): null | types.TRange => {
   const n = ranges.length;
   if (n < 1) {
     return null;

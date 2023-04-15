@@ -3,6 +3,8 @@ import ReactDOM from "react-dom/client";
 import { Provider } from "react-redux";
 import * as Recoil from "recoil";
 import "@fontsource/material-icons";
+import { HTML5Backend } from "react-dnd-html5-backend";
+import * as Dnd from "react-dnd";
 
 import * as states from "./states";
 import * as toast from "./toast";
@@ -200,13 +202,15 @@ const AppComponent = (props: { auth: Auth.Auth; id_token: Auth.TIdToken }) => {
     );
   }, [props.id_token, props.auth]);
   return (
-    <Recoil.RecoilRoot>
-      <ErrorBoundary>
-        <React.Suspense fallback={spinner}>
-          <AppComponentImpl ctx={ctx} />
-        </React.Suspense>
-      </ErrorBoundary>
-    </Recoil.RecoilRoot>
+    <Dnd.DndProvider backend={HTML5Backend}>
+      <Recoil.RecoilRoot>
+        <ErrorBoundary>
+          <React.Suspense fallback={spinner}>
+            <AppComponentImpl ctx={ctx} />
+          </React.Suspense>
+        </ErrorBoundary>
+      </Recoil.RecoilRoot>
+    </Dnd.DndProvider>
   );
 };
 

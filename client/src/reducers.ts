@@ -22,6 +22,22 @@ export const get_root_reducer_def = (
       reduce: rtk.TReduce<types.IState, Payload>,
     ) => void,
   ) => {
+    builder(actions.move_pinned_sub_tree_action, (state, action) => {
+      const i_from = state.data.pinned_sub_trees.indexOf(action.payload.from);
+      const i_to = state.data.pinned_sub_trees.indexOf(action.payload.to);
+      if (i_from === -1 || i_to === -1 || i_from === i_to) {
+        return;
+      }
+      utils.dnd_move(state.data.pinned_sub_trees, i_from, i_to);
+    });
+    builder(actions.toggle_pin_action, (state, action) => {
+      const node_id = action.payload.node_id;
+      if (state.data.pinned_sub_trees.includes(node_id)) {
+        ops.delete_at_val(state.data.pinned_sub_trees, node_id);
+      } else {
+        state.data.pinned_sub_trees.push(node_id);
+      }
+    });
     builder(actions.set_n_unsaved_patches_action, (state, action) => {
       state.n_unsaved_patches = action.payload;
     });
@@ -69,6 +85,7 @@ export const get_root_reducer_def = (
       delete state.data.queue[node_id];
       delete state.data.nodes[node_id];
       delete state.caches[node_id];
+      ops.delete_at_val(state.data.pinned_sub_trees, node_id);
       for (const parent_node_id of affected_parent_node_ids) {
         _set_total_time_of_ancestors(state, parent_node_id, vid);
       }
@@ -680,7 +697,7 @@ const _set_total_time = (
 };
 
 const total_time_of = (state: types.IState, node_id: types.TNodeId) => {
-  const ranges_list: types.IRange[][] = [];
+  const ranges_list: types.TRange[][] = [];
   collect_ranges_from_strong_descendants(
     node_id,
     state,
@@ -731,7 +748,7 @@ const collect_ranges_from_strong_descendants = (
   node_id: types.TNodeId,
   state: types.IState,
   vid: number,
-  ranges_list: types.IRange[][],
+  ranges_list: types.TRange[][],
 ) => {
   if (utils.vids[node_id] === vid) {
     return;
@@ -849,14 +866,14 @@ const _estimate = (
 const todo_leafs_of = (
   node_id: types.TNodeId,
   state: types.IState,
-  edge_filter: (edge: types.IEdge) => boolean,
+  edge_filter: (edge: types.TEdge) => boolean,
 ) => {
   return _todo_leafs_of(node_id, state, edge_filter, utils.visit_counter_of());
 };
 function* _todo_leafs_of(
   node_id: types.TNodeId,
   state: types.IState,
-  edge_filter: (edge: types.IEdge) => boolean,
+  edge_filter: (edge: types.TEdge) => boolean,
   vid: number,
 ): Iterable<[types.TNodeId, types.TNode]> {
   if (utils.vids[node_id] === vid) {
