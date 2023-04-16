@@ -203,7 +203,7 @@ const get_state_and_patch = async (arg: {
       ).newDocument;
     }
     const t2 = performance.now();
-    if (750 < t2 - t1) {
+    if (1000 < t2 - t1) {
       await arg.db.put("snapshots", {
         client_id: arg.head.client_id,
         session_id: arg.head.session_id,
