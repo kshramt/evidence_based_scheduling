@@ -133,9 +133,6 @@ export const get_is_mobile = () => {
   return /(Mobi|Tablet|iPad)/.test(ua);
 };
 
-export const tree_textarea_id_of = (node_id: types.TNodeId) => {
-  return `t-${node_id}`;
-};
 export const queue_textarea_id_of = (node_id: types.TNodeId) => {
   return `q-${node_id}`;
 };

@@ -835,7 +835,7 @@ const DndTreeNode = React.memo((props: { node_id: types.TNodeId }) => {
         "overflow-y-scroll shrink-0 relative",
       )}
     >
-      <TreeNode node_id={props.node_id} />
+      <TreeNode node_id={props.node_id} prefix="p-" />
       {canDrop && (
         <div className="absolute top-0 left-0 h-full w-full z-10 opacity-50 bg-yellow-200 dark:bg-yellow-900" />
       )}
@@ -843,14 +843,16 @@ const DndTreeNode = React.memo((props: { node_id: types.TNodeId }) => {
   );
 });
 
-const TreeNode = React.memo((props: { node_id: types.TNodeId }) => {
-  return (
-    <>
-      <TreeEntry node_id={props.node_id} />
-      <EdgeList node_id={props.node_id} />
-    </>
-  );
-});
+const TreeNode = React.memo(
+  (props: { node_id: types.TNodeId; prefix?: string }) => {
+    return (
+      <>
+        <TreeEntry node_id={props.node_id} prefix={props.prefix} />
+        <EdgeList node_id={props.node_id} prefix={props.prefix} />
+      </>
+    );
+  },
+);
 
 const NonTodoQueueNodes = () => {
   const queue = useQueue("non_todo_node_ids");
@@ -866,50 +868,54 @@ const NonTodoQueueNodes = () => {
   );
 };
 
-const EdgeList = React.memo((props: { node_id: types.TNodeId }) => {
-  const children = useSelector(
-    (state) => state.data.nodes[props.node_id].children,
-  );
-  const edge_ids = ops.sorted_keys_of(children);
-  return edge_ids.length ? (
-    <table>
-      <tbody>
-        {edge_ids.map((edge_id) => (
-          <Edge edge_id={edge_id} key={edge_id} />
-        ))}
-      </tbody>
-    </table>
-  ) : null;
-});
+const EdgeList = React.memo(
+  (props: { node_id: types.TNodeId; prefix?: string }) => {
+    const children = useSelector(
+      (state) => state.data.nodes[props.node_id].children,
+    );
+    const edge_ids = ops.sorted_keys_of(children);
+    return edge_ids.length ? (
+      <table>
+        <tbody>
+          {edge_ids.map((edge_id) => (
+            <Edge edge_id={edge_id} key={edge_id} prefix={props.prefix} />
+          ))}
+        </tbody>
+      </table>
+    ) : null;
+  },
+);
 
-const Edge = React.memo((props: { edge_id: types.TEdgeId }) => {
-  const session = React.useContext(states.session_key_context);
-  const show_todo_only = Recoil.useRecoilValue(
-    states.show_todo_only_atom_map.get(session),
-  );
-  const show_strong_edge_only = Recoil.useRecoilValue(
-    states.show_strong_edge_only_atom_map.get(session),
-  );
-  const edge = useSelector((state) => state.data.edges[props.edge_id]);
-  const child_node_status = useSelector(
-    (state) => state.data.nodes[edge.c].status,
-  );
-  if (
-    edge.hide ||
-    (show_strong_edge_only && edge.t === "weak") ||
-    (show_todo_only && child_node_status !== "todo")
-  ) {
-    return null;
-  }
-  return (
-    <tr className="align-baseline">
-      <td className="row-id" />
-      <td>
-        <TreeNode node_id={edge.c} />
-      </td>
-    </tr>
-  );
-});
+const Edge = React.memo(
+  (props: { edge_id: types.TEdgeId; prefix?: string }) => {
+    const session = React.useContext(states.session_key_context);
+    const show_todo_only = Recoil.useRecoilValue(
+      states.show_todo_only_atom_map.get(session),
+    );
+    const show_strong_edge_only = Recoil.useRecoilValue(
+      states.show_strong_edge_only_atom_map.get(session),
+    );
+    const edge = useSelector((state) => state.data.edges[props.edge_id]);
+    const child_node_status = useSelector(
+      (state) => state.data.nodes[edge.c].status,
+    );
+    if (
+      edge.hide ||
+      (show_strong_edge_only && edge.t === "weak") ||
+      (show_todo_only && child_node_status !== "todo")
+    ) {
+      return null;
+    }
+    return (
+      <tr className="align-baseline">
+        <td className="row-id" />
+        <td>
+          <TreeNode node_id={edge.c} prefix={props.prefix} />
+        </td>
+      </tr>
+    );
+  },
+);
 
 const QueueNode = React.memo((props: { node_id: types.TNodeId }) => {
   return (
@@ -1105,47 +1111,51 @@ const MobileQueueNodes = () => {
   );
 };
 
-const TreeEntry = React.memo((props: { node_id: types.TNodeId }) => {
-  const show_detail = useSelector(
-    (state) => state.caches[props.node_id].show_detail,
-  );
-  const { is_hover, on_mouse_over, on_mouse_out } = useHover();
-  const is_running = useIsRunning(props.node_id);
-  const cache = useSelector((state) => state.caches[props.node_id]);
-  const status = useSelector((state) => state.data.nodes[props.node_id].status);
-  const to_queue = useToQueue(props.node_id);
-  const is_root = useSelector((state) => state.data.root === props.node_id);
-  const handle_click = useRegisterNodeId(props.node_id);
-  const handleKeyDown = useTaskShortcutKeys(props.node_id);
+const TreeEntry = React.memo(
+  (props: { node_id: types.TNodeId; prefix?: string }) => {
+    const show_detail = useSelector(
+      (state) => state.caches[props.node_id].show_detail,
+    );
+    const { is_hover, on_mouse_over, on_mouse_out } = useHover();
+    const is_running = useIsRunning(props.node_id);
+    const cache = useSelector((state) => state.caches[props.node_id]);
+    const status = useSelector(
+      (state) => state.data.nodes[props.node_id].status,
+    );
+    const to_queue = useToQueue(props.node_id);
+    const is_root = useSelector((state) => state.data.root === props.node_id);
+    const handle_click = useRegisterNodeId(props.node_id);
+    const handleKeyDown = useTaskShortcutKeys(props.node_id);
 
-  return (
-    <EntryWrapper
-      node_id={props.node_id}
-      onMouseOver={on_mouse_over}
-      onMouseOut={on_mouse_out}
-    >
-      <div className="flex items-end w-fit">
-        {is_root ? null : <button onClick={to_queue}>→</button>}
-        <TextArea
-          node_id={props.node_id}
-          id={utils.tree_textarea_id_of(props.node_id)}
-          className="w-[29em]"
-          onClick={handle_click}
-          onKeyDown={handleKeyDown}
-        />
-        <EntryInfos node_id={props.node_id} />
-      </div>
-      {status === "todo" &&
-        0 <= cache.leaf_estimates_sum &&
-        digits1(cache.leaf_estimates_sum) + " | "}
-      {status === "todo" && cache.percentiles.map(digits1).join(", ")}
-      {(is_hover || is_running || show_detail) && (
-        <EntryButtons node_id={props.node_id} />
-      )}
-      <Details node_id={props.node_id} />
-    </EntryWrapper>
-  );
-});
+    return (
+      <EntryWrapper
+        node_id={props.node_id}
+        onMouseOver={on_mouse_over}
+        onMouseOut={on_mouse_out}
+      >
+        <div className="flex items-end w-fit">
+          {is_root ? null : <button onClick={to_queue}>→</button>}
+          <TextArea
+            node_id={props.node_id}
+            id={`${props.prefix || "t-"}${props.node_id}`}
+            className="w-[29em]"
+            onClick={handle_click}
+            onKeyDown={handleKeyDown}
+          />
+          <EntryInfos node_id={props.node_id} />
+        </div>
+        {status === "todo" &&
+          0 <= cache.leaf_estimates_sum &&
+          digits1(cache.leaf_estimates_sum) + " | "}
+        {status === "todo" && cache.percentiles.map(digits1).join(", ")}
+        {(is_hover || is_running || show_detail) && (
+          <EntryButtons node_id={props.node_id} />
+        )}
+        <Details node_id={props.node_id} />
+      </EntryWrapper>
+    );
+  },
+);
 
 const useRegisterNodeId = (node_id: types.TNodeId) => {
   const set_node_ids = Recoil.useSetRecoilState(states.node_ids_state);
@@ -2206,11 +2216,7 @@ const doFocusMoveDownButton = (node_id: types.TNodeId) => {
 };
 
 const doFocusTextArea = (node_id: types.TNodeId) => {
-  setTimeout(
-    () =>
-      utils.focus(document.getElementById(utils.tree_textarea_id_of(node_id))),
-    100,
-  );
+  setTimeout(() => utils.focus(document.getElementById(`t-${node_id}`)), 100);
 };
 
 const stopButtonRefOf = utils.memoize1((_: types.TNodeId) =>
@@ -2252,13 +2258,7 @@ const useToTree = (node_id: types.TNodeId) => {
   const dispatch = useDispatch();
   return React.useCallback(() => {
     dispatch(actions.show_path_to_selected_node(node_id));
-    setTimeout(
-      () =>
-        utils.focus(
-          document.getElementById(utils.tree_textarea_id_of(node_id)),
-        ),
-      100,
-    );
+    setTimeout(() => utils.focus(document.getElementById(`t-${node_id}`)), 100);
   }, [node_id, dispatch]);
 };
 
