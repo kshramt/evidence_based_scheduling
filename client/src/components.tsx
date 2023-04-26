@@ -1195,9 +1195,15 @@ const useTaskShortcutKeys = (node_id: null | types.TNodeId, prefix: string) => {
         } else if (event.key === ".") {
           event.preventDefault();
           if (is_running) {
-            dispatch(actions.stop_action(node_id));
+            if (event.shiftKey) {
+              dispatch(actions.stop_action(node_id));
+            } else {
+              dispatch(actions.stop_all_action());
+            }
           } else {
-            dispatch(actions.start_action({ node_id, is_concurrent: true }));
+            dispatch(
+              actions.start_action({ node_id, is_concurrent: event.shiftKey }),
+            );
           }
         }
       }
