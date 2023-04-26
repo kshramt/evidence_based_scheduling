@@ -23,6 +23,8 @@ const WEEK_0_BEGIN = new Date(Date.UTC(2021, 12 - 1, 27));
 const WEEK_MSEC = 86400 * 1000 * 7;
 const EMPTY_STRING = "";
 
+const TREE_PREFIX = "t-";
+
 export const MobileApp = React.memo(
   (props: { ctx: states.PersistentStateManager }) => {
     return (
@@ -114,7 +116,7 @@ const NodeFilterQueryInput = () => {
   const ref = useMetaK();
   const queue = useQueue("todo_node_ids");
   const node_id = queue[0] || null;
-  const handleKeyDown = useTaskShortcutKeys(node_id);
+  const handleKeyDown = useTaskShortcutKeys(node_id, TREE_PREFIX);
 
   return (
     <>
@@ -937,7 +939,7 @@ const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
   const is_running = useIsRunning(props.node_id);
   const to_tree = useToTree(props.node_id);
   const handle_click = useRegisterNodeId(props.node_id);
-  const handleKeyDown = useTaskShortcutKeys(props.node_id);
+  const handleKeyDown = useTaskShortcutKeys(props.node_id, TREE_PREFIX);
 
   return (
     <EntryWrapper
@@ -1125,7 +1127,8 @@ const TreeEntry = React.memo(
     const to_queue = useToQueue(props.node_id);
     const is_root = useSelector((state) => state.data.root === props.node_id);
     const handle_click = useRegisterNodeId(props.node_id);
-    const handleKeyDown = useTaskShortcutKeys(props.node_id);
+    const prefix = props.prefix || TREE_PREFIX;
+    const handleKeyDown = useTaskShortcutKeys(props.node_id, prefix);
 
     return (
       <EntryWrapper
@@ -1137,7 +1140,7 @@ const TreeEntry = React.memo(
           {is_root ? null : <button onClick={to_queue}>→</button>}
           <TextArea
             node_id={props.node_id}
-            id={`${props.prefix || "t-"}${props.node_id}`}
+            id={`${prefix}${props.node_id}`}
             className="w-[29em]"
             onClick={handle_click}
             onKeyDown={handleKeyDown}
@@ -1149,7 +1152,7 @@ const TreeEntry = React.memo(
           digits1(cache.leaf_estimates_sum) + " | "}
         {status === "todo" && cache.percentiles.map(digits1).join(", ")}
         {(is_hover || is_running || show_detail) && (
-          <EntryButtons node_id={props.node_id} />
+          <EntryButtons node_id={props.node_id} prefix={prefix} />
         )}
         <Details node_id={props.node_id} />
       </EntryWrapper>
@@ -1172,7 +1175,7 @@ const useRegisterNodeId = (node_id: types.TNodeId) => {
   );
 };
 
-const useTaskShortcutKeys = (node_id: null | types.TNodeId) => {
+const useTaskShortcutKeys = (node_id: null | types.TNodeId, prefix: string) => {
   const dispatch = useDispatch();
   const session = React.useContext(states.session_key_context);
   const show_mobile = Recoil.useRecoilValue(
@@ -1188,7 +1191,7 @@ const useTaskShortcutKeys = (node_id: null | types.TNodeId) => {
         if (event.key === "Enter") {
           event.preventDefault();
           dispatch(actions.add_action({ node_id, show_mobile }));
-          dispatch(focus_text_area_action_of(node_id));
+          dispatch(focus_text_area_action_of(node_id, prefix));
         } else if (event.key === ".") {
           event.preventDefault();
           if (is_running) {
@@ -1199,7 +1202,7 @@ const useTaskShortcutKeys = (node_id: null | types.TNodeId) => {
         }
       }
     },
-    [node_id, is_running, show_mobile, dispatch],
+    [node_id, is_running, show_mobile, dispatch, prefix],
   );
 };
 
@@ -1647,7 +1650,7 @@ const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const EntryButtons = (props: { node_id: types.TNodeId }) => {
+const EntryButtons = (props: { node_id: types.TNodeId; prefix?: string }) => {
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
 
   const root = useSelector((state) => state.data.root);
@@ -1668,11 +1671,11 @@ const EntryButtons = (props: { node_id: types.TNodeId }) => {
         {is_root || !is_todo || <MoveUpButton node_id={props.node_id} />}
         {is_root || !is_todo || <MoveDownButton node_id={props.node_id} />}
         <DeleteButton node_id={props.node_id} />
-        {is_todo && <AddButton node_id={props.node_id} />}
+        {is_todo && <AddButton node_id={props.node_id} prefix={props.prefix} />}
         <ShowDetailButton node_id={props.node_id} />
       </div>
     ),
-    [is_todo, is_root, props.node_id],
+    [is_todo, is_root, props.node_id, props.prefix],
   );
 };
 
@@ -1765,18 +1768,19 @@ const StartConcurrentButton = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const AddButton = (props: { node_id: types.TNodeId }) => {
+const AddButton = (props: { node_id: types.TNodeId; prefix?: string }) => {
   const dispatch = useDispatch();
   const session = React.useContext(states.session_key_context);
   const show_mobile = Recoil.useRecoilValue(
     states.show_mobile_atom_map.get(session),
   );
+  const prefix = props.prefix || TREE_PREFIX;
   const handle_click = React.useCallback(() => {
     dispatch(
       actions.add_action({ node_id: props.node_id, show_mobile: show_mobile }),
     );
-    dispatch(focus_text_area_action_of(props.node_id));
-  }, [props.node_id, dispatch, show_mobile]);
+    dispatch(focus_text_area_action_of(props.node_id, prefix));
+  }, [props.node_id, dispatch, show_mobile, prefix]);
   return (
     <button
       className="btn-icon"
@@ -2215,8 +2219,8 @@ const doFocusMoveDownButton = (node_id: types.TNodeId) => {
   setTimeout(() => utils.focus(moveDownButtonRefOf(node_id).current), 100);
 };
 
-const doFocusTextArea = (node_id: types.TNodeId) => {
-  setTimeout(() => utils.focus(document.getElementById(`t-${node_id}`)), 100);
+const doFocusTextArea = (id: string) => {
+  setTimeout(() => utils.focus(document.getElementById(id)), 100);
 };
 
 const stopButtonRefOf = utils.memoize1((_: types.TNodeId) =>
@@ -2244,13 +2248,15 @@ const LastRange = (props: { node_id: types.TNodeId }) => {
 };
 
 const focus_text_area_action_of =
-  (node_id: types.TNodeId) =>
+  (node_id: types.TNodeId, prefix: string) =>
   (dispatch: types.AppDispatch, getState: () => types.IState) => {
     const state = getState();
     doFocusTextArea(
-      state.data.edges[
-        ops.sorted_keys_of(state.data.nodes[node_id].children)[0]
-      ].c,
+      `${prefix}${
+        state.data.edges[
+          ops.sorted_keys_of(state.data.nodes[node_id].children)[0]
+        ].c
+      }`,
     );
   };
 
