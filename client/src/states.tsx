@@ -357,6 +357,7 @@ export class PersistentStateManager {
   redux_store: Loadable<Awaited<ReturnType<typeof this.get_redux_store>>>;
   #patch_queue: queues.Queue<null | TPatchValue> = new queues.Queue();
   #head_queue: queues.Queue<null | THead> = new queues.Queue();
+  #rpc_queue: queues.Queue<null | (() => Promise<void>)> = new queues.Queue();
   #sync_store: ReturnType<typeof _get_store> = _get_store();
   constructor(
     grpc_client: Connect.PromiseClient<typeof C.ApiService>,
@@ -380,6 +381,7 @@ export class PersistentStateManager {
       session_id,
     };
     this.redux_store = new Loadable(this.get_redux_store({ ...heads.parent }));
+    this.#run_rpc_loop();
     this.#run_push_local_patches_loop();
     this.#run_patch_saving_loop();
   }
@@ -387,6 +389,7 @@ export class PersistentStateManager {
   stop = () => {
     this.#patch_queue.push(null);
     this.#head_queue.push(null);
+    this.#rpc_queue.push(null);
   };
 
   get_redux_store = async (local_head: THead) => {
@@ -506,12 +509,14 @@ export class PersistentStateManager {
           );
         }
         await tx.done;
-        await retryer.with_retry(() => {
-          return this.grpc_client.createPatches(
-            { patches },
-            { headers: { authorization: bearer } },
-          );
-        });
+        await this.#push_rpc(() =>
+          retryer.with_retry(() => {
+            return this.grpc_client.createPatches(
+              { patches },
+              { headers: { authorization: bearer } },
+            );
+          }),
+        );
       }
       {
         const tx = this.db.transaction("pending_patches", "readwrite");
@@ -556,17 +561,19 @@ export class PersistentStateManager {
     ) {
       return;
     }
-    const resp = await retryer.with_retry(() =>
-      this.grpc_client.updateHeadIfNotModified(
-        {
-          clientId: BigInt(sync_head.client_id),
-          sessionId: BigInt(sync_head.session_id),
-          patchId: BigInt(sync_head.patch_id),
-          prevClientId: BigInt(this.heads.remote.client_id),
-          prevSessionId: BigInt(this.heads.remote.session_id),
-          prevPatchId: BigInt(this.heads.remote.patch_id),
-        },
-        { headers: { authorization: bearer } },
+    const resp = await this.#push_rpc(() =>
+      retryer.with_retry(() =>
+        this.grpc_client.updateHeadIfNotModified(
+          {
+            clientId: BigInt(sync_head.client_id),
+            sessionId: BigInt(sync_head.session_id),
+            patchId: BigInt(sync_head.patch_id),
+            prevClientId: BigInt(this.heads.remote.client_id),
+            prevSessionId: BigInt(this.heads.remote.session_id),
+            prevPatchId: BigInt(this.heads.remote.patch_id),
+          },
+          { headers: { authorization: bearer } },
+        ),
       ),
     );
     if (resp.updated === undefined) {
@@ -575,12 +582,14 @@ export class PersistentStateManager {
     if (resp.updated) {
       await this.#save_remote_head(sync_head);
     } else {
-      const resp = await get_remote_head_and_save_remote_pending_patches(
-        this.client_id,
-        this.grpc_client,
-        this.id_token,
-        this.db,
-        retryer.with_retry,
+      const resp = await this.#push_rpc(() =>
+        get_remote_head_and_save_remote_pending_patches(
+          this.client_id,
+          this.grpc_client,
+          this.id_token,
+          this.db,
+          retryer.with_retry,
+        ),
       );
       this.#sync_store.set_state(() => {
         return {
@@ -593,6 +602,36 @@ export class PersistentStateManager {
           },
         };
       });
+    }
+  };
+
+  #push_rpc = async <T,>(rpc: () => Promise<T>) => {
+    let _resolve: (value: T | PromiseLike<T>) => void;
+    let _reject: (reason?: any) => void;
+    const res = new Promise<T>((resolve, reject) => {
+      _resolve = resolve;
+      _reject = reject;
+    });
+    const wrapped_rpc = async () => {
+      try {
+        _resolve(await rpc());
+      } catch (e) {
+        _reject(e);
+      }
+    };
+    await this.#rpc_queue.push(wrapped_rpc);
+    return res;
+  };
+
+  #run_rpc_loop = async () => {
+    while (true) {
+      const rpc = await this.#rpc_queue.pop();
+      if (rpc === null) {
+        return;
+      }
+      try {
+        await rpc();
+      } catch {}
     }
   };
 
@@ -685,13 +724,15 @@ export class PersistentStateManager {
         this.heads.sync === null
           ? { ...this.heads.remote }
           : { ...this.heads.sync };
-      await this.grpc_client.updateHead(
-        {
-          clientId: BigInt(new_head.client_id),
-          sessionId: BigInt(new_head.session_id),
-          patchId: BigInt(new_head.patch_id),
-        },
-        { headers: { authorization: _get_bearer(this.id_token) } },
+      await this.#push_rpc(() =>
+        this.grpc_client.updateHead(
+          {
+            clientId: BigInt(new_head.client_id),
+            sessionId: BigInt(new_head.session_id),
+            patchId: BigInt(new_head.patch_id),
+          },
+          { headers: { authorization: _get_bearer(this.id_token) } },
+        ),
       );
       await this.#save_remote_head(new_head);
       this.#sync_store.set_state(() => null);
@@ -754,11 +795,13 @@ export class PersistentStateManager {
     }, []);
   };
   check_remote_head = async () => {
-    const resp = await get_remote_head_and_save_remote_pending_patches(
-      this.client_id,
-      this.grpc_client,
-      this.id_token,
-      this.db,
+    const resp = await this.#push_rpc(() =>
+      get_remote_head_and_save_remote_pending_patches(
+        this.client_id,
+        this.grpc_client,
+        this.id_token,
+        this.db,
+      ),
     );
     if (
       resp.client_id !== this.heads.remote.client_id ||
