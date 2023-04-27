@@ -45,6 +45,7 @@ if [[ "${os}" = "${host_os}" && "${arch}" = "${host_arch}" ]]; then
     --mount "type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock" \
     --mount "type=bind,source=${HOME}/.docker/buildx,target=/root/.docker/buildx" \
     -e "MY_COMPOSE_DIR=${PWD}" \
+    -e "CI=${CI:-}" \
     -e MY_HOST="host.docker.internal" \
     --add-host=host.docker.internal:host-gateway \
     --init \
@@ -56,6 +57,7 @@ if [[ "${os}" = "${host_os}" && "${arch}" = "${host_arch}" ]]; then
     --mount "type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock" \
     --mount "type=bind,source=${HOME}/.docker/buildx,target=/root/.docker/buildx" \
     -e "MY_COMPOSE_DIR=${PWD}" \
+    -e "CI=${CI:-}" \
     -e MY_HOST="host.docker.internal" \
     --add-host=host.docker.internal:host-gateway \
     --init \
