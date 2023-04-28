@@ -605,22 +605,10 @@ export class PersistentStateManager {
     }
   };
 
-  #push_rpc = async <T,>(rpc: () => Promise<T>) => {
-    let _resolve: (value: T | PromiseLike<T>) => void;
-    let _reject: (reason?: any) => void;
-    const res = new Promise<T>((resolve, reject) => {
-      _resolve = resolve;
-      _reject = reject;
+  #push_rpc = <T,>(rpc: () => Promise<T>) => {
+    return new Promise<T>((resolve, reject) => {
+      this.#rpc_queue.push(() => rpc().then(resolve).catch(reject));
     });
-    const wrapped_rpc = async () => {
-      try {
-        _resolve(await rpc());
-      } catch (e) {
-        _reject(e);
-      }
-    };
-    await this.#rpc_queue.push(wrapped_rpc);
-    return res;
   };
 
   #run_rpc_loop = async () => {
