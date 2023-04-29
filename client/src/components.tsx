@@ -354,7 +354,6 @@ const Body = () => {
   return (
     <div className="flex w-full h-[calc(100vh-3.01rem)] gap-x-[1em] overflow-y-hidden">
       <CoveyQuadrants />
-      <PinnedSubTrees />
       <div className={`overflow-y-scroll shrink-0`}>
         <Timeline />
       </div>
@@ -371,6 +370,7 @@ const Body = () => {
         <SBTTB />
         <NonTodoQueueNodes />
       </div>
+      <PinnedSubTrees />
     </div>
   );
 };
