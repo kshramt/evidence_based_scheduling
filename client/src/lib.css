@@ -17,10 +17,20 @@
     border-width: 1px;
     border-color: gray;
   }
+  /* content-visibility: auto hides lis' bullets. */
+  /*
   tr,
   li {
     content-visibility: auto;
     contain-intrinsic-size: auto 1em;
+  }
+  */
+
+  ul {
+    list-style-type: disc;
+  }
+  ol {
+    list-style-type: decimal;
   }
 
   table {
@@ -41,9 +51,6 @@
   }
   input[type="number"] {
     @apply text-right;
-  }
-  a {
-    /* @apply link; */
   }
 
   input[type="number"]::-webkit-outer-spin-button,

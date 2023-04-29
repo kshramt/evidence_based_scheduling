@@ -13,27 +13,24 @@ import * as utils from "./utils";
 import * as components from "./components";
 import * as Auth from "./auth";
 
-const App = (props: { ctx: states.PersistentStateManager }) => {
+const App = React.memo((props: { ctx: states.PersistentStateManager }) => {
   const show_mobile = Recoil.useRecoilValue(
     states.show_mobile_atom_map.get(
       React.useContext(states.session_key_context),
     ),
   );
 
-  return React.useMemo(
-    () => (
-      <>
-        {show_mobile ? (
-          <components.MobileApp ctx={props.ctx} />
-        ) : (
-          <components.DesktopApp ctx={props.ctx} />
-        )}
-        {toast.component}
-      </>
-    ),
-    [show_mobile, props.ctx],
+  return (
+    <>
+      {show_mobile ? (
+        <components.MobileApp ctx={props.ctx} />
+      ) : (
+        <components.DesktopApp ctx={props.ctx} />
+      )}
+      {toast.component}
+    </>
   );
-};
+});
 
 const Center = ({ children }: { children: React.ReactNode }) => {
   return (

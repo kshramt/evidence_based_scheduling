@@ -778,13 +778,11 @@ const TodoQueueNodes = () => {
   const queue = useQueue("todo_node_ids");
 
   return (
-    <table>
-      <tbody>
-        {queue.map((node_id) => (
-          <QueueNode node_id={node_id} key={node_id} />
-        ))}
-      </tbody>
-    </table>
+    <ol className="list-outside pl-[4em]">
+      {queue.map((node_id) => (
+        <QueueEntry node_id={node_id} key={node_id} />
+      ))}
+    </ol>
   );
 };
 
@@ -860,13 +858,11 @@ const NonTodoQueueNodes = () => {
   const queue = useQueue("non_todo_node_ids");
 
   return (
-    <table>
-      <tbody>
-        {queue.map((node_id) => (
-          <QueueNode node_id={node_id} key={node_id} />
-        ))}
-      </tbody>
-    </table>
+    <ol className="list-outside pl-[4em]">
+      {queue.map((node_id) => (
+        <QueueEntry node_id={node_id} key={node_id} />
+      ))}
+    </ol>
   );
 };
 
@@ -877,13 +873,11 @@ const EdgeList = React.memo(
     );
     const edge_ids = ops.sorted_keys_of(children);
     return edge_ids.length ? (
-      <table>
-        <tbody>
-          {edge_ids.map((edge_id) => (
-            <Edge edge_id={edge_id} key={edge_id} prefix={props.prefix} />
-          ))}
-        </tbody>
-      </table>
+      <ol className="list-outside pl-[4em]">
+        {edge_ids.map((edge_id) => (
+          <Edge edge_id={edge_id} key={edge_id} prefix={props.prefix} />
+        ))}
+      </ol>
     ) : null;
   },
 );
@@ -909,24 +903,12 @@ const Edge = React.memo(
       return null;
     }
     return (
-      <tr className="align-baseline">
-        <td className="row-id" />
-        <td>
-          <TreeNode node_id={edge.c} prefix={props.prefix} />
-        </td>
-      </tr>
+      <li>
+        <TreeNode node_id={edge.c} prefix={props.prefix} />
+      </li>
     );
   },
 );
-
-const QueueNode = React.memo((props: { node_id: types.TNodeId }) => {
-  return (
-    <tr className={utils.join("align-baseline")}>
-      <td className="row-id" />
-      <QueueEntry {...props} />
-    </tr>
-  );
-});
 
 const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
   const { is_hover, on_mouse_over, on_mouse_out } = useHover();
@@ -946,7 +928,7 @@ const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
       node_id={props.node_id}
       onMouseOver={on_mouse_over}
       onMouseOut={on_mouse_out}
-      component="td"
+      component="li"
     >
       <div className="flex items-end w-fit">
         <button onClick={to_tree}>←</button>
@@ -1494,39 +1476,36 @@ const EdgeRow = React.memo(
       dispatch(actions.toggle_edge_hide_action(props.edge_id));
     }, [props.edge_id, dispatch]);
     const node_id = edge[props.target];
-    return React.useMemo(
-      () => (
-        <tr>
-          <EdgeRowContent node_id={node_id} />
-          <td className="p-[0.25em]">
-            <select value={edge.t} onChange={set_edge_type}>
-              {types.edge_type_values.map((t, i) => (
-                <option value={t} key={i}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </td>
-          <td className="p-[0.25em]">
-            <input
-              type="radio"
-              checked={!hide}
-              onClick={toggle_edge_hide}
-              onChange={_suppress_missing_onChange_handler_warning}
-            />
-          </td>
-          <td className="p-[0.25em]">
-            <button
-              className="btn-icon"
-              onClick={delete_edge}
-              onDoubleClick={prevent_propagation}
-            >
-              {consts.DELETE_MARK}
-            </button>
-          </td>
-        </tr>
-      ),
-      [edge.t, hide, node_id, delete_edge, set_edge_type, toggle_edge_hide],
+    return (
+      <tr>
+        <EdgeRowContent node_id={node_id} />
+        <td className="p-[0.25em]">
+          <select value={edge.t} onChange={set_edge_type}>
+            {types.edge_type_values.map((t, i) => (
+              <option value={t} key={i}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </td>
+        <td className="p-[0.25em]">
+          <input
+            type="radio"
+            checked={!hide}
+            onClick={toggle_edge_hide}
+            onChange={_suppress_missing_onChange_handler_warning}
+          />
+        </td>
+        <td className="p-[0.25em]">
+          <button
+            className="btn-icon"
+            onClick={delete_edge}
+            onDoubleClick={prevent_propagation}
+          >
+            {consts.DELETE_MARK}
+          </button>
+        </td>
+      </tr>
     );
   },
 );
@@ -2009,32 +1988,29 @@ const PredictedNextNodes = () => {
     (state) => state.predicted_next_nodes,
   );
   return (
-    <table>
-      <tbody>
-        {predicted_next_nodes.map((node_id) => (
-          <tr className="align-baseline" key={node_id}>
-            <td className="row-id" />
-            <PredictedNextNode node_id={node_id} />
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <ol className="list-outside pl-[4em]">
+      {predicted_next_nodes.map((node_id) => (
+        <li>
+          <PredictedNextNode node_id={node_id} key={node_id} />
+        </li>
+      ))}
+    </ol>
   );
 };
-const PredictedNextNode = (props: { node_id: types.TNodeId }) => {
+const PredictedNextNode = React.memo((props: { node_id: types.TNodeId }) => {
   const text = useSelector((state) => state.data.nodes[props.node_id].text);
   const to_tree = useToTree(props.node_id);
   return (
-    <td className="flex w-fit gap-x-[0.25em] items-baseline py-[0.125em]">
+    <div className="flex w-fit gap-x-[0.25em] items-baseline py-[0.125em]">
       <StartButton node_id={props.node_id} />
       <StartConcurrentButton node_id={props.node_id} />
       <CopyNodeIdButton node_id={props.node_id} />
       <span onClick={to_tree} className="cursor-pointer">
         {text.slice(0, 30)}
       </span>
-    </td>
+    </div>
   );
-};
+});
 
 const CopyNodeIdButton = (props: { node_id: types.TNodeId }) => {
   const { copy, is_copied } = utils.useClipboard();
