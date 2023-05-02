@@ -42,7 +42,6 @@ const Center = ({ children }: { children: React.ReactNode }) => {
 
 const error_element = (
   <Center>
-    {" "}
     <span>
       An error occured while loading the page.{" "}
       <a href=".">Please reload the page.</a>

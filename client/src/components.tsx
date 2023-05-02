@@ -48,29 +48,20 @@ export const DesktopApp = React.memo(
 );
 
 const MobileNodeFilterQueryInput = () => {
-  const [node_filter_query, set_node_filter_query_fast] = Recoil.useRecoilState(
-    states.node_filter_query_fast_state,
-  );
-  const set_node_filter_query_slow = Recoil.useSetRecoilState(
-    states.node_filter_query_slow_state,
+  const [node_filter_query, set_node_filter_query] = Recoil.useRecoilState(
+    states.node_filter_query_state,
   );
   const handle_change = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const v = e.target.value;
-      set_node_filter_query_fast(v);
-      React.startTransition(() => {
-        set_node_filter_query_slow(v);
-      });
+      set_node_filter_query(v);
     },
-    [set_node_filter_query_fast, set_node_filter_query_slow],
+    [set_node_filter_query],
   );
   const clear_input = useCallback(() => {
     const v = EMPTY_STRING;
-    set_node_filter_query_fast(v);
-    React.startTransition(() => {
-      set_node_filter_query_slow(v);
-    });
-  }, [set_node_filter_query_fast, set_node_filter_query_slow]);
+    set_node_filter_query(v);
+  }, [set_node_filter_query]);
   return (
     <div className="flex items-center border border-solid border-gray-400">
       <input
@@ -90,29 +81,20 @@ const MobileNodeFilterQueryInput = () => {
 };
 
 const NodeFilterQueryInput = () => {
-  const [node_filter_query, set_node_filter_query_fast] = Recoil.useRecoilState(
-    states.node_filter_query_fast_state,
-  );
-  const set_node_filter_query_slow = Recoil.useSetRecoilState(
-    states.node_filter_query_slow_state,
+  const [node_filter_query, set_node_filter_query] = Recoil.useRecoilState(
+    states.node_filter_query_state,
   );
   const handle_change = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const v = e.target.value;
-      set_node_filter_query_fast(v);
-      React.startTransition(() => {
-        set_node_filter_query_slow(v);
-      });
+      set_node_filter_query(v);
     },
-    [set_node_filter_query_fast, set_node_filter_query_slow],
+    [set_node_filter_query],
   );
   const clear_input = useCallback(() => {
     const v = EMPTY_STRING;
-    set_node_filter_query_fast(v);
-    React.startTransition(() => {
-      set_node_filter_query_slow(v);
-    });
-  }, [set_node_filter_query_fast, set_node_filter_query_slow]);
+    set_node_filter_query(v);
+  }, [set_node_filter_query]);
   const ref = useMetaK();
   const queue = useQueue("todo_node_ids");
   const node_id = queue[0] || null;
@@ -142,16 +124,16 @@ const NodeFilterQueryInput = () => {
 };
 
 const useQueue = (column: "todo_node_ids" | "non_todo_node_ids") => {
-  const node_filter_query = Recoil.useRecoilValue_TRANSITION_SUPPORT_UNSTABLE(
-    states.node_filter_query_slow_state,
+  const node_filter_query = Recoil.useRecoilValue(
+    states.node_filter_query_state,
   );
-  const queue = useSelector((state) =>
-    state[column].filter((node_id) => {
-      const node = state.data.nodes[node_id];
-      return !_should_hide_of(node_filter_query, node.text, node_id);
-    }),
-  );
-  return queue;
+  const queue = useSelector((state) => state[column]);
+  const nodes = useSelector((state) => state.data.nodes);
+  const filtered_queue = queue.filter((node_id) => {
+    const node = nodes[node_id];
+    return !_should_hide_of(node_filter_query, node.text, node_id);
+  });
+  return filtered_queue;
 };
 
 const useMetaK = () => {
@@ -775,16 +757,19 @@ const PlannedNode = (props: {
 };
 
 const TodoQueueNodes = () => {
-  const queue = useQueue("todo_node_ids");
+  const queue = React.useDeferredValue(useQueue("todo_node_ids"));
+  return <QueueNodes node_ids={queue} />;
+};
 
+const QueueNodes = React.memo((props: { node_ids: types.TNodeId[] }) => {
   return (
     <ol className="list-outside pl-[4em]">
-      {queue.map((node_id) => (
+      {props.node_ids.map((node_id) => (
         <QueueEntry node_id={node_id} key={node_id} />
       ))}
     </ol>
   );
-};
+});
 
 const DndTreeNode = React.memo((props: { node_id: types.TNodeId }) => {
   const dispatch = useDispatch();
@@ -855,15 +840,8 @@ const TreeNode = React.memo(
 );
 
 const NonTodoQueueNodes = () => {
-  const queue = useQueue("non_todo_node_ids");
-
-  return (
-    <ol className="list-outside pl-[4em]">
-      {queue.map((node_id) => (
-        <QueueEntry node_id={node_id} key={node_id} />
-      ))}
-    </ol>
-  );
+  const node_ids = React.useDeferredValue(useQueue("non_todo_node_ids"));
+  return <QueueNodes node_ids={node_ids} />;
 };
 
 const EdgeList = React.memo(
@@ -1069,31 +1047,38 @@ const MobileQueueNodes = () => {
   const show_todo_only = Recoil.useRecoilValue(
     states.show_todo_only_atom_map.get(session),
   );
-  const node_filter_query = Recoil.useRecoilValue_TRANSITION_SUPPORT_UNSTABLE(
-    states.node_filter_query_slow_state,
+  const node_filter_query = Recoil.useRecoilValue(
+    states.node_filter_query_state,
   );
-  const node_ids = ops
-    .sorted_keys_of(queue)
-    .filter((node_id) => {
-      const node = nodes[node_id];
-      return !(
-        (show_todo_only && node.status !== "todo") ||
-        _should_hide_of(node_filter_query, node.text, node_id)
-      );
-    })
-    .slice(0, 100);
-  return (
-    <>
-      {node_ids.map((node_id) => (
-        <EntryWrapper node_id={node_id} key={node_id}>
-          <TextArea node_id={node_id} className="w-[100vw]" />
-          <MobileEntryButtons node_id={node_id} />
-          <Details node_id={node_id} />
-        </EntryWrapper>
-      ))}
-    </>
+  const node_ids = React.useDeferredValue(
+    ops
+      .sorted_keys_of(queue)
+      .filter((node_id) => {
+        const node = nodes[node_id];
+        return !(
+          (show_todo_only && node.status !== "todo") ||
+          _should_hide_of(node_filter_query, node.text, node_id)
+        );
+      })
+      .slice(0, 100),
   );
+  return <MobileQueueNodesImpl node_ids={node_ids} />;
 };
+const MobileQueueNodesImpl = React.memo(
+  (props: { node_ids: types.TNodeId[] }) => {
+    return (
+      <>
+        {props.node_ids.map((node_id) => (
+          <EntryWrapper node_id={node_id} key={node_id}>
+            <TextArea node_id={node_id} className="w-[100vw]" />
+            <MobileEntryButtons node_id={node_id} />
+            <Details node_id={node_id} />
+          </EntryWrapper>
+        ))}
+      </>
+    );
+  },
+);
 
 const TreeEntry = React.memo(
   (props: { node_id: types.TNodeId; prefix?: string }) => {

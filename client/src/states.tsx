@@ -30,12 +30,8 @@ type THead = {
 
 const retryer = new retryers.Retryer();
 
-export const node_filter_query_fast_state = Recoil.atom({
-  key: "ebs/node_filter_query_fast",
-  default: "",
-});
-export const node_filter_query_slow_state = Recoil.atom({
-  key: "ebs/node_filter_query_slow",
+export const node_filter_query_state = Recoil.atom({
+  key: "ebs/node_filter_query",
   default: "",
 });
 export const node_ids_state = Recoil.atom({
