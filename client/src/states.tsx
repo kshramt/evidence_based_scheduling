@@ -691,6 +691,7 @@ export class PersistentStateManager {
       this.#sync_store.get_state,
     );
     const use_remote = React.useCallback(async () => {
+      await this.check_remote_head();
       const state = this.#sync_store.get_state();
       if (state === null) {
         return;
