@@ -63,7 +63,7 @@ const MobileNodeFilterQueryInput = () => {
     set_node_filter_query(v);
   }, [set_node_filter_query]);
   return (
-    <div className="flex items-center border border-solid border-gray-400">
+    <div className="flex items-center border border-solid border-neutral-400">
       <input
         value={node_filter_query}
         onChange={handle_change}
@@ -103,7 +103,7 @@ const NodeFilterQueryInput = () => {
   return (
     <>
       {consts.SEARCH_MARK}
-      <div className="flex items-center border border-solid border-gray-400">
+      <div className="flex items-center border border-solid border-neutral-400">
         <input
           value={node_filter_query}
           onChange={handle_change}
@@ -172,7 +172,7 @@ const NodeIdsInput = () => {
   return (
     <>
       {consts.IDS_MARK}
-      <div className="flex items-center border border-solid border-gray-400">
+      <div className="flex items-center border border-solid border-neutral-400">
         <input
           value={node_ids}
           onChange={handle_change}
@@ -192,7 +192,7 @@ const NodeIdsInput = () => {
 
 const SBTTB = () => {
   return (
-    <ScrollBackToTopButton className="sticky top-[60%] left-[50%] -translate-x-1/2 -translate-y-1/2 px-[0.15rem] dark:bg-gray-300 bg-gray-600 dark:hover:bg-gray-400 hover:bg-gray-500 text-center min-w-[3rem] h-[3rem] text-[2rem] border-none shadow-none opacity-70 hover:opacity-100 float-left mt-[-3rem] z-40">
+    <ScrollBackToTopButton className="sticky top-[60%] left-[50%] -translate-x-1/2 -translate-y-1/2 px-[0.15rem] dark:bg-neutral-300 bg-neutral-600 dark:hover:bg-neutral-400 hover:bg-neutral-500 text-center min-w-[3rem] h-[3rem] text-[2rem] border-none shadow-none opacity-70 hover:opacity-100 float-left mt-[-3rem] z-40">
       {SCROLL_BACK_TO_TOP_MARK}
     </ScrollBackToTopButton>
   );
@@ -236,7 +236,7 @@ const Menu = (props: { ctx: states.PersistentStateManager }) => {
   }, [props.ctx]);
   return (
     <div
-      className={`flex items-center overflow-x-auto h-[3.01rem] pl-[1em] gap-x-[0.25em] w-full top-0  bg-gray-200 dark:bg-gray-900`}
+      className={`flex items-center overflow-x-auto h-[3.01rem] pl-[1em] gap-x-[0.25em] w-full top-0  bg-neutral-200 dark:bg-neutral-900`}
     >
       <MenuButton>
         <ul>
@@ -640,7 +640,7 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
                 text={text}
                 onBlur={dispatch_set_text_action}
                 onDoubleClick={prevent_propagation}
-                className="textarea whitespace-pre-wrap overflow-wrap-anywhere w-[17em] overflow-hidden p-[0.125em] bg-white dark:bg-gray-700"
+                className="textarea whitespace-pre-wrap overflow-wrap-anywhere w-[17em] overflow-hidden p-[0.125em] bg-white dark:bg-neutral-800"
               />
               {is_hover && (
                 <div className="flex w-fit gap-x-[0.125em]">
@@ -730,7 +730,7 @@ const PlannedNode = (props: {
           status === "done"
             ? "text-red-600 dark:text-red-400"
             : status === "dont"
-            ? "text-gray-500"
+            ? "text-neutral-500"
             : undefined,
         )}
       >
@@ -958,7 +958,7 @@ const MobileMenu = (props: { ctx: states.PersistentStateManager }) => {
   }, [props.ctx]);
   return (
     <div
-      className={`flex items-center overflow-x-auto gap-x-[0.25em] h-[3.01rem] w-full top-0 bg-gray-200 dark:bg-gray-900`}
+      className={`flex items-center overflow-x-auto gap-x-[0.25em] h-[3.01rem] w-full top-0 bg-neutral-200 dark:bg-neutral-900`}
     >
       <MenuButton>
         <ul>
@@ -1225,10 +1225,10 @@ const DetailsImpl = React.memo((props: { node_id: types.TNodeId }) => {
     );
   }, [dispatch, node_ids, new_edge_type, props.node_id]);
   const hline = (
-    <hr className="my-[0.5em] border-gray-300 dark:border-gray-600 bg-gray-300 dark:bg-gray-600" />
+    <hr className="my-[0.5em] border-neutral-300 dark:border-neutral-600 bg-neutral-300 dark:bg-neutral-600" />
   );
   return (
-    <div className="pt-[0.25em] bg-gray-200 dark:bg-gray-900">
+    <div className="pt-[0.25em] bg-neutral-200 dark:bg-neutral-900">
       {hline}
       <div className="flex w-fit gap-x-[0.25em] items-baseline">
         <TogglePinButton node_id={props.node_id} />
@@ -2060,12 +2060,12 @@ const TextAreaImpl = ({
       onBlur={dispatch_set_text_action}
       onDoubleClick={prevent_propagation}
       className={utils.join(
-        "whitespace-pre-wrap overflow-wrap-anywhere overflow-hidden p-[0.125em] bg-white dark:bg-gray-700",
+        "whitespace-pre-wrap overflow-wrap-anywhere overflow-hidden p-[0.125em] bg-white dark:bg-neutral-800",
         className,
         status === "done"
           ? "text-red-600 dark:text-red-400"
           : status === "dont"
-          ? "text-gray-500"
+          ? "text-neutral-500"
           : undefined,
       )}
       {...textarea_props}

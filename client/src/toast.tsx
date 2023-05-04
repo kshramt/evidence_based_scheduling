@@ -58,14 +58,14 @@ const Component = () => {
         <li
           key={message.id}
           className={utils.join(
-            "flex items-baseline gap-x-[1em] dark:text-gray-200 p-[0.5em] mb-[1em] last:mb-0",
+            "flex items-baseline gap-x-[1em] dark:text-neutral-200 p-[0.5em] mb-[1em] last:mb-0",
             message.severity === "error"
               ? "bg-red-300 dark:bg-red-700"
               : "bg-blue-300 dark:bg-blue-700",
           )}
         >
           <button
-            className="btn-icon bg-inherit hover:bg-inherit hover:border-solid hover:border-2 hover:border-gray-400"
+            className="btn-icon bg-inherit hover:bg-inherit hover:border-solid hover:border-2 hover:border-neutral-400"
             onClick={() => {
               store.delete(message.id);
             }}

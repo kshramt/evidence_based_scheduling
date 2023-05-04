@@ -727,7 +727,7 @@ export class PersistentStateManager {
     }
     return (
       <div className="flex justify-center h-[100vh] w-full items-center fixed z-50 top-0 left-0 pt-[1em] pb-[1em]">
-        <div className="w-[80vw] bg-gray-200 dark:bg-gray-900">
+        <div className="w-[80vw] bg-neutral-200 dark:bg-neutral-900">
           <div className="flex justify-center">
             <button onClick={use_remote} className="btn-icon">
               Reload
