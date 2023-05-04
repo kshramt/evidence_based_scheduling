@@ -451,101 +451,107 @@ const EstimationInput = React.memo((props: { node_id: types.TNodeId }) => {
   );
 });
 
-const CoveyQuadrant = (props: {
-  quadrant_id:
-    | "important_urgent"
-    | "important_not_urgent"
-    | "not_important_urgent"
-    | "not_important_not_urgent";
-}) => {
-  const nodes = useSelector(
-    (state) => state.data.covey_quadrants[props.quadrant_id].nodes,
-  );
-  const dispatch = useDispatch();
-  const selected_node_ids = Recoil.useRecoilValue(states.node_ids_state);
-  const assign_nodes = React.useCallback(() => {
-    const node_ids = node_ids_list_of_node_ids_string(selected_node_ids);
-    if (node_ids.length < 1) {
-      return;
-    }
-    const payload = {
-      quadrant_id: props.quadrant_id,
-      node_ids,
-    };
-    dispatch(actions.assign_nodes_to_covey_quadrant_action(payload));
-  }, [props.quadrant_id, selected_node_ids, dispatch]);
-  return (
-    <div className={`overflow-y-scroll h-[50%] p-[0.5em]`}>
-      <button className="btn-icon" onClick={assign_nodes}>
-        {consts.ADD_MARK}
-      </button>
-      {props.quadrant_id}
-      {nodes
-        .slice(0)
-        .reverse()
-        .map((node_id) => (
-          <CoveyQuadrantNode
-            node_id={node_id}
-            quadrant_id={props.quadrant_id}
-            key={node_id}
-          />
-        ))}
-    </div>
-  );
-};
-
-const CoveyQuadrantNode = (props: {
-  node_id: types.TNodeId;
-  quadrant_id:
-    | "important_urgent"
-    | "important_not_urgent"
-    | "not_important_urgent"
-    | "not_important_not_urgent";
-}) => {
-  const text = useSelector((state) => state.data.nodes[props.node_id].text);
-  const status = useSelector((state) => state.data.nodes[props.node_id].status);
-  const dispatch = useDispatch();
-  const { is_hover, on_mouse_over, on_mouse_out } = useHover();
-  const is_running = useIsRunning(props.node_id);
-  const unassign_node = React.useCallback(() => {
-    dispatch(
-      actions.unassign_nodes_of_covey_quadrant_action({
-        quadrant_id: props.quadrant_id,
-        node_ids: [props.node_id],
-      }),
+const CoveyQuadrant = React.memo(
+  (props: {
+    quadrant_id:
+      | "important_urgent"
+      | "important_not_urgent"
+      | "not_important_urgent"
+      | "not_important_not_urgent";
+  }) => {
+    const nodes = useSelector(
+      (state) => state.data.covey_quadrants[props.quadrant_id].nodes,
     );
-  }, [props.quadrant_id, props.node_id, dispatch]);
-  const to_tree = useToTree(props.node_id);
-  return status === "todo" ? (
-    <div
-      className={utils.join(
-        "p-[0.0625em] inline-block",
-        is_running ? "running" : undefined,
-      )}
-      onMouseOver={on_mouse_over}
-      onMouseOut={on_mouse_out}
-    >
-      <span
-        onClick={to_tree}
-        className="w-[15em] block whitespace-nowrap overflow-hidden cursor-pointer"
-      >
-        {text.slice(0, 40)}
-      </span>
-      {(is_hover || is_running) && (
-        <div className="flex w-fit gap-x-[0.25em]">
-          <StartButton node_id={props.node_id} />
-          <StartConcurrentButton node_id={props.node_id} />
-          <CopyNodeIdButton node_id={props.node_id} />
-          <button className="btn-icon" onClick={unassign_node}>
-            {consts.DELETE_MARK}
-          </button>
-        </div>
-      )}
-    </div>
-  ) : null;
-};
+    const dispatch = useDispatch();
+    const selected_node_ids = Recoil.useRecoilValue(states.node_ids_state);
+    const assign_nodes = React.useCallback(() => {
+      const node_ids = node_ids_list_of_node_ids_string(selected_node_ids);
+      if (node_ids.length < 1) {
+        return;
+      }
+      const payload = {
+        quadrant_id: props.quadrant_id,
+        node_ids,
+      };
+      dispatch(actions.assign_nodes_to_covey_quadrant_action(payload));
+    }, [props.quadrant_id, selected_node_ids, dispatch]);
+    return (
+      <div className={`overflow-y-scroll h-[50%] p-[0.5em]`}>
+        <button className="btn-icon" onClick={assign_nodes}>
+          {consts.ADD_MARK}
+        </button>
+        {props.quadrant_id}
+        {nodes
+          .slice(0)
+          .reverse()
+          .map((node_id) => (
+            <CoveyQuadrantNode
+              node_id={node_id}
+              quadrant_id={props.quadrant_id}
+              key={node_id}
+            />
+          ))}
+      </div>
+    );
+  },
+);
 
-const Timeline = () => {
+const CoveyQuadrantNode = React.memo(
+  (props: {
+    node_id: types.TNodeId;
+    quadrant_id:
+      | "important_urgent"
+      | "important_not_urgent"
+      | "not_important_urgent"
+      | "not_important_not_urgent";
+  }) => {
+    const text = useSelector((state) => state.data.nodes[props.node_id].text);
+    const status = useSelector(
+      (state) => state.data.nodes[props.node_id].status,
+    );
+    const dispatch = useDispatch();
+    const { is_hover, on_mouse_over, on_mouse_out } = useHover();
+    const is_running = useIsRunning(props.node_id);
+    const unassign_node = React.useCallback(() => {
+      dispatch(
+        actions.unassign_nodes_of_covey_quadrant_action({
+          quadrant_id: props.quadrant_id,
+          node_ids: [props.node_id],
+        }),
+      );
+    }, [props.quadrant_id, props.node_id, dispatch]);
+    const to_tree = useToTree(props.node_id);
+    return status === "todo" ? (
+      <div
+        className={utils.join(
+          "p-[0.0625em] inline-block",
+          is_running ? "running" : undefined,
+        )}
+        onMouseOver={on_mouse_over}
+        onMouseOut={on_mouse_out}
+      >
+        <span
+          onClick={to_tree}
+          className="w-[15em] block whitespace-nowrap overflow-hidden cursor-pointer"
+        >
+          {text.slice(0, 40)}
+        </span>
+        {(is_hover || is_running) && (
+          <div className="flex w-fit gap-x-[0.25em]">
+            <StartButton node_id={props.node_id} />
+            <StartConcurrentButton node_id={props.node_id} />
+            <CopyNodeIdButton node_id={props.node_id} />
+            <button className="btn-icon" onClick={unassign_node}>
+              {consts.DELETE_MARK}
+            </button>
+          </div>
+        )}
+      </div>
+    ) : null;
+  },
+);
+
+const Timeline = React.memo(() => {
   const dispatch = useDispatch();
   const count = useSelector((state) => state.data.timeline.count);
   const increment_count = React.useCallback(
@@ -570,43 +576,11 @@ const Timeline = () => {
       </button>
     </>
   );
-};
+});
 
-const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
-  const dispatch = useDispatch();
+const TimeNode = React.memo((props: { time_node_id: types.TTimeNodeId }) => {
   const time_node = useSelector(
     (state) => state.data.timeline.time_nodes[props.time_node_id],
-  );
-  const selected_node_ids = Recoil.useRecoilValue(states.node_ids_state);
-  const text = time_node?.text ? time_node.text : EMPTY_STRING;
-  const { is_hover, on_mouse_over, on_mouse_out } = useHover();
-
-  const toggle_show_children = React.useCallback(() => {
-    const payload = props.time_node_id;
-    dispatch(actions.toggle_show_time_node_children_action(payload));
-  }, [props.time_node_id, dispatch]);
-  const assign_nodes = React.useCallback(() => {
-    const node_ids = node_ids_list_of_node_ids_string(selected_node_ids);
-    if (node_ids.length < 1) {
-      return;
-    }
-    const payload = {
-      time_node_id: props.time_node_id,
-      node_ids,
-    };
-    dispatch(actions.assign_nodes_to_time_node_action(payload));
-  }, [props.time_node_id, selected_node_ids, dispatch]);
-  const dispatch_set_text_action = React.useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const el = e.target;
-      dispatch(
-        actions.set_time_node_text_action({
-          time_node_id: props.time_node_id,
-          text: el.innerText,
-        }),
-      );
-    },
-    [dispatch, props.time_node_id],
   );
 
   const year_begin = useSelector((state) => state.data.timeline.year_begin);
@@ -620,84 +594,152 @@ const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
       {time_node_id_repr_of(props.time_node_id, year_begin)}
     </a>
   );
-  const [upper_id_el, left_id_el] =
-    props.time_node_id[0] === "w" || props.time_node_id[0] === "d"
-      ? [id_el, undefined]
-      : [undefined, id_el];
+
   const node_ids =
     time_node?.show_children !== "none"
       ? ops.sorted_keys_of(time_node?.nodes || {})
       : [];
-  const entry = (
-    <div>
-      {upper_id_el}
+  const planned_nodes = node_ids.map((node_id) => (
+    <tr className="align-baseline" key={node_id}>
+      <td />
+      <PlannedNode
+        node_id={node_id}
+        time_node_id={props.time_node_id}
+        Component="td"
+      />
+    </tr>
+  ));
+  if (props.time_node_id[0] === "h") {
+    return (
+      <>
+        <tr>
+          <td>{id_el}</td>
+          <TimeNodeEntry time_node_id={props.time_node_id} />
+        </tr>
+        {planned_nodes}
+      </>
+    );
+  }
+  if (props.time_node_id[0] === "d") {
+    return (
       <table>
         <tbody>
-          <tr onMouseOver={on_mouse_over} onMouseOut={on_mouse_out}>
-            <td className="align-top">{left_id_el}</td>
-            <td>
-              <AutoHeightTextArea
-                text={text}
-                onBlur={dispatch_set_text_action}
-                onDoubleClick={prevent_propagation}
-                className="textarea whitespace-pre-wrap overflow-wrap-anywhere w-[17em] overflow-hidden p-[0.125em] bg-white dark:bg-neutral-800"
-              />
-              {is_hover && (
-                <div className="flex w-fit gap-x-[0.125em]">
-                  <button className="btn-icon" onClick={assign_nodes}>
-                    {consts.ADD_MARK}
-                  </button>
-                  <CopyDescendantTimeNodesPlannedNodeIdsButton
-                    time_node_id={props.time_node_id}
-                  />
-                  <button className="btn-icon" onClick={toggle_show_children}>
-                    {time_node === undefined ||
-                    time_node.show_children === "partial"
-                      ? consts.IS_PARTIAL_MARK
-                      : time_node.show_children === "full"
-                      ? consts.IS_FULL_MARK
-                      : consts.IS_NONE_MARK}
-                  </button>
-                </div>
-              )}
-            </td>
+          <tr>
+            <td />
+            <td> {id_el}</td>
           </tr>
-          {node_ids.map((node_id) => (
-            <tr className="align-baseline" key={node_id}>
-              <td className="row-id" />
-              <PlannedNode
-                node_id={node_id}
-                time_node_id={props.time_node_id}
-              />
-            </tr>
+          <tr>
+            <td />
+            <TimeNodeEntry time_node_id={props.time_node_id} />
+          </tr>
+          {planned_nodes}
+          {child_time_node_ids.map((child_time_node_id) => (
+            <TimeNode
+              time_node_id={child_time_node_id}
+              key={child_time_node_id}
+            />
           ))}
         </tbody>
       </table>
-    </div>
-  );
+    );
+  }
   const children =
-    (time_node?.show_children === "full" || props.time_node_id[0] === "d") &&
+    time_node?.show_children === "full" &&
     child_time_node_ids.map((child_time_node_id) => (
       <TimeNode time_node_id={child_time_node_id} key={child_time_node_id} />
     ));
-  const el =
-    props.time_node_id[0] === "w" ? (
-      <div className="flex gap-x-[0.125em]">
-        {entry}
-        {children}
+
+  return (
+    <div className="pb-[0.0625em] pl-[0.5em] flex gap-x-[0.125em]">
+      <div>
+        {id_el}
+        <TimeNodeEntry time_node_id={props.time_node_id} />
+        {node_ids.map((node_id) => (
+          <PlannedNode
+            node_id={node_id}
+            time_node_id={props.time_node_id}
+            Component="div"
+            key={node_id}
+          />
+        ))}
       </div>
-    ) : (
-      <>
-        {entry}
-        {children}
-      </>
+      {props.time_node_id[0] === "w" ? children : <div>{children}</div>}
+    </div>
+  );
+});
+
+const TimeNodeEntry = React.memo(
+  (props: { time_node_id: types.TTimeNodeId }) => {
+    const dispatch = useDispatch();
+    const time_node = useSelector(
+      (state) => state.data.timeline.time_nodes[props.time_node_id],
     );
-  return <div className="pb-[0.0625em] pl-[0.5em]">{el}</div>;
-};
+    const selected_node_ids = Recoil.useRecoilValue(states.node_ids_state);
+    const text = time_node?.text ? time_node.text : EMPTY_STRING;
+    const { is_hover, on_mouse_over, on_mouse_out } = useHover();
+
+    const toggle_show_children = React.useCallback(() => {
+      const payload = props.time_node_id;
+      dispatch(actions.toggle_show_time_node_children_action(payload));
+    }, [props.time_node_id, dispatch]);
+    const assign_nodes = React.useCallback(() => {
+      const node_ids = node_ids_list_of_node_ids_string(selected_node_ids);
+      if (node_ids.length < 1) {
+        return;
+      }
+      const payload = {
+        time_node_id: props.time_node_id,
+        node_ids,
+      };
+      dispatch(actions.assign_nodes_to_time_node_action(payload));
+    }, [props.time_node_id, selected_node_ids, dispatch]);
+    const dispatch_set_text_action = React.useCallback(
+      (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const el = e.target;
+        dispatch(
+          actions.set_time_node_text_action({
+            time_node_id: props.time_node_id,
+            text: el.innerText,
+          }),
+        );
+      },
+      [dispatch, props.time_node_id],
+    );
+
+    return (
+      <td onMouseOver={on_mouse_over} onMouseOut={on_mouse_out}>
+        <AutoHeightTextArea
+          text={text}
+          onBlur={dispatch_set_text_action}
+          onDoubleClick={prevent_propagation}
+          className="textarea whitespace-pre-wrap overflow-wrap-anywhere w-[17em] overflow-hidden p-[0.125em] bg-white dark:bg-neutral-800"
+        />
+        {is_hover && (
+          <div className="flex w-fit gap-x-[0.125em]">
+            <button className="btn-icon" onClick={assign_nodes}>
+              {consts.ADD_MARK}
+            </button>
+            <CopyDescendantTimeNodesPlannedNodeIdsButton
+              time_node_id={props.time_node_id}
+            />
+            <button className="btn-icon" onClick={toggle_show_children}>
+              {time_node === undefined || time_node.show_children === "partial"
+                ? consts.IS_PARTIAL_MARK
+                : time_node.show_children === "full"
+                ? consts.IS_FULL_MARK
+                : consts.IS_NONE_MARK}
+            </button>
+          </div>
+        )}
+      </td>
+    );
+  },
+);
 
 const PlannedNode = (props: {
   node_id: types.TNodeId;
   time_node_id: types.TTimeNodeId;
+  Component: "div" | "td";
 }) => {
   const text = useSelector((state) => state.data.nodes[props.node_id].text);
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
@@ -714,7 +756,7 @@ const PlannedNode = (props: {
   }, [props.time_node_id, props.node_id, dispatch]);
   const to_tree = useToTree(props.node_id);
   return (
-    <td
+    <props.Component
       className={utils.join(
         "py-[0.0625em]",
         is_running ? "running" : undefined,
@@ -752,7 +794,7 @@ const PlannedNode = (props: {
           </button>
         </div>
       )}
-    </td>
+    </props.Component>
   );
 };
 
