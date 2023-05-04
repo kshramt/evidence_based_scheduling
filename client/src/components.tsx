@@ -600,7 +600,7 @@ const TimeNode = React.memo((props: { time_node_id: types.TTimeNodeId }) => {
       ? ops.sorted_keys_of(time_node?.nodes || {})
       : [];
   const planned_nodes = node_ids.map((node_id) => (
-    <tr className="align-baseline" key={node_id}>
+    <tr key={node_id}>
       <td />
       <PlannedNode
         node_id={node_id}
@@ -650,7 +650,7 @@ const TimeNode = React.memo((props: { time_node_id: types.TTimeNodeId }) => {
     ));
 
   return (
-    <div className="pb-[0.0625em] pl-[0.5em] flex gap-x-[0.125em]">
+    <div className="pb-[0.0625em] pl-[0.5em] flex gap-x-[0.125em] items-start">
       <div>
         {id_el}
         <TimeNodeEntry time_node_id={props.time_node_id} />
