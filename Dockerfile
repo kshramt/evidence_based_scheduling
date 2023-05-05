@@ -93,7 +93,7 @@ RUN cd proto \
    && buf lint \
    && buf generate --config buf.yaml --template buf.gen-go.yaml
 
-FROM base_poetry as tests_server_grpc_builder
+FROM base_poetry as tests_e2e_grpc_builder
 WORKDIR /grpc_py
 COPY grpc_py/poetry.toml grpc_py/pyproject.toml grpc_py/poetry.lock ./
 RUN --mount=type=cache,target=/root/.cache python3 -m poetry install --only main
@@ -130,16 +130,6 @@ RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod
    && go build -o docker-compose cmd/main.go \
    && mv docker-compose /go/bin/
 
-FROM base_poetry as tests_server
-COPY --from=docker/buildx-bin:0.10.3 /buildx /usr/libexec/docker/cli-plugins/docker-buildx
-COPY --from=docker_go_builder /go/bin/docker /usr/local/bin/docker
-COPY --from=docker_go_builder /go/bin/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
-COPY tests/server/poetry.toml tests/server/pyproject.toml tests/server/poetry.lock ./
-RUN --mount=type=cache,target=/root/.cache python3 -m poetry install --only main
-COPY tests/server/src src
-COPY --from=tests_server_grpc_builder /app/gen src/gen
-RUN --mount=type=cache,target=/root/.cache python3 -m poetry install --only main
-
 FROM base_poetry as tests_e2e
 COPY --from=docker/buildx-bin:0.10.3 /buildx /usr/libexec/docker/cli-plugins/docker-buildx
 COPY --from=docker_go_builder /go/bin/docker /usr/local/bin/docker
@@ -151,5 +141,5 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
    python3 -m poetry run python3 -m playwright install-deps
 RUN python3 -m poetry run python3 -m playwright install
 COPY tests/e2e/src src
-COPY --from=tests_server_grpc_builder /app/gen src/gen
+COPY --from=tests_e2e_grpc_builder /app/gen src/gen
 RUN --mount=type=cache,target=/root/.cache python3 -m poetry install --only main

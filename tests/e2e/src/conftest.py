@@ -1,9 +1,9 @@
+import asyncio
 import collections.abc
 import contextlib
 import os
 import socket
 import subprocess
-import time
 import typing
 import unittest.mock
 import uuid
@@ -11,8 +11,28 @@ from typing import Any, Final
 
 import httpx
 import pytest
+import playwright.async_api
 
 MY_HOST: Final = os.environ["MY_HOST"]
+
+
+@pytest.fixture
+async def browser() -> collections.abc.Generator[
+    playwright.async_api.Browser, Any, None
+]:
+    async with playwright.async_api.async_playwright() as pw:
+        yield await pw.chromium.launch()
+
+
+@pytest.fixture
+async def context(
+    browser: playwright.async_api.Browser,
+) -> collections.abc.Generator[playwright.async_api.BrowserContext, Any, None]:
+    context = await browser.new_context()
+    try:
+        yield context
+    finally:
+        await context.close()
 
 
 @pytest.fixture
@@ -46,67 +66,84 @@ def envoy_grpc_port() -> str:
 
 
 @pytest.fixture(scope="session")
-def compose_build(compose_build_envs: None) -> None:
-    res = subprocess.run(
-        [
+def event_loop() -> collections.abc.Generator[asyncio.AbstractEventLoop, Any, None]:
+    policy = asyncio.get_event_loop_policy()
+    loop = policy.new_event_loop()
+    try:
+        yield loop
+    finally:
+        loop.close()
+
+
+@pytest.fixture(scope="session")
+async def compose_build(compose_build_envs: None) -> None:
+    args = [
+        "docker",
+        "compose",
+        "-f",
+        "compose.yaml",
+        "-f",
+        "compose.dev.yaml",
+        "build",
+    ]
+    res = await asyncio.create_subprocess_exec(
+        *args,
+        cwd=os.environ["MY_COMPOSE_DIR"],
+    )
+    stdout, stderr = await res.communicate()
+    if res.returncode:
+        raise RuntimeError(res.returncode, args, stdout, stderr)
+
+
+@pytest.fixture
+async def compose_up(
+    compose_up_envs: None,
+    compose_build: None,
+) -> collections.abc.Generator[None, Any, None]:
+    try:
+        args = ["scripts/launch.sh"]
+        res = await asyncio.create_subprocess_exec(
+            *args,
+            cwd=os.environ["MY_COMPOSE_DIR"],
+        )
+        stdout, stderr = await res.communicate()
+        if res.returncode:
+            raise RuntimeError(res.returncode, args, stdout, stderr)
+        yield
+    finally:
+        args = [
             "docker",
             "compose",
             "-f",
             "compose.yaml",
             "-f",
             "compose.dev.yaml",
-            "build",
-        ],
-        cwd=os.environ["MY_COMPOSE_DIR"],
-    )
-    res.check_returncode()
+            "down",
+            "--volumes",
+        ]
+        res = await asyncio.create_subprocess_exec(
+            *args,
+            cwd=os.environ["MY_COMPOSE_DIR"],
+        )
+        stdout, stderr = await res.communicate()
+        if res.returncode:
+            raise RuntimeError(res.returncode, args, stdout, stderr)
 
 
 @pytest.fixture
-def compose_up(
-    compose_up_envs: None,
-    compose_build: None,
-) -> collections.abc.Generator[None, Any, None]:
-    try:
-        res = subprocess.run(
-            [
-                "scripts/launch.sh",
-            ],
-            cwd=os.environ["MY_COMPOSE_DIR"],
-        )
-        res.check_returncode()
-        yield
-    finally:
-        res = subprocess.run(
-            [
-                "docker",
-                "compose",
-                "-f",
-                "compose.yaml",
-                "-f",
-                "compose.dev.yaml",
-                "down",
-                "--volumes",
-            ],
-            cwd=os.environ["MY_COMPOSE_DIR"],
-        )
-        res.check_returncode()
-
-
-@pytest.fixture
-def envoy_waiter(compose_up: None, my_host: str, envoy_http_port: str) -> None:  #
-    uri = f"http://{my_host}:{envoy_http_port}"
-    with httpx.Client() as client:
+async def envoy_waiter(compose_up: None, my_host: str) -> None:
+    uri = f"http://{my_host}:{os.environ['ENVOY_HTTP_PORT']}"
+    async with httpx.AsyncClient() as client:
         i = -1
         while True:
             i += 1
             try:
-                client.get(uri)
+                await client.get(uri)
                 return
             except Exception:
                 if 100 <= i:
                     raise
-            time.sleep(0.1)
+            await asyncio.sleep(0.1)
 
 
 @pytest.fixture(scope="session")

@@ -1,31 +1,29 @@
-import collections.abc
-import time
+import asyncio
 
-import playwright.sync_api
-import pytest
+import playwright.async_api
 
 
-def test_walkthrough(
+async def test_e2e(
     compose_up: None,
-    envoy_waiter: collections.abc.Awaitable[None],
+    envoy_waiter: None,
     my_host: str,
-    context: playwright.sync_api.BrowserContext,
+    context: playwright.async_api.BrowserContext,
     envoy_http_port: str,
 ) -> None:
-    page = context.new_page()
-    page.goto(f"http://{my_host}:{envoy_http_port}/app")
+    page = await context.new_page()
+    await page.goto(f"http://{my_host}:{envoy_http_port}/app")
     # Click an invisible button.
     i = 0
     while True:
         i += 1
         try:
-            page.evaluate(
+            await page.evaluate(
                 '()=>{document.getElementById("skip-persistent-storage-check").click()}'
             )
             break
         except Exception:
             if 10 < i:
                 raise
-            time.sleep(0.1)
-    page.locator("#sign-up-name").fill("user1")
-    page.get_by_role("button", name="Sign-up").click()
+            asyncio.sleep(0.1)
+    await page.locator("#sign-up-name").fill("user1")
+    await page.get_by_role("button", name="Sign-up").click()

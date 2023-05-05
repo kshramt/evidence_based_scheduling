@@ -1,5 +1,4 @@
 import base64
-import collections.abc
 import json
 import os
 
@@ -7,18 +6,16 @@ import google.protobuf.json_format
 import google.protobuf.timestamp_pb2
 import grpc
 import httpx
-import pytest
 
 from src.gen.api.v1 import api_pb2, api_pb2_grpc
 
 
-@pytest.mark.asyncio
 async def test_walkthrough(
     compose_up: None,
-    envoy_waiter: collections.abc.Awaitable[None],
+    envoy_waiter: None,
     my_host: str,
 ) -> None:
-    await envoy_waiter
+    envoy_waiter
     async with httpx.AsyncClient() as client:
         pass
         assert await client.get(

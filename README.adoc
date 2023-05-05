@@ -67,6 +67,6 @@ xdg-open http://localhost:3000
 
 [source,bash]
 ----
-docker build -t t:2 --target tests_server .
+docker build -t t:2 --target tests_e2e .
 docker run --mount "type=bind,source=${PWD},target=${PWD}" --mount "type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock" --mount type=bind,source="${HOME}/.docker/buildx,target=/root/.docker/buildx" -e MY_HOST=host.docker.internal -e "MY_COMPOSE_DIR=${PWD}" --add-host=host.docker.internal:host-gateway --init --rm t:2 .venv/bin/python3 -m pytest -s src
 ----

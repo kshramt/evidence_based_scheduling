@@ -52,18 +52,6 @@ if [[ "${os}" = "${host_os}" && "${arch}" = "${host_arch}" ]]; then
     --rm \
     "${img_prefix}/tests_e2e:h-${github_sha}-${os}-${arch}" \
     .venv/bin/python3 -m pytest -s src
-  docker run \
-    --mount "type=bind,source=${PWD},target=${PWD}" \
-    --mount "type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock" \
-    --mount "type=bind,source=${HOME}/.docker/buildx,target=/root/.docker/buildx" \
-    -e "MY_COMPOSE_DIR=${PWD}" \
-    -e "CI=${CI:-}" \
-    -e MY_HOST="host.docker.internal" \
-    --add-host=host.docker.internal:host-gateway \
-    --init \
-    --rm \
-    "${img_prefix}/tests_server:h-${github_sha}-${os}-${arch}" \
-    .venv/bin/python3 -m pytest -s src
 
   # Wait `docker push`
   wait

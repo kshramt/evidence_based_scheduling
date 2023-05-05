@@ -12,6 +12,9 @@ module = [
 ]
 ignore_missing_imports = true
 
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
 [tool.poetry]
 name = "src"
 version = "1.0.0"
@@ -23,7 +26,10 @@ license = "AGPL"
 python = ">=3.10,<3.12"
 pytest = "^7.2.0"
 httpx = "^0.23.3"
-pytest-playwright = "^0.3.2"
+playwright = "^1.33.0"
+pytest-asyncio = "^0.21.0"
+grpcio = "^1.54.0"
+protobuf = "^4.22.4"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^0.991"
