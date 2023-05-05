@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "types": ["vitest/importMeta"],
     "target": "ESNext",
     "useDefineForClassFields": true,
     "lib": ["DOM", "DOM.Iterable", "ESNext", "WebWorker"],
