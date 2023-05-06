@@ -2,9 +2,11 @@
 
 image:https://github.com/kshramt/evidence_based_scheduling/actions/workflows/ci.yml/badge.svg["ci", link="https://github.com/kshramt/evidence_based_scheduling/actions/workflows/ci.yml"]
 
-This is a TODO application, which supports [the evidence based scheduling](https://www.joelonsoftware.com/2007/10/26/evidence-based-scheduling/).
+This is a TODO application, which offers the following features:
 
-The numbers shown on the right are the 0th, 10th, 33rd, 50th, 67th, 90th, and 100th percentiles of the estimated completion time in hours.
+1. https://www.joelonsoftware.com/2007/10/26/evidence-based-scheduling/[The evidence based scheduling method]
+2. https://jameshfisher.com/2013/12/19/todo-dag/[DAG-based dependency management]
+3. https://web.dev/learn/pwa/[Offline-first PWA]
 
 == Usage
 
@@ -51,11 +53,6 @@ docker run \
 [source,bash]
 ----
 docker compose -f compose.yaml -f compose.dev.yaml up --build
-----
-
-[source,bash]
-----
-UVICORN_PORT=5000 make run_api
 ----
 
 [source,bash]
