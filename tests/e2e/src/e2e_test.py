@@ -27,3 +27,4 @@ async def test_e2e(
             asyncio.sleep(0.1)
     await page.locator("#sign-up-name").fill("user1")
     await page.get_by_role("button", name="Sign-up").click()
+    await page.locator("#add-root-button").click()

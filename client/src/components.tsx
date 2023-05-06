@@ -267,7 +267,7 @@ const Menu = (props: { ctx: states.PersistentStateManager }) => {
       >
         {consts.STOP_MARK}
       </button>
-      <AddButton node_id={root} />
+      <AddButton node_id={root} id="add-root-button" />
       <button
         className="btn-icon"
         arial-label="Undo."
@@ -1780,7 +1780,11 @@ const StartConcurrentButton = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const AddButton = (props: { node_id: types.TNodeId; prefix?: string }) => {
+const AddButton = (props: {
+  node_id: types.TNodeId;
+  prefix?: string;
+  id?: string;
+}) => {
   const dispatch = useDispatch();
   const session = React.useContext(states.session_key_context);
   const show_mobile = Recoil.useRecoilValue(
@@ -1796,6 +1800,7 @@ const AddButton = (props: { node_id: types.TNodeId; prefix?: string }) => {
   return (
     <button
       className="btn-icon"
+      id={props.id}
       onClick={handle_click}
       onDoubleClick={prevent_propagation}
     >
