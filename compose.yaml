@@ -1,15 +1,15 @@
 services:
   api_v1:
     depends_on:
-      postgres:
-        condition: service_healthy
-    restart: always
+      postgres_migration:
+        condition: service_completed_successfully
+    restart: unless-stopped
     environment:
       MY_DB_URI: user=app host=postgres dbname=postgres password=${_POSTGRES_APP_USER_PASSWORD?}
   nginx:
-    restart: always
+    restart: unless-stopped
   envoy:
-    restart: always
+    restart: unless-stopped
     depends_on:
       - api_v1
       - nginx
@@ -24,7 +24,7 @@ services:
       - log_line_prefix='[%t]%u %d %p[%l]'
       - -c
       - log_min_duration_statement=5000
-    restart: always
+    restart: unless-stopped
     environment:
       LANG: C.UTF-8
       POSTGRES_PASSWORD: ${_POSTGRES_PASSWORD?}
@@ -37,5 +37,13 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  postgres_migration:
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      CI: ${CI:-}
+      _POSTGRES_APP_USER_PASSWORD: ${_POSTGRES_APP_USER_PASSWORD?}
+      URL: postgresql://postgres:${_POSTGRES_PASSWORD?}@postgres:5432/postgres?sslmode=disable
 # volumes:
 #   pgdata:

@@ -36,6 +36,7 @@ def run(args):
             ("prod_envoy", "/envoy"),
             ("prod_nginx", "/nginx"),
             ("prod_postgres", "/postgres"),
+            ("prod_postgres_migration", "/postgres_migration"),
             ("prod_api_v1", "/api_v1"),
             ("tests_e2e", "/tests_e2e"),
         ):

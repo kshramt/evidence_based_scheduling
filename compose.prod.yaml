@@ -7,3 +7,5 @@ services:
     image: ghcr.io/kshramt/evidence_based_scheduling/envoy:${_DOCKER_ENVOY_TAG:-latest}
   postgres:
     image: ghcr.io/kshramt/evidence_based_scheduling/postgres:${_DOCKER_POSTGRES_TAG:-latest}
+  postgres_migration:
+    image: ghcr.io/kshramt/evidence_based_scheduling/postgres_migration:${_DOCKER_POSTGRES_MIGRATION_TAG:-latest}

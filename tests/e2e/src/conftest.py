@@ -3,8 +3,6 @@ import collections.abc
 import contextlib
 import os
 import socket
-import subprocess
-import typing
 import unittest.mock
 import uuid
 from typing import Any, Final
@@ -75,30 +73,9 @@ def event_loop() -> collections.abc.Generator[asyncio.AbstractEventLoop, Any, No
         loop.close()
 
 
-@pytest.fixture(scope="session")
-async def compose_build(compose_build_envs: None) -> None:
-    args = [
-        "docker",
-        "compose",
-        "-f",
-        "compose.yaml",
-        "-f",
-        "compose.dev.yaml",
-        "build",
-    ]
-    res = await asyncio.create_subprocess_exec(
-        *args,
-        cwd=os.environ["MY_COMPOSE_DIR"],
-    )
-    stdout, stderr = await res.communicate()
-    if res.returncode:
-        raise RuntimeError(res.returncode, args, stdout, stderr)
-
-
 @pytest.fixture
 async def compose_up(
     compose_up_envs: None,
-    compose_build: None,
 ) -> collections.abc.Generator[None, Any, None]:
     try:
         args = ["scripts/launch.sh"]
@@ -155,17 +132,6 @@ def compose_common_envs() -> collections.abc.Generator[None, Any, None]:
             _POSTGRES_APP_USER_PASSWORD="app",
             ENV="dev",
         ),
-    ):
-        yield
-
-
-@pytest.fixture(scope="session")
-def compose_build_envs(
-    compose_common_envs: None,
-) -> collections.abc.Generator[None, Any, None]:
-    with unittest.mock.patch.dict(
-        os.environ,
-        dict(),
     ):
         yield
 

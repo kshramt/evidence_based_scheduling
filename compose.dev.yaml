@@ -17,9 +17,13 @@ services:
     build:
       context: .
       target: prod_postgres
+  postgres_migration:
+    build:
+      context: .
+      target: prod_postgres_migration
   adminer:
     image: adminer:4.8.1-standalone
-    restart: always
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy

@@ -56,9 +56,12 @@ FROM base_go as dbmate_builder
 RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install github.com/amacneil/dbmate@v1.16.2
 
 FROM base_postgres as prod_postgres
+
+FROM debian:11.7-slim as prod_postgres_migration
 COPY --from=dbmate_builder /go/bin/dbmate /usr/local/bin/dbmate
 COPY db/scripts/migrate.sh /app/scripts/migrate.sh
 COPY db/migrations /app/db/migrations
+ENTRYPOINT ["/app/scripts/migrate.sh"]
 
 FROM base_go as sqlc_builder
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
