@@ -129,10 +129,14 @@ const useQueue = (column: "todo_node_ids" | "non_todo_node_ids") => {
   );
   const queue = useSelector((state) => state[column]);
   const nodes = useSelector((state) => state.data.nodes);
-  const filtered_queue = queue.filter((node_id) => {
-    const node = nodes[node_id];
-    return !_should_hide_of(node_filter_query, node.text, node_id);
-  });
+
+  const filtered_queue = React.useMemo(() => {
+    return queue.filter((node_id) => {
+      const node = nodes[node_id];
+      return !_should_hide_of(node_filter_query, node.text, node_id);
+    });
+  }, [queue, nodes, node_filter_query]);
+
   return filtered_queue;
 };
 
@@ -1092,18 +1096,23 @@ const MobileQueueNodes = () => {
   const node_filter_query = React.useDeferredValue(
     Recoil.useRecoilValue(states.node_filter_query_state),
   );
-  const node_ids = ops
-    .sorted_keys_of(queue)
-    .filter((node_id) => {
-      const node = nodes[node_id];
-      return !(
-        (show_todo_only && node.status !== "todo") ||
-        _should_hide_of(node_filter_query, node.text, node_id)
-      );
-    })
-    .slice(0, 100);
+
+  const node_ids = React.useMemo(() => {
+    return ops
+      .sorted_keys_of(queue)
+      .filter((node_id) => {
+        const node = nodes[node_id];
+        return !(
+          (show_todo_only && node.status !== "todo") ||
+          _should_hide_of(node_filter_query, node.text, node_id)
+        );
+      })
+      .slice(0, 100);
+  }, [queue, nodes, show_todo_only, node_filter_query]);
+
   return <MobileQueueNodesImpl node_ids={node_ids} />;
 };
+
 const MobileQueueNodesImpl = React.memo(
   (props: { node_ids: types.TNodeId[] }) => {
     return (
