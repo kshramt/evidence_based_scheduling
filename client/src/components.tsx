@@ -124,8 +124,8 @@ const NodeFilterQueryInput = () => {
 };
 
 const useQueue = (column: "todo_node_ids" | "non_todo_node_ids") => {
-  const node_filter_query = Recoil.useRecoilValue(
-    states.node_filter_query_state,
+  const node_filter_query = React.useDeferredValue(
+    Recoil.useRecoilValue(states.node_filter_query_state),
   );
   const queue = useSelector((state) => state[column]);
   const nodes = useSelector((state) => state.data.nodes);
@@ -799,7 +799,7 @@ const PlannedNode = (props: {
 };
 
 const TodoQueueNodes = () => {
-  const queue = React.useDeferredValue(useQueue("todo_node_ids"));
+  const queue = useQueue("todo_node_ids");
   return <QueueNodes node_ids={queue} />;
 };
 
@@ -882,7 +882,7 @@ const TreeNode = React.memo(
 );
 
 const NonTodoQueueNodes = () => {
-  const node_ids = React.useDeferredValue(useQueue("non_todo_node_ids"));
+  const node_ids = useQueue("non_todo_node_ids");
   return <QueueNodes node_ids={node_ids} />;
 };
 
@@ -1089,21 +1089,19 @@ const MobileQueueNodes = () => {
   const show_todo_only = Recoil.useRecoilValue(
     states.show_todo_only_atom_map.get(session),
   );
-  const node_filter_query = Recoil.useRecoilValue(
-    states.node_filter_query_state,
+  const node_filter_query = React.useDeferredValue(
+    Recoil.useRecoilValue(states.node_filter_query_state),
   );
-  const node_ids = React.useDeferredValue(
-    ops
-      .sorted_keys_of(queue)
-      .filter((node_id) => {
-        const node = nodes[node_id];
-        return !(
-          (show_todo_only && node.status !== "todo") ||
-          _should_hide_of(node_filter_query, node.text, node_id)
-        );
-      })
-      .slice(0, 100),
-  );
+  const node_ids = ops
+    .sorted_keys_of(queue)
+    .filter((node_id) => {
+      const node = nodes[node_id];
+      return !(
+        (show_todo_only && node.status !== "todo") ||
+        _should_hide_of(node_filter_query, node.text, node_id)
+      );
+    })
+    .slice(0, 100);
   return <MobileQueueNodesImpl node_ids={node_ids} />;
 };
 const MobileQueueNodesImpl = React.memo(
