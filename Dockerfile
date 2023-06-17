@@ -18,7 +18,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
 RUN --mount=type=cache,target=/root/.cache pip install poetry==1.3.1
 
-FROM golang:1.20.1-bullseye as base_go
+FROM golang:1.20.5-bullseye as base_go
+ENV CGO_ENABLED 0
 
 FROM base_js as base_client
 WORKDIR /app/client
@@ -53,7 +54,7 @@ WORKDIR /app
 COPY --link ./envoy.yaml /etc/envoy/envoy.yaml
 
 FROM base_go as dbmate_builder
-RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install github.com/amacneil/dbmate@v1.16.2
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install github.com/amacneil/dbmate/v2@v2.4.0
 
 FROM base_postgres as prod_postgres
 
@@ -68,17 +69,18 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
    apt-get update \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
-RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install github.com/kyleconroy/sqlc/cmd/sqlc@v1.17.2
+ENV CGO_ENABLED 1
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install github.com/kyleconroy/sqlc/cmd/sqlc@v1.18.0
 
 FROM base_go as go_db_builder
 WORKDIR /app
 COPY --link --from=sqlc_builder /go/bin/sqlc /usr/local/bin/sqlc
 COPY --link db db
-COPY --link sqlc.yaml .
+COPY --link sqlc.yaml ./
 RUN /usr/local/bin/sqlc --experimental generate
 
 FROM base_go as buf_builder
-RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install github.com/bufbuild/buf/cmd/buf@v1.15.1
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install github.com/bufbuild/buf/cmd/buf@v1.21.0
 
 FROM base_go as protoc_gen_connect_go_builder
 RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install github.com/bufbuild/connect-go/cmd/protoc-gen-connect-go@v1.5.2
@@ -120,23 +122,15 @@ RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod
 FROM base_go_builder as api_v1_builder
 RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go build api_v1/main.go
 
-FROM gcr.io/distroless/base-debian11:latest as prod_api_v1
+FROM scratch as prod_api_v1
 WORKDIR /app
 COPY --link --from=api_v1_builder /app/main .
 ENTRYPOINT ["./main"]
 
-FROM base_go as docker_go_builder
-RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install github.com/docker/cli/cmd/docker@v23.0.1
-RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod cd /tmp \
-   && git clone --depth=1 --branch v2.16.0 https://github.com/docker/compose.git \
-   && cd compose \
-   && go build -o docker-compose cmd/main.go \
-   && mv docker-compose /go/bin/
-
 FROM base_poetry as tests_e2e
-COPY --link --from=docker/buildx-bin:0.10.3 /buildx /usr/libexec/docker/cli-plugins/docker-buildx
-COPY --link --from=docker_go_builder /go/bin/docker /usr/local/bin/docker
-COPY --link --from=docker_go_builder /go/bin/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
+COPY --link --from=docker:24.0.2-cli-alpine3.18 /usr/local/bin/docker /usr/local/bin/docker
+COPY --link --from=docker:24.0.2-cli-alpine3.18 /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
+COPY --link --from=docker:24.0.2-cli-alpine3.18 /usr/local/libexec/docker/cli-plugins/docker-buildx /usr/local/libexec/docker/cli-plugins/docker-buildx
 COPY --link tests/e2e/poetry.toml tests/e2e/pyproject.toml tests/e2e/poetry.lock ./
 RUN --mount=type=cache,target=/root/.cache python3 -m poetry install --only main
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
