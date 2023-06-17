@@ -128,15 +128,15 @@ COPY --link --from=api_v1_builder /app/main .
 ENTRYPOINT ["./main"]
 
 FROM base_poetry as tests_e2e
-COPY --link --from=docker:24.0.2-cli-alpine3.18 /usr/local/bin/docker /usr/local/bin/docker
-COPY --link --from=docker:24.0.2-cli-alpine3.18 /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
-COPY --link --from=docker:24.0.2-cli-alpine3.18 /usr/local/libexec/docker/cli-plugins/docker-buildx /usr/local/libexec/docker/cli-plugins/docker-buildx
 COPY --link tests/e2e/poetry.toml tests/e2e/pyproject.toml tests/e2e/poetry.lock ./
 RUN --mount=type=cache,target=/root/.cache python3 -m poetry install --only main
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
    python3 -m poetry run python3 -m playwright install-deps
 RUN python3 -m poetry run python3 -m playwright install
+COPY --link --from=docker:24.0.2-cli-alpine3.18 /usr/local/bin/docker /usr/local/bin/docker
+COPY --link --from=docker:24.0.2-cli-alpine3.18 /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
+COPY --link --from=docker:24.0.2-cli-alpine3.18 /usr/local/libexec/docker/cli-plugins/docker-buildx /usr/local/libexec/docker/cli-plugins/docker-buildx
 COPY --link tests/e2e/src src
 COPY --link --from=tests_e2e_grpc_builder /app/gen src/gen
 RUN --mount=type=cache,target=/root/.cache python3 -m poetry install --only main
