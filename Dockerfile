@@ -122,7 +122,7 @@ RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod
 FROM base_go_builder as api_v1_builder
 RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go build api_v1/main.go
 
-FROM scratch as prod_api_v1
+FROM gcr.io/distroless/static-debian11:nonroot as prod_api_v1
 WORKDIR /app
 COPY --link --from=api_v1_builder /app/main .
 ENTRYPOINT ["./main"]
