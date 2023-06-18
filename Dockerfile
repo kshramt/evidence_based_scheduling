@@ -69,8 +69,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
    apt-get update \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
-ENV CGO_ENABLED 1
-RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install github.com/kyleconroy/sqlc/cmd/sqlc@v1.18.0
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod CGO_ENABLED=1 go install github.com/kyleconroy/sqlc/cmd/sqlc@v1.18.0
 
 FROM base_go as go_db_builder
 WORKDIR /app
