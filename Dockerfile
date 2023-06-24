@@ -26,7 +26,7 @@ WORKDIR /app/client
 
 FROM base_client as client_npm_ci
 COPY --link client/package.json client/package-lock.json ./
-RUN --mount=type=cache,target=/root/.cache npm ci
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/root/.npm npm ci
 
 FROM client_npm_ci as client_proto
 COPY --link proto ../proto
@@ -42,7 +42,7 @@ FROM builder_client as test_client
 RUN --mount=type=cache,target=/root/.cache scripts/check.sh
 
 FROM builder_client as prod_client
-RUN --mount=type=cache,target=/root/.cache npm run build
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/root/.npm npm run build
 
 FROM base_nginx as prod_nginx
 COPY --link --from=prod_client /app/client/dist /usr/share/nginx/html
