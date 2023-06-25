@@ -1143,7 +1143,8 @@ const TreeEntry = React.memo(
       (state) => state.data.nodes[props.node_id].status,
     );
     const to_queue = useToQueue(props.node_id);
-    const is_root = useSelector((state) => state.data.root === props.node_id);
+    const root = useSelector((state) => state.data.root);
+    const is_root = props.node_id === root;
     const handle_click = useRegisterNodeId(props.node_id);
     const prefix = props.prefix || TREE_PREFIX;
     const handleKeyDown = useTaskShortcutKeys(props.node_id, prefix);
@@ -1700,21 +1701,18 @@ const EntryButtons = (props: { node_id: types.TNodeId; prefix?: string }) => {
   );
 };
 
-const EntryInfos = (props: { node_id: types.TNodeId }) => {
+const EntryInfos = React.memo((props: { node_id: types.TNodeId }) => {
   const root = useSelector((state) => state.data.root);
   const is_root = props.node_id === root;
 
-  return React.useMemo(
-    () => (
-      <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
-        {is_root || <EstimationInput node_id={props.node_id} />}
-        <TotalTime node_id={props.node_id} />
-        {is_root || <LastRange node_id={props.node_id} />}
-      </div>
-    ),
-    [is_root, props.node_id],
+  return (
+    <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
+      {is_root || <EstimationInput node_id={props.node_id} />}
+      <TotalTime node_id={props.node_id} />
+      {is_root || <LastRange node_id={props.node_id} />}
+    </div>
   );
-};
+});
 
 const TotalTime = (props: { node_id: types.TNodeId }) => {
   const total_time = useSelector(
