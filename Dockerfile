@@ -45,7 +45,9 @@ FROM builder_client as prod_client
 RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/root/.npm npm run build
 
 FROM base_nginx as prod_nginx
-COPY --link --from=prod_client /app/client/dist /usr/share/nginx/html
+COPY --link --from=prod_client /app/client/dist/static/ /usr/share/nginx/html/static/
+COPY --link --from=prod_client /app/client/dist/assets/ /usr/share/nginx/html/assets/
+COPY --link --from=prod_client /app/client/dist/browserconfig.xml /app/client/dist/index.html /app/client/dist/manifest.webmanifest /app/client/dist/registerSW.js /app/client/dist/sw.js /usr/share/nginx/html/
 COPY --link nginx.conf /etc/nginx/nginx.conf
 
 FROM base_envoy as prod_envoy
