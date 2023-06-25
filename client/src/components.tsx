@@ -30,10 +30,10 @@ const DEFAULT_DELAY_MSEC = 10_000;
 export const MobileApp = React.memo(
   (props: { ctx: states.PersistentStateManager }) => {
     return (
-      <>
+      <div className="flex flex-col h-screen w-screen">
         <MobileMenu ctx={props.ctx} />
         <MobileBody />
-      </>
+      </div>
     );
   },
 );
@@ -41,10 +41,10 @@ export const MobileApp = React.memo(
 export const DesktopApp = React.memo(
   (props: { ctx: states.PersistentStateManager }) => {
     return (
-      <>
+      <div className="flex flex-col h-screen w-screen">
         <Menu ctx={props.ctx} />
         <Body />
-      </>
+      </div>
     );
   },
 );
@@ -242,7 +242,7 @@ const Menu = (props: { ctx: states.PersistentStateManager }) => {
   }, [props.ctx]);
   return (
     <div
-      className={`flex items-center overflow-x-auto h-[3.01rem] pl-[1em] gap-x-[0.25em] w-full top-0  bg-neutral-200 dark:bg-neutral-900`}
+      className={`flex items-center overflow-x-auto h-[3rem] pl-[1em] gap-x-[0.25em] w-full top-0  bg-neutral-200 dark:bg-neutral-900`}
     >
       <MenuButton>
         <ul>
@@ -340,7 +340,7 @@ const Body = () => {
     return state.data.root;
   });
   return (
-    <div className="flex w-full h-[calc(100vh-3.01rem)] gap-x-[1em] overflow-y-hidden">
+    <div className="flex flex-1 gap-x-[1em] overflow-y-hidden">
       <CoveyQuadrants />
       <div className={`overflow-y-scroll shrink-0`}>
         <Timeline />
@@ -1006,7 +1006,7 @@ const MobileMenu = (props: { ctx: states.PersistentStateManager }) => {
   }, [props.ctx]);
   return (
     <div
-      className={`flex items-center overflow-x-auto gap-x-[0.25em] h-[3.01rem] w-full top-0 bg-neutral-200 dark:bg-neutral-900`}
+      className={`flex items-center overflow-x-auto gap-x-[0.25em] h-[3rem] w-full top-0 bg-neutral-200 dark:bg-neutral-900`}
     >
       <MenuButton>
         <ul>
@@ -1071,7 +1071,7 @@ const MobileMenu = (props: { ctx: states.PersistentStateManager }) => {
 
 const MobileBody = () => {
   return (
-    <div className="flex w-full h-[calc(100vh-3.01rem)] gap-x-8 overflow-y-hidden">
+    <div className="flex flex-1 gap-x-[1em] overflow-y-hidden">
       <div className={`overflow-y-scroll shrink-0`}>
         <MobileQueueColumn />
       </div>
