@@ -516,7 +516,7 @@ const CoveyQuadrantNode = React.memo(
       (state) => state.data.nodes[props.node_id].status,
     );
     const dispatch = useDispatch();
-    const { isHover, onMouseOver, onMouseOut } = useHover();
+    const { isOn, turnOn, turnOff } = useOn();
     const is_running = useIsRunning(props.node_id);
     const unassign_node = React.useCallback(() => {
       dispatch(
@@ -533,8 +533,8 @@ const CoveyQuadrantNode = React.memo(
           "p-[0.0625em] inline-block",
           is_running ? "running" : undefined,
         )}
-        onMouseOver={onMouseOver}
-        onMouseOut={onMouseOut}
+        onMouseOver={turnOn}
+        onMouseLeave={turnOff}
       >
         <span
           onClick={to_tree}
@@ -542,7 +542,7 @@ const CoveyQuadrantNode = React.memo(
         >
           {text.slice(0, 40)}
         </span>
-        {(isHover || is_running) && (
+        {(isOn || is_running) && (
           <div className="flex w-fit gap-x-[0.25em]">
             <StartButton node_id={props.node_id} />
             <StartConcurrentButton node_id={props.node_id} />
@@ -682,7 +682,7 @@ const TimeNodeEntry = React.memo(
     );
     const selected_node_ids = Recoil.useRecoilValue(states.node_ids_state);
     const text = time_node?.text ? time_node.text : EMPTY_STRING;
-    const { isHover, onMouseOver, onMouseOut } = useHover();
+    const { isOn, turnOn, turnOff } = useOn(0);
 
     const toggle_show_children = React.useCallback(() => {
       const payload = props.time_node_id;
@@ -713,14 +713,15 @@ const TimeNodeEntry = React.memo(
     );
 
     return (
-      <td onMouseOver={onMouseOver} onMouseOut={onMouseOut}>
+      <td onMouseLeave={turnOff}>
         <AutoHeightTextArea
           text={text}
           onBlur={dispatch_set_text_action}
+          onClick={turnOn}
           onDoubleClick={prevent_propagation}
           className="textarea whitespace-pre-wrap overflow-wrap-anywhere w-[17em] overflow-hidden p-[0.125em] bg-white dark:bg-neutral-800 py-[0.4em]"
         />
-        {isHover && (
+        {isOn && (
           <div className="flex w-fit gap-x-[0.125em]">
             <button className="btn-icon" onClick={assign_nodes}>
               {consts.ADD_MARK}
@@ -750,7 +751,7 @@ const PlannedNode = (props: {
   const text = useSelector((state) => state.data.nodes[props.node_id].text);
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
   const dispatch = useDispatch();
-  const { isHover, onMouseOver, onMouseOut } = useHover();
+  const { isOn, turnOn, turnOff } = useOn();
   const is_running = useIsRunning(props.node_id);
   const unassign_node = React.useCallback(() => {
     dispatch(
@@ -767,8 +768,8 @@ const PlannedNode = (props: {
         "py-[0.0625em]",
         is_running ? "running" : undefined,
       )}
-      onMouseOver={onMouseOver}
-      onMouseOut={onMouseOut}
+      onMouseOver={turnOn}
+      onMouseLeave={turnOff}
     >
       <span
         title={text}
@@ -784,7 +785,7 @@ const PlannedNode = (props: {
       >
         {text.slice(0, 40)}
       </span>
-      {(isHover || is_running) && (
+      {(isOn || is_running) && (
         <div className="flex w-fit gap-x-[0.25em]">
           {is_running ? (
             <StopButton node_id={props.node_id} />
@@ -937,7 +938,7 @@ const Edge = React.memo(
 );
 
 const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
-  const { isHover, onMouseOver, onMouseOut } = useHover();
+  const { isOn, turnOn, turnOff } = useOn(0);
   const show_detail = useSelector(
     (state) => state.caches[props.node_id].show_detail,
   );
@@ -946,24 +947,19 @@ const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
   const is_todo = status === "todo";
   const is_running = useIsRunning(props.node_id);
   const to_tree = useToTree(props.node_id);
-  const handle_click = useRegisterNodeId(props.node_id);
   const handleKeyDown = useTaskShortcutKeys(props.node_id, TREE_PREFIX);
 
   return (
-    <EntryWrapper
-      node_id={props.node_id}
-      onMouseOver={onMouseOver}
-      onMouseOut={onMouseOut}
-      component="li"
-    >
+    <EntryWrapper node_id={props.node_id} onMouseLeave={turnOff} component="li">
       <div className="flex items-end w-fit">
         <button onClick={to_tree}>←</button>
+        <CopyNodeIdButton node_id={props.node_id} />
         <TextArea
           node_id={props.node_id}
           id={utils.queue_textarea_id_of(props.node_id)}
           className="w-[29em]"
-          onClick={handle_click}
           onKeyDown={handleKeyDown}
+          onClick={turnOn}
         />
         <EntryInfos node_id={props.node_id} />
       </div>
@@ -971,7 +967,7 @@ const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
         0 <= cache.leaf_estimates_sum &&
         digits1(cache.leaf_estimates_sum) + " | "}
       {is_todo && cache.percentiles.map(digits1).join(", ")}
-      {(isHover || is_running || show_detail) && (
+      {(isOn || is_running || show_detail) && (
         <EntryButtons node_id={props.node_id} />
       )}
       <Details node_id={props.node_id} />
@@ -1136,7 +1132,7 @@ const TreeEntry = React.memo(
     const show_detail = useSelector(
       (state) => state.caches[props.node_id].show_detail,
     );
-    const { isHover, onMouseOver, onMouseOut } = useHover();
+    const { isOn, turnOn, turnOff } = useOn(0);
     const is_running = useIsRunning(props.node_id);
     const cache = useSelector((state) => state.caches[props.node_id]);
     const status = useSelector(
@@ -1145,24 +1141,20 @@ const TreeEntry = React.memo(
     const to_queue = useToQueue(props.node_id);
     const root = useSelector((state) => state.data.root);
     const is_root = props.node_id === root;
-    const handle_click = useRegisterNodeId(props.node_id);
     const prefix = props.prefix || TREE_PREFIX;
     const handleKeyDown = useTaskShortcutKeys(props.node_id, prefix);
 
     return (
-      <EntryWrapper
-        node_id={props.node_id}
-        onMouseOver={onMouseOver}
-        onMouseOut={onMouseOut}
-      >
+      <EntryWrapper node_id={props.node_id} onMouseLeave={turnOff}>
         <div className="flex items-end w-fit">
           {is_root ? null : <button onClick={to_queue}>→</button>}
+          <CopyNodeIdButton node_id={props.node_id} />
           <TextArea
             node_id={props.node_id}
             id={`${prefix}${props.node_id}`}
             className="w-[29em]"
-            onClick={handle_click}
             onKeyDown={handleKeyDown}
+            onClick={turnOn}
           />
           <EntryInfos node_id={props.node_id} />
         </div>
@@ -1170,7 +1162,7 @@ const TreeEntry = React.memo(
           0 <= cache.leaf_estimates_sum &&
           digits1(cache.leaf_estimates_sum) + " | "}
         {status === "todo" && cache.percentiles.map(digits1).join(", ")}
-        {(isHover || is_running || show_detail) && (
+        {(isOn || is_running || show_detail) && (
           <EntryButtons node_id={props.node_id} prefix={prefix} />
         )}
         <Details node_id={props.node_id} />
@@ -1178,21 +1170,6 @@ const TreeEntry = React.memo(
     );
   },
 );
-
-const useRegisterNodeId = (node_id: types.TNodeId) => {
-  const set_node_ids = Recoil.useSetRecoilState(states.node_ids_state);
-
-  return React.useCallback(
-    (e: React.MouseEvent<HTMLElement>) => {
-      const multi = e.ctrlKey || e.metaKey;
-      set_node_ids((node_ids: string) => {
-        const res = multi ? node_id + " " + node_ids : node_id;
-        return res;
-      });
-    },
-    [node_id, set_node_ids],
-  );
-};
 
 const useTaskShortcutKeys = (node_id: null | types.TNodeId, prefix: string) => {
   const dispatch = useDispatch();
@@ -1582,7 +1559,7 @@ const EntryWrapper = (props: {
   node_id: types.TNodeId;
   children: React.ReactNode;
   onMouseOver?: () => void;
-  onMouseOut?: () => void;
+  onMouseLeave?: () => void;
   component?: keyof JSX.IntrinsicElements;
 }) => {
   const is_running = useIsRunning(props.node_id);
@@ -1606,7 +1583,7 @@ const EntryWrapper = (props: {
       }
       onDoubleClick={handle_toggle_show_children}
       onMouseOver={props.onMouseOver}
-      onMouseOut={props.onMouseOut}
+      onMouseLeave={props.onMouseLeave}
     >
       {props.children}
     </Component>
@@ -1672,15 +1649,17 @@ const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const EntryButtons = (props: { node_id: types.TNodeId; prefix?: string }) => {
-  const status = useSelector((state) => state.data.nodes[props.node_id].status);
+const EntryButtons = React.memo(
+  (props: { node_id: types.TNodeId; prefix?: string }) => {
+    const status = useSelector(
+      (state) => state.data.nodes[props.node_id].status,
+    );
 
-  const root = useSelector((state) => state.data.root);
-  const is_root = props.node_id === root;
-  const is_todo = status === "todo";
+    const root = useSelector((state) => state.data.root);
+    const is_root = props.node_id === root;
+    const is_todo = status === "todo";
 
-  return React.useMemo(
-    () => (
+    return (
       <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
         {is_root || !is_todo || <StartOrStopButtons node_id={props.node_id} />}
         {is_root || !is_todo || <TodoToDoneButton node_id={props.node_id} />}
@@ -1696,10 +1675,9 @@ const EntryButtons = (props: { node_id: types.TNodeId; prefix?: string }) => {
         {is_todo && <AddButton node_id={props.node_id} prefix={props.prefix} />}
         <ShowDetailButton node_id={props.node_id} />
       </div>
-    ),
-    [is_todo, is_root, props.node_id, props.prefix],
-  );
-};
+    );
+  },
+);
 
 const EntryInfos = React.memo((props: { node_id: types.TNodeId }) => {
   const root = useSelector((state) => state.data.root);
@@ -2095,9 +2073,14 @@ const TextAreaImpl = ({
   const state_text = useSelector((state) => state.data.nodes[node_id].text);
   const status = useSelector((state) => state.data.nodes[node_id].status);
   const dispatch = useDispatch();
+  const onBlur = useCallback(
+    (e: React.FocusEvent<HTMLTextAreaElement>) => {
+      const _onBlur = textarea_props.onBlur;
+      if (_onBlur !== undefined) {
+        _onBlur(e);
+      }
 
-  const dispatch_set_text_action = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      // Set text.
       const el = e.target;
       dispatch(
         actions.set_text_action({
@@ -2106,12 +2089,13 @@ const TextAreaImpl = ({
         }),
       );
     },
-    [dispatch, node_id],
+    [dispatch, node_id, textarea_props.onBlur],
   );
   return (
     <AutoHeightTextArea
+      {...textarea_props}
       text={state_text}
-      onBlur={dispatch_set_text_action}
+      onBlur={onBlur}
       onDoubleClick={prevent_propagation}
       className={utils.join(
         "whitespace-pre-wrap overflow-wrap-anywhere overflow-hidden p-[0.125em] bg-white dark:bg-neutral-800 py-[0.4em]",
@@ -2122,7 +2106,6 @@ const TextAreaImpl = ({
           ? "text-neutral-500"
           : undefined,
       )}
-      {...textarea_props}
     />
   );
 };
@@ -2295,8 +2278,8 @@ const useToQueue = (node_id: types.TNodeId) => {
   }, [node_id]);
 };
 
-const useHover = (delayMsec: number = DEFAULT_DELAY_MSEC) => {
-  const [isHover, setHover] = React.useState(false);
+const useOn = (delayMsec: number = DEFAULT_DELAY_MSEC) => {
+  const [isOn, setHover] = React.useState(false);
   const timeoutRef = React.useRef<number | null>(null);
 
   const clearDelay = useCallback(() => {
@@ -2306,16 +2289,20 @@ const useHover = (delayMsec: number = DEFAULT_DELAY_MSEC) => {
     }
   }, []);
 
-  const onMouseOver = useCallback(() => {
+  const turnOn = useCallback(() => {
     clearDelay();
     setHover(true);
   }, [clearDelay]);
 
-  const onMouseOut = useCallback(() => {
+  const turnOff = useCallback(() => {
     clearDelay();
-    timeoutRef.current = window.setTimeout(() => {
+    if (0 < delayMsec) {
+      timeoutRef.current = window.setTimeout(() => {
+        setHover(false);
+      }, delayMsec);
+    } else {
       setHover(false);
-    }, delayMsec);
+    }
   }, [clearDelay, delayMsec]);
 
   React.useEffect(() => {
@@ -2324,11 +2311,11 @@ const useHover = (delayMsec: number = DEFAULT_DELAY_MSEC) => {
 
   return React.useMemo(() => {
     return {
-      isHover,
-      onMouseOver,
-      onMouseOut,
+      isOn,
+      turnOn,
+      turnOff,
     };
-  }, [isHover, onMouseOver, onMouseOut]);
+  }, [isOn, turnOn, turnOff]);
 };
 
 const _should_hide_of = (
