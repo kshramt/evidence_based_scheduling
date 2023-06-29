@@ -204,6 +204,29 @@ const SBTTB = () => {
   );
 };
 
+export const ToggleShowMobileButton = () => {
+  const session = React.useContext(states.session_key_context);
+  const [show_mobile, set_show_mobile] = Recoil.useRecoilState(
+    states.show_mobile_atom_map.get(session),
+  );
+  const setShowMobileUpdatedAt = Recoil.useSetRecoilState(
+    states.showMobileUpdatedAtAtomMap.get(session),
+  );
+  const handleClick = useCallback(() => {
+    set_show_mobile((v) => !v);
+    setShowMobileUpdatedAt(Date.now());
+  }, [set_show_mobile, setShowMobileUpdatedAt]);
+  return (
+    <button
+      className="btn-icon"
+      onClick={handleClick}
+      onDoubleClick={prevent_propagation}
+    >
+      {show_mobile ? consts.DESKTOP_MARK : consts.MOBILE_MARK}
+    </button>
+  );
+};
+
 const Menu = (props: { ctx: states.PersistentStateManager }) => {
   const root = useSelector((state) => state.data.root);
   const dispatch = useDispatch();
@@ -217,9 +240,6 @@ const Menu = (props: { ctx: states.PersistentStateManager }) => {
   );
   const [show_strong_edge_only, set_show_strong_edge_only] =
     Recoil.useRecoilState(states.show_strong_edge_only_atom_map.get(session));
-  const set_show_mobile = Recoil.useSetRecoilState(
-    states.show_mobile_atom_map.get(session),
-  );
   const _undo = useCallback(() => {
     dispatch({ type: undoable.UNDO_TYPE });
   }, [dispatch]);
@@ -247,13 +267,7 @@ const Menu = (props: { ctx: states.PersistentStateManager }) => {
       <MenuButton>
         <ul>
           <li>
-            <button
-              className="btn-icon mr-[0.5em]"
-              onClick={get_toggle(set_show_mobile)}
-              onDoubleClick={prevent_propagation}
-            >
-              {consts.MOBILE_MARK}
-            </button>
+            <ToggleShowMobileButton />
           </li>
           <li>
             <button
@@ -986,9 +1000,6 @@ const MobileMenu = (props: { ctx: states.PersistentStateManager }) => {
   const [show_todo_only, set_show_todo_only] = Recoil.useRecoilState(
     states.show_todo_only_atom_map.get(session),
   );
-  const set_show_mobile = Recoil.useSetRecoilState(
-    states.show_mobile_atom_map.get(session),
-  );
   const _undo = useCallback(() => {
     dispatch({ type: undoable.UNDO_TYPE });
   }, [dispatch]);
@@ -1007,13 +1018,7 @@ const MobileMenu = (props: { ctx: states.PersistentStateManager }) => {
       <MenuButton>
         <ul>
           <li>
-            <button
-              className="btn-icon mr-[0.5em]"
-              onClick={get_toggle(set_show_mobile)}
-              onDoubleClick={prevent_propagation}
-            >
-              {consts.DESKTOP_MARK}
-            </button>
+            <ToggleShowMobileButton />
           </li>
           <li>
             <button

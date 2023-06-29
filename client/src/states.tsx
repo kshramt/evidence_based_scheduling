@@ -315,6 +315,10 @@ export const show_strong_edge_only_atom_map = new WeakMapV<
   { user_id: string; session_id: number },
   Recoil.RecoilState<boolean>
 >();
+export const showMobileUpdatedAtAtomMap = new WeakMapV<
+  { user_id: string; session_id: number },
+  Recoil.RecoilState<number>
+>();
 
 export const session_key_context = React.createContext({
   user_id: "",
@@ -927,6 +931,36 @@ export const get_PersistentStateManager = async (
         key: "show_strong_edge_only",
         default: false,
         effects: [boolean_effect],
+      }),
+    );
+  }
+
+  const numberEffect: Recoil.AtomEffect<number> = ({
+    node,
+    onSet,
+    setSelf,
+  }) => {
+    setSelf(
+      (async () => {
+        const value = await db.get("numbers", node.key);
+        return value === undefined ? new Recoil.DefaultValue() : value;
+      })(),
+    );
+    onSet((newValue, _, isReset) => {
+      if (isReset) {
+        db.delete("numbers", node.key);
+      } else {
+        db.put("numbers", newValue, node.key);
+      }
+    });
+  };
+  if (!showMobileUpdatedAtAtomMap.has(res.session_key)) {
+    showMobileUpdatedAtAtomMap.set(
+      res.session_key,
+      Recoil.atom({
+        key: "showMobileUpdatedAt",
+        default: Date.now(),
+        effects: [numberEffect],
       }),
     );
   }
