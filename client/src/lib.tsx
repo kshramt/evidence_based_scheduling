@@ -13,7 +13,7 @@ import * as utils from "./utils";
 import * as components from "./components";
 import * as Auth from "./auth";
 
-const TWO_DAYS = 2 * 24 * 60 * 60 * 1000;
+const TWO_HOURS = 2 * 60 * 60 * 1000;
 
 const App = React.memo((props: { ctx: states.PersistentStateManager }) => {
   const [isShowMobileSelected, setIsShowMobileSelected] = React.useState(false);
@@ -32,7 +32,7 @@ const App = React.memo((props: { ctx: states.PersistentStateManager }) => {
     ),
   );
 
-  if (!isShowMobileSelected && Date.now() < showMobileUpdatedAt + TWO_DAYS) {
+  if (!isShowMobileSelected && Date.now() < showMobileUpdatedAt + TWO_HOURS) {
     return (
       <>
         <button className="btn-icon" onClick={handleClick}>
