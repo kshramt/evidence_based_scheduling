@@ -13,26 +13,26 @@ import * as utils from "./utils";
 import * as components from "./components";
 import * as Auth from "./auth";
 
-const TWO_HOURS = 2 * 60 * 60 * 1000;
+const TWO_DAYS = 2 * 24 * 60 * 60 * 1000;
 
 const App = React.memo((props: { ctx: states.PersistentStateManager }) => {
   const [isShowMobileSelected, setIsShowMobileSelected] = React.useState(false);
 
-  const handleClick = React.useCallback(() => {
-    setIsShowMobileSelected(true);
-  }, [setIsShowMobileSelected]);
   const show_mobile = Recoil.useRecoilValue(
     states.show_mobile_atom_map.get(
       React.useContext(states.session_key_context),
     ),
   );
-  const showMobileUpdatedAt = Recoil.useRecoilValue(
+  const [showMobileUpdatedAt, setShowMobileUpdatedAt] = Recoil.useRecoilState(
     states.showMobileUpdatedAtAtomMap.get(
       React.useContext(states.session_key_context),
     ),
   );
-
-  if (!isShowMobileSelected && Date.now() < showMobileUpdatedAt + TWO_HOURS) {
+  const handleClick = React.useCallback(() => {
+    setShowMobileUpdatedAt(-Date.now());
+    setIsShowMobileSelected(true);
+  }, [setShowMobileUpdatedAt, setIsShowMobileSelected]);
+  if (!isShowMobileSelected && Date.now() < showMobileUpdatedAt + TWO_DAYS) {
     return (
       <>
         <button className="btn-icon" onClick={handleClick}>
