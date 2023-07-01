@@ -4,6 +4,7 @@ package api.v1;
 
 option go_package = "github.com/kshramt/evidence_based_scheduling/gen/api/v1;apiv1";
 
+import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
 
 service ApiService {
@@ -40,52 +41,52 @@ service ApiService {
 }
 
 message Token {
-  optional string user_id = 1;
+  optional string user_id = 1 [(buf.validate.field).required = true];
 }
 
 message Patch {
-  optional int64 client_id = 1;
-  optional int64 session_id = 2;
-  optional int64 patch_id = 3;
-  optional int64 parent_client_id = 4;
-  optional int64 parent_session_id = 5;
-  optional int64 parent_patch_id = 6;
-  optional google.protobuf.Timestamp created_at = 7;
-  optional string patch = 8;
+  optional int64 client_id = 1 [(buf.validate.field).required = true];
+  optional int64 session_id = 2 [(buf.validate.field).required = true];
+  optional int64 patch_id = 3 [(buf.validate.field).required = true];
+  optional int64 parent_client_id = 4 [(buf.validate.field).required = true];
+  optional int64 parent_session_id = 5 [(buf.validate.field).required = true];
+  optional int64 parent_patch_id = 6 [(buf.validate.field).required = true];
+  optional google.protobuf.Timestamp created_at = 7 [(buf.validate.field).required = true];
+  optional string patch = 8 [(buf.validate.field).required = true];
 }
 
 message FakeIdpCreateUserRequest {
-  optional string name = 1;
+  optional string name = 1 [(buf.validate.field).required = true];
 }
 
 message FakeIdpCreateUserResponse {
-  optional Token token = 1;
+  optional Token token = 1 [(buf.validate.field).required = true];
 }
 
 message FakeIdpGetIdTokenRequest {
-  optional string name = 1;
+  optional string name = 1 [(buf.validate.field).required = true];
 }
 
 message FakeIdpGetIdTokenResponse {
-  optional Token token = 1;
+  optional Token token = 1 [(buf.validate.field).required = true];
 }
 
 message CreateUserRequest {
   // `user_id` will be provided by an ID provider.
-  optional string user_id = 1;
+  optional string user_id = 1 [(buf.validate.field).required = true];
 }
 message CreateUserResponse {}
 
 message CreateClientRequest {
-  optional string name = 1;
+  optional string name = 1 [(buf.validate.field).required = true];
 }
 message CreateClientResponse {
-  optional int64 client_id = 1;
+  optional int64 client_id = 1 [(buf.validate.field).required = true];
 }
 
 message GetPendingPatchesRequest {
-  optional int64 client_id = 1;
-  optional int64 size = 2;
+  optional int64 client_id = 1 [(buf.validate.field).required = true];
+  optional int64 size = 2 [(buf.validate.field).required = true];
 }
 message GetPendingPatchesResponse {
   repeated Patch patches = 1;
@@ -93,11 +94,11 @@ message GetPendingPatchesResponse {
 
 message DeletePendingPatchesRequest {
   message Patch {
-    optional int64 client_id = 1;
-    optional int64 session_id = 3;
-    optional int64 patch_id = 4;
+    optional int64 client_id = 1 [(buf.validate.field).required = true];
+    optional int64 session_id = 3 [(buf.validate.field).required = true];
+    optional int64 patch_id = 4 [(buf.validate.field).required = true];
   }
-  optional int64 client_id = 1;
+  optional int64 client_id = 1 [(buf.validate.field).required = true];
   repeated Patch patches = 2;
 }
 message DeletePendingPatchesResponse {}
@@ -110,30 +111,30 @@ message CreatePatchesResponse {}
 message GetHeadRequest {
 }
 message GetHeadResponse {
-  optional int64 client_id = 1;
-  optional int64 session_id = 2;
-  optional int64 patch_id = 3;
-  optional google.protobuf.Timestamp created_at = 4;
-  optional string name = 5;
+  optional int64 client_id = 1 [(buf.validate.field).required = true];
+  optional int64 session_id = 2 [(buf.validate.field).required = true];
+  optional int64 patch_id = 3 [(buf.validate.field).required = true];
+  optional google.protobuf.Timestamp created_at = 4 [(buf.validate.field).required = true];
+  optional string name = 5 [(buf.validate.field).required = true];
 }
 
 message UpdateHeadIfNotModifiedRequest {
-  optional int64 client_id = 1;
-  optional int64 session_id = 2;
-  optional int64 patch_id = 3;
-  optional int64 prev_client_id = 4;
-  optional int64 prev_session_id = 5;
-  optional int64 prev_patch_id = 6;
+  optional int64 client_id = 1 [(buf.validate.field).required = true];
+  optional int64 session_id = 2 [(buf.validate.field).required = true];
+  optional int64 patch_id = 3 [(buf.validate.field).required = true];
+  optional int64 prev_client_id = 4 [(buf.validate.field).required = true];
+  optional int64 prev_session_id = 5 [(buf.validate.field).required = true];
+  optional int64 prev_patch_id = 6 [(buf.validate.field).required = true];
 }
 
 message UpdateHeadIfNotModifiedResponse {
-  optional bool updated = 1;
+  optional bool updated = 1 [(buf.validate.field).required = true];
 }
 
 message UpdateHeadRequest {
-  optional int64 client_id = 1;
-  optional int64 session_id = 2;
-  optional int64 patch_id = 3;
+  optional int64 client_id = 1 [(buf.validate.field).required = true];
+  optional int64 session_id = 2 [(buf.validate.field).required = true];
+  optional int64 patch_id = 3 [(buf.validate.field).required = true];
 }
 
 message UpdateHeadResponse {}

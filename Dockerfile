@@ -31,7 +31,7 @@ RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/root/.npm 
 FROM client_npm_ci as client_proto
 COPY --link proto ../proto
 RUN cd ../proto \
-   && PATH="${PWD}/../client/node_modules/.bin:${PATH}" buf generate --config buf.yaml --template buf.gen-client.yaml \
+   && PATH="${PWD}/../client/node_modules/.bin:${PATH}" buf generate --config buf.client.yaml --template buf.gen-client.yaml \
    && sed -i -e 's/api_pb.js"/api_pb"/' ../client/src/gen/api/v1/api_connect.ts
 
 FROM client_npm_ci as builder_client
@@ -104,7 +104,7 @@ WORKDIR /app
 COPY --link proto proto
 RUN cd proto \
    && buf lint \
-   && buf generate --config buf.yaml --template buf.gen-go.yaml
+   && buf generate --config buf.go.yaml --template buf.gen-go.yaml
 
 FROM base_poetry as tests_e2e_grpc_builder
 WORKDIR /grpc_py

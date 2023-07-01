@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/bufbuild/protovalidate-go"
 	"github.com/jackc/pgx/v5"
 	pgtype "github.com/jackc/pgx/v5/pgtype"
 	pgxpool "github.com/jackc/pgx/v5/pgxpool"
@@ -39,9 +40,10 @@ type Config struct {
 }
 
 type apiServer struct {
-	queries *dbpkg.Queries
-	db      *pgxpool.Pool
-	idgen   *idgens.SortableIdGenerator
+	queries   *dbpkg.Queries
+	db        *pgxpool.Pool
+	idgen     *idgens.SortableIdGenerator
+	validator *protovalidate.Validator
 }
 
 func getConfig() (Config, error) {
@@ -67,8 +69,8 @@ func getConfig() (Config, error) {
 }
 
 func (s *apiServer) FakeIdpCreateUser(ctx context.Context, req *connect.Request[apiv1.FakeIdpCreateUserRequest]) (*connect.Response[apiv1.FakeIdpCreateUserResponse], error) {
-	if req.Msg.Name == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name is nil"))
+	if err := s.validator.Validate(req.Msg); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	_user_id, err := s.idgen.Next()
 	if err != nil {
@@ -94,8 +96,8 @@ func (s *apiServer) FakeIdpCreateUser(ctx context.Context, req *connect.Request[
 }
 
 func (s *apiServer) FakeIdpGetIdToken(ctx context.Context, req *connect.Request[apiv1.FakeIdpGetIdTokenRequest]) (*connect.Response[apiv1.FakeIdpGetIdTokenResponse], error) {
-	if req.Msg.Name == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name is nil"))
+	if err := s.validator.Validate(req.Msg); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*connect.Response[apiv1.FakeIdpGetIdTokenResponse], error) {
 		res, err := qtx.FakeIdpGetUserByName(ctx, *req.Msg.Name)
@@ -175,8 +177,8 @@ func createClient(ctx context.Context, qtx *dbpkg.Queries, user_id string, clien
 }
 
 func (s *apiServer) CreateUser(ctx context.Context, req *connect.Request[apiv1.CreateUserRequest]) (*connect.Response[apiv1.CreateUserResponse], error) {
-	if req.Msg.UserId == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("user_id is nil"))
+	if err := s.validator.Validate(req.Msg); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*connect.Response[apiv1.CreateUserResponse], error) {
 		return createUser(ctx, qtx, *req.Msg.UserId)
@@ -184,12 +186,12 @@ func (s *apiServer) CreateUser(ctx context.Context, req *connect.Request[apiv1.C
 }
 
 func (s *apiServer) CreateClient(ctx context.Context, req *connect.Request[apiv1.CreateClientRequest]) (*connect.Response[apiv1.CreateClientResponse], error) {
-	token, err := get_token(req)
+	token, err := get_token(req, s.validator)
 	if err != nil {
 		return nil, err
 	}
-	if req.Msg.Name == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name is nil"))
+	if err := s.validator.Validate(req.Msg); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*connect.Response[apiv1.CreateClientResponse], error) {
 		return createClient(ctx, qtx, *token.UserId, -1, req.Msg.Name)
@@ -197,15 +199,12 @@ func (s *apiServer) CreateClient(ctx context.Context, req *connect.Request[apiv1
 }
 
 func (s *apiServer) GetPendingPatches(ctx context.Context, req *connect.Request[apiv1.GetPendingPatchesRequest]) (*connect.Response[apiv1.GetPendingPatchesResponse], error) {
-	token, err := get_token(req)
+	token, err := get_token(req, s.validator)
 	if err != nil {
 		return nil, err
 	}
-	if req.Msg.ClientId == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("client_id is nil"))
-	}
-	if req.Msg.Size == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("size is nil"))
+	if err := s.validator.Validate(req.Msg); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	patches, err := withTx(s, ctx, func(qtx *dbpkg.Queries) (*[]*dbpkg.GetPendingPatchesRow, error) {
 		res, err := qtx.GetPendingPatches(ctx, &dbpkg.GetPendingPatchesParams{UserID: *token.UserId, ClientID: *req.Msg.ClientId, Limit: mini64(*req.Msg.Size, 10000)})
@@ -232,12 +231,12 @@ func (s *apiServer) GetPendingPatches(ctx context.Context, req *connect.Request[
 }
 
 func (s *apiServer) DeletePendingPatches(ctx context.Context, req *connect.Request[apiv1.DeletePendingPatchesRequest]) (*connect.Response[apiv1.DeletePendingPatchesResponse], error) {
-	token, err := get_token(req)
+	token, err := get_token(req, s.validator)
 	if err != nil {
 		return nil, err
 	}
-	if req.Msg.ClientId == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("client_id is nil"))
+	if err := s.validator.Validate(req.Msg); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	n := len(req.Msg.Patches)
 	user_ids := make([]string, 0, n)
@@ -248,17 +247,8 @@ func (s *apiServer) DeletePendingPatches(ctx context.Context, req *connect.Reque
 	for i := range req.Msg.Patches {
 		user_ids = append(user_ids, *token.UserId)
 		client_ids = append(client_ids, *req.Msg.ClientId)
-		if req.Msg.Patches[i].ClientId == nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("producer_client_id is nil for patch %d", i))
-		}
 		producer_client_ids = append(producer_client_ids, *req.Msg.Patches[i].ClientId)
-		if req.Msg.Patches[i].SessionId == nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("producer_session_id is nil for patch %d", i))
-		}
 		producer_session_ids = append(producer_session_ids, *req.Msg.Patches[i].SessionId)
-		if req.Msg.Patches[i].PatchId == nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("producer_patch_id is nil for patch %d", i))
-		}
 		producer_patch_ids = append(producer_patch_ids, *req.Msg.Patches[i].PatchId)
 	}
 	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*connect.Response[apiv1.DeletePendingPatchesResponse], error) {
@@ -271,9 +261,12 @@ func (s *apiServer) DeletePendingPatches(ctx context.Context, req *connect.Reque
 }
 
 func (s *apiServer) CreatePatches(ctx context.Context, req *connect.Request[apiv1.CreatePatchesRequest]) (*connect.Response[apiv1.CreatePatchesResponse], error) {
-	token, err := get_token(req)
+	token, err := get_token(req, s.validator)
 	if err != nil {
 		return nil, err
+	}
+	if err := s.validator.Validate(req.Msg); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	n := len(req.Msg.Patches)
 	user_ids := make([]string, 0, n)
@@ -287,37 +280,13 @@ func (s *apiServer) CreatePatches(ctx context.Context, req *connect.Request[apiv
 	created_ats := make([]pgtype.Timestamptz, 0, n)
 	for i := range req.Msg.Patches {
 		user_ids = append(user_ids, *token.UserId)
-		if req.Msg.Patches[i].ClientId == nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("client_id is nil for patch %d", i))
-		}
 		client_ids = append(client_ids, *req.Msg.Patches[i].ClientId)
-		if req.Msg.Patches[i].SessionId == nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("session_id is nil for patch %d", i))
-		}
 		session_ids = append(session_ids, *req.Msg.Patches[i].SessionId)
-		if req.Msg.Patches[i].PatchId == nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("patch_id is nil for patch %d", i))
-		}
 		patch_ids = append(patch_ids, *req.Msg.Patches[i].PatchId)
-		if req.Msg.Patches[i].ParentClientId == nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("parent_client_id is nil for patch %d", i))
-		}
 		parent_client_ids = append(parent_client_ids, *req.Msg.Patches[i].ParentClientId)
-		if req.Msg.Patches[i].ParentSessionId == nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("parent_session_id is nil for patch %d", i))
-		}
 		parent_session_ids = append(parent_session_ids, *req.Msg.Patches[i].ParentSessionId)
-		if req.Msg.Patches[i].ParentPatchId == nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("parent_patch_id is nil for patch %d", i))
-		}
 		parent_patch_ids = append(parent_patch_ids, *req.Msg.Patches[i].ParentPatchId)
-		if req.Msg.Patches[i].Patch == nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("patch is nil for patch %d", i))
-		}
 		patches = append(patches, []byte(*req.Msg.Patches[i].Patch))
-		if req.Msg.Patches[i].CreatedAt == nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("created_at is nil for patch %d", i))
-		}
 		created_ats = append(created_ats, pgtype.Timestamptz{Time: req.Msg.Patches[i].CreatedAt.AsTime(), Valid: true})
 	}
 	return withTx(s, ctx, func(qtx *dbpkg.Queries) (*connect.Response[apiv1.CreatePatchesResponse], error) {
@@ -340,7 +309,7 @@ func (s *apiServer) CreatePatches(ctx context.Context, req *connect.Request[apiv
 }
 
 func (s *apiServer) GetHead(ctx context.Context, req *connect.Request[apiv1.GetHeadRequest]) (*connect.Response[apiv1.GetHeadResponse], error) {
-	token, err := get_token(req)
+	token, err := get_token(req, s.validator)
 	if err != nil {
 		return nil, err
 	}
@@ -360,27 +329,12 @@ func (s *apiServer) GetHead(ctx context.Context, req *connect.Request[apiv1.GetH
 }
 
 func (s *apiServer) UpdateHeadIfNotModified(ctx context.Context, req *connect.Request[apiv1.UpdateHeadIfNotModifiedRequest]) (*connect.Response[apiv1.UpdateHeadIfNotModifiedResponse], error) {
-	token, err := get_token(req)
+	token, err := get_token(req, s.validator)
 	if err != nil {
 		return nil, err
 	}
-	if req.Msg.ClientId == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("client_id is nil"))
-	}
-	if req.Msg.SessionId == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("session_id is nil"))
-	}
-	if req.Msg.PatchId == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("patch_id is nil"))
-	}
-	if req.Msg.PrevClientId == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("prev_client_id is nil"))
-	}
-	if req.Msg.PrevSessionId == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("prev_session_id is nil"))
-	}
-	if req.Msg.PrevPatchId == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("prev_patch_id is nil"))
+	if err := s.validator.Validate(req.Msg); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	params := dbpkg.UpdateHeadIfNotModifiedParams{
 		UserID:        *token.UserId,
@@ -408,18 +362,12 @@ func (s *apiServer) UpdateHeadIfNotModified(ctx context.Context, req *connect.Re
 }
 
 func (s *apiServer) UpdateHead(ctx context.Context, req *connect.Request[apiv1.UpdateHeadRequest]) (*connect.Response[apiv1.UpdateHeadResponse], error) {
-	token, err := get_token(req)
+	token, err := get_token(req, s.validator)
 	if err != nil {
 		return nil, err
 	}
-	if req.Msg.ClientId == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("client_id is nil"))
-	}
-	if req.Msg.SessionId == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("session_id is nil"))
-	}
-	if req.Msg.PatchId == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("patch_id is nil"))
+	if err := s.validator.Validate(req.Msg); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 	params := dbpkg.UpdateHeadParams{
 		UserID:    *token.UserId,
@@ -462,7 +410,7 @@ func mini64(a, b int64) int64 {
 	return b
 }
 
-func get_token[Req any](req *connect.Request[Req]) (*apiv1.Token, error) {
+func get_token[Req any](req *connect.Request[Req], validator *protovalidate.Validator) (*apiv1.Token, error) {
 	if req == nil {
 		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("req is nil"))
 	}
@@ -486,8 +434,8 @@ func get_token[Req any](req *connect.Request[Req]) (*apiv1.Token, error) {
 		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("invalid json"))
 	}
 	// Validate token
-	if token.UserId == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("user_id is not set"))
+	if err := validator.Validate(&token); err != nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, err)
 	}
 	return &token, nil
 }
@@ -515,10 +463,13 @@ func run() error {
 	defer db.Close()
 
 	queries := dbpkg.New(db)
-
 	idgen := idgens.NewSortableIdGenerator(0)
+	validator, err := protovalidate.New()
+	if err != nil {
+		return err
+	}
 
-	api_server := &apiServer{queries: queries, idgen: idgen, db: db}
+	api_server := &apiServer{queries: queries, idgen: idgen, db: db, validator: validator}
 	mux := http.NewServeMux()
 	mux.Handle(apiv1connect.NewApiServiceHandler(api_server))
 	mux.Handle(grpchealth.NewHandler(grpchealth.NewStaticChecker(apiv1connect.ApiServiceName)))
