@@ -1,4 +1,4 @@
-FROM node:18.7.0-bullseye-slim as base_js
+FROM node:20.3.1-bookworm-slim as base_js
 
 FROM python:3.11.0-slim-bullseye as base_py
 ENV PYTHONUNBUFFERED 1
@@ -9,7 +9,7 @@ FROM nginx:1.23.3-alpine as base_nginx
 
 FROM envoyproxy/envoy:v1.25.1 as base_envoy
 
-FROM postgres:15.2-bullseye as base_postgres
+FROM postgres:15.3-bookworm as base_postgres
 
 FROM base_py as base_poetry
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
 RUN --mount=type=cache,target=/root/.cache pip install poetry==1.3.1
 
-FROM golang:1.20.5-bullseye as base_go
+FROM golang:1.20.5-bookworm as base_go
 ENV CGO_ENABLED 0
 
 FROM base_js as base_client
