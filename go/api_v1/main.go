@@ -448,7 +448,10 @@ func withTx[Res any](s *apiServer, ctx context.Context, fn func(qtx *dbpkg.Queri
 	if err != nil {
 		return nil, err
 	}
-	tx.Commit(ctx)
+	err = tx.Commit(ctx)
+	if err != nil {
+		return nil, err
+	}
 	return res, nil
 }
 
@@ -524,6 +527,7 @@ func run() error {
 	srv := http.Server{
 		Addr:    ":" + cfg.ServerPort,
 		Handler: h2c.NewHandler(mux, &http2.Server{}),
+		ReadHeaderTimeout: 60 * time.Second,
 	}
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
