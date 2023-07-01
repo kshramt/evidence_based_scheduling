@@ -22,8 +22,6 @@ type SortableIdGenerator struct {
 	shard           uint16
 	time            uint64
 	rand            uint64
-	created_at_msec int64
-	created_at      time.Time
 	mutex           sync.Mutex
 }
 

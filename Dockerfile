@@ -89,6 +89,9 @@ RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod
 FROM base_go as protoc_gen_go_builder
 RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.30.0
 
+FROM base_go as staticcheck_builder
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install honnef.co/go/tools/cmd/staticcheck@2023.1.3
+
 # Install gosec
 FROM base_go as gosec_builder
 RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install github.com/securego/gosec/v2/cmd/gosec@v2.16.0
@@ -121,8 +124,10 @@ RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod
 COPY --link go .
 COPY --link --from=go_db_builder /app/go/db db
 COPY --link --from=go_api_v1_grpc_builder /app/go/gen gen
+COPY --link --from=staticcheck_builder /go/bin/staticcheck /usr/local/bin/staticcheck
 COPY --link --from=gosec_builder /go/bin/gosec /usr/local/bin/gosec
 RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go vet -v ./...
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod staticcheck ./...
 RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod gosec ./...
 RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go test -v ./...
 
