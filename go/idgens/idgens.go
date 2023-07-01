@@ -18,11 +18,11 @@ var (
 const mask = 0b0111111111111111
 
 type SortableIdGenerator struct {
-	seq             uint16
-	shard           uint16
-	time            uint64
-	rand            uint64
-	mutex           sync.Mutex
+	seq   uint16
+	shard uint16
+	time  uint64
+	rand  uint64
+	mutex sync.Mutex
 }
 
 func NewSortableIdGenerator(shard uint16) *SortableIdGenerator {

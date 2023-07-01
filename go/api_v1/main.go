@@ -525,8 +525,8 @@ func run() error {
 	mux.Handle(grpcreflect.NewHandlerV1(grpcreflect.NewStaticReflector(apiv1connect.ApiServiceName)))
 	mux.Handle(grpcreflect.NewHandlerV1Alpha(grpcreflect.NewStaticReflector(apiv1connect.ApiServiceName)))
 	srv := http.Server{
-		Addr:    ":" + cfg.ServerPort,
-		Handler: h2c.NewHandler(mux, &http2.Server{}),
+		Addr:              ":" + cfg.ServerPort,
+		Handler:           h2c.NewHandler(mux, &http2.Server{}),
 		ReadHeaderTimeout: 60 * time.Second,
 	}
 	go func() {
