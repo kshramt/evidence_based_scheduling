@@ -1,4 +1,4 @@
-FROM node:20.3.1-bookworm-slim as base_js
+FROM node:20.4.0-bookworm-slim as base_js
 
 FROM python:3.11.0-slim-bullseye as base_py
 ENV PYTHONUNBUFFERED 1
