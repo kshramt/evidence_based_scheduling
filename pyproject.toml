@@ -1,25 +1,12 @@
-[tool.mypy]
-plugins = [
-]
-show_error_codes = true
-strict = true
-
-[[tool.mypy.overrides]]
-module = [
-]
-ignore_missing_imports = true
-
 [tool.poetry.dependencies]
 python = ">=3.9.5,<3.12"
-grpcio-tools = "^1.51.3"
 
 [tool.poetry.group.dev.dependencies]
-mypy = "^1.4.1"
-pytest = "^7.2.0"
-pytest-asyncio = "^0.20.0"
+black = "^23.7.0"
+ruff = "^0.0.278"
 
 [tool.poetry]
-name = "grpc_py"
+name = "evidence_based_scheduling"
 version = "1.0.0"
 description = ""
 authors = ["Your Name <you@example.com>"]
@@ -28,3 +15,22 @@ exclude = ["./**/conftext.py", "./**/*_test.py"]
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+
+[tool.ruff]
+exclude = [
+    "**/gen/"
+]
+ignore = [
+    "E501",
+]
+select = [
+    # "D",
+    "E",
+    "F",
+    "I001",
+    "W",
+]
+
+# [tool.ruff.pydocstyle]
+# convention = "google"

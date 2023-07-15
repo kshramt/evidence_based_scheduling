@@ -1,9 +1,5 @@
-[tool.isort]
-profile = 'black'
-multi_line_output = 3
-
 [tool.mypy]
-plugins = "numpy.typing.mypy_plugin"
+plugins = []
 show_error_codes = true
 strict = true
 
@@ -32,14 +28,7 @@ grpcio = "^1.54.0"
 protobuf = "^4.22.4"
 
 [tool.poetry.group.dev.dependencies]
-mypy = "^0.991"
-isort = "^5.10.1"
-black = "^22.10.0"
-python-lsp-server = "^1.7.0"
-mypy-ls = "^0.5.1"
-pyls-isort = "^0.2.2"
-python-lsp-black = "^1.2.1"
-pyflakes = "^3.0.1"
+mypy = "^1.4.1"
 
 [build-system]
 requires = ["poetry-core"]
