@@ -20,13 +20,8 @@ import * as retryers from "./retryers";
 import * as C from "./gen/api/v1/api_connect";
 import * as Pb from "./gen/api/v1/api_pb";
 import * as pb2 from "./pb2";
+import * as storage from "./storage";
 import * as utils from "./utils";
-
-type THead = {
-  client_id: number;
-  session_id: number;
-  patch_id: number;
-};
 
 const retryer = new retryers.Retryer();
 
@@ -39,72 +34,9 @@ export const node_ids_state = Recoil.atom({
   default: "",
 });
 
-type TPatchValue = {
-  client_id: number;
-  session_id: number;
-  patch_id: number;
-  patch: string;
-  parent_client_id: number;
-  parent_session_id: number;
-  parent_patch_id: number;
-  created_at: Date;
-};
-
-type TDb = {
-  booleans: {
-    key: string;
-    value: boolean;
-  };
-  numbers: {
-    key: string;
-    value: number;
-  };
-  heads: {
-    key: "remote" | "local";
-    value: THead;
-  };
-  patches: {
-    key: [number, number, number];
-    value: TPatchValue;
-  };
-  snapshots: {
-    key: [number, number, number];
-    value: {
-      client_id: number;
-      session_id: number;
-      patch_id: number;
-      snapshot: any;
-      created_at: Date;
-    };
-  };
-  pending_patches: {
-    key: [number, number, number];
-    value: THead;
-  };
-};
-
-const get_db = async (db_name: string) => {
-  return await Idb.openDB<TDb>(db_name, 1, {
-    upgrade: (db) => {
-      db.createObjectStore("booleans");
-      db.createObjectStore("numbers");
-      db.createObjectStore("heads");
-      db.createObjectStore("patches", {
-        keyPath: ["client_id", "session_id", "patch_id"],
-      });
-      db.createObjectStore("snapshots", {
-        keyPath: ["client_id", "session_id", "patch_id"],
-      });
-      db.createObjectStore("pending_patches", {
-        keyPath: ["client_id", "session_id", "patch_id"],
-      });
-    },
-  });
-};
-
 const get_client_id = async (
   client: Connect.PromiseClient<typeof C.ApiService>,
-  db: Awaited<ReturnType<typeof get_db>>,
+  db: Awaited<ReturnType<typeof storage.get_db>>,
   id_token: Auth.TIdToken,
 ) => {
   let client_id = await db.get("numbers", "client_id");
@@ -132,62 +64,13 @@ const get_client_id = async (
   return client_id;
 };
 
-const get_patches_for_local_head = async (arg: {
-  head: THead;
-  db: Awaited<ReturnType<typeof get_db>>;
-}) => {
-  const res = await _get_patches_for_local_head(arg);
-  res.patches = res.patches.reverse();
-  return res;
-};
-
-const _get_patches_for_local_head = async (arg: {
-  head: THead;
-  db: Awaited<ReturnType<typeof get_db>>;
-}) => {
-  const tx = arg.db.transaction(["patches", "snapshots"], "readonly");
-  const patches_store = tx.objectStore("patches");
-  const snapshots_store = tx.objectStore("snapshots");
-  const patches = [];
-  let k: [number, number, number] = [
-    arg.head.client_id,
-    arg.head.session_id,
-    arg.head.patch_id,
-  ];
-  while (true) {
-    {
-      const snapshot = await snapshots_store.get(k);
-      if (snapshot !== undefined) {
-        return { snapshot: snapshot.snapshot, patches };
-      }
-    }
-    const patch = await patches_store.get(k);
-    if (patch === undefined) {
-      throw new Error(`get_patches_to_leaf: patch not found: ${k}`);
-    }
-    patches.push(patch);
-    if (
-      patch.parent_client_id === k[0] &&
-      patch.parent_session_id === k[1] &&
-      patch.parent_patch_id === k[2]
-    ) {
-      return { snapshot: {}, patches };
-    }
-    k = [
-      patch.parent_client_id,
-      patch.parent_session_id,
-      patch.parent_patch_id,
-    ];
-  }
-};
-
 const get_state_and_patch = async (arg: {
-  head: THead;
-  db: Awaited<ReturnType<typeof get_db>>;
+  head: storage.THead;
+  db: Awaited<ReturnType<typeof storage.get_db>>;
 }) => {
   // Populate data.
   const t1 = performance.now();
-  const loaded = await get_patches_for_local_head(arg);
+  const loaded = await storage.get_patches_for_local_head(arg);
   let snapshot = loaded.snapshot;
   {
     for (const patch of loaded.patches) {
@@ -347,24 +230,34 @@ export const session_key_context = React.createContext({
 //    The value is initialized with `client_id`, `session_id`, and `patch_id = 0`.
 export class PersistentStateManager {
   grpc_client: Connect.PromiseClient<typeof C.ApiService>;
-  db: Awaited<ReturnType<typeof get_db>>;
+  db: Awaited<ReturnType<typeof storage.get_db>>;
   client_id: number;
   session_id: number;
-  heads: { remote: THead; sync: null | THead; parent: THead; child: THead };
+  heads: {
+    remote: storage.THead;
+    sync: null | storage.THead;
+    parent: storage.THead;
+    child: storage.THead;
+  };
   id_token: Auth.TIdToken;
   auth: Auth.Auth;
   session_key: { user_id: string; client_id: number; session_id: number };
   redux_store: Loadable<Awaited<ReturnType<typeof this.get_redux_store>>>;
-  #patch_queue: queues.Queue<null | TPatchValue> = new queues.Queue();
-  #head_queue: queues.Queue<null | THead> = new queues.Queue();
+  #patch_queue: queues.Queue<null | storage.TPatchValue> = new queues.Queue();
+  #head_queue: queues.Queue<null | storage.THead> = new queues.Queue();
   #rpc_queue: queues.Queue<null | (() => Promise<void>)> = new queues.Queue();
   #sync_store: ReturnType<typeof _get_store> = _get_store();
   constructor(
     grpc_client: Connect.PromiseClient<typeof C.ApiService>,
-    db: Awaited<ReturnType<typeof get_db>>,
+    db: Awaited<ReturnType<typeof storage.get_db>>,
     client_id: number,
     session_id: number,
-    heads: { remote: THead; sync: null; parent: THead; child: THead },
+    heads: {
+      remote: storage.THead;
+      sync: null;
+      parent: storage.THead;
+      child: storage.THead;
+    },
     id_token: Auth.TIdToken,
     auth: Auth.Auth,
   ) {
@@ -392,7 +285,7 @@ export class PersistentStateManager {
     this.#rpc_queue.push(null);
   };
 
-  get_redux_store = async (local_head: THead) => {
+  get_redux_store = async (local_head: storage.THead) => {
     const { state, patch } = await get_state_and_patch({
       head: local_head,
       db: this.db,
@@ -530,9 +423,9 @@ export class PersistentStateManager {
   };
 
   #save_remote_head = async (
-    head: THead,
+    head: storage.THead,
     store?: Idb.IDBPObjectStore<
-      TDb,
+      storage.TDb,
       "heads"[] | ("heads" | "patches" | "pending_patches")[],
       "heads",
       "readwrite"
@@ -817,7 +710,7 @@ export const get_PersistentStateManager = async (
   auth: Auth.Auth,
 ) => {
   // Open DB
-  const db = await get_db(`user-${id_token.user_id}`);
+  const db = await storage.get_db(`user-${id_token.user_id}`);
   const grpc_client = Connect.createPromiseClient(
     C.ApiService,
     createGrpcWebTransport({ baseUrl: window.location.origin }),
@@ -972,7 +865,7 @@ const get_remote_head_and_save_remote_pending_patches = async (
   client_id: number,
   grpc_client: Connect.PromiseClient<typeof C.ApiService>,
   id_token: Auth.TIdToken,
-  db: Awaited<ReturnType<typeof get_db>>,
+  db: Awaited<ReturnType<typeof storage.get_db>>,
   wrapper: typeof retryer.with_retry = (fn) => {
     return fn();
   },
@@ -999,7 +892,7 @@ const save_and_remove_remote_pending_patches = async (
   id_token: Auth.TIdToken,
   client_id: number,
   grpc_client: Connect.PromiseClient<typeof C.ApiService>,
-  db: Awaited<ReturnType<typeof get_db>>,
+  db: Awaited<ReturnType<typeof storage.get_db>>,
   wrapper: typeof retryer.with_retry = (fn) => {
     return fn();
   },
@@ -1087,7 +980,7 @@ const _get_bearer = (id_token: Auth.TIdToken) => {
   return `Bearer ${btoa(JSON.stringify(id_token))}`;
 };
 
-type TState = null | { updated_at: string; name: string; head: THead };
+type TState = null | { updated_at: string; name: string; head: storage.THead };
 
 const _initial_state: TState = null;
 
