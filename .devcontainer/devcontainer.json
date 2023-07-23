@@ -1,0 +1,66 @@
+{
+  "dockerComposeFile": ["../compose.devcontainer.yaml"],
+  "service": "devcontainer",
+  "workspaceFolder": "${localWorkspaceFolder}",
+  "mounts": [],
+  "remoteUser": "${localEnv:USER}",
+  "updateRemoteUserUID": true,
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Github.copilot",
+        "GitHub.vscode-pull-request-github",
+        "github.vscode-github-actions",
+        "esbenp.prettier-vscode",
+        "ms-azuretools.vscode-docker",
+        "ms-vscode-remote.vscode-remote-extensionpack",
+        "esbenp.prettier-vscode",
+        "ms-python.black-formatter",
+        "inferrinizzard.prettier-sql-vscode"
+      ],
+      "settings": {
+        "[html]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[javascript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[json]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[jsonc]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.black-formatter",
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": true
+          }
+        },
+        "[sql]": {
+          "editor.defaultFormatter": "inferrinizzard.prettier-sql-vscode"
+        },
+        "[typescriptreact]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[typescript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "editor.codeActionsOnSave": {
+          "source.fixAll": true
+        },
+        "editor.cursorStyle": "block",
+        "editor.inlineSuggest.enabled": true,
+        "editor.minimap.enabled": false,
+        "editor.wordWrap": "on",
+        "files.autoSave": "afterDelay",
+        "files.autoSaveDelay": 500,
+        "files.insertFinalNewline": true,
+        "files.trimTrailingWhitespace": true,
+        "go.toolsManagement.autoUpdate": true,
+        "insertDateString.format": "YYYY-MM-DDThh:mm:ssZZZZ",
+        "rust-analyzer.check.command": "clippy"
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+services:
+  devcontainer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: devcontainer
+      args:
+        devcontainer_user: ${USER:?}
+    cap_add:
+      - SYS_PTRACE
+    init: true
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      HOST_HOME: ${HOME:?}
+    volumes:
+      - type: bind
+        source: ${MY_DOCKER_HOST_PATH:-/var/run/docker.sock}
+        target: /var/run/docker.sock
+      - type: bind
+        source: /
+        target: /h
+      - type: bind
+        source: ${PWD:?}
+        target: ${PWD:?}
+    command: sleep infinity

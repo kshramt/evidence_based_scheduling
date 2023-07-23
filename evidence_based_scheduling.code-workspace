@@ -7,42 +7,5 @@
     { "path": "grpc_py" },
     { "path": "proto" },
     { "path": "tests/e2e" }
-  ],
-  "settings": {
-    "[html]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "[javascript]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "[json]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "[jsonc]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "[python]": {
-      "editor.defaultFormatter": "ms-python.black-formatter",
-      "editor.codeActionsOnSave": {
-        "source.organizeImports": true
-      }
-    },
-    "[sql]": {
-      "editor.defaultFormatter": "inferrinizzard.prettier-sql-vscode"
-    },
-    "[typescriptreact]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "[typescript]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "editor.codeActionsOnSave": {
-      "source.fixAll": true
-    },
-    "editor.inlineSuggest.enabled": true,
-    "go.toolsManagement.autoUpdate": true,
-    "rust-analyzer.check.command": "clippy",
-    "files.trimTrailingWhitespace": true,
-    "files.insertFinalNewline": true
-  }
+  ]
 }
