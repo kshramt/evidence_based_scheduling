@@ -1,8 +1,8 @@
-import * as fast_json_patch from "fast-json-patch";
+import * as fast_json_patch from "@kshramt/fast-json-patch";
 import * as immer from "immer";
 
-export type { Operation as TOperation } from "fast-json-patch";
-export { applyPatch as apply_patch } from "fast-json-patch";
+export type { Operation as TOperation } from "@kshramt/fast-json-patch";
+export { applyPatch as apply_patch } from "@kshramt/fast-json-patch";
 
 export function produce_with_patche<X extends {}>(
   x: X,

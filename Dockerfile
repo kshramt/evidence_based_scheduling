@@ -1,14 +1,19 @@
-FROM node:20.4.0-bookworm-slim AS base_js
-
-FROM base_js AS node_downloader
+FROM node:20.4.0-bookworm-slim AS node_downloader
 RUN mkdir -p /usr/local/node \
     && cp -a /usr/local/bin /usr/local/node/bin && rm -f /usr/local/node/bin/docker-entrypoint.sh \
     && cp -a /usr/local/include /usr/local/node/include \
     && cp -a /usr/local/lib /usr/local/node/lib
 
+
+FROM ubuntu:22.04 as base_js
+COPY --link --from=node_downloader /usr/local/node /usr/local/node
+ENV PATH "/usr/local/node/bin:${PATH}"
+
+
 FROM docker:24.0.4-cli-alpine3.18 AS docker_downloader
 COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/bin/docker /usr/local/bin/docker
 COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/libexec/docker /usr/local/libexec/docker
+
 
 FROM ubuntu:22.04 AS devcontainer
 RUN sed \
@@ -40,7 +45,7 @@ COPY --link .devcontainer/skel /etc/skel
 ARG devcontainer_user
 RUN useradd -m -s /bin/bash "${devcontainer_user:?}" \
     && usermod -aG sudo "${devcontainer_user:?}" \
-    && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+    && echo '%sudo ALL=(ALL:ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 COPY --link --from=node_downloader /usr/local/node /usr/local/node
 COPY --link --from=docker_downloader /usr/local/bin/docker /usr/local/bin/docker
@@ -77,6 +82,7 @@ WORKDIR /app/client
 FROM base_client AS client_npm_ci
 COPY --link client/package.json client/package-lock.json ./
 RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/root/.npm npm ci
+RUN npx playwright install --with-deps
 
 FROM client_npm_ci AS client_proto
 COPY --link proto ../proto

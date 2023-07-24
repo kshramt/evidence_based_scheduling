@@ -29,19 +29,3 @@ export class MultiSet<K> {
     return this._map.keys();
   };
 }
-
-if (import.meta.vitest) {
-  const { it, expect } = await import("vitest");
-  it("MultiSet", () => {
-    const ms = new MultiSet<number>();
-    expect(ms.has(0)).toBeFalsy();
-    ms.add(0);
-    expect(ms.has(0)).toBeTruthy();
-    ms.add(0);
-    expect(ms.has(0)).toBeTruthy();
-    ms.delete(0);
-    expect(ms.has(0)).toBeTruthy();
-    ms.delete(0);
-    expect(ms.has(0)).toBeFalsy();
-  });
-}

@@ -1,5 +1,8 @@
 services:
   devcontainer:
+    depends_on:
+      docker_sock:
+        condition: service_started
     build:
       context: .
       dockerfile: Dockerfile
@@ -13,10 +16,8 @@ services:
       - seccomp:unconfined
     environment:
       HOST_HOME: ${HOME:?}
+      DOCKER_HOST: tcp://docker_sock:2375
     volumes:
-      - type: bind
-        source: ${MY_DOCKER_HOST_PATH:-/var/run/docker.sock}
-        target: /var/run/docker.sock
       - type: bind
         source: /
         target: /h
@@ -24,3 +25,12 @@ services:
         source: ${PWD:?}
         target: ${PWD:?}
     command: sleep infinity
+  docker_sock:
+    image: alpine/socat:1.7.4.4
+    init: true
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: ${MY_DOCKER_HOST_PATH:-/var/run/docker.sock}
+        target: /var/run/docker.sock
+    command: tcp-listen:2375,fork,reuseaddr unix-connect:/var/run/docker.sock
