@@ -2,6 +2,9 @@
   "dockerComposeFile": ["../compose.devcontainer.yaml"],
   "service": "devcontainer",
   "workspaceFolder": "${localWorkspaceFolder}",
+  "postCreateCommand": {
+    "set-safe-directory": "sudo git config --system --add safe.directory ${containerWorkspaceFolder}"
+  },
   "mounts": [],
   "remoteUser": "${localEnv:USER}",
   "updateRemoteUserUID": true,
