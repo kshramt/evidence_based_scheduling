@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "types": ["vitest/importMeta"],
     "target": "ESNext",
     "useDefineForClassFields": true,
     "lib": ["DOM", "DOM.Iterable", "ESNext", "WebWorker"],
@@ -15,7 +16,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "baseUrl": ".",
+    "baseUrl": "./",
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true
   },

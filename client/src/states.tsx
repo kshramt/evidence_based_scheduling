@@ -36,7 +36,7 @@ export const node_ids_state = Recoil.atom({
 
 const get_client_id = async (
   client: Connect.PromiseClient<typeof C.ApiService>,
-  db: Awaited<ReturnType<typeof storage.get_db>>,
+  db: Awaited<ReturnType<typeof storage.getDb>>,
   id_token: Auth.TIdToken,
 ) => {
   let client_id = await db.get("numbers", "client_id");
@@ -66,7 +66,7 @@ const get_client_id = async (
 
 const get_state_and_patch = async (arg: {
   head: storage.THead;
-  db: Awaited<ReturnType<typeof storage.get_db>>;
+  db: Awaited<ReturnType<typeof storage.getDb>>;
 }) => {
   // Populate data.
   const t1 = performance.now();
@@ -230,7 +230,7 @@ export const session_key_context = React.createContext({
 //    The value is initialized with `client_id`, `session_id`, and `patch_id = 0`.
 export class PersistentStateManager {
   grpc_client: Connect.PromiseClient<typeof C.ApiService>;
-  db: Awaited<ReturnType<typeof storage.get_db>>;
+  db: Awaited<ReturnType<typeof storage.getDb>>;
   client_id: number;
   session_id: number;
   heads: {
@@ -249,7 +249,7 @@ export class PersistentStateManager {
   #sync_store: ReturnType<typeof _get_store> = _get_store();
   constructor(
     grpc_client: Connect.PromiseClient<typeof C.ApiService>,
-    db: Awaited<ReturnType<typeof storage.get_db>>,
+    db: Awaited<ReturnType<typeof storage.getDb>>,
     client_id: number,
     session_id: number,
     heads: {
@@ -705,12 +705,13 @@ export class PersistentStateManager {
   };
 }
 
+
 export const get_PersistentStateManager = async (
   id_token: Auth.TIdToken,
   auth: Auth.Auth,
 ) => {
   // Open DB
-  const db = await storage.get_db(`user-${id_token.user_id}`);
+  const db = await storage.getDb(`user-${id_token.user_id}`);
   const grpc_client = Connect.createPromiseClient(
     C.ApiService,
     createGrpcWebTransport({ baseUrl: window.location.origin }),
@@ -735,6 +736,7 @@ export const get_PersistentStateManager = async (
   let local_head = await heads_store.get("local");
   let remote_head = await heads_store.get("remote");
   await tx.done;
+  // On the first time, fetch remote head and save it.
   if (local_head === undefined || remote_head === undefined) {
     const resp = await get_remote_head_and_save_remote_pending_patches(
       client_id,
@@ -865,7 +867,7 @@ const get_remote_head_and_save_remote_pending_patches = async (
   client_id: number,
   grpc_client: Connect.PromiseClient<typeof C.ApiService>,
   id_token: Auth.TIdToken,
-  db: Awaited<ReturnType<typeof storage.get_db>>,
+  db: Awaited<ReturnType<typeof storage.getDb>>,
   wrapper: typeof retryer.with_retry = (fn) => {
     return fn();
   },
@@ -892,7 +894,7 @@ const save_and_remove_remote_pending_patches = async (
   id_token: Auth.TIdToken,
   client_id: number,
   grpc_client: Connect.PromiseClient<typeof C.ApiService>,
-  db: Awaited<ReturnType<typeof storage.get_db>>,
+  db: Awaited<ReturnType<typeof storage.getDb>>,
   wrapper: typeof retryer.with_retry = (fn) => {
     return fn();
   },

@@ -204,6 +204,7 @@ const AppComponentImpl = (props: {
 }) => {
   const ctx = props.ctx.get();
   const store = ctx.redux_store.get();
+  React.useEffect(() => ctx.stop, [ctx.stop]);
   ctx.useCheckUpdates();
   return (
     <states.session_key_context.Provider value={ctx.session_key}>

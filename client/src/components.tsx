@@ -14,7 +14,7 @@ import * as ops from "./ops";
 import * as toast from "./toast";
 import * as undoable from "./undoable";
 import ScrollBackToTopButton from "./ScrollBackToTopButton";
-import MenuButton from "./MenuButton";
+import MenuButton from "./Header/MenuButton";
 
 const SCROLL_BACK_TO_TOP_MARK = (
   <span className="material-icons">vertical_align_top</span>
@@ -262,24 +262,12 @@ const Menu = (props: { ctx: states.PersistentStateManager }) => {
   }, [props.ctx]);
   return (
     <div
-      className={`flex items-center overflow-x-auto h-[3rem] pl-[1em] gap-x-[0.25em] w-full top-0  bg-neutral-200 dark:bg-neutral-900`}
+      className={`flex items-center overflow-x-auto h-[3rem] gap-x-[0.25em] gap-x-[0.25em] w-full top-0  bg-neutral-200 dark:bg-neutral-900`}
     >
-      <MenuButton>
-        <ul>
-          <li>
-            <ToggleShowMobileButton />
-          </li>
-          <li>
-            <button
-              className="btn-icon mr-[0.5em]"
-              onClick={check_remote_head}
-              onDoubleClick={prevent_propagation}
-            >
-              Check remote
-            </button>
-          </li>
-        </ul>
-      </MenuButton>
+      <MenuButton
+        onClickCheckRemoteButton={check_remote_head}
+        db={props.ctx.db}
+      />
       <button
         className="btn-icon"
         onClick={stop_all}
@@ -1015,22 +1003,10 @@ const MobileMenu = (props: { ctx: states.PersistentStateManager }) => {
     <div
       className={`flex items-center overflow-x-auto gap-x-[0.25em] h-[3rem] w-full top-0 bg-neutral-200 dark:bg-neutral-900`}
     >
-      <MenuButton>
-        <ul>
-          <li>
-            <ToggleShowMobileButton />
-          </li>
-          <li>
-            <button
-              className="btn-icon mr-[0.5em]"
-              onClick={check_remote_head}
-              onDoubleClick={prevent_propagation}
-            >
-              Check remote
-            </button>
-          </li>
-        </ul>
-      </MenuButton>
+      <MenuButton
+        onClickCheckRemoteButton={check_remote_head}
+        db={props.ctx.db}
+      />
       <button
         className="btn-icon"
         onClick={stop_all}
@@ -2121,14 +2097,7 @@ const NLeftButton = () => {
   const handle_click = React.useCallback(() => {
     dispatch((disptch, getState) => {
       const state = getState();
-      const blob = new Blob([JSON.stringify(state.data)], {
-        type: "application/json",
-      });
-      const anchor = document.createElement("a");
-      anchor.href = URL.createObjectURL(blob);
-      anchor.download = "evidence_based_scheduling.json";
-      anchor.click();
-      URL.revokeObjectURL(anchor.href);
+      utils.downloadJson("evidence_based_scheduling.json", state.data);
     });
   }, [dispatch]);
   return (

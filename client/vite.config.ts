@@ -1,6 +1,8 @@
+/// <reference types="vitest" />
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
+import react from "@vitejs/plugin-react-swc";
 import { VitePWA } from "vite-plugin-pwa";
+import path from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -52,15 +54,36 @@ export default defineConfig({
       },
     }),
   ],
+  resolve: {
+    alias: {
+      src: path.resolve("src"),
+    },
+  },
   server: {
     proxy: {
       "/api.v1.ApiService": {
-        target: "http://localhost:8080",
+        target: `http://${process.env.LOCALHOST || "localhost"}:${
+          process.env.ENVOY_HTTP_PORT || 8080
+        }`,
         changeOrigin: true,
         secure: false,
       },
     },
   },
   base: "./",
-  define: {},
+  define: {
+    "import.meta.vitest": "undefined",
+  },
+  test: {
+    includeSource: ["src/**/*.{js,ts,jsx,tsx}"],
+    browser: {
+      enabled: true,
+      headless: true,
+      name: "firefox",
+      provider: "playwright",
+    },
+    coverage: {
+      provider: "istanbul",
+    },
+  },
 });

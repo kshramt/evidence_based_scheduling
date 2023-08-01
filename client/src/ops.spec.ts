@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/experimental-ct-react";
+import { test, expect } from "vitest";
 import * as types from "./types";
 import * as T from "./ops";
 

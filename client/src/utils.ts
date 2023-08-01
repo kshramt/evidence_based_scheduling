@@ -149,3 +149,23 @@ export function dnd_move<X>(xs: X[], i_from: number, i_to: number) {
   }
   return xs;
 }
+
+export const downloadJson = (fileName: string, data: any) => {
+  const a = document.createElement("a");
+  try {
+    const uri = URL.createObjectURL(
+      new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      }),
+    );
+    try {
+      a.href = uri;
+      a.download = fileName;
+      a.click();
+    } finally {
+      URL.revokeObjectURL(uri);
+    }
+  } finally {
+    a.remove();
+  }
+};

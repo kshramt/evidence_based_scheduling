@@ -48,10 +48,15 @@ RUN useradd -m -s /bin/bash "${devcontainer_user:?}" \
     && echo '%sudo ALL=(ALL:ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 COPY --link --from=node_downloader /usr/local/node /usr/local/node
+COPY --link --from=base_go /usr/local/go /usr/local/go
 COPY --link --from=docker_downloader /usr/local/bin/docker /usr/local/bin/docker
 COPY --link --from=docker_downloader /usr/local/libexec/docker /usr/local/libexec/docker
 
+ARG host_home
+
 ENV PATH "/usr/local/node/bin:${PATH}"
+ENV PATH "/usr/local/go/bin:${PATH}"
+ENV GOPATH "/h/${host_home:?}/devcontainer/go"
 USER "${devcontainer_user:?}"
 
 

@@ -9,9 +9,11 @@ services:
       target: devcontainer
       args:
         devcontainer_user: ${USER:?}
+        host_home: ${HOME:?}
     cap_add:
       - SYS_PTRACE
     init: true
+    network_mode: host
     security_opt:
       - seccomp:unconfined
     environment:
