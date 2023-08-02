@@ -28,10 +28,10 @@ const TREE_PREFIX = "t-";
 const DEFAULT_DELAY_MSEC = 10_000;
 
 export const MobileApp = React.memo(
-  (props: { ctx: states.PersistentStateManager }) => {
+  (props: { ctx: states.PersistentStateManager; logOut: () => void }) => {
     return (
       <div className="flex flex-col h-screen w-screen">
-        <MobileMenu ctx={props.ctx} />
+        <MobileMenu ctx={props.ctx} logOut={props.logOut} />
         <MobileBody />
       </div>
     );
@@ -39,10 +39,10 @@ export const MobileApp = React.memo(
 );
 
 export const DesktopApp = React.memo(
-  (props: { ctx: states.PersistentStateManager }) => {
+  (props: { ctx: states.PersistentStateManager; logOut: () => void }) => {
     return (
       <div className="flex flex-col h-screen w-screen">
-        <Menu ctx={props.ctx} />
+        <Menu ctx={props.ctx} logOut={props.logOut} />
         <Body />
       </div>
     );
@@ -227,7 +227,10 @@ export const ToggleShowMobileButton = () => {
   );
 };
 
-const Menu = (props: { ctx: states.PersistentStateManager }) => {
+const Menu = (props: {
+  ctx: states.PersistentStateManager;
+  logOut: () => void;
+}) => {
   const root = useSelector((state) => state.data.root);
   const dispatch = useDispatch();
   const stop_all = useCallback(
@@ -267,6 +270,7 @@ const Menu = (props: { ctx: states.PersistentStateManager }) => {
       <MenuButton
         onClickCheckRemoteButton={check_remote_head}
         db={props.ctx.db}
+        logOut={props.logOut}
       />
       <button
         className="btn-icon"
@@ -977,7 +981,10 @@ const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
   );
 });
 
-const MobileMenu = (props: { ctx: states.PersistentStateManager }) => {
+const MobileMenu = (props: {
+  ctx: states.PersistentStateManager;
+  logOut: () => void;
+}) => {
   const root = useSelector((state) => state.data.root);
   const dispatch = useDispatch();
   const stop_all = useCallback(
@@ -1006,6 +1013,7 @@ const MobileMenu = (props: { ctx: states.PersistentStateManager }) => {
       <MenuButton
         onClickCheckRemoteButton={check_remote_head}
         db={props.ctx.db}
+        logOut={props.logOut}
       />
       <button
         className="btn-icon"

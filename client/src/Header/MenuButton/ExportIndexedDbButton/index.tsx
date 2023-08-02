@@ -17,7 +17,7 @@ const ExportIndexedDbButton = React.memo(
         }
         res[storeName] = records;
       }
-      utils.downloadJson("indexeddb.json", res)
+      utils.downloadJson("indexeddb.json", res);
     }, [props.db]);
     return <Component onClick={onClick} />;
   },

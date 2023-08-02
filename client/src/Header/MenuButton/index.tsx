@@ -7,6 +7,7 @@ const MenuButton = React.memo(
   (props: {
     onClickCheckRemoteButton: () => void;
     db: Awaited<ReturnType<typeof storage.getDb>>;
+    logOut: () => void;
   }) => {
     const [isOpen, setIsOpen] = React.useState(false);
     const menuButtonRef = React.useRef<HTMLButtonElement>(null);
@@ -45,6 +46,7 @@ const MenuButton = React.memo(
         handleButtonClick={handleButtonClick}
         onClickCheckRemoteButton={props.onClickCheckRemoteButton}
         db={props.db}
+        logOut={props.logOut}
       />
     );
   },

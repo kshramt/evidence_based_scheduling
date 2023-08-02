@@ -4,6 +4,7 @@ import * as storage from "src/storage";
 import ToggleShowMobileButton from "../ToggleShowMobileButton";
 import CheckRemoteButton from "../CheckRemoteButton";
 import ExportIndexedDbButton from "../ExportIndexedDbButton";
+import LogoutButton from "../LogoutButton";
 
 const MenuButton = React.memo(
   (props: {
@@ -13,6 +14,7 @@ const MenuButton = React.memo(
     handleButtonClick: () => void;
     onClickCheckRemoteButton: () => void;
     db: Awaited<ReturnType<typeof storage.getDb>>;
+    logOut: () => void;
   }) => {
     return (
       <div>
@@ -33,6 +35,9 @@ const MenuButton = React.memo(
             </div>
             <div>
               <ExportIndexedDbButton db={props.db} />
+            </div>
+            <div>
+              <LogoutButton logOut={props.logOut} />
             </div>
           </div>
         )}

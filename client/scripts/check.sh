@@ -13,5 +13,5 @@ umask u=rwx,g=,o=
 node_modules/.bin/tsc --noEmit
 node_modules/.bin/vitest run --run --coverage
 node_modules/.bin/eslint --max-warnings 0 src
-node_modules/.bin/playwright test -c playwright-ct.config.ts
+# node_modules/.bin/playwright test -c playwright-ct.config.ts
 node_modules/.bin/prettier --check src

@@ -36,7 +36,7 @@ export class Auth {
 
   sign_up = async (name: string) => {
     if (this.id_token) {
-      await this.sign_out();
+      await this.logOut();
     }
     const resp = await this._client.fakeIdpCreateUser({ name });
     if (resp.token === undefined) {
@@ -49,9 +49,9 @@ export class Auth {
     this._set_id_token(id_token);
     return id_token;
   };
-  sign_in = async (name: string) => {
+  logIn = async (name: string) => {
     if (this.id_token) {
-      await this.sign_out();
+      await this.logOut();
     }
     const resp = await this._client.fakeIdpGetIdToken({ name });
     if (resp.token === undefined) {
@@ -64,7 +64,7 @@ export class Auth {
     this._set_id_token(id_token);
     return id_token;
   };
-  sign_out = async () => {
+  logOut = async () => {
     await this._set_id_token(null);
   };
   on_change = (hook: (id_token: null | TIdToken) => void) => {

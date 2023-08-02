@@ -1,8 +1,8 @@
 FROM node:20.4.0-bookworm-slim AS node_downloader
 RUN mkdir -p /usr/local/node \
-    && cp -a /usr/local/bin /usr/local/node/bin && rm -f /usr/local/node/bin/docker-entrypoint.sh \
-    && cp -a /usr/local/include /usr/local/node/include \
-    && cp -a /usr/local/lib /usr/local/node/lib
+   && cp -a /usr/local/bin /usr/local/node/bin && rm -f /usr/local/node/bin/docker-entrypoint.sh \
+   && cp -a /usr/local/include /usr/local/node/include \
+   && cp -a /usr/local/lib /usr/local/node/lib
 
 
 FROM ubuntu:22.04 as base_js
@@ -17,35 +17,65 @@ COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/libexec/docker /usr/l
 
 FROM ubuntu:22.04 AS devcontainer
 RUN sed \
-    -e 's|^path-exclude=/usr/share/man|# path-exclude=/usr/share/man|g' \
-    -e 's|^path-exclude=/usr/share/doc/|# path-exclude=/usr/share/doc/|g' \
-    -i /etc/dpkg/dpkg.cfg.d/excludes
+   -e 's|^path-exclude=/usr/share/man|# path-exclude=/usr/share/man|g' \
+   -e 's|^path-exclude=/usr/share/doc/|# path-exclude=/usr/share/doc/|g' \
+   -i /etc/dpkg/dpkg.cfg.d/excludes
+# sudo npx playwright install-deps
 RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    bash-completion \
-    bsdmainutils \
-    build-essential \
-    ca-certificates \
-    colordiff \
-    curl \
-    git \
-    jq \
-    less \
-    oathtool \
-    sudo \
-    tig \
-    tree \
-    tmux \
-    unzip \
-    wget \
-    vim
+   && DEBIAN_FRONTEND=noninteractive sudo apt-get install -y --no-install-recommends \
+   libxcb-shm0\
+   libx11-xcb1\
+   libx11-6\
+   libxcb1\
+   libxext6\
+   libxrandr2\
+   libxcomposite1\
+   libxcursor1\
+   libxdamage1\
+   libxfixes3\
+   libxi6\
+   libxtst6\
+   libgtk-3-0\
+   libpangocairo-1.0-0\
+   libpango-1.0-0\
+   libatk1.0-0\
+   libcairo-gobject2\
+   libcairo2\
+   libgdk-pixbuf-2.0-0\
+   libglib2.0-0\
+   libasound2\
+   libxrender1\
+   libfreetype6\
+   libfontconfig1\
+   libdbus-glib-1-2\
+   libdbus-1-3
+# Basic dependencies
+RUN apt-get update \
+   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+   bash-completion \
+   bsdmainutils \
+   build-essential \
+   ca-certificates \
+   colordiff \
+   curl \
+   git \
+   jq \
+   less \
+   oathtool \
+   sudo \
+   tig \
+   tree \
+   tmux \
+   unzip \
+   wget \
+   vim
 
 COPY --link .devcontainer/skel /etc/skel
 
 ARG devcontainer_user
 RUN useradd -m -s /bin/bash "${devcontainer_user:?}" \
-    && usermod -aG sudo "${devcontainer_user:?}" \
-    && echo '%sudo ALL=(ALL:ALL) NOPASSWD:ALL' >> /etc/sudoers
+   && usermod -aG sudo "${devcontainer_user:?}" \
+   && echo '%sudo ALL=(ALL:ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 COPY --link --from=node_downloader /usr/local/node /usr/local/node
 COPY --link --from=base_go /usr/local/go /usr/local/go

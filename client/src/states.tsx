@@ -240,7 +240,6 @@ export class PersistentStateManager {
     child: storage.THead;
   };
   id_token: Auth.TIdToken;
-  auth: Auth.Auth;
   session_key: { user_id: string; client_id: number; session_id: number };
   redux_store: Loadable<Awaited<ReturnType<typeof this.get_redux_store>>>;
   #patch_queue: queues.Queue<null | storage.TPatchValue> = new queues.Queue();
@@ -259,7 +258,6 @@ export class PersistentStateManager {
       child: storage.THead;
     },
     id_token: Auth.TIdToken,
-    auth: Auth.Auth,
   ) {
     this.grpc_client = grpc_client;
     this.db = db;
@@ -267,7 +265,6 @@ export class PersistentStateManager {
     this.session_id = session_id;
     this.heads = heads;
     this.id_token = id_token;
-    this.auth = auth;
     this.session_key = {
       user_id: id_token.user_id,
       client_id,
@@ -705,11 +702,7 @@ export class PersistentStateManager {
   };
 }
 
-
-export const get_PersistentStateManager = async (
-  id_token: Auth.TIdToken,
-  auth: Auth.Auth,
-) => {
+export const get_PersistentStateManager = async (id_token: Auth.TIdToken) => {
   // Open DB
   const db = await storage.getDb(`user-${id_token.user_id}`);
   const grpc_client = Connect.createPromiseClient(
@@ -776,7 +769,6 @@ export const get_PersistentStateManager = async (
       child: { client_id, session_id, patch_id: 0 },
     },
     id_token,
-    auth,
   );
 
   // Create atoms

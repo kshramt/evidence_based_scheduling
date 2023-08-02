@@ -15,46 +15,49 @@ import * as Auth from "./auth";
 
 const TWO_DAYS = 2 * 24 * 60 * 60 * 1000;
 
-const App = React.memo((props: { ctx: states.PersistentStateManager }) => {
-  const [isShowMobileSelected, setIsShowMobileSelected] = React.useState(false);
+const App = React.memo(
+  (props: { ctx: states.PersistentStateManager; logOut: () => void }) => {
+    const [isShowMobileSelected, setIsShowMobileSelected] =
+      React.useState(false);
 
-  const show_mobile = Recoil.useRecoilValue(
-    states.show_mobile_atom_map.get(
-      React.useContext(states.session_key_context),
-    ),
-  );
-  const [showMobileUpdatedAt, setShowMobileUpdatedAt] = Recoil.useRecoilState(
-    states.showMobileUpdatedAtAtomMap.get(
-      React.useContext(states.session_key_context),
-    ),
-  );
-  const handleClick = React.useCallback(() => {
-    setShowMobileUpdatedAt(-Date.now());
-    setIsShowMobileSelected(true);
-  }, [setShowMobileUpdatedAt, setIsShowMobileSelected]);
-  if (!isShowMobileSelected && Date.now() < showMobileUpdatedAt + TWO_DAYS) {
+    const show_mobile = Recoil.useRecoilValue(
+      states.show_mobile_atom_map.get(
+        React.useContext(states.session_key_context),
+      ),
+    );
+    const [showMobileUpdatedAt, setShowMobileUpdatedAt] = Recoil.useRecoilState(
+      states.showMobileUpdatedAtAtomMap.get(
+        React.useContext(states.session_key_context),
+      ),
+    );
+    const handleClick = React.useCallback(() => {
+      setShowMobileUpdatedAt(-Date.now());
+      setIsShowMobileSelected(true);
+    }, [setShowMobileUpdatedAt, setIsShowMobileSelected]);
+    if (!isShowMobileSelected && Date.now() < showMobileUpdatedAt + TWO_DAYS) {
+      return (
+        <>
+          <button className="btn-icon" onClick={handleClick}>
+            Continue
+          </button>
+          with the current setting. Or select:
+          <components.ToggleShowMobileButton />
+        </>
+      );
+    }
+
     return (
       <>
-        <button className="btn-icon" onClick={handleClick}>
-          Continue
-        </button>
-        with the current setting. Or select:
-        <components.ToggleShowMobileButton />
+        {show_mobile ? (
+          <components.MobileApp ctx={props.ctx} logOut={props.logOut} />
+        ) : (
+          <components.DesktopApp ctx={props.ctx} logOut={props.logOut} />
+        )}
+        {toast.component}
       </>
     );
-  }
-
-  return (
-    <>
-      {show_mobile ? (
-        <components.MobileApp ctx={props.ctx} />
-      ) : (
-        <components.DesktopApp ctx={props.ctx} />
-      )}
-      {toast.component}
-    </>
-  );
-});
+  },
+);
 
 const Center = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -83,7 +86,7 @@ const AuthComponent = ({
   sign_in,
   sign_up,
 }: {
-  sign_in: typeof Auth.Auth.prototype.sign_in;
+  sign_in: typeof Auth.Auth.prototype.logIn;
   sign_up: typeof Auth.Auth.prototype.sign_up;
 }) => {
   const [err, set_err] = React.useState("");
@@ -201,6 +204,7 @@ class ErrorBoundary extends React.Component<
 
 const AppComponentImpl = (props: {
   ctx: states.Loadable<states.PersistentStateManager>;
+  logOut: () => void;
 }) => {
   const ctx = props.ctx.get();
   const store = ctx.redux_store.get();
@@ -209,25 +213,28 @@ const AppComponentImpl = (props: {
   return (
     <states.session_key_context.Provider value={ctx.session_key}>
       <Provider store={store}>
-        <App ctx={ctx} />
+        <App ctx={ctx} logOut={props.logOut} />
         <ctx.Component />
       </Provider>
     </states.session_key_context.Provider>
   );
 };
 
-const AppComponent = (props: { auth: Auth.Auth; id_token: Auth.TIdToken }) => {
+const AppComponent = (props: {
+  id_token: Auth.TIdToken;
+  logOut: () => void;
+}) => {
   const ctx = React.useMemo(() => {
     return new states.Loadable(
-      states.get_PersistentStateManager(props.id_token, props.auth),
+      states.get_PersistentStateManager(props.id_token),
     );
-  }, [props.id_token, props.auth]);
+  }, [props.id_token]);
   return (
     <Dnd.DndProvider backend={HTML5Backend}>
       <Recoil.RecoilRoot>
         <ErrorBoundary>
           <React.Suspense fallback={spinner}>
-            <AppComponentImpl ctx={ctx} />
+            <AppComponentImpl ctx={ctx} logOut={props.logOut} />
           </React.Suspense>
         </ErrorBoundary>
       </Recoil.RecoilRoot>
@@ -250,9 +257,9 @@ const AppOrAuth = () => {
     return spinner;
   }
   if (id_token === null) {
-    return <AuthComponent sign_in={auth.sign_in} sign_up={auth.sign_up} />;
+    return <AuthComponent sign_in={auth.logIn} sign_up={auth.sign_up} />;
   }
-  return <AppComponent auth={auth} id_token={id_token} />;
+  return <AppComponent logOut={auth.logOut} id_token={id_token} />;
 };
 
 export const main = async () => {
