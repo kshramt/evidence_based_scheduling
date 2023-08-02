@@ -28,8 +28,8 @@ jobs:
         os: [linux]
         arch: [amd64, arm64]
     steps:
-      - name: Free up space
-        run: sudo rm -fr /opt/ghc /usr/share/dotnet /usr/local/lib/android || true
+      # - name: Free up space
+      #   run: sudo rm -fr /opt/ghc /usr/share/dotnet /usr/local/lib/android || true
       - uses: actions/checkout@v3
       - uses: docker/setup-qemu-action@v2
       - uses: docker/setup-buildx-action@v2

@@ -83,34 +83,34 @@ const spinner = (
 );
 
 const AuthComponent = ({
-  sign_in,
+  logIn,
   sign_up,
 }: {
-  sign_in: typeof Auth.Auth.prototype.logIn;
+  logIn: typeof Auth.Auth.prototype.logIn;
   sign_up: typeof Auth.Auth.prototype.sign_up;
 }) => {
   const [err, set_err] = React.useState("");
-  const [sign_in_loading, set_sign_in_loading] = React.useState(false);
-  const on_sign_in = React.useCallback(async () => {
-    const el = document.getElementById("sign-in-name") as HTMLInputElement;
+  const [logInLoading, setLogInLoading] = React.useState(false);
+  const onLogIn = React.useCallback(async () => {
+    const el = document.getElementById("log-in-name") as HTMLInputElement;
     if (el === null) {
       return;
     }
     if (el.value === "") {
       return;
     }
-    set_sign_in_loading(true);
+    setLogInLoading(true);
     try {
-      await sign_in(el.value);
+      await logIn(el.value);
       set_err("");
       el.value = "";
     } catch (err: unknown) {
       set_err(`${err}`);
       console.error(err);
     } finally {
-      set_sign_in_loading(false);
+      setLogInLoading(false);
     }
-  }, [set_sign_in_loading, sign_in]);
+  }, [setLogInLoading, logIn]);
 
   const [sign_up_loading, set_sign_up_loading] = React.useState(false);
   const on_sign_up = React.useCallback(async () => {
@@ -138,26 +138,26 @@ const AuthComponent = ({
       <div className="flex flex-col item-center gap-y-[1em]">
         <div className="flex flex-col items-center gap-y-[0.25em]">
           <div>
-            <label htmlFor="sign-in-name" className="block">
+            <label htmlFor="log-in-name" className="block">
               Name
             </label>
-            <input id="sign-in-name" type="text" />
+            <input id="log-in-name" type="text" />
           </div>
           <div>
             <button
               className="btn-icon"
-              onClick={on_sign_in}
+              onClick={onLogIn}
               onDoubleClick={utils.prevent_propagation}
-              disabled={sign_in_loading}
+              disabled={logInLoading}
             >
-              Sign-in
+              Log in
             </button>
           </div>
         </div>
         <span className="text-center">OR</span>
         <div className="flex flex-col items-center gap-y-[0.25em]">
           <div>
-            <label htmlFor="sign-in-name" className="block">
+            <label htmlFor="log-in-name" className="block">
               Name
             </label>
             <input id="sign-up-name" type="text" />
@@ -169,7 +169,7 @@ const AuthComponent = ({
               onDoubleClick={utils.prevent_propagation}
               disabled={sign_up_loading}
             >
-              Sign-up
+              Sign up
             </button>
           </div>
         </div>
@@ -204,29 +204,25 @@ class ErrorBoundary extends React.Component<
 
 const AppComponentImpl = (props: {
   ctx: states.Loadable<states.PersistentStateManager>;
-  logOut: () => void;
+  auth: Auth.Auth;
 }) => {
   const ctx = props.ctx.get();
   const store = ctx.redux_store.get();
-  React.useEffect(() => ctx.stop, [ctx.stop]);
   ctx.useCheckUpdates();
   return (
     <states.session_key_context.Provider value={ctx.session_key}>
       <Provider store={store}>
-        <App ctx={ctx} logOut={props.logOut} />
+        <App ctx={ctx} logOut={props.auth.logOut} />
         <ctx.Component />
       </Provider>
     </states.session_key_context.Provider>
   );
 };
 
-const AppComponent = (props: {
-  id_token: Auth.TIdToken;
-  logOut: () => void;
-}) => {
+const AppComponent = (props: { id_token: Auth.TIdToken; auth: Auth.Auth }) => {
   const ctx = React.useMemo(() => {
     return new states.Loadable(
-      states.get_PersistentStateManager(props.id_token),
+      states.get_PersistentStateManager(props.id_token, props.auth),
     );
   }, [props.id_token]);
   return (
@@ -234,7 +230,7 @@ const AppComponent = (props: {
       <Recoil.RecoilRoot>
         <ErrorBoundary>
           <React.Suspense fallback={spinner}>
-            <AppComponentImpl ctx={ctx} logOut={props.logOut} />
+            <AppComponentImpl ctx={ctx} auth={props.auth} />
           </React.Suspense>
         </ErrorBoundary>
       </Recoil.RecoilRoot>
@@ -257,9 +253,9 @@ const AppOrAuth = () => {
     return spinner;
   }
   if (id_token === null) {
-    return <AuthComponent sign_in={auth.logIn} sign_up={auth.sign_up} />;
+    return <AuthComponent logIn={auth.logIn} sign_up={auth.sign_up} />;
   }
-  return <AppComponent logOut={auth.logOut} id_token={id_token} />;
+  return <AppComponent auth={auth} id_token={id_token} />;
 };
 
 export const main = async () => {

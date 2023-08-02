@@ -702,7 +702,10 @@ export class PersistentStateManager {
   };
 }
 
-export const get_PersistentStateManager = async (id_token: Auth.TIdToken) => {
+export const get_PersistentStateManager = async (
+  id_token: Auth.TIdToken,
+  auth: Auth.Auth,
+) => {
   // Open DB
   const db = await storage.getDb(`user-${id_token.user_id}`);
   const grpc_client = Connect.createPromiseClient(
@@ -770,6 +773,11 @@ export const get_PersistentStateManager = async (id_token: Auth.TIdToken) => {
     },
     id_token,
   );
+  auth.on_change((idToken: null | Auth.TIdToken) => {
+    if (idToken === null) {
+      res.stop();
+    }
+  });
 
   // Create atoms
   const boolean_effect: Recoil.AtomEffect<boolean> = ({
