@@ -73,7 +73,7 @@ RUN apt-get update \
 COPY --link .devcontainer/skel /etc/skel
 
 ARG devcontainer_user
-RUN useradd -m -s /bin/bash "${devcontainer_user:?}" \
+RUN useradd --no-log-init -m -s /bin/bash "${devcontainer_user:?}" \
    && usermod -aG sudo "${devcontainer_user:?}" \
    && echo '%sudo ALL=(ALL:ALL) NOPASSWD:ALL' >> /etc/sudoers
 
