@@ -1,5 +1,6 @@
-import React, { useCallback } from "react";
-import * as Recoil from "recoil";
+import * as Jotai from "jotai";
+import * as React from "react";
+import { useCallback } from "react";
 import * as Dnd from "react-dnd";
 
 import * as types from "./types";
@@ -50,24 +51,24 @@ export const DesktopApp = React.memo(
 );
 
 const MobileNodeFilterQueryInput = () => {
-  const [node_filter_query, set_node_filter_query] = Recoil.useRecoilState(
-    states.node_filter_query_state,
+  const [nodeFilterQuery, setNodeFilterQuery] = Jotai.useAtom(
+    states.nodeFilterQueryState,
   );
   const handle_change = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const v = e.target.value;
-      set_node_filter_query(v);
+      setNodeFilterQuery(v);
     },
-    [set_node_filter_query],
+    [setNodeFilterQuery],
   );
   const clear_input = useCallback(() => {
     const v = EMPTY_STRING;
-    set_node_filter_query(v);
-  }, [set_node_filter_query]);
+    setNodeFilterQuery(v);
+  }, [setNodeFilterQuery]);
   return (
     <div className="flex items-center border border-solid border-neutral-400">
       <input
-        value={node_filter_query}
+        value={nodeFilterQuery}
         onChange={handle_change}
         className="h-[2em] border-none w-[8em]"
       />
@@ -83,20 +84,20 @@ const MobileNodeFilterQueryInput = () => {
 };
 
 const NodeFilterQueryInput = () => {
-  const [node_filter_query, set_node_filter_query] = Recoil.useRecoilState(
-    states.node_filter_query_state,
+  const [nodeFilterQuery, setNodeFilterQuery] = Jotai.useAtom(
+    states.nodeFilterQueryState,
   );
   const handle_change = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const v = e.target.value;
-      set_node_filter_query(v);
+      setNodeFilterQuery(v);
     },
-    [set_node_filter_query],
+    [setNodeFilterQuery],
   );
   const clear_input = useCallback(() => {
     const v = EMPTY_STRING;
-    set_node_filter_query(v);
-  }, [set_node_filter_query]);
+    setNodeFilterQuery(v);
+  }, [setNodeFilterQuery]);
   const ref = useMetaK();
   const queue = useQueue("todo_node_ids");
   const node_id = queue[0] || null;
@@ -107,7 +108,7 @@ const NodeFilterQueryInput = () => {
       {consts.SEARCH_MARK}
       <div className="flex items-center border border-solid border-neutral-400">
         <input
-          value={node_filter_query}
+          value={nodeFilterQuery}
           onChange={handle_change}
           onKeyDown={handleKeyDown}
           className="h-[2em] border-none"
@@ -126,8 +127,8 @@ const NodeFilterQueryInput = () => {
 };
 
 const useQueue = (column: "todo_node_ids" | "non_todo_node_ids") => {
-  const node_filter_query = React.useDeferredValue(
-    Recoil.useRecoilValue(states.node_filter_query_state),
+  const nodeFilterQuery = React.useDeferredValue(
+    Jotai.useAtomValue(states.nodeFilterQueryState),
   );
   const queue = useSelector((state) => state[column]);
   const nodes = useSelector((state) => state.data.nodes);
@@ -135,9 +136,9 @@ const useQueue = (column: "todo_node_ids" | "non_todo_node_ids") => {
   const filtered_queue = React.useMemo(() => {
     return queue.filter((node_id) => {
       const node = nodes[node_id];
-      return !_should_hide_of(node_filter_query, node.text, node_id);
+      return !_should_hide_of(nodeFilterQuery, node.text, node_id);
     });
-  }, [queue, nodes, node_filter_query]);
+  }, [queue, nodes, nodeFilterQuery]);
 
   return filtered_queue;
 };
@@ -163,24 +164,24 @@ const useMetaK = () => {
 };
 
 const NodeIdsInput = () => {
-  const [node_ids, set_node_ids] = Recoil.useRecoilState(states.node_ids_state);
+  const [nodeIds, setNodeIds] = Jotai.useAtom(states.nodeIdsState);
   const handle_change = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const v = e.target.value;
-      set_node_ids(v);
+      setNodeIds(v);
     },
-    [set_node_ids],
+    [setNodeIds],
   );
   const clear_input = useCallback(() => {
     const v = EMPTY_STRING;
-    set_node_ids(v);
-  }, [set_node_ids]);
+    setNodeIds(v);
+  }, [setNodeIds]);
   return (
     <>
       {consts.IDS_MARK}
       <div className="flex items-center border border-solid border-neutral-400">
         <input
-          value={node_ids}
+          value={nodeIds}
           onChange={handle_change}
           className="h-[2em] border-none"
         />
@@ -206,10 +207,10 @@ const SBTTB = () => {
 
 export const ToggleShowMobileButton = () => {
   const session = React.useContext(states.session_key_context);
-  const [show_mobile, set_show_mobile] = Recoil.useRecoilState(
+  const [show_mobile, set_show_mobile] = Jotai.useAtom(
     states.show_mobile_atom_map.get(session),
   );
-  const setShowMobileUpdatedAt = Recoil.useSetRecoilState(
+  const setShowMobileUpdatedAt = Jotai.useSetAtom(
     states.showMobileUpdatedAtAtomMap.get(session),
   );
   const handleClick = useCallback(() => {
@@ -238,11 +239,12 @@ const Menu = (props: {
     [dispatch],
   );
   const session = React.useContext(states.session_key_context);
-  const [show_todo_only, set_show_todo_only] = Recoil.useRecoilState(
+  const [show_todo_only, set_show_todo_only] = Jotai.useAtom(
     states.show_todo_only_atom_map.get(session),
   );
-  const [show_strong_edge_only, set_show_strong_edge_only] =
-    Recoil.useRecoilState(states.show_strong_edge_only_atom_map.get(session));
+  const [show_strong_edge_only, set_show_strong_edge_only] = Jotai.useAtom(
+    states.show_strong_edge_only_atom_map.get(session),
+  );
   const _undo = useCallback(() => {
     dispatch({ type: undoable.UNDO_TYPE });
   }, [dispatch]);
@@ -475,9 +477,9 @@ const CoveyQuadrant = React.memo(
       (state) => state.data.covey_quadrants[props.quadrant_id].nodes,
     );
     const dispatch = useDispatch();
-    const selected_node_ids = Recoil.useRecoilValue(states.node_ids_state);
+    const selectedNodeIds = Jotai.useAtomValue(states.nodeIdsState);
     const assign_nodes = React.useCallback(() => {
-      const node_ids = node_ids_list_of_node_ids_string(selected_node_ids);
+      const node_ids = node_ids_list_of_node_ids_string(selectedNodeIds);
       if (node_ids.length < 1) {
         return;
       }
@@ -486,7 +488,7 @@ const CoveyQuadrant = React.memo(
         node_ids,
       };
       dispatch(actions.assign_nodes_to_covey_quadrant_action(payload));
-    }, [props.quadrant_id, selected_node_ids, dispatch]);
+    }, [props.quadrant_id, selectedNodeIds, dispatch]);
     return (
       <div className={`overflow-y-scroll h-[50%] p-[0.5em]`}>
         <button className="btn-icon" onClick={assign_nodes}>
@@ -686,7 +688,7 @@ const TimeNodeEntry = React.memo(
     const time_node = useSelector(
       (state) => state.data.timeline.time_nodes[props.time_node_id],
     );
-    const selected_node_ids = Recoil.useRecoilValue(states.node_ids_state);
+    const selectedNodeIds = Jotai.useAtomValue(states.nodeIdsState);
     const text = time_node?.text ? time_node.text : EMPTY_STRING;
     const { isOn, turnOn, turnOff } = useOn(0);
 
@@ -695,7 +697,7 @@ const TimeNodeEntry = React.memo(
       dispatch(actions.toggle_show_time_node_children_action(payload));
     }, [props.time_node_id, dispatch]);
     const assign_nodes = React.useCallback(() => {
-      const node_ids = node_ids_list_of_node_ids_string(selected_node_ids);
+      const node_ids = node_ids_list_of_node_ids_string(selectedNodeIds);
       if (node_ids.length < 1) {
         return;
       }
@@ -704,7 +706,7 @@ const TimeNodeEntry = React.memo(
         node_ids,
       };
       dispatch(actions.assign_nodes_to_time_node_action(payload));
-    }, [props.time_node_id, selected_node_ids, dispatch]);
+    }, [props.time_node_id, selectedNodeIds, dispatch]);
     const dispatch_set_text_action = React.useCallback(
       (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const el = e.target;
@@ -918,10 +920,10 @@ const EdgeList = React.memo(
 const Edge = React.memo(
   (props: { edge_id: types.TEdgeId; prefix?: string }) => {
     const session = React.useContext(states.session_key_context);
-    const show_todo_only = Recoil.useRecoilValue(
+    const show_todo_only = Jotai.useAtomValue(
       states.show_todo_only_atom_map.get(session),
     );
-    const show_strong_edge_only = Recoil.useRecoilValue(
+    const show_strong_edge_only = Jotai.useAtomValue(
       states.show_strong_edge_only_atom_map.get(session),
     );
     const edge = useSelector((state) => state.data.edges[props.edge_id]);
@@ -992,7 +994,7 @@ const MobileMenu = (props: {
     [dispatch],
   );
   const session = React.useContext(states.session_key_context);
-  const [show_todo_only, set_show_todo_only] = Recoil.useRecoilState(
+  const [show_todo_only, set_show_todo_only] = Jotai.useAtom(
     states.show_todo_only_atom_map.get(session),
   );
   const _undo = useCallback(() => {
@@ -1077,11 +1079,11 @@ const MobileQueueNodes = () => {
   const queue = useSelector((state) => state.data.queue);
   const nodes = useSelector((state) => state.data.nodes);
   const session = React.useContext(states.session_key_context);
-  const show_todo_only = Recoil.useRecoilValue(
+  const show_todo_only = Jotai.useAtomValue(
     states.show_todo_only_atom_map.get(session),
   );
-  const node_filter_query = React.useDeferredValue(
-    Recoil.useRecoilValue(states.node_filter_query_state),
+  const nodeFilterQuery = React.useDeferredValue(
+    Jotai.useAtomValue(states.nodeFilterQueryState),
   );
 
   const node_ids = React.useMemo(() => {
@@ -1091,11 +1093,11 @@ const MobileQueueNodes = () => {
         const node = nodes[node_id];
         return !(
           (show_todo_only && node.status !== "todo") ||
-          _should_hide_of(node_filter_query, node.text, node_id)
+          _should_hide_of(nodeFilterQuery, node.text, node_id)
         );
       })
       .slice(0, 100);
-  }, [queue, nodes, show_todo_only, node_filter_query]);
+  }, [queue, nodes, show_todo_only, nodeFilterQuery]);
 
   return <MobileQueueNodesImpl node_ids={node_ids} />;
 };
@@ -1163,7 +1165,7 @@ const TreeEntry = React.memo(
 const useTaskShortcutKeys = (node_id: null | types.TNodeId, prefix: string) => {
   const dispatch = useDispatch();
   const session = React.useContext(states.session_key_context);
-  const show_mobile = Recoil.useRecoilValue(
+  const show_mobile = Jotai.useAtomValue(
     states.show_mobile_atom_map.get(session),
   );
   const is_running = useIsRunning(node_id);
@@ -1219,29 +1221,29 @@ const DetailsImpl = React.memo((props: { node_id: types.TNodeId }) => {
     [set_new_edge_type],
   );
   const dispatch = useDispatch();
-  const node_ids = Recoil.useRecoilValue(states.node_ids_state);
+  const nodeIds = Jotai.useAtomValue(states.nodeIdsState);
   const handle_add_parents = React.useCallback(() => {
     dispatch(
       actions.add_edges_action(
-        node_ids_list_of_node_ids_string(node_ids).map((p) => ({
+        node_ids_list_of_node_ids_string(nodeIds).map((p) => ({
           p,
           c: props.node_id,
           t: new_edge_type,
         })),
       ),
     );
-  }, [dispatch, node_ids, new_edge_type, props.node_id]);
+  }, [dispatch, nodeIds, new_edge_type, props.node_id]);
   const handle_add_children = React.useCallback(() => {
     dispatch(
       actions.add_edges_action(
-        node_ids_list_of_node_ids_string(node_ids).map((c) => ({
+        node_ids_list_of_node_ids_string(nodeIds).map((c) => ({
           p: props.node_id,
           c,
           t: new_edge_type,
         })),
       ),
     );
-  }, [dispatch, node_ids, new_edge_type, props.node_id]);
+  }, [dispatch, nodeIds, new_edge_type, props.node_id]);
   const hline = (
     <hr className="my-[0.5em] border-neutral-300 dark:border-neutral-600 bg-neutral-300 dark:bg-neutral-600" />
   );
@@ -1761,7 +1763,7 @@ const AddButton = (props: {
 }) => {
   const dispatch = useDispatch();
   const session = React.useContext(states.session_key_context);
-  const show_mobile = Recoil.useRecoilValue(
+  const show_mobile = Jotai.useAtomValue(
     states.show_mobile_atom_map.get(session),
   );
   const prefix = props.prefix || TREE_PREFIX;
@@ -2020,17 +2022,17 @@ const PredictedNextNode = React.memo((props: { node_id: types.TNodeId }) => {
 
 const CopyNodeIdButton = (props: { node_id: types.TNodeId }) => {
   const { copy, is_copied } = utils.useClipboard();
-  const set_node_ids = Recoil.useSetRecoilState(states.node_ids_state);
+  const setNodeIds = Jotai.useSetAtom(states.nodeIdsState);
   const handle_click = React.useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       const multi = e.ctrlKey || e.metaKey;
-      set_node_ids((node_ids: string) => {
+      setNodeIds((node_ids: string) => {
         const res = multi ? props.node_id + " " + node_ids : props.node_id;
         copy(res);
         return res;
       });
     },
-    [props.node_id, set_node_ids, copy],
+    [props.node_id, setNodeIds, copy],
   );
   return (
     <button
@@ -2123,7 +2125,7 @@ const CopyDescendantTimeNodesPlannedNodeIdsButton = (props: {
   time_node_id: types.TTimeNodeId;
 }) => {
   const { copy, is_copied } = utils.useClipboard();
-  const set_node_ids = Recoil.useSetRecoilState(states.node_ids_state);
+  const setNodeIds = Jotai.useSetAtom(states.nodeIdsState);
   const dispatch = useDispatch();
   const handle_click = React.useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -2134,12 +2136,12 @@ const CopyDescendantTimeNodesPlannedNodeIdsButton = (props: {
           props.time_node_id,
           multi,
           descend,
-          set_node_ids,
+          setNodeIds,
           copy,
         ),
       );
     },
-    [props.time_node_id, set_node_ids, copy, dispatch],
+    [props.time_node_id, setNodeIds, copy, dispatch],
   );
   return (
     <button

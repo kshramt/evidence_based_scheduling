@@ -28,7 +28,6 @@ test("_getDbV2", async () => {
   try {
     expect(Array.from(db.objectStoreNames).sort()).toStrictEqual(
       [
-        "booleans",
         "numbers",
         "heads",
         "patches",

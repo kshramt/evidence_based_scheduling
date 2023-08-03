@@ -68,10 +68,6 @@ export type _TDbV1 = {
 };
 
 export type _TDbV2 = {
-  booleans: {
-    key: string;
-    value: boolean;
-  };
   numbers: {
     key: string;
     value: number;
@@ -149,14 +145,22 @@ const upgradeFromV1 = async (
     "versionchange"
   >,
 ) => {
-  const store = transaction.objectStore("patches");
-  for await (const cursor of store) {
-    const patch = JSON.parse(cursor.value.patch as unknown as string);
-    await cursor.update(
-      Immer.produce(cursor.value, (draft) => {
-        draft.patch = patch;
-      }),
-    );
+  // @ts-expect-error
+  db.deleteObjectStore("booleans");
+  {
+    const store = transaction.objectStore("numbers");
+    await store.delete("showMobileUpdatedAt");
+  }
+  {
+    const store = transaction.objectStore("patches");
+    for await (const cursor of store) {
+      const patch = JSON.parse(cursor.value.patch as unknown as string);
+      await cursor.update(
+        Immer.produce(cursor.value, (draft) => {
+          draft.patch = patch;
+        }),
+      );
+    }
   }
   return db;
 };

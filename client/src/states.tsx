@@ -1,4 +1,5 @@
-import * as Recoil from "recoil";
+import * as Jotai from "jotai";
+import * as JotaiU from "jotai/utils";
 import * as React from "react";
 import * as Idb from "idb";
 import { createStore, applyMiddleware } from "redux";
@@ -25,14 +26,8 @@ import * as utils from "./utils";
 
 const retryer = new retryers.Retryer();
 
-export const node_filter_query_state = Recoil.atom({
-  key: "ebs/node_filter_query",
-  default: "",
-});
-export const node_ids_state = Recoil.atom({
-  key: "ebs/node_ids",
-  default: "",
-});
+export const nodeFilterQueryState = Jotai.atom("");
+export const nodeIdsState = Jotai.atom("");
 
 const get_client_id = async (
   client: Connect.PromiseClient<typeof C.ApiService>,
@@ -188,19 +183,19 @@ class WeakMapV<K extends object, V> extends WeakMap<K, V> {
 
 export const show_mobile_atom_map = new WeakMapV<
   { user_id: string; session_id: number },
-  Recoil.RecoilState<boolean>
+  ReturnType<typeof JotaiU.atomWithStorage<boolean>>
 >();
 export const show_todo_only_atom_map = new WeakMapV<
   { user_id: string; session_id: number },
-  Recoil.RecoilState<boolean>
+  ReturnType<typeof JotaiU.atomWithStorage<boolean>>
 >();
 export const show_strong_edge_only_atom_map = new WeakMapV<
   { user_id: string; session_id: number },
-  Recoil.RecoilState<boolean>
+  ReturnType<typeof JotaiU.atomWithStorage<boolean>>
 >();
 export const showMobileUpdatedAtAtomMap = new WeakMapV<
   { user_id: string; session_id: number },
-  Recoil.RecoilState<number>
+  ReturnType<typeof JotaiU.atomWithStorage<number>>
 >();
 
 export const session_key_context = React.createContext({
@@ -780,83 +775,37 @@ export const get_PersistentStateManager = async (
   });
 
   // Create atoms
-  const boolean_effect: Recoil.AtomEffect<boolean> = ({
-    node,
-    onSet,
-    setSelf,
-  }) => {
-    setSelf(
-      (async () => {
-        const value = await db.get("booleans", node.key);
-        return value === undefined ? new Recoil.DefaultValue() : value;
-      })(),
-    );
-    onSet((new_value, _, is_reset) => {
-      if (is_reset) {
-        db.delete("booleans", node.key);
-      } else {
-        db.put("booleans", new_value, node.key);
-      }
-    });
-  };
   if (!show_mobile_atom_map.has(res.session_key)) {
     show_mobile_atom_map.set(
       res.session_key,
-      Recoil.atom({
-        key: "show_mobile",
-        default: utils.get_is_mobile(),
-        effects: [boolean_effect],
-      }),
+      JotaiU.atomWithStorage(
+        `${id_token.user_id}/show_mobile`,
+        utils.get_is_mobile(),
+      ),
     );
   }
   if (!show_todo_only_atom_map.has(res.session_key)) {
     show_todo_only_atom_map.set(
       res.session_key,
-      Recoil.atom({
-        key: "show_todo_only",
-        default: false,
-        effects: [boolean_effect],
-      }),
+      JotaiU.atomWithStorage(`${id_token.user_id}/show_todo_only`, false),
     );
   }
   if (!show_strong_edge_only_atom_map.has(res.session_key)) {
     show_strong_edge_only_atom_map.set(
       res.session_key,
-      Recoil.atom({
-        key: "show_strong_edge_only",
-        default: false,
-        effects: [boolean_effect],
-      }),
+      JotaiU.atomWithStorage(
+        `${id_token.user_id}/show_strong_edge_only`,
+        false,
+      ),
     );
   }
-
-  const numberEffect: Recoil.AtomEffect<number> = ({
-    node,
-    onSet,
-    setSelf,
-  }) => {
-    setSelf(
-      (async () => {
-        const value = await db.get("numbers", node.key);
-        return value === undefined ? new Recoil.DefaultValue() : value;
-      })(),
-    );
-    onSet((newValue, _, isReset) => {
-      if (isReset) {
-        db.delete("numbers", node.key);
-      } else {
-        db.put("numbers", newValue, node.key);
-      }
-    });
-  };
   if (!showMobileUpdatedAtAtomMap.has(res.session_key)) {
     showMobileUpdatedAtAtomMap.set(
       res.session_key,
-      Recoil.atom({
-        key: "showMobileUpdatedAt",
-        default: Date.now(),
-        effects: [numberEffect],
-      }),
+      JotaiU.atomWithStorage(
+        `${id_token.user_id}/showMobileUpdatedAt`,
+        Date.now(),
+      ),
     );
   }
 

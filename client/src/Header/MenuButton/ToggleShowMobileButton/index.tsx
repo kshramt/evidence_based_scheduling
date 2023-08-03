@@ -1,5 +1,5 @@
+import * as Jotai from "jotai";
 import * as React from "react";
-import * as Recoil from "recoil";
 
 import * as states from "src/states";
 import * as utils from "src/utils";
@@ -8,10 +8,10 @@ import Component from "./Component";
 
 const ToggleShowMobileButton = () => {
   const session = React.useContext(states.session_key_context);
-  const [show_mobile, set_show_mobile] = Recoil.useRecoilState(
+  const [show_mobile, set_show_mobile] = Jotai.useAtom(
     states.show_mobile_atom_map.get(session),
   );
-  const setShowMobileUpdatedAt = Recoil.useSetRecoilState(
+  const setShowMobileUpdatedAt = Jotai.useSetAtom(
     states.showMobileUpdatedAtAtomMap.get(session),
   );
   const handleClick = React.useCallback(() => {

@@ -1,7 +1,7 @@
-import React from "react";
+import * as Jotai from "jotai";
+import * as React from "react";
 import ReactDOM from "react-dom/client";
 import { Provider } from "react-redux";
-import * as Recoil from "recoil";
 import "@fontsource/material-icons";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import * as Dnd from "react-dnd";
@@ -20,12 +20,12 @@ const App = React.memo(
     const [isShowMobileSelected, setIsShowMobileSelected] =
       React.useState(false);
 
-    const show_mobile = Recoil.useRecoilValue(
+    const show_mobile = Jotai.useAtomValue(
       states.show_mobile_atom_map.get(
         React.useContext(states.session_key_context),
       ),
     );
-    const [showMobileUpdatedAt, setShowMobileUpdatedAt] = Recoil.useRecoilState(
+    const [showMobileUpdatedAt, setShowMobileUpdatedAt] = Jotai.useAtom(
       states.showMobileUpdatedAtAtomMap.get(
         React.useContext(states.session_key_context),
       ),
@@ -224,16 +224,14 @@ const AppComponent = (props: { id_token: Auth.TIdToken; auth: Auth.Auth }) => {
     return new states.Loadable(
       states.get_PersistentStateManager(props.id_token, props.auth),
     );
-  }, [props.id_token]);
+  }, [props.id_token, props.auth]);
   return (
     <Dnd.DndProvider backend={HTML5Backend}>
-      <Recoil.RecoilRoot>
-        <ErrorBoundary>
-          <React.Suspense fallback={spinner}>
-            <AppComponentImpl ctx={ctx} auth={props.auth} />
-          </React.Suspense>
-        </ErrorBoundary>
-      </Recoil.RecoilRoot>
+      <ErrorBoundary>
+        <React.Suspense fallback={spinner}>
+          <AppComponentImpl ctx={ctx} auth={props.auth} />
+        </React.Suspense>
+      </ErrorBoundary>
     </Dnd.DndProvider>
   );
 };
