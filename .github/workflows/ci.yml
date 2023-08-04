@@ -15,7 +15,7 @@ jobs:
           set -o errexit
           set -o pipefail
           {
-          echo "ref-b64=$(echo "${{ github.ref }}" | base64 --wrap 0 | sed -e 's/=//g')"
+          echo "ref-b64=$(echo "${{ github.ref }}" | base64 --wrap 0 | sed -e 's/[-=/]/_/g')"
           echo "tmp-dir=$(mktemp -d)"
           echo "host-arch=$(docker version --format '{{ (index .Server.Components 0).Details.Arch }}')"
           echo "host-os=$(docker version --format '{{ (index .Server.Components 0).Details.Os }}')"

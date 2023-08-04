@@ -236,7 +236,7 @@ export class PersistentStateManager {
   };
   id_token: Auth.TIdToken;
   session_key: { user_id: string; client_id: number; session_id: number };
-  redux_store: Loadable<Awaited<ReturnType<typeof this.get_redux_store>>>;
+  reduxStore: ReturnType<typeof this.get_redux_store>;
   #patch_queue: queues.Queue<null | storage.TPatchValue> = new queues.Queue();
   #head_queue: queues.Queue<null | storage.THead> = new queues.Queue();
   #rpc_queue: queues.Queue<null | (() => Promise<void>)> = new queues.Queue();
@@ -265,7 +265,7 @@ export class PersistentStateManager {
       client_id,
       session_id,
     };
-    this.redux_store = new Loadable(this.get_redux_store({ ...heads.parent }));
+    this.reduxStore = this.get_redux_store({ ...heads.parent });
     this.#run_rpc_loop();
     this.#run_push_local_patches_loop();
     this.#run_patch_saving_loop();
@@ -697,7 +697,7 @@ export class PersistentStateManager {
   };
 }
 
-export const get_PersistentStateManager = async (
+export const getPersistentStateManager = async (
   id_token: Auth.TIdToken,
   auth: Auth.Auth,
 ) => {

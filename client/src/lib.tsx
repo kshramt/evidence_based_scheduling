@@ -203,92 +203,97 @@ class ErrorBoundary extends React.Component<
 }
 
 const AppComponentImpl = (props: {
-  ctx: states.Loadable<states.PersistentStateManager>;
+  ctx: states.PersistentStateManager;
+  store: Awaited<ReturnType<states.PersistentStateManager["get_redux_store"]>>;
   auth: Auth.Auth;
 }) => {
-  const ctx = props.ctx.get();
-  const store = ctx.redux_store.get();
-  ctx.useCheckUpdates();
+  props.ctx.useCheckUpdates();
   return (
-    <states.session_key_context.Provider value={ctx.session_key}>
-      <Provider store={store}>
-        <App ctx={ctx} logOut={props.auth.logOut} />
-        <ctx.Component />
+    <states.session_key_context.Provider value={props.ctx.session_key}>
+      <Provider store={props.store}>
+        <App ctx={props.ctx} logOut={props.auth.logOut} />
+        <props.ctx.Component />
       </Provider>
     </states.session_key_context.Provider>
   );
 };
 
-const AppComponent = (props: { id_token: Auth.TIdToken; auth: Auth.Auth }) => {
-  const ctx = React.useMemo(() => {
-    return new states.Loadable(
-      states.get_PersistentStateManager(props.id_token, props.auth),
-    );
-  }, [props.id_token, props.auth]);
+const AppComponent = (props: {
+  ctx: states.PersistentStateManager;
+  store: Awaited<ReturnType<states.PersistentStateManager["get_redux_store"]>>;
+  auth: Auth.Auth;
+}) => {
   return (
     <Dnd.DndProvider backend={HTML5Backend}>
       <ErrorBoundary>
         <React.Suspense fallback={spinner}>
-          <AppComponentImpl ctx={ctx} auth={props.auth} />
+          <AppComponentImpl
+            ctx={props.ctx}
+            store={props.store}
+            auth={props.auth}
+          />
         </React.Suspense>
       </ErrorBoundary>
     </Dnd.DndProvider>
   );
 };
 
-const AppOrAuth = () => {
-  const auth = React.useMemo(() => {
-    const res = new Auth.Auth();
-    return res;
-  }, []);
-  const [id_token, set_id_token] = React.useState<
-    undefined | null | Auth.TIdToken
-  >(undefined);
-  React.useEffect(() => {
-    return auth.on_change(set_id_token);
-  }, [auth, set_id_token]);
-  if (id_token === undefined) {
-    return spinner;
-  }
-  if (id_token === null) {
-    return <AuthComponent logIn={auth.logIn} sign_up={auth.sign_up} />;
-  }
-  return <AppComponent auth={auth} id_token={id_token} />;
-};
-
 export const main = async () => {
   const container = document.getElementById("root");
   const root = ReactDOM.createRoot(container!);
-  root.render(
-    <React.StrictMode>
-      <Center>
-        <span>Check for availability of the persistent storage.</span>
-      </Center>
-    </React.StrictMode>,
-  );
-  const render = () => {
-    root.render(
-      <React.StrictMode>
-        <AppOrAuth />
-      </React.StrictMode>,
-    );
+  const renderWithStrictMode = (c: React.ReactNode) => {
+    root.render(<React.StrictMode>{c}</React.StrictMode>);
   };
+
+  // Check for the availability of the persistent storage.
+  renderWithStrictMode(
+    <Center>
+      <span>Check for availability of the persistent storage.</span>
+    </Center>,
+  );
   if (!(await navigator?.storage?.persist())) {
-    root.render(
-      <React.StrictMode>
-        <Center>
-          <span>Persistent storage is not available.</span>
-        </Center>
-        <button
-          onClick={render}
-          className="hidden"
-          id="skip-persistent-storage-check"
-        />
-      </React.StrictMode>,
-    );
-    return;
+    await new Promise((resolve) => {
+      renderWithStrictMode(
+        <>
+          <Center>
+            <span>Persistent storage is not available.</span>
+          </Center>
+          <button
+            onClick={resolve}
+            className="hidden"
+            id="skip-persistent-storage-check"
+          />
+        </>,
+      );
+    });
   }
 
-  render();
-  return;
+  renderWithStrictMode(spinner);
+  const auth = new Auth.Auth();
+  await auth.loading;
+  while (true) {
+    if (auth.id_token === null) {
+      renderWithStrictMode(
+        <AuthComponent logIn={auth.logIn} sign_up={auth.sign_up} />,
+      );
+      await auth.waitForAuthentication();
+    }
+
+    renderWithStrictMode(spinner);
+    if (auth.id_token) {
+      const persistentStateManager = await states.getPersistentStateManager(
+        auth.id_token,
+        auth,
+      );
+      const reduxStore = await persistentStateManager.reduxStore;
+      renderWithStrictMode(
+        <AppComponent
+          ctx={persistentStateManager}
+          store={reduxStore}
+          auth={auth}
+        />,
+      );
+      await auth.waitForUnAuthentication();
+    }
+  }
 };

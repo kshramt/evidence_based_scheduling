@@ -27,13 +27,7 @@ test("_getDbV2", async () => {
   const db = await T._getDbV2(id);
   try {
     expect(Array.from(db.objectStoreNames).sort()).toStrictEqual(
-      [
-        "numbers",
-        "heads",
-        "patches",
-        "snapshots",
-        "pending_patches",
-      ].sort(),
+      ["numbers", "heads", "patches", "snapshots", "pending_patches"].sort(),
     );
   } finally {
     db.close();

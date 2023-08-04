@@ -3,11 +3,15 @@ import * as Connect from "@bufbuild/connect";
 import { createGrpcWebTransport } from "@bufbuild/connect-web";
 import * as C from "./gen/api/v1/api_connect";
 
-const db = Idb.openDB<{ auth: { id_token: null | TIdToken } }>("auth", 1, {
-  upgrade: (db) => {
-    db.createObjectStore("auth");
+const db = Idb.openDB<{ auth: { key: "id_token"; value: null | TIdToken } }>(
+  "auth",
+  1,
+  {
+    upgrade: (db) => {
+      db.createObjectStore("auth");
+    },
   },
-});
+);
 
 export type TIdToken = {
   user_id: string;
@@ -15,6 +19,7 @@ export type TIdToken = {
 
 export class Auth {
   id_token: null | TIdToken;
+  loading: Promise<void>;
   _client: Connect.PromiseClient<typeof C.ApiService>;
   _on_change_hooks: Set<(id_token: null | TIdToken) => void>;
 
@@ -25,15 +30,16 @@ export class Auth {
       createGrpcWebTransport({ baseUrl: window.location.origin }),
     );
     this.id_token = null;
-    db.then((db) => {
-      db.get("auth", "id_token").then((id_token) => {
+    this.loading = db
+      .then((db_) => {
+        return db_.get("auth", "id_token");
+      })
+      .then((id_token) => {
         if (id_token !== undefined) {
           this._set_id_token(id_token);
         }
       });
-    });
   }
-
   sign_up = async (name: string) => {
     if (this.id_token) {
       await this.logOut();
@@ -50,8 +56,9 @@ export class Auth {
     return id_token;
   };
   logIn = async (name: string) => {
+    await this.loading;
     if (this.id_token) {
-      await this.logOut();
+      return;
     }
     const resp = await this._client.fakeIdpGetIdToken({ name });
     if (resp.token === undefined) {
@@ -73,6 +80,32 @@ export class Auth {
     return () => {
       this._on_change_hooks.delete(hook);
     };
+  };
+  waitForAuthentication = async () => {
+    if (this.id_token) {
+      return;
+    }
+    const unregister = await new Promise<() => void>((resolve) => {
+      const unregister = this.on_change((id_token) => {
+        if (id_token) {
+          resolve(unregister);
+        }
+      });
+    });
+    unregister();
+  };
+  waitForUnAuthentication = async () => {
+    if (this.id_token === null) {
+      return;
+    }
+    const unregister = await new Promise<() => void>((resolve) => {
+      const unregister = this.on_change((id_token) => {
+        if (id_token === null) {
+          resolve(unregister);
+        }
+      });
+    });
+    unregister();
   };
   _set_id_token = async (id_token: null | TIdToken) => {
     this.id_token = id_token;
