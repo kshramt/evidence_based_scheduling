@@ -1,3 +1,4 @@
+import * as idb from "idb";
 import React from "react";
 
 import * as types from "./types";
@@ -168,4 +169,19 @@ export const downloadJson = (fileName: string, data: any) => {
   } finally {
     a.remove();
   }
+};
+
+export const getAllFromIndexedDb = async <T>(db: idb.IDBPDatabase<T>) => {
+  const res: any = {};
+  const tx = db.transaction(db.objectStoreNames, "readonly");
+  for (const storeName of db.objectStoreNames) {
+    const store = tx.objectStore(storeName);
+    const records = [];
+    for await (const cursor of store) {
+      records.push({ key: cursor.key, value: cursor.value });
+    }
+    res[storeName] = records;
+  }
+  await tx.done;
+  return res;
 };

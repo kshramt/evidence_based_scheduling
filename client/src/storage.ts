@@ -7,6 +7,13 @@ export type THead = {
   session_id: number;
   patch_id: number;
 };
+export type TSnapshot = {
+  client_id: number;
+  session_id: number;
+  patch_id: number;
+  snapshot: any;
+  created_at: Date;
+};
 
 export type TPatchValue = _TPatchValueV1;
 
@@ -53,13 +60,7 @@ export type _TDbV1 = {
   };
   snapshots: {
     key: [number, number, number];
-    value: {
-      client_id: number;
-      session_id: number;
-      patch_id: number;
-      snapshot: any;
-      created_at: Date;
-    };
+    value: TSnapshot;
   };
   pending_patches: {
     key: [number, number, number];
@@ -82,13 +83,7 @@ export type _TDbV2 = {
   };
   snapshots: {
     key: [number, number, number];
-    value: {
-      client_id: number;
-      session_id: number;
-      patch_id: number;
-      snapshot: any;
-      created_at: Date;
-    };
+    value: TSnapshot;
   };
   pending_patches: {
     key: [number, number, number];
