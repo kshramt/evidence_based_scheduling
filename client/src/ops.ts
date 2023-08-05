@@ -24,7 +24,7 @@ export const emptyStateOf = (): types.IState => {
   const id_seq = 0;
   const root = id_string_of_number(id_seq) as types.TNodeId;
   const nodes = {
-    [root]: new_node_value_of([], "root"),
+    [root]: new_node_value_of([]),
   };
   const data = {
     covey_quadrants: {
@@ -72,10 +72,7 @@ export const new_time_node_of = (): types.TTimeNode => {
   };
 };
 
-const new_node_value_of = (
-  parent_edge_ids: types.TEdgeId[],
-  text = "",
-): types.TNode => {
+const new_node_value_of = (parent_edge_ids: types.TEdgeId[]): types.TNode => {
   const parents: types.TOrderedTEdgeIds = {};
   for (let i = 0; i < parent_edge_ids.length; ++i) {
     parents[parent_edge_ids[i]] = i;
@@ -88,7 +85,7 @@ const new_node_value_of = (
     ranges: [] as types.TRange[],
     start_time: Date.now(),
     status: "todo" as types.TStatus,
-    text,
+    text_patches: [],
   };
 };
 
@@ -97,6 +94,7 @@ export const new_cache_of = (n_hidden_child_edges: number) => {
     total_time: -1,
     percentiles: [],
     leaf_estimates_sum: -1,
+    text: "",
     show_detail: false,
     n_hidden_child_edges,
   };
@@ -251,7 +249,7 @@ export const make_nodes_of_toc = (
     toast.add("error", "TOC cannot be created for used nodes.");
     return;
   }
-  const toc_root = _parse_toc(draft.data.nodes[node_id].text);
+  const toc_root = _parse_toc(draft.caches[node_id].text);
   if (toc_root === null) {
     toast.add("error", `Failed to parse the TOC of node ${node_id}.`);
     return;
@@ -294,7 +292,7 @@ const make_tree_from_toc = (toc: ITocNode, draft: Draft<types.IState>) => {
       return;
     }
     child_toc.id = node_id;
-    draft.data.nodes[node_id].text = child_toc.text; // todo: Use set_text.
+    draft.caches[node_id].text = child_toc.text; // todo: Use set_text.
     set_estimate({ node_id, estimate: child_toc.estimate }, draft);
     make_tree_from_toc(child_toc, draft);
   }
@@ -402,8 +400,8 @@ const leading_spaces_of = (l: string) => {
   return res;
 };
 
-export function keys_of<K extends string | number | symbol>(
-  kvs: Record<K, number>,
+export function keys_of<K extends string | number | symbol, V>(
+  kvs: Record<K, V>,
 ) {
   return Object.keys(kvs) as K[];
 }
