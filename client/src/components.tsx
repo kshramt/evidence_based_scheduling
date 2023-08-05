@@ -18,6 +18,7 @@ import AutoHeightTextArea from "./AutoHeightTextArea";
 import MenuButton from "./Header/MenuButton";
 import TocForm from "./Details/Component/TocForm";
 import ScrollBackToTopButton from "./ScrollBackToTopButton";
+import ToggleButton from "./ToggleButton";
 
 const SCROLL_BACK_TO_TOP_MARK = (
   <span className="material-icons">vertical_align_top</span>
@@ -349,26 +350,35 @@ const Body = () => {
   const root = useSelector((state) => {
     return state.data.root;
   });
+  const [pin, setPin] = React.useState(true);
   return (
     <div className="flex flex-1 gap-x-[1em] overflow-y-hidden">
-      <CoveyQuadrants />
-      <div className={`overflow-y-scroll shrink-0`}>
-        <Timeline />
-      </div>
-      <div className={`overflow-y-scroll shrink-0`}>
+      <div className={`overflow-y-auto shrink-0`}>
         <SBTTB />
-        <TreeNode node_id={root} />
-      </div>
-      <div className={`overflow-y-scroll shrink-0`}>
-        <SBTTB />
+        <ToggleButton
+          value={pin}
+          setValue={setPin}
+          titleOnFalse="Pin"
+          titleOnTrue="Unpin"
+        />
         <PredictedNextNodes />
         <TodoQueueNodes />
       </div>
-      <div className={`overflow-y-scroll shrink-0`}>
-        <SBTTB />
-        <NonTodoQueueNodes />
+      <div className={utils.join("flex", pin && "w-full overflow-x-auto")}>
+        <CoveyQuadrants />
+        <div className={`overflow-y-auto shrink-0`}>
+          <Timeline />
+        </div>
+        <div className={`overflow-y-auto shrink-0`}>
+          <SBTTB />
+          <TreeNode node_id={root} />
+        </div>
+        <div className={`overflow-y-auto shrink-0`}>
+          <SBTTB />
+          <NonTodoQueueNodes />
+        </div>
+        <PinnedSubTrees />
       </div>
-      <PinnedSubTrees />
     </div>
   );
 };
@@ -492,7 +502,7 @@ const CoveyQuadrant = React.memo(
       dispatch(actions.assign_nodes_to_covey_quadrant_action(payload));
     }, [props.quadrant_id, selectedNodeIds, dispatch]);
     return (
-      <div className={`overflow-y-scroll h-[50%] p-[0.5em]`}>
+      <div className={`overflow-y-auto h-[50%] p-[0.5em]`}>
         <button className="btn-icon" onClick={assign_nodes}>
           {consts.ADD_MARK}
         </button>
@@ -876,7 +886,7 @@ const DndTreeNode = React.memo((props: { node_id: types.TNodeId }) => {
       ref={ref}
       className={utils.join(
         isDragging ? "opacity-50" : "opacity-100",
-        "overflow-y-scroll shrink-0 relative",
+        "overflow-y-auto shrink-0 relative",
       )}
     >
       <TreeNode node_id={props.node_id} prefix="p-" />
@@ -1061,7 +1071,7 @@ const MobileMenu = (props: {
 const MobileBody = () => {
   return (
     <div className="flex flex-1 gap-x-[1em] overflow-y-hidden">
-      <div className={`overflow-y-scroll shrink-0`}>
+      <div className={`overflow-y-auto shrink-0`}>
         <MobileQueueColumn />
       </div>
     </div>
@@ -1348,7 +1358,7 @@ const RangesTable = (props: { node_id: types.TNodeId }) => {
         </button>
       </div>
       <table className="table-auto">
-        <tbody className="block max-h-[10em] overflow-y-scroll">{rows}</tbody>
+        <tbody className="block max-h-[10em] overflow-y-auto">{rows}</tbody>
       </table>
     </>
   );
@@ -1432,7 +1442,7 @@ const ChildEdgeTable = React.memo((props: { node_id: types.TNodeId }) => {
   );
   return (
     <table className="table-auto">
-      <tbody className="block max-h-[10em] overflow-y-scroll">
+      <tbody className="block max-h-[10em] overflow-y-auto">
         {ops.sorted_keys_of(children).map((edge_id) => (
           <EdgeRow edge_id={edge_id} key={edge_id} target="c" />
         ))}
@@ -1447,7 +1457,7 @@ const ParentEdgeTable = React.memo((props: { node_id: types.TNodeId }) => {
   );
   return (
     <table className="table-auto">
-      <tbody className="block max-h-[10em] overflow-y-scroll">
+      <tbody className="block max-h-[10em] overflow-y-auto">
         {ops.sorted_keys_of(parents).map((edge_id) => (
           <EdgeRow edge_id={edge_id} key={edge_id} target={"p"} />
         ))}
