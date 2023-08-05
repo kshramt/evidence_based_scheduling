@@ -1,3 +1,5 @@
+import * as sequenceComparisons from "@kshramt/sequence-comparisons";
+
 import * as actions from "./actions";
 import * as rtk from "./rtk";
 import * as types from "./types";
@@ -252,6 +254,7 @@ export const get_root_reducer_def = (
       let due_min = ":due: 9999-12-31T23:59:59";
       for (let node_id of state.todo_node_ids) {
         let node = state.data.nodes[node_id];
+        let cache = state.caches[node_id];
         if (
           node.status === "todo" &&
           ops
@@ -263,7 +266,7 @@ export const get_root_reducer_def = (
         ) {
           while (true) {
             let due = null;
-            for (const w of node.text.split("\n")) {
+            for (const w of cache.text.split("\n")) {
               if (w.startsWith(":due: ")) {
                 due = w;
               }
@@ -280,6 +283,7 @@ export const get_root_reducer_def = (
             }
             node_id = state.data.edges[ops.sorted_keys_of(node.parents)[0]].p;
             node = state.data.nodes[node_id];
+            cache = state.caches[node_id];
           }
         }
       }
@@ -421,14 +425,25 @@ export const get_root_reducer_def = (
         1,
       );
     });
-    builder(actions.set_text_action, (state, action) => {
-      const node_id = action.payload.k;
-      const text = action.payload.text;
-      const node = state.data.nodes[node_id];
-      if (text !== node.text) {
-        node.text = text;
-      }
-    });
+    {
+      const dw = new sequenceComparisons.DiffWu();
+      builder(actions.set_text_action, (state, action) => {
+        const node_id = action.payload.k;
+        const text = action.payload.text;
+        const node = state.data.nodes[node_id];
+        const cache = state.caches[node_id];
+        if (text !== cache.text) {
+          const xs = Array.from(cache.text);
+          const ys = Array.from(text);
+          const ops = sequenceComparisons.compressOpsForString(
+            dw.call(xs, ys),
+            ys,
+          );
+          node.text_patches.push({ created_at: Date.now(), ops });
+          cache.text = text;
+        }
+      });
+    }
     builder(actions.set_time_node_text_action, (state, action) => {
       const time_node =
         state.data.timeline.time_nodes[action.payload.time_node_id] ||

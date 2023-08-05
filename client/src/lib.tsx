@@ -245,55 +245,60 @@ export const main = async () => {
     root.render(<React.StrictMode>{c}</React.StrictMode>);
   };
 
-  // Check for the availability of the persistent storage.
-  renderWithStrictMode(
-    <Center>
-      <span>Check for availability of the persistent storage.</span>
-    </Center>,
-  );
-  if (!(await navigator?.storage?.persist())) {
-    await new Promise((resolve) => {
-      renderWithStrictMode(
-        <>
-          <Center>
-            <span>Persistent storage is not available.</span>
-          </Center>
-          <button
-            onClick={resolve}
-            className="hidden"
-            id="skip-persistent-storage-check"
-          />
-        </>,
-      );
-    });
-  }
-
-  renderWithStrictMode(spinner);
-  const auth = new Auth.Auth();
-  await auth.loading;
-  while (true) {
-    if (auth.id_token === null) {
-      renderWithStrictMode(
-        <AuthComponent logIn={auth.logIn} sign_up={auth.sign_up} />,
-      );
-      await auth.waitForAuthentication();
+  try {
+    // Check for the availability of the persistent storage.
+    renderWithStrictMode(
+      <Center>
+        <span>Check for availability of the persistent storage.</span>
+      </Center>,
+    );
+    if (!(await navigator?.storage?.persist())) {
+      await new Promise((resolve) => {
+        renderWithStrictMode(
+          <>
+            <Center>
+              <span>Persistent storage is not available.</span>
+            </Center>
+            <button
+              onClick={resolve}
+              className="hidden"
+              id="skip-persistent-storage-check"
+            />
+          </>,
+        );
+      });
     }
 
     renderWithStrictMode(spinner);
-    if (auth.id_token) {
-      const persistentStateManager = await states.getPersistentStateManager(
-        auth.id_token,
-        auth,
-      );
-      const reduxStore = await persistentStateManager.reduxStore;
-      renderWithStrictMode(
-        <AppComponent
-          ctx={persistentStateManager}
-          store={reduxStore}
-          auth={auth}
-        />,
-      );
-      await auth.waitForUnAuthentication();
+    const auth = new Auth.Auth();
+    await auth.loading;
+    while (true) {
+      if (auth.id_token === null) {
+        renderWithStrictMode(
+          <AuthComponent logIn={auth.logIn} sign_up={auth.sign_up} />,
+        );
+        await auth.waitForAuthentication();
+      }
+
+      renderWithStrictMode(spinner);
+      if (auth.id_token) {
+        const persistentStateManager = await states.getPersistentStateManager(
+          auth.id_token,
+          auth,
+        );
+        const reduxStore = await persistentStateManager.reduxStore;
+        renderWithStrictMode(
+          <AppComponent
+            ctx={persistentStateManager}
+            store={reduxStore}
+            auth={auth}
+          />,
+        );
+        await auth.waitForUnAuthentication();
+      }
     }
+  } catch (e) {
+    console.error(e);
+    renderWithStrictMode(error_element);
   }
 };

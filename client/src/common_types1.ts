@@ -80,7 +80,7 @@ export type TNode = {
   readonly status: TStatus;
   readonly text: string;
 };
-export const is_TNode = (
+const is_TNode = (
   x: any,
   record_if_false: ReturnType<typeof record_if_false_of>,
 ): x is TNode =>

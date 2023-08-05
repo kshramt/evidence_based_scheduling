@@ -131,14 +131,14 @@ const useQueue = (column: "todo_node_ids" | "non_todo_node_ids") => {
     Jotai.useAtomValue(states.nodeFilterQueryState),
   );
   const queue = useSelector((state) => state[column]);
-  const nodes = useSelector((state) => state.data.nodes);
+  const caches = useSelector((state) => state.caches);
 
   const filtered_queue = React.useMemo(() => {
     return queue.filter((node_id) => {
-      const node = nodes[node_id];
-      return !_should_hide_of(nodeFilterQuery, node.text, node_id);
+      const cache = caches[node_id];
+      return !_should_hide_of(nodeFilterQuery, cache.text, node_id);
     });
-  }, [queue, nodes, nodeFilterQuery]);
+  }, [queue, caches, nodeFilterQuery]);
 
   return filtered_queue;
 };
@@ -267,7 +267,7 @@ const Menu = (props: {
   }, [props.ctx]);
   return (
     <div
-      className={`flex items-center overflow-x-auto h-[3rem] gap-x-[0.25em] gap-x-[0.25em] w-full top-0  bg-neutral-200 dark:bg-neutral-900`}
+      className={`flex items-center overflow-x-auto h-[3rem] gap-x-[0.25em] w-full top-0  bg-neutral-200 dark:bg-neutral-900`}
     >
       <MenuButton
         onClickCheckRemoteButton={check_remote_head}
@@ -519,7 +519,7 @@ const CoveyQuadrantNode = React.memo(
       | "not_important_urgent"
       | "not_important_not_urgent";
   }) => {
-    const text = useSelector((state) => state.data.nodes[props.node_id].text);
+    const text = useSelector((state) => state.caches[props.node_id].text);
     const status = useSelector(
       (state) => state.data.nodes[props.node_id].status,
     );
@@ -756,7 +756,7 @@ const PlannedNode = (props: {
   time_node_id: types.TTimeNodeId;
   Component: "div" | "td";
 }) => {
-  const text = useSelector((state) => state.data.nodes[props.node_id].text);
+  const text = useSelector((state) => state.caches[props.node_id].text);
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
   const dispatch = useDispatch();
   const { isOn, turnOn, turnOff } = useOn();
@@ -1077,6 +1077,7 @@ const MobileQueueColumn = () => {
 
 const MobileQueueNodes = () => {
   const queue = useSelector((state) => state.data.queue);
+  const caches = useSelector((state) => state.caches);
   const nodes = useSelector((state) => state.data.nodes);
   const session = React.useContext(states.session_key_context);
   const show_todo_only = Jotai.useAtomValue(
@@ -1091,13 +1092,14 @@ const MobileQueueNodes = () => {
       .sorted_keys_of(queue)
       .filter((node_id) => {
         const node = nodes[node_id];
+        const cache = caches[node_id];
         return !(
           (show_todo_only && node.status !== "todo") ||
-          _should_hide_of(nodeFilterQuery, node.text, node_id)
+          _should_hide_of(nodeFilterQuery, cache.text, node_id)
         );
       })
       .slice(0, 100);
-  }, [queue, nodes, show_todo_only, nodeFilterQuery]);
+  }, [queue, caches, nodes, show_todo_only, nodeFilterQuery]);
 
   return <MobileQueueNodesImpl node_ids={node_ids} />;
 };
@@ -1517,7 +1519,7 @@ const EdgeRow = React.memo(
 
 const EdgeRowContent = React.memo((props: { node_id: types.TNodeId }) => {
   const to_tree = useToTree(props.node_id);
-  const text = useSelector((state) => state.data.nodes[props.node_id].text);
+  const text = useSelector((state) => state.caches[props.node_id].text);
   const disabled = useSelector((state) => {
     return (
       props.node_id === state.data.root ||
@@ -1978,7 +1980,7 @@ const MobilePredictedNextNodes = () => {
   );
 };
 const MobilePredictedNextNode = (props: { node_id: types.TNodeId }) => {
-  const text = useSelector((state) => state.data.nodes[props.node_id].text);
+  const text = useSelector((state) => state.caches[props.node_id].text);
   const to_tree = useToTree(props.node_id);
   return (
     <div className="flex w-fit gap-x-[0.25em] items-baseline py-[0.125em]">
@@ -2006,7 +2008,7 @@ const PredictedNextNodes = () => {
   );
 };
 const PredictedNextNode = React.memo((props: { node_id: types.TNodeId }) => {
-  const text = useSelector((state) => state.data.nodes[props.node_id].text);
+  const text = useSelector((state) => state.caches[props.node_id].text);
   const to_tree = useToTree(props.node_id);
   return (
     <div className="flex w-fit gap-x-[0.25em] items-baseline py-[0.125em]">
@@ -2061,7 +2063,7 @@ const TextAreaImpl = ({
   className,
   ...textarea_props
 }: { node_id: types.TNodeId } & React.HTMLProps<HTMLTextAreaElement>) => {
-  const state_text = useSelector((state) => state.data.nodes[node_id].text);
+  const state_text = useSelector((state) => state.caches[node_id].text);
   const status = useSelector((state) => state.data.nodes[node_id].status);
   const dispatch = useDispatch();
   const onBlur = useCallback(

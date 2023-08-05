@@ -4,17 +4,18 @@ import {
   useDispatch as _useDispatch,
   useSelector as _useSelector,
 } from "react-redux";
-import * as sequenceComparisons from "@kshramt/sequence-comparisons";
 
-import * as ops from "./ops";
 import * as toast from "./toast";
+
 import * as producer from "./producer";
 
 import type {
   TAnyPayloadAction,
+  TCaches,
   TCoveyQuadrants,
   TEdges,
   TNodeId,
+  TNodes,
   TOrderedTNodeIds,
   TTimeline,
 } from "./common_types1";
@@ -23,25 +24,25 @@ import {
   is_TCoveyQuadrants,
   is_TEdges,
   is_TNodeId,
+  is_TNodes,
   is_TOrderedTNodeIds,
   is_TTimeline,
   record_if_false_of,
 } from "./common_types1";
-
-import type { TCaches, TNodes } from "./commonTypes2";
-import { is_TNodes } from "./commonTypes2";
-
-import * as types_prev from "./types21";
+import * as types_prev from "./types20";
 
 export type {
   TActionWithoutPayload,
   TActionWithPayload,
   TAnyPayloadAction,
+  TCaches,
   TEdge,
   TEdgeId,
   TEdges,
   TEdgeType,
+  TNode,
   TNodeId,
+  TNodes,
   TOrderedTEdgeIds,
   TOrderedTNodeIds,
   TRange,
@@ -59,9 +60,7 @@ export {
   is_TTimeNodeId,
 } from "./common_types1";
 
-export type { TCaches, TNode, TNodes, TTextPatch } from "./commonTypes2";
-
-export const VERSION = 22 as const;
+export const VERSION = 21 as const;
 
 export const parse_data = (x: {
   data: any;
@@ -94,7 +93,7 @@ export const parse_data = (x: {
 };
 
 const current_of_prev = (data_prev: {
-  data: types_prev.TData;
+  data: types_prev.IData;
 }):
   | { success: false }
   | {
@@ -102,35 +101,14 @@ const current_of_prev = (data_prev: {
       data: TData;
       patch: producer.TOperation[];
     } => {
-  const fn = (draft: { data: types_prev.TData }): { data: TData } => {
-    const dw = new sequenceComparisons.DiffWu();
-    const nodes: TNodes = {};
-    for (const nodeId of ops.keys_of(draft.data.nodes)) {
-      const node = draft.data.nodes[nodeId];
-      const ys = Array.from(node.text);
-      nodes[nodeId] = {
-        children: node.children,
-        end_time: node.end_time,
-        estimate: node.estimate,
-        parents: node.parents,
-        ranges: node.ranges,
-        start_time: node.start_time,
-        status: node.status,
-        text_patches: [
-          {
-            created_at: node.start_time,
-            ops: sequenceComparisons.compressOpsForString(dw.call([], ys), ys),
-          },
-        ],
-      };
-    }
+  const fn = (draft: { data: types_prev.IData }): { data: TData } => {
     return {
       data: {
         covey_quadrants: draft.data.covey_quadrants,
         edges: draft.data.edges,
         id_seq: draft.data.id_seq,
-        nodes,
-        pinned_sub_trees: draft.data.pinned_sub_trees,
+        nodes: draft.data.nodes,
+        pinned_sub_trees: [],
         queue: draft.data.queue,
         root: draft.data.root,
         timeline: draft.data.timeline,

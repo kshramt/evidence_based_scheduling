@@ -22,37 +22,37 @@ RUN sed \
    -i /etc/dpkg/dpkg.cfg.d/excludes
 # sudo npx playwright install-deps
 RUN apt-get update \
-   && DEBIAN_FRONTEND=noninteractive sudo apt-get install -y --no-install-recommends \
-   libnss3 \
-   libnspr4 \
-   libdrm2 \
-   libgbm1 \
-   libxcb-shm0\
-   libx11-xcb1\
-   libx11-6\
-   libxcb1\
-   libxext6\
-   libxrandr2\
-   libxcomposite1\
-   libxcursor1\
-   libxdamage1\
-   libxfixes3\
-   libxi6\
-   libxtst6\
-   libgtk-3-0\
-   libpangocairo-1.0-0\
-   libpango-1.0-0\
+   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+   libasound2\
    libatk1.0-0\
    libcairo-gobject2\
    libcairo2\
+   libdbus-1-3\
+   libdbus-glib-1-2\
+   libdrm2\
+   libfontconfig1\
+   libfreetype6\
+   libgbm1\
    libgdk-pixbuf-2.0-0\
    libglib2.0-0\
-   libasound2\
+   libgtk-3-0\
+   libnspr4 \
+   libnss3\
+   libpango-1.0-0\
+   libpangocairo-1.0-0\
+   libx11-6\
+   libx11-xcb1\
+   libxcb-shm0\
+   libxcb1\
+   libxcomposite1\
+   libxcursor1\
+   libxdamage1\
+   libxext6\
+   libxfixes3\
+   libxi6\
+   libxrandr2\
    libxrender1\
-   libfreetype6\
-   libfontconfig1\
-   libdbus-glib-1-2\
-   libdbus-1-3
+   libxtst6
 # Basic dependencies
 RUN apt-get update \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -119,9 +119,42 @@ FROM base_js AS base_client
 WORKDIR /app/client
 
 FROM base_client AS client_npm_ci
+# sudo npx playwright install-deps
+RUN apt-get update \
+   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+   libasound2\
+   libatk1.0-0\
+   libcairo-gobject2\
+   libcairo2\
+   libdbus-1-3\
+   libdbus-glib-1-2\
+   libdrm2\
+   libfontconfig1\
+   libfreetype6\
+   libgbm1\
+   libgdk-pixbuf-2.0-0\
+   libglib2.0-0\
+   libgtk-3-0\
+   libnspr4 \
+   libnss3\
+   libpango-1.0-0\
+   libpangocairo-1.0-0\
+   libx11-6\
+   libx11-xcb1\
+   libxcb-shm0\
+   libxcb1\
+   libxcomposite1\
+   libxcursor1\
+   libxdamage1\
+   libxext6\
+   libxfixes3\
+   libxi6\
+   libxrandr2\
+   libxrender1\
+   libxtst6
 COPY --link client/package.json client/package-lock.json ./
 RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/root/.npm npm ci
-RUN npx playwright install --with-deps chromium firefox
+RUN npx playwright install
 
 FROM client_npm_ci AS client_proto
 COPY --link proto ../proto
