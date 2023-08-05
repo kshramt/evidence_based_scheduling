@@ -1,7 +1,7 @@
-import React from "react";
+import * as Jotai from "jotai";
+import * as React from "react";
 import ReactDOM from "react-dom/client";
 import { Provider } from "react-redux";
-import * as Recoil from "recoil";
 import "@fontsource/material-icons";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import * as Dnd from "react-dnd";
@@ -15,46 +15,49 @@ import * as Auth from "./auth";
 
 const TWO_DAYS = 2 * 24 * 60 * 60 * 1000;
 
-const App = React.memo((props: { ctx: states.PersistentStateManager }) => {
-  const [isShowMobileSelected, setIsShowMobileSelected] = React.useState(false);
+const App = React.memo(
+  (props: { ctx: states.PersistentStateManager; logOut: () => void }) => {
+    const [isShowMobileSelected, setIsShowMobileSelected] =
+      React.useState(false);
 
-  const show_mobile = Recoil.useRecoilValue(
-    states.show_mobile_atom_map.get(
-      React.useContext(states.session_key_context),
-    ),
-  );
-  const [showMobileUpdatedAt, setShowMobileUpdatedAt] = Recoil.useRecoilState(
-    states.showMobileUpdatedAtAtomMap.get(
-      React.useContext(states.session_key_context),
-    ),
-  );
-  const handleClick = React.useCallback(() => {
-    setShowMobileUpdatedAt(-Date.now());
-    setIsShowMobileSelected(true);
-  }, [setShowMobileUpdatedAt, setIsShowMobileSelected]);
-  if (!isShowMobileSelected && Date.now() < showMobileUpdatedAt + TWO_DAYS) {
+    const show_mobile = Jotai.useAtomValue(
+      states.show_mobile_atom_map.get(
+        React.useContext(states.session_key_context),
+      ),
+    );
+    const [showMobileUpdatedAt, setShowMobileUpdatedAt] = Jotai.useAtom(
+      states.showMobileUpdatedAtAtomMap.get(
+        React.useContext(states.session_key_context),
+      ),
+    );
+    const handleClick = React.useCallback(() => {
+      setShowMobileUpdatedAt(-Date.now());
+      setIsShowMobileSelected(true);
+    }, [setShowMobileUpdatedAt, setIsShowMobileSelected]);
+    if (!isShowMobileSelected && Date.now() < showMobileUpdatedAt + TWO_DAYS) {
+      return (
+        <>
+          <button className="btn-icon" onClick={handleClick}>
+            Continue
+          </button>
+          with the current setting. Or select:
+          <components.ToggleShowMobileButton />
+        </>
+      );
+    }
+
     return (
       <>
-        <button className="btn-icon" onClick={handleClick}>
-          Continue
-        </button>
-        with the current setting. Or select:
-        <components.ToggleShowMobileButton />
+        {show_mobile ? (
+          <components.MobileApp ctx={props.ctx} logOut={props.logOut} />
+        ) : (
+          <components.DesktopApp ctx={props.ctx} logOut={props.logOut} />
+        )}
+        {toast.component}
       </>
     );
-  }
-
-  return (
-    <>
-      {show_mobile ? (
-        <components.MobileApp ctx={props.ctx} />
-      ) : (
-        <components.DesktopApp ctx={props.ctx} />
-      )}
-      {toast.component}
-    </>
-  );
-});
+  },
+);
 
 const Center = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -80,34 +83,34 @@ const spinner = (
 );
 
 const AuthComponent = ({
-  sign_in,
+  logIn,
   sign_up,
 }: {
-  sign_in: typeof Auth.Auth.prototype.sign_in;
+  logIn: typeof Auth.Auth.prototype.logIn;
   sign_up: typeof Auth.Auth.prototype.sign_up;
 }) => {
   const [err, set_err] = React.useState("");
-  const [sign_in_loading, set_sign_in_loading] = React.useState(false);
-  const on_sign_in = React.useCallback(async () => {
-    const el = document.getElementById("sign-in-name") as HTMLInputElement;
+  const [logInLoading, setLogInLoading] = React.useState(false);
+  const onLogIn = React.useCallback(async () => {
+    const el = document.getElementById("log-in-name") as HTMLInputElement;
     if (el === null) {
       return;
     }
     if (el.value === "") {
       return;
     }
-    set_sign_in_loading(true);
+    setLogInLoading(true);
     try {
-      await sign_in(el.value);
+      await logIn(el.value);
       set_err("");
       el.value = "";
     } catch (err: unknown) {
       set_err(`${err}`);
       console.error(err);
     } finally {
-      set_sign_in_loading(false);
+      setLogInLoading(false);
     }
-  }, [set_sign_in_loading, sign_in]);
+  }, [setLogInLoading, logIn]);
 
   const [sign_up_loading, set_sign_up_loading] = React.useState(false);
   const on_sign_up = React.useCallback(async () => {
@@ -135,26 +138,26 @@ const AuthComponent = ({
       <div className="flex flex-col item-center gap-y-[1em]">
         <div className="flex flex-col items-center gap-y-[0.25em]">
           <div>
-            <label htmlFor="sign-in-name" className="block">
+            <label htmlFor="log-in-name" className="block">
               Name
             </label>
-            <input id="sign-in-name" type="text" />
+            <input id="log-in-name" type="text" />
           </div>
           <div>
             <button
               className="btn-icon"
-              onClick={on_sign_in}
+              onClick={onLogIn}
               onDoubleClick={utils.prevent_propagation}
-              disabled={sign_in_loading}
+              disabled={logInLoading}
             >
-              Sign-in
+              Log in
             </button>
           </div>
         </div>
         <span className="text-center">OR</span>
         <div className="flex flex-col items-center gap-y-[0.25em]">
           <div>
-            <label htmlFor="sign-in-name" className="block">
+            <label htmlFor="log-in-name" className="block">
               Name
             </label>
             <input id="sign-up-name" type="text" />
@@ -166,7 +169,7 @@ const AuthComponent = ({
               onDoubleClick={utils.prevent_propagation}
               disabled={sign_up_loading}
             >
-              Sign-up
+              Sign up
             </button>
           </div>
         </div>
@@ -200,93 +203,97 @@ class ErrorBoundary extends React.Component<
 }
 
 const AppComponentImpl = (props: {
-  ctx: states.Loadable<states.PersistentStateManager>;
+  ctx: states.PersistentStateManager;
+  store: Awaited<ReturnType<states.PersistentStateManager["get_redux_store"]>>;
+  auth: Auth.Auth;
 }) => {
-  const ctx = props.ctx.get();
-  const store = ctx.redux_store.get();
-  ctx.useCheckUpdates();
+  props.ctx.useCheckUpdates();
   return (
-    <states.session_key_context.Provider value={ctx.session_key}>
-      <Provider store={store}>
-        <App ctx={ctx} />
-        <ctx.Component />
+    <states.session_key_context.Provider value={props.ctx.session_key}>
+      <Provider store={props.store}>
+        <App ctx={props.ctx} logOut={props.auth.logOut} />
+        <props.ctx.Component />
       </Provider>
     </states.session_key_context.Provider>
   );
 };
 
-const AppComponent = (props: { auth: Auth.Auth; id_token: Auth.TIdToken }) => {
-  const ctx = React.useMemo(() => {
-    return new states.Loadable(
-      states.get_PersistentStateManager(props.id_token, props.auth),
-    );
-  }, [props.id_token, props.auth]);
+const AppComponent = (props: {
+  ctx: states.PersistentStateManager;
+  store: Awaited<ReturnType<states.PersistentStateManager["get_redux_store"]>>;
+  auth: Auth.Auth;
+}) => {
   return (
     <Dnd.DndProvider backend={HTML5Backend}>
-      <Recoil.RecoilRoot>
-        <ErrorBoundary>
-          <React.Suspense fallback={spinner}>
-            <AppComponentImpl ctx={ctx} />
-          </React.Suspense>
-        </ErrorBoundary>
-      </Recoil.RecoilRoot>
+      <ErrorBoundary>
+        <React.Suspense fallback={spinner}>
+          <AppComponentImpl
+            ctx={props.ctx}
+            store={props.store}
+            auth={props.auth}
+          />
+        </React.Suspense>
+      </ErrorBoundary>
     </Dnd.DndProvider>
   );
-};
-
-const AppOrAuth = () => {
-  const auth = React.useMemo(() => {
-    const res = new Auth.Auth();
-    return res;
-  }, []);
-  const [id_token, set_id_token] = React.useState<
-    undefined | null | Auth.TIdToken
-  >(undefined);
-  React.useEffect(() => {
-    return auth.on_change(set_id_token);
-  }, [auth, set_id_token]);
-  if (id_token === undefined) {
-    return spinner;
-  }
-  if (id_token === null) {
-    return <AuthComponent sign_in={auth.sign_in} sign_up={auth.sign_up} />;
-  }
-  return <AppComponent auth={auth} id_token={id_token} />;
 };
 
 export const main = async () => {
   const container = document.getElementById("root");
   const root = ReactDOM.createRoot(container!);
-  root.render(
-    <React.StrictMode>
-      <Center>
-        <span>Check for availability of the persistent storage.</span>
-      </Center>
-    </React.StrictMode>,
-  );
-  const render = () => {
-    root.render(
-      <React.StrictMode>
-        <AppOrAuth />
-      </React.StrictMode>,
-    );
+  const renderWithStrictMode = (c: React.ReactNode) => {
+    root.render(<React.StrictMode>{c}</React.StrictMode>);
   };
+
+  // Check for the availability of the persistent storage.
+  renderWithStrictMode(
+    <Center>
+      <span>Check for availability of the persistent storage.</span>
+    </Center>,
+  );
   if (!(await navigator?.storage?.persist())) {
-    root.render(
-      <React.StrictMode>
-        <Center>
-          <span>Persistent storage is not available.</span>
-        </Center>
-        <button
-          onClick={render}
-          className="hidden"
-          id="skip-persistent-storage-check"
-        />
-      </React.StrictMode>,
-    );
-    return;
+    await new Promise((resolve) => {
+      renderWithStrictMode(
+        <>
+          <Center>
+            <span>Persistent storage is not available.</span>
+          </Center>
+          <button
+            onClick={resolve}
+            className="hidden"
+            id="skip-persistent-storage-check"
+          />
+        </>,
+      );
+    });
   }
 
-  render();
-  return;
+  renderWithStrictMode(spinner);
+  const auth = new Auth.Auth();
+  await auth.loading;
+  while (true) {
+    if (auth.id_token === null) {
+      renderWithStrictMode(
+        <AuthComponent logIn={auth.logIn} sign_up={auth.sign_up} />,
+      );
+      await auth.waitForAuthentication();
+    }
+
+    renderWithStrictMode(spinner);
+    if (auth.id_token) {
+      const persistentStateManager = await states.getPersistentStateManager(
+        auth.id_token,
+        auth,
+      );
+      const reduxStore = await persistentStateManager.reduxStore;
+      renderWithStrictMode(
+        <AppComponent
+          ctx={persistentStateManager}
+          store={reduxStore}
+          auth={auth}
+        />,
+      );
+      await auth.waitForUnAuthentication();
+    }
+  }
 };

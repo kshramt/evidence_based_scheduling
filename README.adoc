@@ -58,7 +58,8 @@ docker compose -f compose.yaml -f compose.dev.yaml up --build
 [source,bash]
 ----
 cd client
-PORT=3000 DANGEROUSLY_DISABLE_HOST_CHECK=true npm run start
+npx vite dev --port 3000
+# LOCALHOST=host.docker.internal PORT=3000 npx vite dev
 xdg-open http://localhost:3000
 ----
 

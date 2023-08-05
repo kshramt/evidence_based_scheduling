@@ -1,4 +1,5 @@
-import * as Recoil from "recoil";
+import * as Jotai from "jotai";
+import * as JotaiU from "jotai/utils";
 import * as React from "react";
 import * as Idb from "idb";
 import { createStore, applyMiddleware } from "redux";
@@ -25,18 +26,12 @@ import * as utils from "./utils";
 
 const retryer = new retryers.Retryer();
 
-export const node_filter_query_state = Recoil.atom({
-  key: "ebs/node_filter_query",
-  default: "",
-});
-export const node_ids_state = Recoil.atom({
-  key: "ebs/node_ids",
-  default: "",
-});
+export const nodeFilterQueryState = Jotai.atom("");
+export const nodeIdsState = Jotai.atom("");
 
 const get_client_id = async (
   client: Connect.PromiseClient<typeof C.ApiService>,
-  db: Awaited<ReturnType<typeof storage.get_db>>,
+  db: Awaited<ReturnType<typeof storage.getDb>>,
   id_token: Auth.TIdToken,
 ) => {
   let client_id = await db.get("numbers", "client_id");
@@ -66,7 +61,7 @@ const get_client_id = async (
 
 const get_state_and_patch = async (arg: {
   head: storage.THead;
-  db: Awaited<ReturnType<typeof storage.get_db>>;
+  db: Awaited<ReturnType<typeof storage.getDb>>;
 }) => {
   // Populate data.
   const t1 = performance.now();
@@ -76,7 +71,7 @@ const get_state_and_patch = async (arg: {
     for (const patch of loaded.patches) {
       snapshot = producer.apply_patch(
         snapshot,
-        JSON.parse(patch.patch),
+        patch.patch,
         undefined,
         true,
       ).newDocument;
@@ -188,19 +183,19 @@ class WeakMapV<K extends object, V> extends WeakMap<K, V> {
 
 export const show_mobile_atom_map = new WeakMapV<
   { user_id: string; session_id: number },
-  Recoil.RecoilState<boolean>
+  ReturnType<typeof JotaiU.atomWithStorage<boolean>>
 >();
 export const show_todo_only_atom_map = new WeakMapV<
   { user_id: string; session_id: number },
-  Recoil.RecoilState<boolean>
+  ReturnType<typeof JotaiU.atomWithStorage<boolean>>
 >();
 export const show_strong_edge_only_atom_map = new WeakMapV<
   { user_id: string; session_id: number },
-  Recoil.RecoilState<boolean>
+  ReturnType<typeof JotaiU.atomWithStorage<boolean>>
 >();
 export const showMobileUpdatedAtAtomMap = new WeakMapV<
   { user_id: string; session_id: number },
-  Recoil.RecoilState<number>
+  ReturnType<typeof JotaiU.atomWithStorage<number>>
 >();
 
 export const session_key_context = React.createContext({
@@ -230,7 +225,7 @@ export const session_key_context = React.createContext({
 //    The value is initialized with `client_id`, `session_id`, and `patch_id = 0`.
 export class PersistentStateManager {
   grpc_client: Connect.PromiseClient<typeof C.ApiService>;
-  db: Awaited<ReturnType<typeof storage.get_db>>;
+  db: Awaited<ReturnType<typeof storage.getDb>>;
   client_id: number;
   session_id: number;
   heads: {
@@ -240,16 +235,15 @@ export class PersistentStateManager {
     child: storage.THead;
   };
   id_token: Auth.TIdToken;
-  auth: Auth.Auth;
   session_key: { user_id: string; client_id: number; session_id: number };
-  redux_store: Loadable<Awaited<ReturnType<typeof this.get_redux_store>>>;
+  reduxStore: ReturnType<typeof this.get_redux_store>;
   #patch_queue: queues.Queue<null | storage.TPatchValue> = new queues.Queue();
   #head_queue: queues.Queue<null | storage.THead> = new queues.Queue();
   #rpc_queue: queues.Queue<null | (() => Promise<void>)> = new queues.Queue();
   #sync_store: ReturnType<typeof _get_store> = _get_store();
   constructor(
     grpc_client: Connect.PromiseClient<typeof C.ApiService>,
-    db: Awaited<ReturnType<typeof storage.get_db>>,
+    db: Awaited<ReturnType<typeof storage.getDb>>,
     client_id: number,
     session_id: number,
     heads: {
@@ -259,7 +253,6 @@ export class PersistentStateManager {
       child: storage.THead;
     },
     id_token: Auth.TIdToken,
-    auth: Auth.Auth,
   ) {
     this.grpc_client = grpc_client;
     this.db = db;
@@ -267,13 +260,12 @@ export class PersistentStateManager {
     this.session_id = session_id;
     this.heads = heads;
     this.id_token = id_token;
-    this.auth = auth;
     this.session_key = {
       user_id: id_token.user_id,
       client_id,
       session_id,
     };
-    this.redux_store = new Loadable(this.get_redux_store({ ...heads.parent }));
+    this.reduxStore = this.get_redux_store({ ...heads.parent });
     this.#run_rpc_loop();
     this.#run_push_local_patches_loop();
     this.#run_patch_saving_loop();
@@ -393,7 +385,7 @@ export class PersistentStateManager {
               clientId: BigInt(p.client_id),
               sessionId: BigInt(p.session_id),
               patchId: BigInt(p.patch_id),
-              patch: p.patch,
+              patch: JSON.stringify(p.patch),
               createdAt: B.Timestamp.fromDate(p.created_at),
               parentClientId: BigInt(p.parent_client_id),
               parentSessionId: BigInt(p.parent_session_id),
@@ -567,7 +559,7 @@ export class PersistentStateManager {
       return;
     }
     this.#patch_queue.push({
-      patch: JSON.stringify(patch),
+      patch: patch,
       created_at: new Date(),
       parent_client_id: this.heads.parent.client_id,
       parent_session_id: this.heads.parent.session_id,
@@ -705,12 +697,12 @@ export class PersistentStateManager {
   };
 }
 
-export const get_PersistentStateManager = async (
+export const getPersistentStateManager = async (
   id_token: Auth.TIdToken,
   auth: Auth.Auth,
 ) => {
   // Open DB
-  const db = await storage.get_db(`user-${id_token.user_id}`);
+  const db = await storage.getDb(`user-${id_token.user_id}`);
   const grpc_client = Connect.createPromiseClient(
     C.ApiService,
     createGrpcWebTransport({ baseUrl: window.location.origin }),
@@ -735,6 +727,7 @@ export const get_PersistentStateManager = async (
   let local_head = await heads_store.get("local");
   let remote_head = await heads_store.get("remote");
   await tx.done;
+  // On the first time, fetch remote head and save it.
   if (local_head === undefined || remote_head === undefined) {
     const resp = await get_remote_head_and_save_remote_pending_patches(
       client_id,
@@ -774,87 +767,45 @@ export const get_PersistentStateManager = async (
       child: { client_id, session_id, patch_id: 0 },
     },
     id_token,
-    auth,
   );
+  auth.on_change((idToken: null | Auth.TIdToken) => {
+    if (idToken === null) {
+      res.stop();
+    }
+  });
 
   // Create atoms
-  const boolean_effect: Recoil.AtomEffect<boolean> = ({
-    node,
-    onSet,
-    setSelf,
-  }) => {
-    setSelf(
-      (async () => {
-        const value = await db.get("booleans", node.key);
-        return value === undefined ? new Recoil.DefaultValue() : value;
-      })(),
-    );
-    onSet((new_value, _, is_reset) => {
-      if (is_reset) {
-        db.delete("booleans", node.key);
-      } else {
-        db.put("booleans", new_value, node.key);
-      }
-    });
-  };
   if (!show_mobile_atom_map.has(res.session_key)) {
     show_mobile_atom_map.set(
       res.session_key,
-      Recoil.atom({
-        key: "show_mobile",
-        default: utils.get_is_mobile(),
-        effects: [boolean_effect],
-      }),
+      JotaiU.atomWithStorage(
+        `${id_token.user_id}/show_mobile`,
+        utils.get_is_mobile(),
+      ),
     );
   }
   if (!show_todo_only_atom_map.has(res.session_key)) {
     show_todo_only_atom_map.set(
       res.session_key,
-      Recoil.atom({
-        key: "show_todo_only",
-        default: false,
-        effects: [boolean_effect],
-      }),
+      JotaiU.atomWithStorage(`${id_token.user_id}/show_todo_only`, false),
     );
   }
   if (!show_strong_edge_only_atom_map.has(res.session_key)) {
     show_strong_edge_only_atom_map.set(
       res.session_key,
-      Recoil.atom({
-        key: "show_strong_edge_only",
-        default: false,
-        effects: [boolean_effect],
-      }),
+      JotaiU.atomWithStorage(
+        `${id_token.user_id}/show_strong_edge_only`,
+        false,
+      ),
     );
   }
-
-  const numberEffect: Recoil.AtomEffect<number> = ({
-    node,
-    onSet,
-    setSelf,
-  }) => {
-    setSelf(
-      (async () => {
-        const value = await db.get("numbers", node.key);
-        return value === undefined ? new Recoil.DefaultValue() : value;
-      })(),
-    );
-    onSet((newValue, _, isReset) => {
-      if (isReset) {
-        db.delete("numbers", node.key);
-      } else {
-        db.put("numbers", newValue, node.key);
-      }
-    });
-  };
   if (!showMobileUpdatedAtAtomMap.has(res.session_key)) {
     showMobileUpdatedAtAtomMap.set(
       res.session_key,
-      Recoil.atom({
-        key: "showMobileUpdatedAt",
-        default: Date.now(),
-        effects: [numberEffect],
-      }),
+      JotaiU.atomWithStorage(
+        `${id_token.user_id}/showMobileUpdatedAt`,
+        Date.now(),
+      ),
     );
   }
 
@@ -865,7 +816,7 @@ const get_remote_head_and_save_remote_pending_patches = async (
   client_id: number,
   grpc_client: Connect.PromiseClient<typeof C.ApiService>,
   id_token: Auth.TIdToken,
-  db: Awaited<ReturnType<typeof storage.get_db>>,
+  db: Awaited<ReturnType<typeof storage.getDb>>,
   wrapper: typeof retryer.with_retry = (fn) => {
     return fn();
   },
@@ -892,7 +843,7 @@ const save_and_remove_remote_pending_patches = async (
   id_token: Auth.TIdToken,
   client_id: number,
   grpc_client: Connect.PromiseClient<typeof C.ApiService>,
-  db: Awaited<ReturnType<typeof storage.get_db>>,
+  db: Awaited<ReturnType<typeof storage.getDb>>,
   wrapper: typeof retryer.with_retry = (fn) => {
     return fn();
   },
@@ -947,7 +898,7 @@ const save_and_remove_remote_pending_patches = async (
         client_id: Number(patch.clientId),
         session_id: Number(patch.sessionId),
         patch_id: Number(patch.patchId),
-        patch: patch.patch,
+        patch: JSON.parse(patch.patch),
         parent_client_id: Number(patch.parentClientId),
         parent_session_id: Number(patch.parentSessionId),
         parent_patch_id: Number(patch.parentPatchId),

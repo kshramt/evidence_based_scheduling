@@ -1,3 +1,4 @@
+import * as idb from "idb";
 import React from "react";
 
 import * as types from "./types";
@@ -149,3 +150,38 @@ export function dnd_move<X>(xs: X[], i_from: number, i_to: number) {
   }
   return xs;
 }
+
+export const downloadJson = (fileName: string, data: any) => {
+  const a = document.createElement("a");
+  try {
+    const uri = URL.createObjectURL(
+      new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      }),
+    );
+    try {
+      a.href = uri;
+      a.download = fileName;
+      a.click();
+    } finally {
+      URL.revokeObjectURL(uri);
+    }
+  } finally {
+    a.remove();
+  }
+};
+
+export const getAllFromIndexedDb = async <T>(db: idb.IDBPDatabase<T>) => {
+  const res: any = {};
+  const tx = db.transaction(db.objectStoreNames, "readonly");
+  for (const storeName of db.objectStoreNames) {
+    const store = tx.objectStore(storeName);
+    const records = [];
+    for await (const cursor of store) {
+      records.push({ key: cursor.key, value: cursor.value });
+    }
+    res[storeName] = records;
+  }
+  await tx.done;
+  return res;
+};

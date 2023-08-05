@@ -2,24 +2,31 @@
   "dockerComposeFile": ["../compose.devcontainer.yaml"],
   "service": "devcontainer",
   "workspaceFolder": "${localWorkspaceFolder}",
+  "postCreateCommand": {
+    "set-safe-directory": "sudo git config --system --add safe.directory ${containerWorkspaceFolder}"
+  },
   "mounts": [],
   "remoteUser": "${localEnv:USER}",
   "updateRemoteUserUID": true,
   "customizations": {
     "vscode": {
       "extensions": [
-        "Github.copilot",
-        "GitHub.vscode-pull-request-github",
-        "github.vscode-github-actions",
+        "asciidoctor.asciidoctor-vscode",
+        "bradlc.vscode-tailwindcss",
         "esbenp.prettier-vscode",
+        "esbenp.prettier-vscode",
+        "Github.copilot",
+        "github.vscode-github-actions",
+        "GitHub.vscode-pull-request-github",
+        "golang.go",
+        "inferrinizzard.prettier-sql-vscode",
         "kahole.magit",
         "ms-azuretools.vscode-docker",
         "ms-playwright.playwright",
-        "ms-vscode.makefile-tools",
-        "ms-vscode-remote.vscode-remote-extensionpack",
-        "esbenp.prettier-vscode",
         "ms-python.black-formatter",
-        "inferrinizzard.prettier-sql-vscode"
+        "ms-vscode-remote.vscode-remote-extensionpack",
+        "ms-vscode.makefile-tools",
+        "tamasfe.even-better-toml"
       ],
       "settings": {
         "[html]": {
