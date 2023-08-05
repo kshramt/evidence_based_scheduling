@@ -14,8 +14,10 @@ import { prevent_propagation } from "./utils";
 import * as ops from "./ops";
 import * as toast from "./toast";
 import * as undoable from "./undoable";
-import ScrollBackToTopButton from "./ScrollBackToTopButton";
+import AutoHeightTextArea from "./AutoHeightTextArea";
 import MenuButton from "./Header/MenuButton";
+import TocForm from "./Details/Component/TocForm";
+import ScrollBackToTopButton from "./ScrollBackToTopButton";
 
 const SCROLL_BACK_TO_TOP_MARK = (
   <span className="material-icons">vertical_align_top</span>
@@ -1254,7 +1256,7 @@ const DetailsImpl = React.memo((props: { node_id: types.TNodeId }) => {
       {hline}
       <div className="flex w-fit gap-x-[0.25em] items-baseline">
         <TogglePinButton node_id={props.node_id} />
-        <ParseTocButton node_id={props.node_id} />
+        <TocForm nodeId={props.node_id} />
       </div>
       {hline}
       <div className="flex gap-x-[0.25em] items-baseline">
@@ -1787,26 +1789,27 @@ const AddButton = (props: {
   );
 };
 
-const StopButton = React.forwardRef(
-  (props: { node_id: types.TNodeId }, ref: React.Ref<HTMLButtonElement>) => {
-    const dispatch = useDispatch();
-    const on_click = React.useCallback(() => {
-      dispatch(actions.stop_action(props.node_id));
-    }, [props.node_id, dispatch]);
+const StopButton = React.forwardRef<
+  HTMLButtonElement,
+  { node_id: types.TNodeId }
+>((props, ref) => {
+  const dispatch = useDispatch();
+  const on_click = React.useCallback(() => {
+    dispatch(actions.stop_action(props.node_id));
+  }, [props.node_id, dispatch]);
 
-    return (
-      <button
-        className="btn-icon"
-        arial-label="Stop."
-        onClick={on_click}
-        ref={ref}
-        onDoubleClick={prevent_propagation}
-      >
-        {consts.STOP_MARK}
-      </button>
-    );
-  },
-);
+  return (
+    <button
+      className="btn-icon"
+      arial-label="Stop."
+      onClick={on_click}
+      ref={ref}
+      onDoubleClick={prevent_propagation}
+    >
+      {consts.STOP_MARK}
+    </button>
+  );
+});
 
 const TopButton = (props: { node_id: types.TNodeId; disabled?: boolean }) => {
   const dispatch = useDispatch();
@@ -1934,22 +1937,6 @@ const DeleteButton = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const ParseTocButton = (props: { node_id: types.TNodeId }) => {
-  const dispatch = useDispatch();
-  const on_click = React.useCallback(() => {
-    dispatch(actions.parse_toc_action(props.node_id));
-  }, [props.node_id, dispatch]);
-  return (
-    <button
-      className="btn-icon"
-      onClick={on_click}
-      onDoubleClick={prevent_propagation}
-    >
-      {consts.TOC_MARK}
-    </button>
-  );
-};
-
 const EvalButton = (props: { node_id: types.TNodeId }) => {
   const dispatch = useDispatch();
   const on_click = React.useCallback(() => {
@@ -2062,7 +2049,10 @@ const TextAreaImpl = ({
   node_id,
   className,
   ...textarea_props
-}: { node_id: types.TNodeId } & React.HTMLProps<HTMLTextAreaElement>) => {
+}: { node_id: types.TNodeId } & Omit<
+  React.HTMLProps<HTMLTextAreaElement>,
+  "ref"
+>) => {
   const state_text = useSelector((state) => state.caches[node_id].text);
   const status = useSelector((state) => state.data.nodes[node_id].status);
   const dispatch = useDispatch();
@@ -2155,51 +2145,6 @@ const CopyDescendantTimeNodesPlannedNodeIdsButton = (props: {
     </button>
   );
 };
-
-const AutoHeightTextArea = ({
-  text,
-  className,
-  ...textarea_props
-}: {
-  text: string;
-} & React.HTMLProps<HTMLTextAreaElement>) => {
-  const [local_text, set_local_text] = React.useState(text);
-  React.useEffect(() => {
-    set_local_text(text);
-  }, [text]);
-  const ref = React.useRef<HTMLDivElement>(null);
-  const on_change = React.useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const el = e.target;
-      const spacer = ref.current;
-      if (spacer) {
-        spacer.textContent = handle_trailing_newline(el.value);
-      }
-      set_local_text(el.value);
-    },
-    [ref],
-  );
-
-  return (
-    <div className="auto_height_container">
-      <div
-        className={utils.join(className, "auto_height_spacer")}
-        aria-hidden="true"
-        ref={ref}
-      >
-        {handle_trailing_newline(text)}
-      </div>
-      <textarea
-        className={utils.join(className, "auto_height_textarea")}
-        onChange={on_change}
-        value={local_text}
-        {...textarea_props}
-      />
-    </div>
-  );
-};
-
-const handle_trailing_newline = (x: string) => x + "\u200b";
 
 const doFocusMoveUpButton = (node_id: types.TNodeId) => {
   setTimeout(() => utils.focus(moveUpButtonRefOf(node_id).current), 100);

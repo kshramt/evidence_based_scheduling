@@ -22,8 +22,8 @@ export const add_action = register_history_type(
     "add_action",
   ),
 );
-export const parse_toc_action = register_history_type(
-  rtk.action_of_of<types.TNodeId>("parse_toc_action"),
+export const parseTocAction = register_history_type(
+  rtk.action_of_of<{ nodeId: types.TNodeId; text: string }>("parseTocAction"),
 );
 export const eval_ = register_history_type(
   rtk.action_of_of<types.TNodeId>("eval_"),

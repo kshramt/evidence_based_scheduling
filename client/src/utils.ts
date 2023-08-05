@@ -54,7 +54,7 @@ export class Multinomial {
   };
 }
 
-export const join = (...xs: (undefined | null | false | string)[]) =>
+export const join = (...xs: (undefined | null | boolean | string)[]) =>
   xs.filter(Boolean).join(" ");
 
 export const useClipboard = () => {

@@ -1,10 +1,10 @@
 import React from "react";
 
 import * as storage from "src/storage";
-import ToggleShowMobileButton from "../ToggleShowMobileButton";
-import CheckRemoteButton from "../CheckRemoteButton";
-import ExportIndexedDbButton from "../ExportIndexedDbButton";
-import LogoutButton from "../LogoutButton";
+import ToggleShowMobileButton from "./ToggleShowMobileButton";
+import CheckRemoteButton from "./CheckRemoteButton";
+import ExportIndexedDbButton from "./ExportIndexedDbButton";
+import LogoutButton from "./LogoutButton";
 
 const MenuButton = React.memo(
   (props: {

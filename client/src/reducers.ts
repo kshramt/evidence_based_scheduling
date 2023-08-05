@@ -92,8 +92,8 @@ export const get_root_reducer_def = (
         _set_total_time_of_ancestors(state, parent_node_id, vid);
       }
     });
-    builder(actions.parse_toc_action, (state, action) => {
-      ops.make_nodes_of_toc(action.payload, state);
+    builder(actions.parseTocAction, (state, action) => {
+      ops.makeNodesOfToc(action.payload, state);
     });
     builder(actions.delete_edge_action, (state, action) => {
       const edge_id = action.payload;

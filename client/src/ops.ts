@@ -251,20 +251,20 @@ export const move_down_to_boundary = (
   }
 };
 
-export const make_nodes_of_toc = (
-  node_id: types.TNodeId,
+export const makeNodesOfToc = (
+  payload: { nodeId: types.TNodeId; text: string },
   draft: Draft<types.IState>,
 ) => {
-  if (draft.data.nodes[node_id].status !== "todo") {
+  if (draft.data.nodes[payload.nodeId].status !== "todo") {
     toast.add("error", "TOC cannot be created for used nodes.");
     return;
   }
-  const toc_root = _parse_toc(draft.caches[node_id].text);
+  const toc_root = _parse_toc(payload.text);
   if (toc_root === null) {
-    toast.add("error", `Failed to parse the TOC of node ${node_id}.`);
+    toast.add("error", `Failed to parse the TOC of node ${payload.nodeId}.`);
     return;
   }
-  toc_root.id = node_id;
+  toc_root.id = payload.nodeId;
   make_tree_from_toc(toc_root, draft);
   const edges = add_weak_edges_from_toc(toc_root, []);
   add_edges(edges, draft);
