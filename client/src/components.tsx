@@ -353,21 +353,6 @@ const Body = () => {
   const [pin, setPin] = React.useState(true);
   return (
     <div className="flex flex-1 gap-x-[1em] overflow-y-hidden">
-      <div className={utils.join("flex", pin && "w-full overflow-x-auto")}>
-        <CoveyQuadrants />
-        <div className={`overflow-y-auto shrink-0`}>
-          <Timeline />
-        </div>
-        <div className={`overflow-y-auto shrink-0`}>
-          <SBTTB />
-          <TreeNode node_id={root} />
-        </div>
-        <PinnedSubTrees />
-        <div className={`overflow-y-auto shrink-0`}>
-          <SBTTB />
-          <NonTodoQueueNodes />
-        </div>
-      </div>
       <div className={`overflow-y-auto shrink-0`}>
         <SBTTB />
         <ToggleButton
@@ -378,6 +363,21 @@ const Body = () => {
         />
         <PredictedNextNodes />
         <TodoQueueNodes />
+      </div>
+      <div className={utils.join("flex", pin && "w-full overflow-x-auto")}>
+        <CoveyQuadrants />
+        <div className={`overflow-y-auto shrink-0`}>
+          <Timeline />
+        </div>
+        <div className={`overflow-y-auto shrink-0`}>
+          <SBTTB />
+          <TreeNode node_id={root} />
+        </div>
+        <div className={`overflow-y-auto shrink-0`}>
+          <SBTTB />
+          <NonTodoQueueNodes />
+        </div>
+        <PinnedSubTrees />
       </div>
     </div>
   );
