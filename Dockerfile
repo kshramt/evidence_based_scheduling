@@ -117,7 +117,7 @@ WORKDIR /app/client
 FROM base_client AS client_npm_ci
 COPY --link client/package.json client/package-lock.json ./
 RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/root/.npm npm ci
-RUN npx playwright install --with-deps
+RUN npx playwright install --with-deps firefox
 
 FROM client_npm_ci AS client_proto
 COPY --link proto ../proto
