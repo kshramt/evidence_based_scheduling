@@ -40,14 +40,14 @@ test("_getDbV2", async () => {
 test("_getDbV1 -> _getDbV2", async () => {
   const id = crypto.randomUUID();
   const db = await T._getDbV1(id);
+  db.close();
   try {
+    const db = await T._getDbV2(id);
+    const storeNames = Array.from(db.objectStoreNames).sort();
     db.close();
-    {
-      const db = await T._getDbV2(id);
-      expect(Array.from(db.objectStoreNames).sort()).toStrictEqual(
-        ["numbers", "heads", "patches", "snapshots", "pending_patches"].sort(),
-      );
-    }
+    expect(storeNames).toStrictEqual(
+      ["numbers", "heads", "patches", "snapshots", "pending_patches"].sort(),
+    );
   } finally {
     await idb.deleteDB(id);
   }

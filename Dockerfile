@@ -23,6 +23,10 @@ RUN sed \
 # sudo npx playwright install-deps
 RUN apt-get update \
    && DEBIAN_FRONTEND=noninteractive sudo apt-get install -y --no-install-recommends \
+   libnss3 \
+   libnspr4 \
+   libdrm2 \
+   libgbm1 \
    libxcb-shm0\
    libx11-xcb1\
    libx11-6\
