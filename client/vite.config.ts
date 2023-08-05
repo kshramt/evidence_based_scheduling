@@ -79,12 +79,12 @@ export default defineConfig({
     browser: {
       enabled: true,
       headless: true,
-      name: "firefox",
+      name: "chromium",
       provider: "playwright",
     },
     coverage: {
       provider: "istanbul",
     },
-    testTimeout: 10_000,
+    testTimeout: process.env.CI ? 40_000 : 10_000,
   },
 });
