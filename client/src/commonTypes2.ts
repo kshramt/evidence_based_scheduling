@@ -2,7 +2,7 @@ import * as sequenceComparisons from "@kshramt/sequence-comparisons";
 
 import * as commonTypes1 from "./common_types1";
 
-type TTextPatch = {
+export type TTextPatch = {
   readonly created_at: number;
   readonly ops: sequenceComparisons.TCompressedOp[];
 };

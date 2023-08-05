@@ -105,15 +105,17 @@ const get_state_and_patch = async (arg: {
     const caches: types.TCaches = {};
     for (const node_id in parsed_data.data.nodes) {
       if (types.is_TNodeId(node_id)) {
+        const node = parsed_data.data.nodes[node_id];
         let n_hidden_child_edges = 0;
-        for (const edge_id of ops.keys_of(
-          parsed_data.data.nodes[node_id].children,
-        )) {
+        for (const edge_id of ops.keys_of(node.children)) {
           if (parsed_data.data.edges[edge_id].hide) {
             ++n_hidden_child_edges;
           }
         }
-        caches[node_id] = ops.new_cache_of(n_hidden_child_edges);
+        caches[node_id] = ops.new_cache_of(
+          n_hidden_child_edges,
+          node.text_patches,
+        );
       }
     }
     const todo_node_ids = [];

@@ -1,3 +1,5 @@
+import * as sequenceComparisons from "@kshramt/sequence-comparisons";
+
 import * as checks from "./checks";
 import * as consts from "./consts";
 import * as types from "./types";
@@ -48,7 +50,7 @@ export const emptyStateOf = (): types.IState => {
     version: types.VERSION,
   };
   const caches = {
-    [root]: new_cache_of(0),
+    [root]: new_cache_of(0, []),
   };
   return {
     data,
@@ -89,12 +91,20 @@ const new_node_value_of = (parent_edge_ids: types.TEdgeId[]): types.TNode => {
   };
 };
 
-export const new_cache_of = (n_hidden_child_edges: number) => {
+const ACS = new sequenceComparisons.ApplyCompressedOpsForString([]);
+export const new_cache_of = (
+  n_hidden_child_edges: number,
+  textPatches: types.TTextPatch[],
+) => {
+  ACS.reset([]);
+  for (const patch of textPatches) {
+    ACS.apply(patch.ops);
+  }
   return {
     total_time: -1,
     percentiles: [],
     leaf_estimates_sum: -1,
-    text: "",
+    text: ACS.get(),
     show_detail: false,
     n_hidden_child_edges,
   };
@@ -139,7 +149,7 @@ export const add_node = (
   } else {
     draft.todo_node_ids.push(node_id);
   }
-  draft.caches[node_id] = new_cache_of(0);
+  draft.caches[node_id] = new_cache_of(0, node.text_patches);
   return node_id;
 };
 

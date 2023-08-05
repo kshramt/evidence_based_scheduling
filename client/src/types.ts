@@ -59,7 +59,7 @@ export {
   is_TTimeNodeId,
 } from "./common_types1";
 
-export type { TCaches, TNode, TNodes } from "./commonTypes2";
+export type { TCaches, TNode, TNodes, TTextPatch } from "./commonTypes2";
 
 export const VERSION = 22 as const;
 
