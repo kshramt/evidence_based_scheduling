@@ -71,7 +71,7 @@ const get_state_and_patch = async (arg: {
     for (const patch of loaded.patches) {
       snapshot = producer.apply_patch(
         snapshot,
-        JSON.parse(patch.patch),
+        patch.patch,
         undefined,
         true,
       ).newDocument;
@@ -385,7 +385,7 @@ export class PersistentStateManager {
               clientId: BigInt(p.client_id),
               sessionId: BigInt(p.session_id),
               patchId: BigInt(p.patch_id),
-              patch: p.patch,
+              patch: JSON.stringify(p.patch),
               createdAt: B.Timestamp.fromDate(p.created_at),
               parentClientId: BigInt(p.parent_client_id),
               parentSessionId: BigInt(p.parent_session_id),
@@ -559,7 +559,7 @@ export class PersistentStateManager {
       return;
     }
     this.#patch_queue.push({
-      patch: JSON.stringify(patch),
+      patch: patch,
       created_at: new Date(),
       parent_client_id: this.heads.parent.client_id,
       parent_session_id: this.heads.parent.session_id,
@@ -898,7 +898,7 @@ const save_and_remove_remote_pending_patches = async (
         client_id: Number(patch.clientId),
         session_id: Number(patch.sessionId),
         patch_id: Number(patch.patchId),
-        patch: patch.patch,
+        patch: JSON.parse(patch.patch),
         parent_client_id: Number(patch.parentClientId),
         parent_session_id: Number(patch.parentSessionId),
         parent_patch_id: Number(patch.parentPatchId),

@@ -15,7 +15,7 @@ export type TSnapshot = {
   created_at: Date;
 };
 
-export type TPatchValue = _TPatchValueV1;
+export type TPatchValue = _TPatchValueV2;
 
 export type _TPatchValueV1 = {
   client_id: number;
@@ -39,7 +39,7 @@ export type _TPatchValueV2 = {
   created_at: Date;
 };
 
-export type TDb = _TDbV1;
+export type TDb = _TDbV2;
 
 export type _TDbV1 = {
   booleans: {
@@ -114,7 +114,7 @@ export const _getDbV2 = async (db_name: string) => {
   });
 };
 
-export const getDb = _getDbV1;
+export const getDb = _getDbV2;
 
 const upgradeFromV0 = async (db: Idb.IDBPDatabase<_TDbV1>) => {
   db.createObjectStore("booleans");
@@ -162,7 +162,7 @@ const upgradeFromV1 = async (
 
 export const get_patches_for_local_head = async (arg: {
   head: THead;
-  db: Awaited<ReturnType<typeof _getDbV1>>;
+  db: Awaited<ReturnType<typeof getDb>>;
 }) => {
   const res = await _get_patches_for_local_head(arg);
   res.patches = res.patches.reverse();
@@ -171,7 +171,7 @@ export const get_patches_for_local_head = async (arg: {
 
 const _get_patches_for_local_head = async (arg: {
   head: THead;
-  db: Awaited<ReturnType<typeof _getDbV1>>;
+  db: Awaited<ReturnType<typeof getDb>>;
 }) => {
   const tx = arg.db.transaction(["patches", "snapshots"], "readonly");
   const patches_store = tx.objectStore("patches");
