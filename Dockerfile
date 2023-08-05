@@ -154,7 +154,7 @@ RUN apt-get update \
    libxtst6
 COPY --link client/package.json client/package-lock.json ./
 RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/root/.npm npm ci
-RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/root/.npm npx playwright install
+RUN npx playwright install
 
 FROM client_npm_ci AS client_proto
 COPY --link proto ../proto
@@ -167,7 +167,7 @@ COPY --link client .
 COPY --link --from=client_proto /app/client/src/gen /app/client/src/gen
 
 FROM builder_client AS test_client
-RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/root/.npm scripts/check.sh
+RUN scripts/check.sh
 
 FROM builder_client AS prod_client
 RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/root/.npm npm run build
