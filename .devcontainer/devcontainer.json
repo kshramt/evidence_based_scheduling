@@ -5,7 +5,13 @@
   "postCreateCommand": {
     "set-safe-directory": "sudo git config --system --add safe.directory ${containerWorkspaceFolder}"
   },
-  "mounts": [],
+  "mounts": [
+    {
+      "type": "bind",
+      "source": "${localWorkspaceFolder}",
+      "target": "${localWorkspaceFolder}"
+    }
+  ],
   "remoteUser": "${localEnv:USER}",
   "updateRemoteUserUID": true,
   "customizations": {

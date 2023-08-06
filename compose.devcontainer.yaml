@@ -23,9 +23,6 @@ services:
       - type: bind
         source: /
         target: /h
-      - type: bind
-        source: ${PWD:?}
-        target: ${PWD:?}
     command: sleep infinity
   docker_sock:
     image: alpine/socat:1.7.4.4

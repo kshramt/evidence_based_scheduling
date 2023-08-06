@@ -66,6 +66,7 @@ RUN apt-get update \
    jq \
    less \
    oathtool \
+   python3.11-full \
    sudo \
    tig \
    tree \
