@@ -25,6 +25,7 @@ def main(argv):
 
 
 def run(args):
+    zstd = "compression=zstd,force-compression=true"
     spec = dict(group=dict(), target=dict())
     for platform in (
         Platform(os="linux", arch="amd64"),
@@ -45,7 +46,7 @@ def run(args):
                 "dockerfile": f"Dockerfile",
                 "target": target,
                 "output": [
-                    f"type=docker",
+                    f"type=docker,{zstd}",
                 ],
                 "tags": [
                     f"{args.base}{image_name}:h-{args.sha}-{platform.os}-{platform.arch}",
@@ -61,8 +62,8 @@ def run(args):
                     f"type=registry,ref={args.base}{image_name}:latest-{platform.os}-{platform.arch}",
                 ],
                 "cache-to": [
-                    f"type=registry,ref={args.base}{image_name}/cache:{args.ref_b64}-{platform.os}-{platform.arch},mode=max",
-                    f"type=registry,ref={args.base}{image_name}/cache:latest-{platform.os}-{platform.arch},mode=max",
+                    f"type=registry,ref={args.base}{image_name}/cache:{args.ref_b64}-{platform.os}-{platform.arch},mode=max,{zstd},ignore-error={args.ignore_cache_error}",
+                    f"type=registry,ref={args.base}{image_name}/cache:latest-{platform.os}-{platform.arch},mode=max,{zstd},ignore-error={args.ignore_cache_error}",
                 ],
             }
             spec["target"][k] = v
@@ -98,6 +99,7 @@ def _parse_argv(argv):
     parser.add_argument("--sha", required=True)
     parser.add_argument("--ref_b64", required=True)
     parser.add_argument("--base", default="ghcr.io/kshramt/evidence_based_scheduling")
+    parser.add_argument("--ignore_cache_error", default="false")
     args = parser.parse_args(argv)
     logger.debug(dict(args=args))
     return args
