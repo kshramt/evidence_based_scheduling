@@ -35,3 +35,7 @@ export const IS_NONE_MARK = <span className="material-icons">expand_less</span>;
 export const IS_PARTIAL_MARK = (
   <span className="material-icons">chevron_right</span>
 );
+
+export const SPINNER = (
+  <div className="animate-spin h-[3rem] w-[3rem] border-4 border-blue-500 rounded-full border-t-transparent"></div>
+);

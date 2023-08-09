@@ -19,6 +19,7 @@ import MenuButton from "./Header/MenuButton";
 import TocForm from "./Details/Component/TocForm";
 import ScrollBackToTopButton from "./ScrollBackToTopButton";
 import ToggleButton from "./ToggleButton";
+import GanttChart from "./GanttChart";
 
 const SCROLL_BACK_TO_TOP_MARK = (
   <span className="material-icons">vertical_align_top</span>
@@ -390,6 +391,7 @@ const Body = () => {
         <TodoQueueNodes />
       </div>
       <div className={utils.join("flex", pin && "w-full overflow-x-auto")}>
+        <GanttChart className="h-[90%] w-[90%] shrink-0" />
         <CoveyQuadrants />
         <div className={`overflow-y-auto shrink-0`}>
           <Timeline />

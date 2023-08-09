@@ -6,6 +6,8 @@ import "@fontsource/material-icons";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import * as Dnd from "react-dnd";
 
+import * as GanttChart from "./GanttChart";
+import * as consts from "src/consts";
 import * as states from "./states";
 import * as toast from "./toast";
 import "./lib.css";
@@ -76,11 +78,7 @@ const error_element = (
   </Center>
 );
 
-const spinner = (
-  <Center>
-    <div className="animate-spin h-[3rem] w-[3rem] border-4 border-blue-500 rounded-full border-t-transparent"></div>
-  </Center>
-);
+const spinner = <Center>{consts.SPINNER}</Center>;
 
 const AuthComponent = ({
   logIn,
