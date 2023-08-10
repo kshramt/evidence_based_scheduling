@@ -2092,7 +2092,7 @@ const TextAreaImpl = ({
       onBlur={onBlur}
       onDoubleClick={prevent_propagation}
       className={utils.join(
-        "whitespace-pre-wrap overflow-wrap-anywhere overflow-hidden p-[0.125em] bg-white dark:bg-neutral-800 py-[0.4em]",
+        "whitespace-pre-wrap overflow-wrap-anywhere overflow-hidden  bg-white dark:bg-neutral-800 px-[0.75em] py-[0.5em]",
         className,
         status === "done"
           ? "text-red-600 dark:text-red-400"
