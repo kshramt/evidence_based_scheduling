@@ -301,7 +301,7 @@ const Menu = (props: {
       >
         <span className="material-icons">redo</span>
       </button>
-      <div onClick={get_toggle(set_show_todo_only)}>
+      <div onClick={get_toggle(set_show_todo_only)} className="shrink-0">
         TODO{" "}
         <input
           type="radio"
@@ -309,7 +309,7 @@ const Menu = (props: {
           onChange={_suppress_missing_onChange_handler_warning}
         />
       </div>
-      <div onClick={get_toggle(set_show_strong_edge_only)}>
+      <div onClick={get_toggle(set_show_strong_edge_only)} className="shrink-0">
         Strong{" "}
         <input
           type="radio"
@@ -318,21 +318,21 @@ const Menu = (props: {
         />
       </div>
       <button
-        className="btn-icon"
+        className="btn-icon shrink-0"
         onClick={_smallestToTop}
         onDoubleClick={prevent_propagation}
       >
         Small
       </button>
       <button
-        className="btn-icon"
+        className="btn-icon shrink-0"
         onClick={_closestToTop}
         onDoubleClick={prevent_propagation}
       >
         Due
       </button>
       <button
-        className="btn-icon"
+        className="btn-icon shrink-0"
         onClick={move_important_node_to_top}
         onDoubleClick={prevent_propagation}
       >
@@ -1054,7 +1054,7 @@ const MobileMenu = (props: {
       >
         <span className="material-icons">redo</span>
       </button>
-      <div onClick={get_toggle(set_show_todo_only)}>
+      <div onClick={get_toggle(set_show_todo_only)} className="shrink-0">
         TODO{" "}
         <input
           type="radio"
