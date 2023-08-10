@@ -199,6 +199,10 @@ export const showMobileUpdatedAtAtomMap = new WeakMapV<
   { user_id: string; session_id: number },
   ReturnType<typeof JotaiU.atomWithStorage<number>>
 >();
+export const pinQueueAtomMap = new WeakMapV<
+  { user_id: string; session_id: number },
+  ReturnType<typeof JotaiU.atomWithStorage<boolean>>
+>();
 
 export const session_key_context = React.createContext({
   user_id: "",
@@ -808,6 +812,12 @@ export const getPersistentStateManager = async (
         `${id_token.user_id}/showMobileUpdatedAt`,
         Date.now(),
       ),
+    );
+  }
+  if (!pinQueueAtomMap.has(res.session_key)) {
+    pinQueueAtomMap.set(
+      res.session_key,
+      JotaiU.atomWithStorage(`${id_token.user_id}/pinQueue`, true),
     );
   }
 

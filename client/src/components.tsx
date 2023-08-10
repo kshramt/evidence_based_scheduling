@@ -350,7 +350,8 @@ const Body = () => {
   const root = useSelector((state) => {
     return state.data.root;
   });
-  const [pin, setPin] = React.useState(true);
+  const session = React.useContext(states.session_key_context);
+  const [pin, setPin] = Jotai.useAtom(states.pinQueueAtomMap.get(session));
   return (
     <div className="flex flex-1 gap-x-[1em] overflow-y-hidden">
       <div className={`overflow-y-auto shrink-0`}>
