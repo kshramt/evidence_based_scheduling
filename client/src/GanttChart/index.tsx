@@ -51,17 +51,19 @@ const GanttChart = React.memo((props: { className?: string }) => {
     );
   }
   return (
-    <div ref={resize.ref} className={props.className}>
-      <RWindow.FixedSizeGrid
-        columnCount={200}
-        columnWidth={128}
-        height={resize.height}
-        width={resize.width}
-        rowCount={9000}
-        rowHeight={32}
-      >
-        {Cell}
-      </RWindow.FixedSizeGrid>
+    <div className="h-full w-full p-[5%]">
+      <div ref={resize.ref} className={props.className}>
+        <RWindow.FixedSizeGrid
+          columnCount={200}
+          columnWidth={128}
+          height={resize.height}
+          width={resize.width}
+          rowCount={9000}
+          rowHeight={32}
+        >
+          {Cell}
+        </RWindow.FixedSizeGrid>
+      </div>
     </div>
   );
 });
