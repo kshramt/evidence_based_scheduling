@@ -140,6 +140,17 @@ const NodeFilterQueryInput = () => {
   );
 };
 
+const RunningNodes = () => {
+  const queue = useSelector((state) => state.todo_node_ids);
+  const nodes = useSelector((state) => state.data.nodes);
+  const nodeIds = React.useMemo(() => {
+    return queue.filter((nodeId) => {
+      return nodes[nodeId].ranges.at(-1)?.end === null;
+    });
+  }, [nodes, queue]);
+  return <QueueNodes node_ids={nodeIds} />;
+};
+
 const useQueue = (column: "todo_node_ids" | "non_todo_node_ids") => {
   const nodeFilterQuery = React.useDeferredValue(
     Jotai.useAtomValue(states.nodeFilterQueryState),
@@ -374,6 +385,8 @@ const Body = () => {
           titleOnTrue="Unpin"
         />
         <PredictedNextNodes />
+        <RunningNodes />
+        <hr />
         <TodoQueueNodes />
       </div>
       <div className={utils.join("flex", pin && "w-full overflow-x-auto")}>
