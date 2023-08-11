@@ -1193,7 +1193,7 @@ const useTaskShortcutKeys = (node_id: null | types.TNodeId, prefix: string) => {
         if (event.key === "Enter") {
           event.preventDefault();
           dispatch(actions.add_action({ node_id, show_mobile }));
-          dispatch(focus_text_area_action_of(node_id, prefix));
+          dispatch(focusFirstChildTextAreaActionOf(node_id, prefix));
         } else if (event.key === ".") {
           event.preventDefault();
           if (is_running) {
@@ -1208,6 +1208,9 @@ const useTaskShortcutKeys = (node_id: null | types.TNodeId, prefix: string) => {
             );
           }
         }
+      } else if (event.key === "Enter") {
+        event.preventDefault();
+        doFocusTextArea(`${prefix}${node_id}`);
       }
     },
     [node_id, is_running, show_mobile, dispatch, prefix],
@@ -1786,7 +1789,7 @@ const AddButton = (props: {
     dispatch(
       actions.add_action({ node_id: props.node_id, show_mobile: show_mobile }),
     );
-    dispatch(focus_text_area_action_of(props.node_id, prefix));
+    dispatch(focusFirstChildTextAreaActionOf(props.node_id, prefix));
   }, [props.node_id, dispatch, show_mobile, prefix]);
   return (
     <button
@@ -2193,7 +2196,7 @@ const LastRange = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const focus_text_area_action_of =
+const focusFirstChildTextAreaActionOf =
   (node_id: types.TNodeId, prefix: string) =>
   (dispatch: types.AppDispatch, getState: () => types.IState) => {
     const state = getState();
