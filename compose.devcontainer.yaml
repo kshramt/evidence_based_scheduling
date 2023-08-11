@@ -13,7 +13,7 @@ services:
     cap_add:
       - SYS_PTRACE
     init: true
-    network_mode: host
+    # network_mode: host
     security_opt:
       - seccomp:unconfined
     environment:
@@ -27,6 +27,7 @@ services:
   docker_sock:
     image: alpine/socat:1.7.4.4
     init: true
+    # network_mode: host
     restart: unless-stopped
     volumes:
       - type: bind
