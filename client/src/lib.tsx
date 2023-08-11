@@ -6,7 +6,6 @@ import "@fontsource/material-icons";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import * as Dnd from "react-dnd";
 
-import * as GanttChart from "./GanttChart";
 import * as consts from "src/consts";
 import * as states from "./states";
 import * as toast from "./toast";

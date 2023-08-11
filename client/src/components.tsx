@@ -391,7 +391,7 @@ const Body = () => {
         <TodoQueueNodes />
       </div>
       <div className={utils.join("flex", pin && "w-full overflow-x-auto")}>
-        <GanttChart className="h-full w-full shrink-0" />
+        <GanttChart />
         <CoveyQuadrants />
         <div className={`overflow-y-auto shrink-0`}>
           <Timeline />
