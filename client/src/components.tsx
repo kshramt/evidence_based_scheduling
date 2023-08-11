@@ -384,8 +384,8 @@ const Body = () => {
           titleOnFalse="Pin"
           titleOnTrue="Unpin"
         />
-        <PredictedNextNodes />
         <RunningNodes />
+        <PredictedNextNodes />
         <hr />
         <TodoQueueNodes />
       </div>
