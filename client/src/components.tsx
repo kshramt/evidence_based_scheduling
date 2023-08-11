@@ -104,7 +104,18 @@ const NodeFilterQueryInput = () => {
   const ref = useMetaK();
   const queue = useQueue("todo_node_ids");
   const node_id = queue[0] || null;
-  const handleKeyDown = useTaskShortcutKeys(node_id, TREE_PREFIX);
+  const taskShortcutKeys = useTaskShortcutKeys(node_id, TREE_PREFIX);
+  const onKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLElement>) => {
+      if (taskShortcutKeys(event)) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          doFocusTextArea(`${TREE_PREFIX}${node_id}`);
+        }
+      }
+    },
+    [taskShortcutKeys, node_id],
+  );
 
   return (
     <>
@@ -113,7 +124,7 @@ const NodeFilterQueryInput = () => {
         <input
           value={nodeFilterQuery}
           onChange={handle_change}
-          onKeyDown={handleKeyDown}
+          onKeyDown={onKeyDown}
           className="h-[2em] border-none"
           ref={ref}
         />
@@ -1194,6 +1205,7 @@ const useTaskShortcutKeys = (node_id: null | types.TNodeId, prefix: string) => {
           event.preventDefault();
           dispatch(actions.add_action({ node_id, show_mobile }));
           dispatch(focusFirstChildTextAreaActionOf(node_id, prefix));
+          return;
         } else if (event.key === ".") {
           event.preventDefault();
           if (is_running) {
@@ -1207,11 +1219,10 @@ const useTaskShortcutKeys = (node_id: null | types.TNodeId, prefix: string) => {
               actions.start_action({ node_id, is_concurrent: event.shiftKey }),
             );
           }
+          return;
         }
-      } else if (event.key === "Enter") {
-        event.preventDefault();
-        doFocusTextArea(`${prefix}${node_id}`);
       }
+      return true;
     },
     [node_id, is_running, show_mobile, dispatch, prefix],
   );
