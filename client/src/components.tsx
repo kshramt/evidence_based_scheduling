@@ -391,20 +391,20 @@ const Body = () => {
         <TodoQueueNodes />
       </div>
       <div className={utils.join("flex", pin && "w-full overflow-x-auto")}>
-        <GanttChart />
-        <CoveyQuadrants />
-        <div className={`overflow-y-auto shrink-0`}>
-          <Timeline />
-        </div>
         <div className={`overflow-y-auto shrink-0`}>
           <SBTTB />
           <TreeNode node_id={root} />
+        </div>
+        <GanttChart />
+        <div className={`overflow-y-auto shrink-0`}>
+          <Timeline />
         </div>
         <div className={`overflow-y-auto shrink-0`}>
           <SBTTB />
           <NonTodoQueueNodes />
         </div>
         <PinnedSubTrees />
+        <CoveyQuadrants />
       </div>
     </div>
   );
