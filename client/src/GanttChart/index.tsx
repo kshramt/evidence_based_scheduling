@@ -49,28 +49,39 @@ const HeaderCell = React.memo(
 
 const IndexCell = React.memo(
   (props: { rowIndex: number; style: React.CSSProperties }) => {
-    return <div style={props.style}>{props.rowIndex}</div>;
+    const text = types.useSelector((state) => {
+      return state.caches[state.todo_node_ids[props.rowIndex]].text;
+    });
+    return (
+      <div
+        title={text}
+        className="px-[0.5em] overflow-hidden"
+        style={props.style}
+      >
+        {text}
+      </div>
+    );
   },
 );
 
-const GanttChart = React.memo(() => {
+const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
   const resize = useComponentSize();
   const nodeIds = types.useSelector((state) => state.todo_node_ids);
   const style = React.useMemo(() => {
     return { overflow: "hidden" };
   }, []);
   const headerRef = React.useRef<RWindow.FixedSizeGrid>(null);
-  const indexRef = React.useRef<RWindow.FixedSizeGrid>(null);
+  const indexColumnRef = React.useRef<RWindow.FixedSizeGrid>(null);
   const onScroll = React.useCallback(
     ({ scrollLeft, scrollTop }: { scrollLeft: number; scrollTop: number }) => {
       if (headerRef.current) {
         headerRef.current.scrollTo({ scrollLeft });
       }
-      if (indexRef.current) {
-        indexRef.current.scrollTo({ scrollTop });
+      if (indexColumnRef.current) {
+        indexColumnRef.current.scrollTo({ scrollTop });
       }
     },
-    [headerRef.current, indexRef.current],
+    [headerRef.current, indexColumnRef.current],
   );
   const t1 = Number(new Date("2000-01-01T00:00:00Z"));
   const t2 = Number(new Date("2100-01-01T00:00:00Z"));
@@ -88,7 +99,10 @@ const GanttChart = React.memo(() => {
   return (
     <div className="h-full w-full bg-red-500 flex-none flex flex-col">
       <div className="flex-none flex bg-blue-300" style={{ height: rowHeight }}>
-        <div className="flex-none bg-yellow-300" style={{ width: columnWidth }}>
+        <div
+          className="flex-none bg-yellow-300"
+          style={{ width: props.indexColumnWidth }}
+        >
           a\b
         </div>
         <div className="flex-auto">
@@ -110,16 +124,16 @@ const GanttChart = React.memo(() => {
       <div className="flex-auto flex bg-green-400 overflow-hidden">
         <div
           className="flex-none bg-purple-600"
-          style={{ width: columnWidth }}
+          style={{ width: props.indexColumnWidth }}
         >
           <RWindow.FixedSizeGrid
             columnCount={1}
-            columnWidth={columnWidth}
+            columnWidth={props.indexColumnWidth}
             height={resize.height}
-            width={columnWidth}
+            width={props.indexColumnWidth}
             rowCount={nodeIds.length}
             rowHeight={rowHeight}
-            ref={indexRef}
+            ref={indexColumnRef}
             style={style}
           >
             {IndexCell}

@@ -395,7 +395,7 @@ const Body = () => {
           <SBTTB />
           <TreeNode node_id={root} />
         </div>
-        <GanttChart />
+        <GanttChart indexColumnWidth={320} />
         <div className={`overflow-y-auto shrink-0`}>
           <Timeline />
         </div>
