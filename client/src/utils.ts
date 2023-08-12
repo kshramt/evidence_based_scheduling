@@ -185,3 +185,7 @@ export const getAllFromIndexedDb = async <T>(db: idb.IDBPDatabase<T>) => {
   await tx.done;
   return res;
 };
+
+export const floatingNow = () => {
+  return Date.now() - new Date().getTimezoneOffset() * 60 * 1000;
+}

@@ -2,7 +2,12 @@ import * as React from "react";
 import * as RWindow from "react-window";
 
 import * as consts from "src/consts";
+import * as utils from "src/utils";
 import * as types from "src/types";
+
+const DAY_MS = 86_400_000;
+const START_TIME = Number(new Date("2000-01-01T00:00:00Z"));
+const END_TIME = Number(new Date("2100-01-01T00:00:00Z"));
 
 const useComponentSize = () => {
   const ref = React.useRef<HTMLDivElement>(null);
@@ -43,7 +48,9 @@ const Cell = React.memo(
 
 const HeaderCell = React.memo(
   (props: { columnIndex: number; style: React.CSSProperties }) => {
-    return <div style={props.style}>{props.columnIndex}</div>;
+    const t = new Date(START_TIME + props.columnIndex * DAY_MS);
+    const title = `${t.getFullYear()}-${t.getMonth() + 1}-${t.getDate()}`;
+    return <div style={props.style}>{title}</div>;
   },
 );
 
@@ -83,11 +90,13 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
     },
     [headerRef.current, indexColumnRef.current],
   );
-  const t1 = Number(new Date("2000-01-01T00:00:00Z"));
-  const t2 = Number(new Date("2100-01-01T00:00:00Z"));
-  const columnCount = 200;
+  const tnow = utils.floatingNow();
+  const columnCount = (END_TIME - START_TIME) / DAY_MS;
   const columnWidth = 128;
   const rowHeight = 32;
+  const initialScrollLeft =
+    columnWidth * Math.floor((tnow - START_TIME) / DAY_MS);
+  const initialScrollTop = rowHeight * 0;
 
   if (resize.height < 0) {
     return (
@@ -120,7 +129,7 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
           </RWindow.FixedSizeGrid>
         </div>
       </div>
-      {/* Why `overflow-hidden` is required to make `resized.height` to be aware of the first row. */}
+      {/* Why `overflow-hidden` is required to make `resized.height` to be aware of the first row? */}
       <div className="flex-auto flex bg-green-400 overflow-hidden">
         <div
           className="flex-none bg-purple-600"
@@ -148,6 +157,8 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
             rowCount={nodeIds.length}
             rowHeight={rowHeight}
             onScroll={onScroll}
+            initialScrollLeft={initialScrollLeft}
+            initialScrollTop={initialScrollTop}
           >
             {Cell}
           </RWindow.FixedSizeGrid>
