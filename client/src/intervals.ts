@@ -14,6 +14,7 @@ export type TIntervalSet = {
   is_utc: boolean; // Whether the timestamps are in UTC or floating.
   limit: number; // 0: Unlimited. < 0: The total number of intervals (inclusive) negated. 0 <: The end time of the last interval. Tiemstamp in milliseconds (exclusive).
   frequency: number; // The time gap between start times of consective intervals in milliseconds.
+  created_at: number; // Timestamp in milliseconds.
 };
 
 /**
