@@ -108,7 +108,7 @@ const NodeFilterQueryInput = () => {
   const onKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLElement>) => {
       if (taskShortcutKeys(event)) {
-        if (event.key === "Enter") {
+        if (event.key === "Enter" && !event.nativeEvent.isComposing) {
           event.preventDefault();
           doFocusTextArea(`${TREE_PREFIX}${node_id}`);
         }
@@ -1214,7 +1214,7 @@ const useTaskShortcutKeys = (node_id: null | types.TNodeId, prefix: string) => {
         return;
       }
       if (event.ctrlKey || event.metaKey) {
-        if (event.key === "Enter") {
+        if (event.key === "Enter" && !event.nativeEvent.isComposing) {
           event.preventDefault();
           dispatch(actions.add_action({ node_id, show_mobile }));
           dispatch(focusFirstChildTextAreaActionOf(node_id, prefix));
