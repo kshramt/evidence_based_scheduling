@@ -1302,7 +1302,7 @@ const DetailsImpl = React.memo((props: { node_id: types.TNodeId }) => {
       <div className="flex gap-x-[0.25em] items-baseline">
         Add:
         <select value={new_edge_type} onChange={handle_new_edge_type_change}>
-          {types.edge_type_values.map((t, i) => (
+          {types.edgeTypeValues.map((t, i) => (
             <option value={t} key={i}>
               {t}
             </option>
@@ -1530,7 +1530,7 @@ const EdgeRow = React.memo(
         <EdgeRowContent node_id={node_id} />
         <td className="p-[0.25em]">
           <select value={edge.t} onChange={set_edge_type}>
-            {types.edge_type_values.map((t, i) => (
+            {types.edgeTypeValues.map((t, i) => (
               <option value={t} key={i}>
                 {t}
               </option>

@@ -1,3 +1,5 @@
+import * as rt from "@kshramt/runtime-type-validator";
+
 export const Overlap = {
   NO_OVERLAP: 0,
   CONTAINS: 1,
@@ -6,13 +8,13 @@ export const Overlap = {
 } as const;
 type TOverlap = (typeof Overlap)[keyof typeof Overlap];
 
-export type TIntervalSet = {
-  start: number; // The start time (inclusive) of the first interval. Timestamp in milliseconds
-  end: number; // The end time (exclusive) of the first interval. Timestamp in milliseconds.
-  is_utc: boolean; // Whether the timestamps are in UTC or floating.
-  limit: number; // 0: Unlimited. < 0: The total number of intervals (inclusive) negated. 0 <: The end time of the last interval. Tiemstamp in milliseconds (exclusive).
-  frequency: number; // The time gap between start times of consective intervals in milliseconds.
-};
+export const tIntervalSet = rt.$object({
+  start: rt.$readonly(rt.$number()), // The start time (inclusive) of the first interval. Timestamp in milliseconds.
+  end: rt.$readonly(rt.$number()), // The end time (exclusive) of the first interval. Timestamp in milliseconds.
+  is_utc: rt.$readonly(rt.$boolean()), // Whether the timestamps are in UTC or floating.
+  limit: rt.$readonly(rt.$number()), // 0: Unlimited. < 0: The total number of intervals (inclusive) negated. 0 <: The end time of the last interval. Tiemstamp in milliseconds (exclusive).
+  frequency: rt.$readonly(rt.$number()), // The time gap between start times of consective intervals in milliseconds.
+});
 
 /**
  * Returns the overlap state between two intervals.
@@ -23,7 +25,7 @@ export type TIntervalSet = {
 const getOverlapState = (
   start: number,
   end: number,
-  i: TIntervalSet,
+  i: rt.$infer<typeof tIntervalSet>,
 ): TOverlap => {
   const intervalStart = getLastStartBefore(end, i);
   if (intervalStart === null) {
@@ -42,7 +44,7 @@ const getOverlapState = (
   return Overlap.OVERLAP;
 };
 
-const getLastStartBefore = (t: number, i: TIntervalSet) => {
+const getLastStartBefore = (t: number, i: rt.$infer<typeof tIntervalSet>) => {
   if (t <= i.start) {
     return null;
   }
