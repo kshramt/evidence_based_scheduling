@@ -1,12 +1,10 @@
-const INTERSECTION_NO_OVERLAP = 0;
-const INTERSECTION_CONTAINS = 1;
-const INTERSECTION_OVERLAP = 2;
-const INTERSECTION_CONTAINED = 3;
-export type TIntersectionState =
-  | typeof INTERSECTION_NO_OVERLAP
-  | typeof INTERSECTION_CONTAINS
-  | typeof INTERSECTION_OVERLAP
-  | typeof INTERSECTION_CONTAINED;
+export const Overlap = {
+  NO_OVERLAP: 0,
+  CONTAINS: 1,
+  OVERLAP: 2,
+  CONTAINED: 3,
+} as const;
+type TOverlap = (typeof Overlap)[keyof typeof Overlap];
 
 export type TIntervalSet = {
   start: number; // The start time (inclusive) of the first interval. Timestamp in milliseconds
@@ -14,35 +12,34 @@ export type TIntervalSet = {
   is_utc: boolean; // Whether the timestamps are in UTC or floating.
   limit: number; // 0: Unlimited. < 0: The total number of intervals (inclusive) negated. 0 <: The end time of the last interval. Tiemstamp in milliseconds (exclusive).
   frequency: number; // The time gap between start times of consective intervals in milliseconds.
-  created_at: number; // Timestamp in milliseconds.
 };
 
 /**
- * Returns the intersection type between two intervals.
+ * Returns the overlap state between two intervals.
  * @param start The start time (inclusive) of the query interval. Timestamp in milliseconds.
  * @param end The end time (exclusive) of the query interval. Timestamp in milliseconds.
  * @param i The interval set to be queried.
  */
-const getIntersectionState = (
+const getOverlapState = (
   start: number,
   end: number,
   i: TIntervalSet,
-): TIntersectionState => {
+): TOverlap => {
   const intervalStart = getLastStartBefore(end, i);
   if (intervalStart === null) {
-    return INTERSECTION_NO_OVERLAP;
+    return Overlap.NO_OVERLAP;
   }
   const intervalEnd = intervalStart + i.end - i.start;
   if (intervalEnd <= start) {
-    return INTERSECTION_NO_OVERLAP;
+    return Overlap.NO_OVERLAP;
   }
   if (intervalStart < start && end < intervalEnd) {
-    return INTERSECTION_CONTAINED;
+    return Overlap.CONTAINED;
   }
   if (start <= intervalStart && intervalEnd <= end) {
-    return INTERSECTION_CONTAINS;
+    return Overlap.CONTAINS;
   }
-  return INTERSECTION_OVERLAP;
+  return Overlap.OVERLAP;
 };
 
 const getLastStartBefore = (t: number, i: TIntervalSet) => {
