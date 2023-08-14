@@ -925,7 +925,7 @@ const DndTreeNode = React.memo((props: { node_id: types.TNodeId }) => {
 });
 
 const TreeNode = React.memo(
-  (props: { node_id: types.TNodeId; prefix?: string }) => {
+  (props: { node_id: types.TNodeId; prefix?: undefined | string }) => {
     return (
       <>
         <TreeEntry node_id={props.node_id} prefix={props.prefix} />
@@ -941,7 +941,7 @@ const NonTodoQueueNodes = () => {
 };
 
 const EdgeList = React.memo(
-  (props: { node_id: types.TNodeId; prefix?: string }) => {
+  (props: { node_id: types.TNodeId; prefix?: undefined | string }) => {
     const children = useSelector(
       (state) => state.data.nodes[props.node_id].children,
     );
@@ -957,7 +957,7 @@ const EdgeList = React.memo(
 );
 
 const Edge = React.memo(
-  (props: { edge_id: types.TEdgeId; prefix?: string }) => {
+  (props: { edge_id: types.TEdgeId; prefix?: undefined | string }) => {
     const session = React.useContext(states.session_key_context);
     const show_todo_only = Jotai.useAtomValue(
       states.show_todo_only_atom_map.get(session),
@@ -1160,7 +1160,7 @@ const MobileQueueNodesImpl = React.memo(
 );
 
 const TreeEntry = React.memo(
-  (props: { node_id: types.TNodeId; prefix?: string }) => {
+  (props: { node_id: types.TNodeId; prefix?: undefined | string }) => {
     const show_detail = useSelector(
       (state) => state.caches[props.node_id].show_detail,
     );
@@ -1802,7 +1802,7 @@ const StartConcurrentButton = (props: { node_id: types.TNodeId }) => {
 
 const AddButton = (props: {
   node_id: types.TNodeId;
-  prefix?: string;
+  prefix?: undefined | string;
   id?: string;
 }) => {
   const dispatch = useDispatch();
