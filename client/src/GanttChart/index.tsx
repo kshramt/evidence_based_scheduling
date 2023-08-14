@@ -28,7 +28,7 @@ const useComponentSize = () => {
     return () => {
       window.removeEventListener("resize", updateHeight);
     };
-  }, [ref.current, res, setRes]);
+  }, [res, setRes]);
   return res;
 };
 
@@ -88,7 +88,7 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
         indexColumnRef.current.scrollTo({ scrollTop });
       }
     },
-    [headerRef.current, indexColumnRef.current],
+    [],
   );
   const tnow = utils.floatingNow();
   const columnCount = (END_TIME - START_TIME) / DAY_MS;
