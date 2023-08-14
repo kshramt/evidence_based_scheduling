@@ -41,18 +41,18 @@ class History<T> {
 
 export const undoable_of = (
   reducer_with_patch: (
-    state: undefined | types.IState,
+    state: undefined | types.TState,
     action: types.TAnyPayloadAction,
   ) => {
-    state: types.IState;
+    state: types.TState;
     patch: producer.TOperation[];
   },
   history_type_set: Set<string>,
-  initial_state: types.IState,
+  initial_state: types.TState,
 ) => {
-  const history = new History<types.IState>(initial_state);
+  const history = new History<types.TState>(initial_state);
   const undoable = (
-    state: undefined | types.IState,
+    state: undefined | types.TState,
     action: types.TAnyPayloadAction,
   ) => {
     if (state === undefined) {

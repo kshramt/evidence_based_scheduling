@@ -138,7 +138,7 @@ export type TEdges = rt.$infer<typeof tEdges>;
 export type TNodes = rt.$infer<typeof tNodes>;
 export type TEdge = rt.$infer<typeof tEdge>;
 export type TNode = rt.$infer<typeof tNode>;
-export type IState = rt.$infer<typeof tState>;
+export type TState = rt.$infer<typeof tState>;
 
 export const parse_data = (x: {
   data: unknown;

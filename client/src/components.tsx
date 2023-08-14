@@ -2224,7 +2224,7 @@ const LastRange = (props: { node_id: types.TNodeId }) => {
 
 const focusFirstChildTextAreaActionOf =
   (node_id: types.TNodeId, prefix: string) =>
-  (dispatch: types.AppDispatch, getState: () => types.IState) => {
+  (dispatch: types.AppDispatch, getState: () => types.TState) => {
     const state = getState();
     doFocusTextArea(
       `${prefix}${
@@ -2507,7 +2507,7 @@ const copy_descendant_time_nodes_planned_node_ids_action = (
   set_node_ids: (payload: (node_ids: string) => string) => void,
   copy: (text: string) => void,
 ) => {
-  return (dispatch: types.AppDispatch, getState: () => types.IState) => {
+  return (dispatch: types.AppDispatch, getState: () => types.TState) => {
     const state = getState();
     const descendant_node_ids = collect_descendant_time_nodes_planned_node_ids(
       [],
@@ -2529,7 +2529,7 @@ const collect_descendant_time_nodes_planned_node_ids = (
   res: types.TNodeId[],
   time_node_id: types.TTimeNodeId,
   descend: boolean,
-  state: types.IState,
+  state: types.TState,
 ) => {
   const time_node = state.data.timeline.time_nodes[time_node_id];
   if (time_node !== undefined) {
