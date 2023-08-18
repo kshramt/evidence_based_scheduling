@@ -14,15 +14,15 @@ export interface ITocNode {
   children: ITocNode[];
 }
 
-const new_node_id_of = (state: types.IState) =>
+const new_node_id_of = (state: types.TState) =>
   new_id_of(state) as types.TNodeId;
-const new_edge_id_of = (state: types.IState) =>
+const new_edge_id_of = (state: types.TState) =>
   new_id_of(state) as types.TEdgeId;
-const new_id_of = (state: Draft<types.IState>) =>
+const new_id_of = (state: Draft<types.TState>) =>
   id_string_of_number(++state.data.id_seq);
 const id_string_of_number = (x: number) => x.toString(36);
 
-export const emptyStateOf = (): types.IState => {
+export const emptyStateOf = (): types.TState => {
   const id_seq = 0;
   const root = id_string_of_number(id_seq) as types.TNodeId;
   const nodes = {
@@ -112,7 +112,7 @@ export const new_cache_of = (
 
 export const set_estimate = (
   payload: { node_id: types.TNodeId; estimate: number },
-  draft: Draft<types.IState>,
+  draft: Draft<types.TState>,
 ) => {
   if (draft.data.nodes[payload.node_id].estimate === payload.estimate) {
     return;
@@ -121,7 +121,7 @@ export const set_estimate = (
 };
 
 export const add_node = (
-  draft: Draft<types.IState>,
+  draft: Draft<types.TState>,
   parent_node_id: types.TNodeId,
   top_of_queue: boolean,
 ) => {
@@ -153,7 +153,7 @@ export const add_node = (
   return node_id;
 };
 
-export const add_edges = (edges: types.TEdge[], draft: Draft<types.IState>) => {
+export const add_edges = (edges: types.TEdge[], draft: Draft<types.TState>) => {
   for (const edge of edges) {
     if (edge.c === draft.data.root) {
       toast.add(
@@ -216,7 +216,7 @@ export const add_edges = (edges: types.TEdge[], draft: Draft<types.IState>) => {
 };
 
 export const move_down_to_boundary = (
-  state: Draft<types.IState>,
+  state: Draft<types.TState>,
   node_id: types.TNodeId,
   is_different: (status: types.TStatus) => boolean,
 ) => {
@@ -253,7 +253,7 @@ export const move_down_to_boundary = (
 
 export const makeNodesOfToc = (
   payload: { nodeId: types.TNodeId; text: string },
-  draft: Draft<types.IState>,
+  draft: Draft<types.TState>,
 ) => {
   if (draft.data.nodes[payload.nodeId].status !== "todo") {
     toast.add("error", "TOC cannot be created for used nodes.");
@@ -291,7 +291,7 @@ const add_weak_edges_from_toc = (toc: ITocNode, edges: types.TEdge[]) => {
   return edges;
 };
 
-const make_tree_from_toc = (toc: ITocNode, draft: Draft<types.IState>) => {
+const make_tree_from_toc = (toc: ITocNode, draft: Draft<types.TState>) => {
   for (let i = toc.children.length - 1; -1 < i; --i) {
     const child_toc = toc.children[i];
     const node_id = add_node(draft, toc.id, false);
@@ -478,7 +478,7 @@ export function move_down<K extends string | number | symbol>(
 }
 
 export function move_up_todo_queue(
-  state: types.IState,
+  state: types.TState,
   node_id: types.TNodeId,
 ) {
   const i = state.todo_node_ids.indexOf(node_id);
@@ -497,7 +497,7 @@ export function move_up_todo_queue(
 }
 
 export function move_down_todo_queue(
-  state: types.IState,
+  state: types.TState,
   node_id: types.TNodeId,
 ) {
   const i = state.todo_node_ids.indexOf(node_id);

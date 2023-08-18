@@ -4,7 +4,7 @@ import * as utils from "./utils";
 
 export const is_uncompletable_node_of = (
   node_id: types.TNodeId,
-  state: types.IState,
+  state: types.TState,
 ) => {
   const node = state.data.nodes[node_id];
   if (node === undefined) {
@@ -30,7 +30,7 @@ export const is_uncompletable_node_of_nodes_and_edges = (
 
 export const is_completable_node_of = (
   node_id: types.TNodeId,
-  state: types.IState,
+  state: types.TState,
 ) => {
   const node = state.data.nodes[node_id];
   if (node === undefined) {
@@ -55,7 +55,7 @@ export const is_completable_node_of_nodes_and_edges = (
 
 export const is_deletable_node = (
   node_id: types.TNodeId,
-  state: types.IState,
+  state: types.TState,
 ) => {
   if (node_id === state.data.root) {
     return false;
@@ -71,7 +71,7 @@ export const is_deletable_node = (
 
 export const is_deletable_edge_of = (
   edge_id: types.TEdgeId,
-  state: types.IState,
+  state: types.TState,
 ) => {
   const edge = state.data.edges[edge_id];
   if (edge === undefined) {
@@ -106,7 +106,7 @@ export const is_deletable_edge_of_nodes_and_edges = (
 export const has_multiple_edges = (
   parent_node_id: types.TNodeId,
   child_node_id: types.TNodeId,
-  state: types.IState,
+  state: types.TState,
 ) => {
   let count = 0;
   for (const parent_edge_id of ops.keys_of(
@@ -125,14 +125,14 @@ export const has_multiple_edges = (
 export const has_edge = (
   p: types.TNodeId,
   c: types.TNodeId,
-  state: types.IState,
+  state: types.TState,
 ) => {
   return ops
     .keys_of(state.data.nodes[c].parents)
     .some((edge_id) => state.data.edges[edge_id].p === p);
 };
 
-export const has_cycle_of = (edge_id: types.TEdgeId, state: types.IState) => {
+export const has_cycle_of = (edge_id: types.TEdgeId, state: types.TState) => {
   const edge = state.data.edges[edge_id];
   const vid = utils.visit_counter_of();
   utils.vids[edge.c] = vid;
@@ -140,7 +140,7 @@ export const has_cycle_of = (edge_id: types.TEdgeId, state: types.IState) => {
 };
 const _has_cycle_of = (
   node_id: types.TNodeId,
-  state: types.IState,
+  state: types.TState,
   vid: number,
   origin_node_id: types.TNodeId,
 ): boolean => {

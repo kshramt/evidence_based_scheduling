@@ -1,7 +1,17 @@
-export type TNodeId = string & { readonly tag: unique symbol };
-export const is_TNodeId = (x: any): x is TNodeId => typeof x === "string";
-export type TEdgeId = string & { readonly tag: unique symbol };
-export const is_TEdgeId = (x: any): x is TEdgeId => typeof x === "string";
+import * as rt from "@kshramt/runtime-type-validator";
+
+export const tTimeNodeId = rt.$opaque("TTimeNodeId", rt.$string());
+export const tNodeId = rt.$opaque("TNodeId", rt.$string());
+export const tEdgeId = rt.$opaque("TEdgeId", rt.$string());
+
+const ref = {};
+export const is_TNodeId = (x: any): x is TNodeId => tNodeId(x, ref);
+export const is_TTimeNodeId = (x: any): x is TTimeNodeId => tTimeNodeId(x, ref);
+export const is_TEdgeId = (x: any): x is TEdgeId => tEdgeId(x, ref);
+
+export type TTimeNodeId = rt.$infer<typeof tTimeNodeId>;
+export type TNodeId = rt.$infer<typeof tNodeId>;
+export type TEdgeId = rt.$infer<typeof tEdgeId>;
 
 export const is_object = (x: any) =>
   x && typeof x === "object" && x.constructor === Object;
@@ -125,10 +135,6 @@ export type TActionWithPayload<Payload> = {
   payload: Payload;
 };
 export type TAnyPayloadAction = TActionWithoutPayload | TActionWithPayload<any>;
-
-export type TTimeNodeId = string & { readonly tag: unique symbol };
-export const is_TTimeNodeId = (x: any): x is TTimeNodeId =>
-  typeof x === "string";
 
 export type TTimeline = {
   readonly year_begin: number;

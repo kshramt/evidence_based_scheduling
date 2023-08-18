@@ -5,81 +5,159 @@ import {
   useSelector as _useSelector,
 } from "react-redux";
 import * as sequenceComparisons from "@kshramt/sequence-comparisons";
+import * as rt from "@kshramt/runtime-type-validator";
 
 import * as ops from "./ops";
 import * as toast from "./toast";
 import * as producer from "./producer";
+import * as intervals from "src/intervals";
 
-import type {
-  TAnyPayloadAction,
-  TCoveyQuadrants,
-  TEdges,
-  TNodeId,
-  TOrderedTNodeIds,
-  TTimeline,
-} from "./common_types1";
-import {
-  is_object,
-  is_TCoveyQuadrants,
-  is_TEdges,
-  is_TNodeId,
-  is_TOrderedTNodeIds,
-  is_TTimeline,
-  record_if_false_of,
-} from "./common_types1";
-
-import type { TCaches, TNodes } from "./commonTypes2";
-import { is_TNodes } from "./commonTypes2";
-
+import type { TAnyPayloadAction } from "./common_types1";
+import { tEdgeId, tNodeId, tTimeNodeId } from "./common_types1";
 import * as types_prev from "./types21";
-
 export type {
-  TActionWithoutPayload,
-  TActionWithPayload,
   TAnyPayloadAction,
-  TEdge,
-  TEdgeId,
-  TEdges,
-  TEdgeType,
-  TNodeId,
-  TOrderedTEdgeIds,
-  TOrderedTNodeIds,
-  TRange,
-  TStatus,
-  TTimeline,
-  TTimeNode,
-  TTimeNodeId,
+  TActionWithPayload,
+  TActionWithoutPayload,
   TVids,
 } from "./common_types1";
-export {
-  edge_type_values,
-  is_TEdgeType,
-  is_TNodeId,
-  is_TOrderedTNodeIds,
-  is_TTimeNodeId,
-} from "./common_types1";
-
-export type { TCaches, TNode, TNodes, TTextPatch } from "./commonTypes2";
+export type { TNodeId, TEdgeId, TTimeNodeId } from "./common_types1";
+export { is_TNodeId, is_TEdgeId, is_TTimeNodeId } from "./common_types1";
 
 export const VERSION = 22 as const;
 
+const tStatus = rt.$union(
+  rt.$literal("done"),
+  rt.$literal("dont"),
+  rt.$literal("todo"),
+);
+export const edgeTypeValues = ["weak", "strong"] as const;
+const tEdgeType = rt.$union(
+  rt.$literal(edgeTypeValues[0]),
+  rt.$literal(edgeTypeValues[1]),
+);
+const tOrderedTNodeIds = rt.$record(tNodeId, rt.$number());
+const tOrderedTEdgeIds = rt.$record(tEdgeId, rt.$number());
+const tRange = rt.$object({
+  start: rt.$readonly(rt.$number()),
+  end: rt.$readonly(rt.$union(rt.$null(), rt.$number())),
+});
+const tTextPatch = rt.$object({
+  created_at: rt.$readonly(rt.$number()),
+  ops: rt.$readonly(
+    rt.$array(rt.$typeGuard(sequenceComparisons.isTCompressedOp)),
+  ),
+});
+const tEdge = rt.$object({
+  c: rt.$readonly(tNodeId),
+  p: rt.$readonly(tNodeId),
+  t: rt.$readonly(tEdgeType),
+  hide: rt.$readonly(rt.$optional(rt.$boolean())),
+});
+const tEvent = rt.$object({
+  created_at: rt.$readonly(rt.$number()), // Timestamp in milliseconds.
+  status: rt.$readonly(
+    rt.$union(rt.$literal("created"), rt.$literal("deleted")),
+  ),
+  interval_set: rt.$readonly(intervals.tIntervalSet),
+});
+const tNode = rt.$object({
+  children: rt.$readonly(tOrderedTEdgeIds),
+  end_time: rt.$readonly(rt.$union(rt.$null(), rt.$number())),
+  estimate: rt.$readonly(rt.$number()),
+  events: rt.$readonly(rt.$optional(rt.$array(tEvent))),
+  parents: rt.$readonly(tOrderedTEdgeIds),
+  ranges: rt.$readonly(rt.$array(tRange)),
+  start_time: rt.$readonly(rt.$number()),
+  status: rt.$readonly(tStatus),
+  text_patches: rt.$readonly(rt.$array(tTextPatch)), // The initial text is the empty string.
+});
+const tNodes = rt.$record(tNodeId, tNode);
+const tEdges = rt.$record(tEdgeId, tEdge);
+const tTimeNode = rt.$object({
+  created_at: rt.$readonly(rt.$number()),
+  nodes: rt.$readonly(tOrderedTNodeIds),
+  show_children: rt.$readonly(
+    rt.$union(rt.$literal("none"), rt.$literal("partial"), rt.$literal("full")),
+  ),
+  text: rt.$readonly(rt.$string()),
+  tz: rt.$readonly(rt.$number()),
+});
+const tTimeline = rt.$object({
+  year_begin: rt.$readonly(rt.$number()),
+  count: rt.$readonly(rt.$number()),
+  time_nodes: rt.$record(tTimeNodeId, rt.$readonly(tTimeNode)),
+});
+const tCoveyQuadrant = rt.$object({
+  nodes: rt.$readonly(rt.$array(tNodeId)),
+});
+const tCoveyQuadrants = rt.$object({
+  important_urgent: rt.$readonly(tCoveyQuadrant),
+  not_important_urgent: rt.$readonly(tCoveyQuadrant),
+  important_not_urgent: rt.$readonly(tCoveyQuadrant),
+  not_important_not_urgent: rt.$readonly(tCoveyQuadrant),
+});
+const tCache = rt.$object({
+  total_time: rt.$number(),
+  percentiles: rt.$readonly(rt.$array(rt.$number())), // 0, 10, 33, 50, 67, 90, 100
+  leaf_estimates_sum: rt.$readonly(rt.$number()),
+  show_detail: rt.$readonly(rt.$boolean()),
+  n_hidden_child_edges: rt.$readonly(rt.$number()),
+  text: rt.$readonly(rt.$string()),
+});
+const tCaches = rt.$record(tNodeId, tCache);
+export const tData = rt.$object({
+  covey_quadrants: rt.$readonly(tCoveyQuadrants),
+  edges: rt.$readonly(tEdges),
+  id_seq: rt.$readonly(rt.$number()),
+  nodes: rt.$readonly(tNodes),
+  pinned_sub_trees: rt.$readonly(rt.$array(tNodeId)),
+  queue: rt.$readonly(tOrderedTNodeIds),
+  root: rt.$readonly(tNodeId),
+  timeline: rt.$readonly(tTimeline),
+  version: rt.$readonly(rt.$literal(VERSION)),
+});
+export const tState = rt.$object({
+  data: rt.$readonly(tData),
+  caches: rt.$readonly(tCaches),
+  predicted_next_nodes: rt.$readonly(rt.$array(tNodeId)),
+  n_unsaved_patches: rt.$readonly(rt.$number()),
+  todo_node_ids: rt.$readonly(rt.$array(tNodeId)),
+  non_todo_node_ids: rt.$readonly(rt.$array(tNodeId)),
+});
+const ref = {};
+export const is_TEdgeType = (x: unknown): x is TEdgeType => tEdgeType(x, ref);
+export type TEvent = rt.$infer<typeof tEvent>;
+export type TCaches = rt.$infer<typeof tCaches>;
+export type TOrderedTEdgeIds = rt.$infer<typeof tOrderedTEdgeIds>;
+export type TEdgeType = rt.$infer<typeof tEdgeType>;
+export type TTimeNode = rt.$infer<typeof tTimeNode>;
+export type TTextPatch = rt.$infer<typeof tTextPatch>;
+export type TStatus = rt.$infer<typeof tStatus>;
+export type TRange = rt.$infer<typeof tRange>;
+export type TEdges = rt.$infer<typeof tEdges>;
+export type TNodes = rt.$infer<typeof tNodes>;
+export type TEdge = rt.$infer<typeof tEdge>;
+export type TNode = rt.$infer<typeof tNode>;
+export type TState = rt.$infer<typeof tState>;
+
 export const parse_data = (x: {
-  data: any;
+  data: unknown;
 }):
   | {
       success: true;
-      data: TData;
+      data: rt.$infer<typeof tData>;
       patch: producer.TOperation[];
     }
   | { success: false } => {
-  const record_if_false = record_if_false_of();
-  if (is_TData(x.data, record_if_false)) {
-    return { success: true, data: x.data, patch: [] };
+  const parsed = rt.parse(tData, x.data);
+  if (parsed.success) {
+    return { success: true, data: parsed.value, patch: [] };
   }
   const parsed_prev = types_prev.parse_data(x);
   if (!parsed_prev.success) {
-    toast.add("error", `!is_IData: ${JSON.stringify(record_if_false.path)}`);
-    console.warn("!is_IData", record_if_false.path);
+    toast.add("error", `!is_IData: ${JSON.stringify(parsed.path)}`);
+    console.warn("!is_IData", parsed.path);
     return { success: false };
   }
   const converted = current_of_prev({ data: parsed_prev.data });
@@ -99,12 +177,14 @@ const current_of_prev = (data_prev: {
   | { success: false }
   | {
       success: true;
-      data: TData;
+      data: rt.$infer<typeof tData>;
       patch: producer.TOperation[];
     } => {
-  const fn = (draft: { data: types_prev.TData }): { data: TData } => {
+  const fn = (draft: {
+    data: types_prev.TData;
+  }): { data: rt.$infer<typeof tData> } => {
     const dw = new sequenceComparisons.DiffWu();
-    const nodes: TNodes = {};
+    const nodes: rt.$infer<typeof tNodes> = {};
     for (const nodeId of ops.keys_of(draft.data.nodes)) {
       const node = draft.data.nodes[nodeId];
       const ys = Array.from(node.text);
@@ -143,59 +223,26 @@ const current_of_prev = (data_prev: {
     // @ts-expect-error
     fn,
   );
-  const record_if_false = record_if_false_of();
   const data = produced.value.data;
-  if (!is_TData(data, record_if_false)) {
-    toast.add("error", `!is_TData: ${JSON.stringify(record_if_false.path)}`);
-    console.warn("!is_TData", record_if_false.path);
+  const parsed = rt.parse(tData, data);
+  if (!parsed.success) {
+    toast.add("error", `!is_TData: ${JSON.stringify(parsed.path)}`);
+    console.warn("!is_TData", parsed.path);
     return { success: false };
   }
   return {
     success: true,
-    data,
+    data: parsed.value,
     patch: produced.patch,
   };
 };
 
-export interface IState {
-  readonly data: TData;
-  readonly caches: TCaches;
-  readonly predicted_next_nodes: TNodeId[];
-  readonly n_unsaved_patches: number;
-  readonly todo_node_ids: TNodeId[];
-  readonly non_todo_node_ids: TNodeId[];
-}
-
-export interface TData {
-  readonly covey_quadrants: TCoveyQuadrants;
-  readonly edges: TEdges;
-  readonly id_seq: number;
-  readonly nodes: TNodes;
-  readonly pinned_sub_trees: TNodeId[];
-  readonly queue: TOrderedTNodeIds;
-  readonly root: TNodeId;
-  readonly timeline: TTimeline;
-  readonly version: typeof VERSION;
-}
-export const is_TData = (
-  data: any,
-  record_if_false: ReturnType<typeof record_if_false_of>,
-): data is TData =>
-  record_if_false(is_object(data), "is_object") &&
-  record_if_false(
-    is_TCoveyQuadrants(data.covey_quadrants, record_if_false),
-    "covey_quadrants",
-  ) &&
-  record_if_false(is_TEdges(data.edges, record_if_false), "edges") &&
-  record_if_false(is_TNodeId(data.root), "root") &&
-  record_if_false(typeof data.id_seq === "number", "id_seq") &&
-  record_if_false(is_TNodes(data.nodes, record_if_false), "nodes") &&
-  record_if_false(is_TOrderedTNodeIds(data.queue), "queue") &&
-  record_if_false(is_TTimeline(data.timeline, record_if_false), "timeline") &&
-  record_if_false.check_array(data.pinned_sub_trees, is_TNodeId) &&
-  record_if_false(data.version === VERSION, "version");
-
-export type AppDispatch = ThunkDispatch<IState, {}, TAnyPayloadAction>;
+export type AppDispatch = ThunkDispatch<
+  rt.$infer<typeof tState>,
+  {},
+  TAnyPayloadAction
+>;
 
 export const useDispatch = () => _useDispatch<AppDispatch>();
-export const useSelector: TypedUseSelectorHook<IState> = _useSelector;
+export const useSelector: TypedUseSelectorHook<rt.$infer<typeof tState>> =
+  _useSelector;

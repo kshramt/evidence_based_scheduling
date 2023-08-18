@@ -19,7 +19,7 @@
       "extensions": [
         "asciidoctor.asciidoctor-vscode",
         "bradlc.vscode-tailwindcss",
-        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
         "Github.copilot",
         "github.vscode-github-actions",

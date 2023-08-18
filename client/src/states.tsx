@@ -89,7 +89,7 @@ const get_state_and_patch = async (arg: {
   }
 
   // Set up the state
-  let state: types.IState;
+  let state: types.TState;
   let patch: producer.TOperation[];
   if (snapshot.data === null) {
     state = ops.emptyStateOf();
@@ -322,7 +322,7 @@ export class PersistentStateManager {
     }
 
     // Create the store
-    const root_reducer = rtk.reducer_with_patch_of<types.IState>(
+    const root_reducer = rtk.reducer_with_patch_of<types.TState>(
       state,
       reducers.get_root_reducer_def(
         next_action_predictor2,
@@ -343,15 +343,15 @@ export class PersistentStateManager {
 
   #with_save_patch = (
     reducer_with_patch: (
-      state: undefined | types.IState,
+      state: undefined | types.TState,
       action: types.TAnyPayloadAction,
     ) => {
-      state: types.IState;
+      state: types.TState;
       patch: producer.TOperation[];
     },
   ) => {
     const patch_saver = (
-      state: undefined | types.IState,
+      state: undefined | types.TState,
       action: types.TAnyPayloadAction,
     ) => {
       if (state === undefined) {

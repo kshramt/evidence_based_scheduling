@@ -19,6 +19,8 @@ import MenuButton from "./Header/MenuButton";
 import TocForm from "./Details/Component/TocForm";
 import ScrollBackToTopButton from "./ScrollBackToTopButton";
 import ToggleButton from "./ToggleButton";
+import GanttChart from "./GanttChart";
+import PlannedEvents from "./PlannedEvents";
 
 const SCROLL_BACK_TO_TOP_MARK = (
   <span className="material-icons">vertical_align_top</span>
@@ -377,6 +379,7 @@ const Body = () => {
   return (
     <div className="flex flex-1 gap-x-[1em] overflow-y-hidden">
       <div className={`overflow-y-auto shrink-0`}>
+        <div style={{ width: "300px", height: "100px" }}></div>
         <SBTTB />
         <ToggleButton
           value={pin}
@@ -390,19 +393,21 @@ const Body = () => {
         <TodoQueueNodes />
       </div>
       <div className={utils.join("flex", pin && "w-full overflow-x-auto")}>
-        <CoveyQuadrants />
-        <div className={`overflow-y-auto shrink-0`}>
-          <Timeline />
-        </div>
         <div className={`overflow-y-auto shrink-0`}>
           <SBTTB />
           <TreeNode node_id={root} />
+        </div>
+
+        <GanttChart indexColumnWidth={320} />
+        <div className={`overflow-y-auto shrink-0`}>
+          <Timeline />
         </div>
         <div className={`overflow-y-auto shrink-0`}>
           <SBTTB />
           <NonTodoQueueNodes />
         </div>
         <PinnedSubTrees />
+        <CoveyQuadrants />
       </div>
     </div>
   );
@@ -923,7 +928,7 @@ const DndTreeNode = React.memo((props: { node_id: types.TNodeId }) => {
 });
 
 const TreeNode = React.memo(
-  (props: { node_id: types.TNodeId; prefix?: string }) => {
+  (props: { node_id: types.TNodeId; prefix?: undefined | string }) => {
     return (
       <>
         <TreeEntry node_id={props.node_id} prefix={props.prefix} />
@@ -939,7 +944,7 @@ const NonTodoQueueNodes = () => {
 };
 
 const EdgeList = React.memo(
-  (props: { node_id: types.TNodeId; prefix?: string }) => {
+  (props: { node_id: types.TNodeId; prefix?: undefined | string }) => {
     const children = useSelector(
       (state) => state.data.nodes[props.node_id].children,
     );
@@ -955,7 +960,7 @@ const EdgeList = React.memo(
 );
 
 const Edge = React.memo(
-  (props: { edge_id: types.TEdgeId; prefix?: string }) => {
+  (props: { edge_id: types.TEdgeId; prefix?: undefined | string }) => {
     const session = React.useContext(states.session_key_context);
     const show_todo_only = Jotai.useAtomValue(
       states.show_todo_only_atom_map.get(session),
@@ -1158,7 +1163,7 @@ const MobileQueueNodesImpl = React.memo(
 );
 
 const TreeEntry = React.memo(
-  (props: { node_id: types.TNodeId; prefix?: string }) => {
+  (props: { node_id: types.TNodeId; prefix?: undefined | string }) => {
     const show_detail = useSelector(
       (state) => state.caches[props.node_id].show_detail,
     );
@@ -1300,7 +1305,7 @@ const DetailsImpl = React.memo((props: { node_id: types.TNodeId }) => {
       <div className="flex gap-x-[0.25em] items-baseline">
         Add:
         <select value={new_edge_type} onChange={handle_new_edge_type_change}>
-          {types.edge_type_values.map((t, i) => (
+          {types.edgeTypeValues.map((t, i) => (
             <option value={t} key={i}>
               {t}
             </option>
@@ -1327,6 +1332,8 @@ const DetailsImpl = React.memo((props: { node_id: types.TNodeId }) => {
       <ChildEdgeTable node_id={props.node_id} />
       {hline}
       <RangesTable node_id={props.node_id} />
+      {hline}
+      <PlannedEvents nodeId={props.node_id} />
       {hline}
     </div>
   );
@@ -1430,9 +1437,9 @@ const RangesTableRow = (props: { node_id: types.TNodeId; i_range: number }) => {
       }),
     );
   }, [props.node_id, props.i_range, dispatch]);
-  const start_date = utils.datetime_local_of_milliseconds(range.start);
+  const start_date = utils.getStringOfLocalTime(range.start);
   const end_date = range.end
-    ? utils.datetime_local_of_milliseconds(range.end)
+    ? utils.getStringOfLocalTime(range.end)
     : undefined;
   return React.useMemo(
     () => (
@@ -1528,7 +1535,7 @@ const EdgeRow = React.memo(
         <EdgeRowContent node_id={node_id} />
         <td className="p-[0.25em]">
           <select value={edge.t} onChange={set_edge_type}>
-            {types.edge_type_values.map((t, i) => (
+            {types.edgeTypeValues.map((t, i) => (
               <option value={t} key={i}>
                 {t}
               </option>
@@ -1800,7 +1807,7 @@ const StartConcurrentButton = (props: { node_id: types.TNodeId }) => {
 
 const AddButton = (props: {
   node_id: types.TNodeId;
-  prefix?: string;
+  prefix?: undefined | string;
   id?: string;
 }) => {
   const dispatch = useDispatch();
@@ -2222,7 +2229,7 @@ const LastRange = (props: { node_id: types.TNodeId }) => {
 
 const focusFirstChildTextAreaActionOf =
   (node_id: types.TNodeId, prefix: string) =>
-  (dispatch: types.AppDispatch, getState: () => types.IState) => {
+  (dispatch: types.AppDispatch, getState: () => types.TState) => {
     const state = getState();
     doFocusTextArea(
       `${prefix}${
@@ -2505,7 +2512,7 @@ const copy_descendant_time_nodes_planned_node_ids_action = (
   set_node_ids: (payload: (node_ids: string) => string) => void,
   copy: (text: string) => void,
 ) => {
-  return (dispatch: types.AppDispatch, getState: () => types.IState) => {
+  return (dispatch: types.AppDispatch, getState: () => types.TState) => {
     const state = getState();
     const descendant_node_ids = collect_descendant_time_nodes_planned_node_ids(
       [],
@@ -2527,7 +2534,7 @@ const collect_descendant_time_nodes_planned_node_ids = (
   res: types.TNodeId[],
   time_node_id: types.TTimeNodeId,
   descend: boolean,
-  state: types.IState,
+  state: types.TState,
 ) => {
   const time_node = state.data.timeline.time_nodes[time_node_id];
   if (time_node !== undefined) {

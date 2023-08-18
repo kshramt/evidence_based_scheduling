@@ -21,9 +21,26 @@ export const get_root_reducer_def = (
   return (
     builder: <Payload>(
       action_of: rtk.TActionOf<Payload>,
-      reduce: rtk.TReduce<types.IState, Payload>,
+      reduce: rtk.TReduce<types.TState, Payload>,
     ) => void,
   ) => {
+    builder(actions.addNewEventAction, (state, action) => {
+      const node = state.data.nodes[action.payload.nodeId];
+      if (node.events === undefined) {
+        node.events = [];
+      }
+      node.events.push(action.payload.event);
+    });
+    builder(actions.updateEventAction, (state, action) => {
+      const node = state.data.nodes[action.payload.nodeId];
+      if (node.events === undefined) {
+        const msg = `updateEventAction/Node ${action.payload.nodeId} has no events.`;
+        toast.add("error", msg);
+        console.error(msg);
+        return;
+      }
+      node.events[action.payload.i] = action.payload.event;
+    });
     builder(actions.move_pinned_sub_tree_action, (state, action) => {
       const i_from = state.data.pinned_sub_trees.indexOf(action.payload.from);
       const i_to = state.data.pinned_sub_trees.indexOf(action.payload.to);
@@ -573,7 +590,7 @@ export const get_root_reducer_def = (
 };
 
 const stop = (
-  draft: immer.Draft<types.IState>,
+  draft: immer.Draft<types.TState>,
   node_id: types.TNodeId,
   vid: number,
   t?: number,
@@ -585,7 +602,7 @@ const stop = (
   }
 };
 
-const stop_all = (draft: immer.Draft<types.IState>, vid: number) => {
+const stop_all = (draft: immer.Draft<types.TState>, vid: number) => {
   const t = Date.now();
   for (const node_id of draft.todo_node_ids) {
     stop(draft, node_id, vid, t);
@@ -593,7 +610,7 @@ const stop_all = (draft: immer.Draft<types.IState>, vid: number) => {
 };
 
 export const set_predicted_next_nodes = (
-  state: immer.Draft<types.IState>,
+  state: immer.Draft<types.TState>,
   n_predicted: number,
   next_action_predictor2: nap.BiGramPredictor<types.TNodeId>,
   next_action_predictor3: nap.TriGramPredictor<types.TNodeId>,
@@ -621,7 +638,7 @@ export const set_predicted_next_nodes = (
 };
 
 const _eval_ = (
-  draft: immer.Draft<types.IState>,
+  draft: immer.Draft<types.TState>,
   k: types.TNodeId,
   vid: number,
 ) => {
@@ -678,7 +695,7 @@ const _eval_ = (
 };
 
 const _set_total_time_of_ancestors = (
-  state: types.IState,
+  state: types.TState,
   node_id: types.TNodeId,
   vid: number,
 ) => {
@@ -699,7 +716,7 @@ const _set_total_time_of_ancestors = (
 };
 
 const _set_total_time = (
-  state: types.IState,
+  state: types.TState,
   node_id: types.TNodeId,
   vid: number,
   force: boolean = false,
@@ -711,7 +728,7 @@ const _set_total_time = (
   return state.caches[node_id].total_time;
 };
 
-const total_time_of = (state: types.IState, node_id: types.TNodeId) => {
+const total_time_of = (state: types.TState, node_id: types.TNodeId) => {
   const ranges_list: types.TRange[][] = [];
   collect_ranges_from_strong_descendants(
     node_id,
@@ -761,7 +778,7 @@ const total_time_of = (state: types.IState, node_id: types.TNodeId) => {
 
 const collect_ranges_from_strong_descendants = (
   node_id: types.TNodeId,
-  state: types.IState,
+  state: types.TState,
   vid: number,
   ranges_list: types.TRange[][],
 ) => {
@@ -786,7 +803,7 @@ const collect_ranges_from_strong_descendants = (
   }
 };
 
-const _top = (draft: immer.Draft<types.IState>, node_id: types.TNodeId) => {
+const _top = (draft: immer.Draft<types.TState>, node_id: types.TNodeId) => {
   if (draft.data.nodes[node_id].status !== "todo") {
     toast.add("error", `Non-todo node ${node_id} cannot be moved.`);
     return;
@@ -795,7 +812,7 @@ const _top = (draft: immer.Draft<types.IState>, node_id: types.TNodeId) => {
   _topQueue(draft, node_id);
 };
 
-const _topTree = (draft: immer.Draft<types.IState>, node_id: types.TNodeId) => {
+const _topTree = (draft: immer.Draft<types.TState>, node_id: types.TNodeId) => {
   if (draft.data.nodes[node_id].status !== "todo") {
     toast.add("error", `Non-todo node ${node_id} cannot be moved.`);
     return;
@@ -814,7 +831,7 @@ const _topTree = (draft: immer.Draft<types.IState>, node_id: types.TNodeId) => {
 };
 
 const _topQueue = (
-  draft: immer.Draft<types.IState>,
+  draft: immer.Draft<types.TState>,
   node_id: types.TNodeId,
 ) => {
   if (draft.data.nodes[node_id].status !== "todo") {
@@ -834,7 +851,7 @@ const _topQueue = (
 };
 
 const _show_path_to_selected_node = (
-  draft: immer.Draft<types.IState>,
+  draft: immer.Draft<types.TState>,
   node_id: types.TNodeId,
 ) => {
   while (ops.keys_of(draft.data.nodes[node_id].parents).length) {
@@ -880,14 +897,14 @@ const _estimate = (
 
 const todo_leafs_of = (
   node_id: types.TNodeId,
-  state: types.IState,
+  state: types.TState,
   edge_filter: (edge: types.TEdge) => boolean,
 ) => {
   return _todo_leafs_of(node_id, state, edge_filter, utils.visit_counter_of());
 };
 function* _todo_leafs_of(
   node_id: types.TNodeId,
-  state: types.IState,
+  state: types.TState,
   edge_filter: (edge: types.TEdge) => boolean,
   vid: number,
 ): Iterable<[types.TNodeId, types.TNode]> {
@@ -924,14 +941,14 @@ const assert = (fn: () => [boolean, string]) => {
 
 export const reducer_of_reducer_with_patch = (
   reducer_with_patch: (
-    state: undefined | types.IState,
+    state: undefined | types.TState,
     action: types.TAnyPayloadAction,
   ) => {
-    state: types.IState;
+    state: types.TState;
     patch: producer.TOperation[];
   },
 ) => {
-  return (state: undefined | types.IState, action: types.TAnyPayloadAction) => {
+  return (state: undefined | types.TState, action: types.TAnyPayloadAction) => {
     return reducer_with_patch(state, action).state;
   };
 };

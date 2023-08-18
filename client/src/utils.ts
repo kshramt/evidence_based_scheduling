@@ -81,7 +81,7 @@ let _VISIT_COUNTER = 0;
 export const visit_counter_of = () => ++_VISIT_COUNTER;
 export const vids: types.TVids = {};
 
-export const datetime_local_of_milliseconds = (milliseconds: number) => {
+export const getStringOfLocalTime = (milliseconds: number) => {
   const date = new Date(milliseconds);
   const y = date.getFullYear().toString();
   const m = (date.getMonth() + 1).toString().padStart(2, "0");
@@ -89,6 +89,17 @@ export const datetime_local_of_milliseconds = (milliseconds: number) => {
   const H = date.getHours().toString().padStart(2, "0");
   const M = date.getMinutes().toString().padStart(2, "0");
   const S = date.getSeconds().toString().padStart(2, "0");
+  return `${y}-${m}-${d}T${H}:${M}:${S}`;
+};
+
+export const getStringOfFloatingTime = (milliseconds: number) => {
+  const date = new Date(milliseconds);
+  const y = date.getUTCFullYear().toString();
+  const m = (date.getUTCMonth() + 1).toString().padStart(2, "0");
+  const d = date.getUTCDate().toString().padStart(2, "0");
+  const H = date.getUTCHours().toString().padStart(2, "0");
+  const M = date.getUTCMinutes().toString().padStart(2, "0");
+  const S = date.getUTCSeconds().toString().padStart(2, "0");
   return `${y}-${m}-${d}T${H}:${M}:${S}`;
 };
 
