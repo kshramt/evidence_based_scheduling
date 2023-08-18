@@ -127,6 +127,7 @@ export const tState = rt.$object({
 });
 const ref = {};
 export const is_TEdgeType = (x: unknown): x is TEdgeType => tEdgeType(x, ref);
+export type TEvent = rt.$infer<typeof tEvent>;
 export type TCaches = rt.$infer<typeof tCaches>;
 export type TOrderedTEdgeIds = rt.$infer<typeof tOrderedTEdgeIds>;
 export type TEdgeType = rt.$infer<typeof tEdgeType>;

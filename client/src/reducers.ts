@@ -24,6 +24,23 @@ export const get_root_reducer_def = (
       reduce: rtk.TReduce<types.TState, Payload>,
     ) => void,
   ) => {
+    builder(actions.addNewEventAction, (state, action) => {
+      const node = state.data.nodes[action.payload.nodeId];
+      if (node.events === undefined) {
+        node.events = [];
+      }
+      node.events.push(action.payload.event);
+    });
+    builder(actions.updateEventAction, (state, action) => {
+      const node = state.data.nodes[action.payload.nodeId];
+      if (node.events === undefined) {
+        const msg = `updateEventAction/Node ${action.payload.nodeId} has no events.`;
+        toast.add("error", msg);
+        console.error(msg);
+        return;
+      }
+      node.events[action.payload.i] = action.payload.event;
+    });
     builder(actions.move_pinned_sub_tree_action, (state, action) => {
       const i_from = state.data.pinned_sub_trees.indexOf(action.payload.from);
       const i_to = state.data.pinned_sub_trees.indexOf(action.payload.to);

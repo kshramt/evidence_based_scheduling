@@ -2,12 +2,14 @@ import * as React from "react";
 import * as RWindow from "react-window";
 
 import * as consts from "src/consts";
+import * as intervals from "src/intervals";
 import * as utils from "src/utils";
+import * as times from "src/times";
 import * as types from "src/types";
 
 const DAY_MS = 86_400_000;
-const START_TIME = Number(new Date("2000-01-01T00:00:00Z"));
-const END_TIME = Number(new Date("2100-01-01T00:00:00Z"));
+const START_TIME = { f: Number(new Date("2000-01-01T00:00:00Z")) };
+const END_TIME = { f: Number(new Date("2100-01-01T00:00:00Z")) };
 
 const useComponentSize = () => {
   const ref = React.useRef<HTMLDivElement>(null);
@@ -32,23 +34,9 @@ const useComponentSize = () => {
   return res;
 };
 
-const Cell = React.memo(
-  (props: {
-    columnIndex: number;
-    rowIndex: number;
-    style: React.CSSProperties;
-  }) => {
-    return (
-      <div style={props.style}>
-        {props.columnIndex}, {props.rowIndex}
-      </div>
-    );
-  },
-);
-
 const HeaderCell = React.memo(
   (props: { columnIndex: number; style: React.CSSProperties }) => {
-    const t = new Date(START_TIME + props.columnIndex * DAY_MS);
+    const t = new Date(START_TIME.f + props.columnIndex * DAY_MS);
     const title = `${t.getFullYear()}-${t.getMonth() + 1}-${t.getDate()}`;
     return <div style={props.style}>{title}</div>;
   },
@@ -77,6 +65,7 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
   const style = React.useMemo(() => {
     return { overflow: "hidden" };
   }, []);
+  const nodes = types.useSelector((state) => state.data.nodes);
   const headerRef = React.useRef<RWindow.FixedSizeGrid>(null);
   const indexColumnRef = React.useRef<RWindow.FixedSizeGrid>(null);
   const onScroll = React.useCallback(
@@ -90,13 +79,53 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
     },
     [],
   );
-  const tnow = utils.floatingNow();
-  const columnCount = (END_TIME - START_TIME) / DAY_MS;
-  const columnWidth = 128;
+  const tnow = times.getFloatingNow();
+  const columnCount = (END_TIME.f - START_TIME.f) / DAY_MS;
+  const columnWidth = 96;
   const rowHeight = 32;
   const initialScrollLeft =
-    columnWidth * Math.floor((tnow - START_TIME) / DAY_MS);
+    columnWidth * Math.floor((tnow.f - START_TIME.f) / DAY_MS);
   const initialScrollTop = rowHeight * 0;
+
+  const _Cell = React.useCallback(
+    (props: {
+      columnIndex: number;
+      rowIndex: number;
+      style: React.CSSProperties;
+    }) => {
+      const start = { f: START_TIME.f + props.columnIndex * DAY_MS };
+      const end = { f: start.f + DAY_MS };
+      let hit = false;
+      for (const event of nodes[nodeIds[props.rowIndex]].events || []) {
+        const overlapState = intervals.getOverlapState(
+          start,
+          end,
+          times.ensureFloatingTime(event.interval_set.start),
+          times.ensureFloatingTime(event.interval_set.end),
+          event.interval_set.delta,
+          intervals.getFloatingTimeOfLimit(event.interval_set),
+        );
+        if (overlapState !== intervals.Overlap.NO_OVERLAP) {
+          hit = true;
+          break;
+        }
+      }
+      return (
+        <div
+          className={utils.join(
+            "border",
+            hit && "bg-blue-400 dark:bg-blue-900",
+          )}
+          style={props.style}
+        />
+      );
+    },
+    [nodes, nodeIds],
+  );
+  const Cell = React.useMemo(() => React.memo(_Cell), [_Cell]);
+  const styleIndexColumn = React.useMemo(() => {
+    return { width: props.indexColumnWidth };
+  }, [props.indexColumnWidth]);
 
   if (resize.height < 0) {
     return (
@@ -106,12 +135,9 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
     );
   }
   return (
-    <div className="h-full w-full bg-red-500 flex-none flex flex-col">
-      <div className="flex-none flex bg-blue-300" style={{ height: rowHeight }}>
-        <div
-          className="flex-none bg-yellow-300"
-          style={{ width: props.indexColumnWidth }}
-        >
+    <div className="h-full w-full flex-none flex flex-col">
+      <div className="flex-none flex" style={{ height: rowHeight }}>
+        <div className="flex-none" style={styleIndexColumn}>
           a\b
         </div>
         <div className="flex-auto">
@@ -130,11 +156,8 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
         </div>
       </div>
       {/* Why `overflow-hidden` is required to make `resized.height` to be aware of the first row? */}
-      <div className="flex-auto flex bg-green-400 overflow-hidden">
-        <div
-          className="flex-none bg-purple-600"
-          style={{ width: props.indexColumnWidth }}
-        >
+      <div className="flex-auto flex overflow-hidden">
+        <div className="flex-none" style={styleIndexColumn}>
           <RWindow.FixedSizeGrid
             columnCount={1}
             columnWidth={props.indexColumnWidth}

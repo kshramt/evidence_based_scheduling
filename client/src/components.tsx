@@ -20,6 +20,7 @@ import TocForm from "./Details/Component/TocForm";
 import ScrollBackToTopButton from "./ScrollBackToTopButton";
 import ToggleButton from "./ToggleButton";
 import GanttChart from "./GanttChart";
+import PlannedEvents from "./PlannedEvents";
 
 const SCROLL_BACK_TO_TOP_MARK = (
   <span className="material-icons">vertical_align_top</span>
@@ -378,6 +379,7 @@ const Body = () => {
   return (
     <div className="flex flex-1 gap-x-[1em] overflow-y-hidden">
       <div className={`overflow-y-auto shrink-0`}>
+        <div style={{ width: "300px", height: "100px" }}></div>
         <SBTTB />
         <ToggleButton
           value={pin}
@@ -395,6 +397,7 @@ const Body = () => {
           <SBTTB />
           <TreeNode node_id={root} />
         </div>
+
         <GanttChart indexColumnWidth={320} />
         <div className={`overflow-y-auto shrink-0`}>
           <Timeline />
@@ -1330,6 +1333,8 @@ const DetailsImpl = React.memo((props: { node_id: types.TNodeId }) => {
       {hline}
       <RangesTable node_id={props.node_id} />
       {hline}
+      <PlannedEvents nodeId={props.node_id} />
+      {hline}
     </div>
   );
 });
@@ -1432,9 +1437,9 @@ const RangesTableRow = (props: { node_id: types.TNodeId; i_range: number }) => {
       }),
     );
   }, [props.node_id, props.i_range, dispatch]);
-  const start_date = utils.datetime_local_of_milliseconds(range.start);
+  const start_date = utils.getStringOfLocalTime(range.start);
   const end_date = range.end
-    ? utils.datetime_local_of_milliseconds(range.end)
+    ? utils.getStringOfLocalTime(range.end)
     : undefined;
   return React.useMemo(
     () => (

@@ -2,6 +2,18 @@ import { register_history_type } from "./undoable";
 import * as types from "./types";
 import * as rtk from "./rtk";
 
+export const addNewEventAction = register_history_type(
+  rtk.action_of_of<{ nodeId: types.TNodeId; event: types.TEvent }>(
+    "addNewEventAction",
+  ),
+);
+
+export const updateEventAction = register_history_type(
+  rtk.action_of_of<{ nodeId: types.TNodeId; event: types.TEvent; i: number }>(
+    "updateEventAction",
+  ),
+);
+
 export const move_pinned_sub_tree_action = register_history_type(
   rtk.action_of_of<{ from: types.TNodeId; to: types.TNodeId }>(
     "move_pinned_sub_tree_action",

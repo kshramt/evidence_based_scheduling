@@ -4,7 +4,7 @@ export const tTimeNodeId = rt.$opaque("TTimeNodeId", rt.$string());
 export const tNodeId = rt.$opaque("TNodeId", rt.$string());
 export const tEdgeId = rt.$opaque("TEdgeId", rt.$string());
 
-const ref = {}
+const ref = {};
 export const is_TNodeId = (x: any): x is TNodeId => tNodeId(x, ref);
 export const is_TTimeNodeId = (x: any): x is TTimeNodeId => tTimeNodeId(x, ref);
 export const is_TEdgeId = (x: any): x is TEdgeId => tEdgeId(x, ref);
