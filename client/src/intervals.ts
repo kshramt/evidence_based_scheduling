@@ -53,6 +53,9 @@ export const getOverlapState = (
   queryDelta: number,
   queryLimit: times.TFloatingTime,
 ): TOverlap => {
+  if (end.f <= queryStart.f) {
+    return Overlap.NO_OVERLAP;
+  }
   const i = Math.floor(
     (Math.min(end.f, queryLimit.f) - queryEnd.f) / queryDelta,
   );
