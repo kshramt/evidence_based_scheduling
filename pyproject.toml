@@ -21,19 +21,46 @@ build-backend = "poetry.core.masonry.api"
 extend-exclude = ".*/gen/"
 
 [tool.ruff]
-exclude = [
-    "**/gen/"
+extend-exclude = [
+    "**/gen"
 ]
 ignore = [
+    # TODO: Remove `D1`.
+    "D100", # https://beta.ruff.rs/docs/rules/undocumented-public-module/
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D106",
+    "D107", # https://beta.ruff.rs/docs/rules/undocumented-public-init/
+    "D4",
     "E501",
+    "PTH206", # https://beta.ruff.rs/docs/rules/os-sep-split/
+    "S101", # https://beta.ruff.rs/docs/rules/assert/
+    "S110", # https://beta.ruff.rs/docs/rules/try-except-pass/
+    "S112", # https://beta.ruff.rs/docs/rules/try-except-continue/
+    "S602", # https://beta.ruff.rs/docs/rules/subprocess-popen-with-shell-equals-true/
 ]
 select = [
-    # "D",
+    "ANN",
+    "ARG",
+    "ASYNC",
+    "D",
     "E",
     "F",
     "I001",
+    "ISC001",
+    "N",
+    "NPY",
+    "PL",
+    "PTH",
+    "RUF",
+    "S",
+    "UP",
     "W",
+    "YTT",
 ]
 
-# [tool.ruff.pydocstyle]
-# convention = "google"
+[tool.ruff.pydocstyle]
+convention = "google"
