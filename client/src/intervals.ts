@@ -53,22 +53,27 @@ export const getOverlapState = (
   queryDelta: number,
   queryLimit: times.TFloatingTime,
 ): TOverlap => {
-  if (end.f <= queryStart.f) {
-    return Overlap.NO_OVERLAP;
-  }
-  const i = Math.floor(
-    (Math.min(end.f, queryLimit.f) - queryEnd.f) / queryDelta,
+  const iLim = Math.floor((queryLimit.f - queryEnd.f) / queryDelta) + 1;
+  const iLo = Math.max(
+    -1,
+    Math.min(Math.floor((start.f - queryEnd.f) / queryDelta), iLim),
   );
-  const qEnd = queryEnd.f + i * queryDelta;
-  const qStart = qEnd - (queryEnd.f - queryStart.f);
-  if (qEnd <= start.f || end.f <= qStart) {
-    return Overlap.NO_OVERLAP;
+  const iHi = Math.max(
+    -1,
+    Math.min(Math.ceil((end.f - queryStart.f) / queryDelta), iLim),
+  );
+  if (iLo + 1 < iHi) {
+    const i1 = iLo + 1;
+    const qStart = queryStart.f + i1 * queryDelta;
+    const i2 = iHi - 1;
+    const qEnd = queryEnd.f + i2 * queryDelta;
+    if (start.f <= qStart && qEnd <= end.f) {
+      return Overlap.CONTAINS;
+    }
+    if (qStart <= start.f && end.f <= qEnd) {
+      return Overlap.CONTAINED;
+    }
+    return Overlap.OVERLAP;
   }
-  if (qStart < start.f && end.f < qEnd) {
-    return Overlap.CONTAINED;
-  }
-  if (start.f <= qStart && qEnd <= end.f) {
-    return Overlap.CONTAINS;
-  }
-  return Overlap.OVERLAP;
+  return Overlap.NO_OVERLAP;
 };

@@ -34,4 +34,14 @@ vt.test("getOverlapState", () => {
       f: 1000,
     }),
   ).toStrictEqual(T.Overlap.NO_OVERLAP);
+  vt.expect(
+    T.getOverlapState({ f: 0 }, { f: 10 }, { f: 0 }, { f: 30 }, 30, {
+      f: 1000,
+    }),
+  ).toStrictEqual(T.Overlap.CONTAINED);
+  vt.expect(
+    T.getOverlapState({ f: 10 }, { f: 20 }, { f: 0 }, { f: 30 }, 30, {
+      f: 1000,
+    }),
+  ).toStrictEqual(T.Overlap.CONTAINED);
 });
