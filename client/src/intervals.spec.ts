@@ -44,4 +44,27 @@ vt.test("getOverlapState", () => {
       f: 1000,
     }),
   ).toStrictEqual(T.Overlap.CONTAINED);
+  vt.expect(
+    T.getOverlapState({ f: 0 }, { f: 1 }, { f: 0 }, { f: 4 }, 1, {
+      f: 4,
+    }),
+  ).toStrictEqual(T.Overlap.CONTAINED);
+});
+vt.test("getFloatingTimeOfLimit", () => {
+  vt.expect(
+    T.getFloatingTimeOfLimit({
+      start: { f: 0 },
+      end: { f: 4 },
+      delta: 1,
+      limit: { c: 1 },
+    }),
+  ).toStrictEqual({ f: 4 });
+  vt.expect(
+    T.getFloatingTimeOfLimit({
+      start: { f: 0 },
+      end: { f: 4 },
+      delta: 1,
+      limit: { c: 2 },
+    }),
+  ).toStrictEqual({ f: 5 });
 });

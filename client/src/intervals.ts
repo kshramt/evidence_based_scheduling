@@ -32,7 +32,7 @@ export const getFloatingTimeOfLimit = (
   } else if (times.tFloatingTime(i.limit)) {
     return i.limit;
   } else {
-    return { f: times.ensureFloatingTime(i.start).f + i.limit.c * i.delta };
+    return { f: times.ensureFloatingTime(i.end).f + (i.limit.c - 1) * i.delta };
   }
 };
 
