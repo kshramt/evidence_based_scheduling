@@ -38,7 +38,7 @@ const HeaderCell = React.memo(
   (props: { columnIndex: number; style: React.CSSProperties }) => {
     const t = new Date(START_TIME.f + props.columnIndex * DAY_MS);
     const title = `${t.getFullYear()}-${t.getMonth() + 1}-${t.getDate()}`;
-    return <div style={props.style}>{title}</div>;
+    return <div style={props.style} className="border">{title}</div>;
   },
 );
 
