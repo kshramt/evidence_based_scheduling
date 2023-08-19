@@ -185,7 +185,6 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
         }
       }
     }
-    console.debug(head);
     return head.concat(tail);
   }, [filterActive, scrollLeft, resize.width, todoNodeIds, nodes]);
 
