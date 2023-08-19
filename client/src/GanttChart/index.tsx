@@ -11,6 +11,8 @@ const DAY_MS = 86_400_000;
 const START_TIME = { f: Number(new Date("2000-01-01T00:00:00Z")) };
 const END_TIME = { f: Number(new Date("2100-01-01T00:00:00Z")) };
 
+const DISABLE_SCROLLING_STYLE = { overflow: "hidden" };
+
 const useComponentSize = () => {
   const ref = React.useRef<HTMLDivElement>(null);
   const [res, setRes] = React.useState({ height: -1, width: -1, ref });
@@ -176,6 +178,7 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
             rowCount={1}
             rowHeight={rowHeight}
             ref={headerRef}
+            style={DISABLE_SCROLLING_STYLE}
           >
             {HeaderCell}
           </RWindow.FixedSizeGrid>
@@ -193,6 +196,7 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
             rowHeight={rowHeight}
             ref={indexColumnRef}
             itemKey={itemKey}
+            style={DISABLE_SCROLLING_STYLE}
           >
             {IndexCell}
           </RWindow.FixedSizeGrid>
