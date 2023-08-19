@@ -325,7 +325,7 @@ const Menu = (props: {
       >
         <span className="material-icons">redo</span>
       </button>
-      <div onClick={get_toggle(set_show_todo_only)} className="shrink-0">
+      <div onClick={get_toggle(set_show_todo_only)} className="flex-none">
         TODO{" "}
         <input
           type="radio"
@@ -333,7 +333,7 @@ const Menu = (props: {
           onChange={_suppress_missing_onChange_handler_warning}
         />
       </div>
-      <div onClick={get_toggle(set_show_strong_edge_only)} className="shrink-0">
+      <div onClick={get_toggle(set_show_strong_edge_only)} className="flex-none">
         Strong{" "}
         <input
           type="radio"
@@ -342,21 +342,21 @@ const Menu = (props: {
         />
       </div>
       <button
-        className="btn-icon shrink-0"
+        className="btn-icon flex-none"
         onClick={_smallestToTop}
         onDoubleClick={prevent_propagation}
       >
         Small
       </button>
       <button
-        className="btn-icon shrink-0"
+        className="btn-icon flex-none"
         onClick={_closestToTop}
         onDoubleClick={prevent_propagation}
       >
         Due
       </button>
       <button
-        className="btn-icon shrink-0"
+        className="btn-icon flex-none"
         onClick={move_important_node_to_top}
         onDoubleClick={prevent_propagation}
       >
@@ -378,7 +378,7 @@ const Body = () => {
   const [pin, setPin] = Jotai.useAtom(states.pinQueueAtomMap.get(session));
   return (
     <div className="flex flex-1 gap-x-[1em] overflow-y-hidden">
-      <div className={`overflow-y-auto shrink-0`}>
+      <div className={`overflow-y-auto flex-none`}>
         <div style={{ width: "300px", height: "100px" }}></div>
         <SBTTB />
         <ToggleButton
@@ -393,16 +393,16 @@ const Body = () => {
         <TodoQueueNodes />
       </div>
       <div className={utils.join("flex", pin && "w-full overflow-x-auto")}>
-        <div className={`overflow-y-auto shrink-0`}>
+        <div className={`overflow-y-auto flex-none`}>
           <SBTTB />
           <TreeNode node_id={root} />
         </div>
 
         <GanttChart indexColumnWidth={320} />
-        <div className={`overflow-y-auto shrink-0`}>
+        <div className={`overflow-y-auto flex-none`}>
           <Timeline />
         </div>
-        <div className={`overflow-y-auto shrink-0`}>
+        <div className={`overflow-y-auto flex-none`}>
           <SBTTB />
           <NonTodoQueueNodes />
         </div>
@@ -416,11 +416,11 @@ const Body = () => {
 const CoveyQuadrants = () => {
   return (
     <>
-      <div className={`w-[16em] shrink-0`}>
+      <div className={`w-[16em] flex-none`}>
         <CoveyQuadrant quadrant_id="important_urgent" />
         <CoveyQuadrant quadrant_id="not_important_urgent" />
       </div>
-      <div className={`w-[16em] shrink-0`}>
+      <div className={`w-[16em] flex-none`}>
         <CoveyQuadrant quadrant_id="important_not_urgent" />
         <CoveyQuadrant quadrant_id="not_important_not_urgent" />
       </div>
@@ -916,7 +916,7 @@ const DndTreeNode = React.memo((props: { node_id: types.TNodeId }) => {
       ref={ref}
       className={utils.join(
         isDragging ? "opacity-50" : "opacity-100",
-        "overflow-y-auto shrink-0 relative",
+        "overflow-y-auto flex-none relative",
       )}
     >
       <TreeNode node_id={props.node_id} prefix="p-" />
@@ -1083,7 +1083,7 @@ const MobileMenu = (props: {
       >
         <span className="material-icons">redo</span>
       </button>
-      <div onClick={get_toggle(set_show_todo_only)} className="shrink-0">
+      <div onClick={get_toggle(set_show_todo_only)} className="flex-none">
         TODO{" "}
         <input
           type="radio"
@@ -1101,7 +1101,7 @@ const MobileMenu = (props: {
 const MobileBody = () => {
   return (
     <div className="flex flex-1 gap-x-[1em] overflow-y-hidden">
-      <div className={`overflow-y-auto shrink-0`}>
+      <div className={`overflow-y-auto flex-none`}>
         <MobileQueueColumn />
       </div>
     </div>
