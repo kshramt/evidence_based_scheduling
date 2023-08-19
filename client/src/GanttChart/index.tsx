@@ -48,12 +48,10 @@ const IndexCell = React.memo(
       return state.caches[state.todo_node_ids[props.rowIndex]].text;
     });
     return (
-      <div
-        title={text}
-        className="px-[0.5em] overflow-hidden"
-        style={props.style}
-      >
-        {text}
+      <div className="px-[0.5em] border" style={props.style}>
+        <div title={text} className="overflow-hidden whitespace-nowrap">
+          {text}
+        </div>
       </div>
     );
   },
