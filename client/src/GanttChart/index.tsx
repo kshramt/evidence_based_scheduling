@@ -38,7 +38,14 @@ const HeaderCell = React.memo(
   (props: { columnIndex: number; style: React.CSSProperties }) => {
     const t = new Date(START_TIME.f + props.columnIndex * DAY_MS);
     const title = `${t.getFullYear()}-${t.getMonth() + 1}-${t.getDate()}`;
-    return <div style={props.style} className="border">{title}</div>;
+    return (
+      <div
+        style={props.style}
+        className="border dark:border-neutral-500 border-neutral-400"
+      >
+        {title}
+      </div>
+    );
   },
 );
 
@@ -48,7 +55,10 @@ const IndexCell = React.memo(
       return state.caches[state.todo_node_ids[props.rowIndex]].text;
     });
     return (
-      <div className="px-[0.5em] border" style={props.style}>
+      <div
+        className="px-[0.5em] border dark:border-neutral-500 border-neutral-400"
+        style={props.style}
+      >
         <div title={text} className="overflow-hidden whitespace-nowrap">
           {text}
         </div>
@@ -60,9 +70,6 @@ const IndexCell = React.memo(
 const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
   const resize = useComponentSize();
   const nodeIds = types.useSelector((state) => state.todo_node_ids);
-  const style = React.useMemo(() => {
-    return { overflow: "hidden" };
-  }, []);
   const nodes = types.useSelector((state) => state.data.nodes);
   const headerRef = React.useRef<RWindow.FixedSizeGrid>(null);
   const indexColumnRef = React.useRef<RWindow.FixedSizeGrid>(null);
@@ -111,7 +118,7 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
       return (
         <div
           className={utils.join(
-            "border",
+            "border dark:border-neutral-500 border-neutral-400",
             hit && "bg-blue-400 dark:bg-blue-900",
           )}
           style={props.style}
@@ -147,7 +154,6 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
             rowCount={1}
             rowHeight={rowHeight}
             ref={headerRef}
-            style={style}
           >
             {HeaderCell}
           </RWindow.FixedSizeGrid>
@@ -164,7 +170,6 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
             rowCount={nodeIds.length}
             rowHeight={rowHeight}
             ref={indexColumnRef}
-            style={style}
           >
             {IndexCell}
           </RWindow.FixedSizeGrid>
