@@ -333,7 +333,10 @@ const Menu = (props: {
           onChange={_suppress_missing_onChange_handler_warning}
         />
       </div>
-      <div onClick={get_toggle(set_show_strong_edge_only)} className="flex-none">
+      <div
+        onClick={get_toggle(set_show_strong_edge_only)}
+        className="flex-none"
+      >
         Strong{" "}
         <input
           type="radio"
@@ -397,7 +400,6 @@ const Body = () => {
           <SBTTB />
           <TreeNode node_id={root} />
         </div>
-
         <GanttChart indexColumnWidth={320} />
         <div className={`overflow-y-auto flex-none`}>
           <Timeline />

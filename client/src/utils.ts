@@ -205,3 +205,9 @@ export const useToTree = (node_id: types.TNodeId) => {
     setTimeout(() => focus(document.getElementById(`t-${node_id}`)), 100);
   }, [node_id, dispatch]);
 };
+
+export const useToggle = () => {
+  const [value, setValue] = React.useState(false);
+  const toggle = React.useCallback(() => setValue((v) => !v), [setValue]);
+  return [value, toggle] as const;
+};

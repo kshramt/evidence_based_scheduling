@@ -155,6 +155,7 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
     },
     [nodeIds],
   );
+  const [filterActive, toggleFilterActive] = utils.useToggle();
 
   if (resize.height < 0) {
     return (
@@ -165,6 +166,14 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
   }
   return (
     <div className="h-full w-full flex-none flex flex-col">
+      <div className="flex-none flex h-[3rem] items-center gap-[0.5em]">
+        <label>Filter active:</label>
+        <input
+          checked={filterActive}
+          onClick={toggleFilterActive}
+          type="checkbox"
+        />
+      </div>
       <div className="flex-none flex" style={headerStyle}>
         <div className="flex-none" style={indexColumnStyle}>
           a\b
