@@ -51,17 +51,25 @@ const HeaderCell = React.memo(
 
 const IndexCell = React.memo(
   (props: { rowIndex: number; style: React.CSSProperties }) => {
+    const nodeId = types.useSelector(
+      (state) => state.todo_node_ids[props.rowIndex],
+    );
+    const toTree = utils.useToTree(nodeId);
     const text = types.useSelector((state) => {
       return state.caches[state.todo_node_ids[props.rowIndex]].text;
     });
     return (
       <div
-        className="px-[0.5em] border dark:border-neutral-500 border-neutral-400"
+        className="px-[0.5em] border dark:border-neutral-500 border-neutral-400 flex"
         style={props.style}
       >
-        <div title={text} className="overflow-hidden whitespace-nowrap">
+        <button
+          onClick={toTree}
+          title={text}
+          className="w-full whitespace-nowrap text-left overflow-hidden"
+        >
           {text}
-        </div>
+        </button>
       </div>
     );
   },
@@ -141,7 +149,7 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
 
   const itemKey = React.useCallback(
     (props: { columnIndex: number; rowIndex: number }) => {
-      return `${nodeIds[props.columnIndex]}/${props.rowIndex}`;
+      return `${nodeIds[props.rowIndex]}/${props.columnIndex}`;
     },
     [nodeIds],
   );

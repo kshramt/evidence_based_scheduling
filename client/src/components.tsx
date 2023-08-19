@@ -576,7 +576,7 @@ const CoveyQuadrantNode = React.memo(
         }),
       );
     }, [props.quadrant_id, props.node_id, dispatch]);
-    const to_tree = useToTree(props.node_id);
+    const to_tree = utils.useToTree(props.node_id);
     return status === "todo" ? (
       <div
         className={utils.join(
@@ -811,7 +811,7 @@ const PlannedNode = (props: {
       }),
     );
   }, [props.time_node_id, props.node_id, dispatch]);
-  const to_tree = useToTree(props.node_id);
+  const to_tree = utils.useToTree(props.node_id);
   return (
     <props.Component
       className={utils.join(
@@ -996,7 +996,7 @@ const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
   const is_todo = status === "todo";
   const is_running = useIsRunning(props.node_id);
-  const to_tree = useToTree(props.node_id);
+  const to_tree = utils.useToTree(props.node_id);
   const handleKeyDown = useTaskShortcutKeys(props.node_id, TREE_PREFIX);
 
   return (
@@ -1565,7 +1565,7 @@ const EdgeRow = React.memo(
 );
 
 const EdgeRowContent = React.memo((props: { node_id: types.TNodeId }) => {
-  const to_tree = useToTree(props.node_id);
+  const to_tree = utils.useToTree(props.node_id);
   const text = useSelector((state) => state.caches[props.node_id].text);
   const disabled = useSelector((state) => {
     return (
@@ -2013,7 +2013,7 @@ const MobilePredictedNextNodes = () => {
 };
 const MobilePredictedNextNode = (props: { node_id: types.TNodeId }) => {
   const text = useSelector((state) => state.caches[props.node_id].text);
-  const to_tree = useToTree(props.node_id);
+  const to_tree = utils.useToTree(props.node_id);
   return (
     <div className="flex w-fit gap-x-[0.25em] items-baseline py-[0.125em]">
       <StartButton node_id={props.node_id} />
@@ -2041,7 +2041,7 @@ const PredictedNextNodes = () => {
 };
 const PredictedNextNode = React.memo((props: { node_id: types.TNodeId }) => {
   const text = useSelector((state) => state.caches[props.node_id].text);
-  const to_tree = useToTree(props.node_id);
+  const to_tree = utils.useToTree(props.node_id);
   return (
     <div className="flex w-fit gap-x-[0.25em] items-baseline py-[0.125em]">
       <StartButton node_id={props.node_id} />
@@ -2239,14 +2239,6 @@ const focusFirstChildTextAreaActionOf =
       }`,
     );
   };
-
-const useToTree = (node_id: types.TNodeId) => {
-  const dispatch = useDispatch();
-  return React.useCallback(() => {
-    dispatch(actions.show_path_to_selected_node(node_id));
-    setTimeout(() => utils.focus(document.getElementById(`t-${node_id}`)), 100);
-  }, [node_id, dispatch]);
-};
 
 const useToQueue = (node_id: types.TNodeId) => {
   return React.useCallback(() => {

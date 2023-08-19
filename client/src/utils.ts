@@ -1,6 +1,7 @@
 import * as idb from "idb";
 import React from "react";
 
+import * as actions from "./actions";
 import * as types from "./types";
 
 // Vose (1991)'s linear version of Walker (1974)'s alias method.
@@ -195,4 +196,12 @@ export const getAllFromIndexedDb = async <T>(db: idb.IDBPDatabase<T>) => {
   }
   await tx.done;
   return res;
+};
+
+export const useToTree = (node_id: types.TNodeId) => {
+  const dispatch = types.useDispatch();
+  return React.useCallback(() => {
+    dispatch(actions.show_path_to_selected_node(node_id));
+    setTimeout(() => focus(document.getElementById(`t-${node_id}`)), 100);
+  }, [node_id, dispatch]);
 };
