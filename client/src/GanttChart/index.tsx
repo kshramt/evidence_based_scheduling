@@ -67,10 +67,50 @@ const IndexCell = React.memo(
   },
 );
 
+const Cell = React.memo(
+  (props: {
+    columnIndex: number;
+    rowIndex: number;
+    style: React.CSSProperties;
+  }) => {
+    const events = types.useSelector(
+      (state) => state.data.nodes[state.todo_node_ids[props.rowIndex]].events,
+    );
+    const hit = React.useMemo(() => {
+      const start = { f: START_TIME.f + props.columnIndex * DAY_MS };
+      const end = { f: start.f + DAY_MS };
+      let hit = false;
+      for (const event of events || []) {
+        const overlapState = intervals.getOverlapState(
+          start,
+          end,
+          times.ensureFloatingTime(event.interval_set.start),
+          times.ensureFloatingTime(event.interval_set.end),
+          event.interval_set.delta,
+          intervals.getFloatingTimeOfLimit(event.interval_set),
+        );
+        if (overlapState !== intervals.Overlap.NO_OVERLAP) {
+          hit = true;
+          break;
+        }
+      }
+      return hit;
+    }, [events, props.columnIndex]);
+    return (
+      <div
+        className={utils.join(
+          "border dark:border-neutral-500 border-neutral-400",
+          hit && "bg-blue-400 dark:bg-blue-900",
+        )}
+        style={props.style}
+      />
+    );
+  },
+);
+
 const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
   const resize = useComponentSize();
   const nodeIds = types.useSelector((state) => state.todo_node_ids);
-  const nodes = types.useSelector((state) => state.data.nodes);
   const headerRef = React.useRef<RWindow.FixedSizeGrid>(null);
   const indexColumnRef = React.useRef<RWindow.FixedSizeGrid>(null);
   const onScroll = React.useCallback(
@@ -92,45 +132,19 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
     columnWidth * Math.floor((tnow.f - START_TIME.f) / DAY_MS);
   const initialScrollTop = rowHeight * 0;
 
-  const _Cell = React.useCallback(
-    (props: {
-      columnIndex: number;
-      rowIndex: number;
-      style: React.CSSProperties;
-    }) => {
-      const start = { f: START_TIME.f + props.columnIndex * DAY_MS };
-      const end = { f: start.f + DAY_MS };
-      let hit = false;
-      for (const event of nodes[nodeIds[props.rowIndex]].events || []) {
-        const overlapState = intervals.getOverlapState(
-          start,
-          end,
-          times.ensureFloatingTime(event.interval_set.start),
-          times.ensureFloatingTime(event.interval_set.end),
-          event.interval_set.delta,
-          intervals.getFloatingTimeOfLimit(event.interval_set),
-        );
-        if (overlapState !== intervals.Overlap.NO_OVERLAP) {
-          hit = true;
-          break;
-        }
-      }
-      return (
-        <div
-          className={utils.join(
-            "border dark:border-neutral-500 border-neutral-400",
-            hit && "bg-blue-400 dark:bg-blue-900",
-          )}
-          style={props.style}
-        />
-      );
-    },
-    [nodes, nodeIds],
-  );
-  const Cell = React.useMemo(() => React.memo(_Cell), [_Cell]);
-  const styleIndexColumn = React.useMemo(() => {
+  const indexColumnStyle = React.useMemo(() => {
     return { width: props.indexColumnWidth };
   }, [props.indexColumnWidth]);
+  const headerStyle = React.useMemo(() => {
+    return { height: rowHeight };
+  }, [rowHeight]);
+
+  const itemKey = React.useCallback(
+    (props: { columnIndex: number; rowIndex: number }) => {
+      return `${nodeIds[props.columnIndex]}/${props.rowIndex}`;
+    },
+    [nodeIds],
+  );
 
   if (resize.height < 0) {
     return (
@@ -141,8 +155,8 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
   }
   return (
     <div className="h-full w-full flex-none flex flex-col">
-      <div className="flex-none flex" style={{ height: rowHeight }}>
-        <div className="flex-none" style={styleIndexColumn}>
+      <div className="flex-none flex" style={headerStyle}>
+        <div className="flex-none" style={indexColumnStyle}>
           a\b
         </div>
         <div className="flex-auto">
@@ -161,7 +175,7 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
       </div>
       {/* Why `overflow-hidden` is required to make `resized.height` to be aware of the first row? */}
       <div className="flex-auto flex overflow-hidden">
-        <div className="flex-none" style={styleIndexColumn}>
+        <div className="flex-none" style={indexColumnStyle}>
           <RWindow.FixedSizeGrid
             columnCount={1}
             columnWidth={props.indexColumnWidth}
@@ -170,6 +184,7 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
             rowCount={nodeIds.length}
             rowHeight={rowHeight}
             ref={indexColumnRef}
+            itemKey={itemKey}
           >
             {IndexCell}
           </RWindow.FixedSizeGrid>
@@ -185,6 +200,7 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
             onScroll={onScroll}
             initialScrollLeft={initialScrollLeft}
             initialScrollTop={initialScrollTop}
+            itemKey={itemKey}
           >
             {Cell}
           </RWindow.FixedSizeGrid>
