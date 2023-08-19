@@ -132,7 +132,7 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
   const columnCount = (END_TIME.f - START_TIME.f) / DAY_MS;
   const columnWidth = 96;
   const rowHeight = 32;
-  const [filterActive, toggleFilterActive] = utils.useToggle();
+  const [filterActive, toggleFilterActive] = utils.useToggle(true);
   const initialScrollLeft =
     columnWidth * Math.floor((tnow.f - START_TIME.f) / DAY_MS);
   const initialScrollTop = rowHeight * 0;

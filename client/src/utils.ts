@@ -206,8 +206,8 @@ export const useToTree = (node_id: types.TNodeId) => {
   }, [node_id, dispatch]);
 };
 
-export const useToggle = () => {
-  const [value, setValue] = React.useState(false);
+export const useToggle = (initialValue: boolean = false) => {
+  const [value, setValue] = React.useState(initialValue);
   const toggle = React.useCallback(() => setValue((v) => !v), [setValue]);
   return [value, toggle] as const;
 };
