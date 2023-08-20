@@ -1,7 +1,8 @@
 import { test, expect } from "vitest";
 import * as idb from "idb";
-import * as T from "./storage";
+import * as Immer from "immer";
 
+import * as T from "./storage";
 import * as utils from "src/utils";
 
 test("_getDbV1", async () => {
@@ -77,6 +78,36 @@ test("_getDbV1 -> insert data -> _getDbV2", async () => {
       const newData = await utils.getAllFromIndexedDb(db);
       db.close();
       expect(newData).toStrictEqual(indexedDbV2Data);
+    }
+  } finally {
+    await idb.deleteDB(id);
+  }
+});
+
+test("_getDbV1 -> insert data -> _getDbV2 -> _getDbV3", async () => {
+  const id = crypto.randomUUID();
+  const db = await T._getDbV1(id);
+  try {
+    // Insert indexedDbV1Data into db
+    const tx = db.transaction(db.objectStoreNames, "readwrite");
+    for (const storeName of tx.objectStoreNames) {
+      const store = tx.objectStore(storeName);
+      const records = indexedDbV1Data[storeName];
+      for (const record of records) {
+        if (typeof record.key === "string") {
+          await store.put(record.value, record.key);
+        } else {
+          await store.put(record.value);
+        }
+      }
+    }
+    await tx.done;
+    db.close();
+    {
+      const db = await T._getDbV3(id);
+      const newData = await utils.getAllFromIndexedDb(db);
+      db.close();
+      expect(newData).toStrictEqual(indexedDbV3Data);
     }
   } finally {
     await idb.deleteDB(id);
@@ -773,3 +804,8 @@ const indexedDbV2Data = {
   pending_patches: [],
   snapshots: [],
 } as const;
+
+const indexedDbV3Data = Immer.produce(indexedDbV2Data, (draft) => {
+  // @ts-expect-error
+  draft.ui_calender_open_set = [];
+});
