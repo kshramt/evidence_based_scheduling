@@ -3,6 +3,18 @@ import * as React from "react";
 import { useCallback } from "react";
 import * as Dnd from "react-dnd";
 
+import AutoHeightTextArea from "./AutoHeightTextArea";
+import Calendar from "./Calendar";
+import CopyNodeIdButton from "./CopyNodeIdButton";
+import GanttChart from "./GanttChart";
+import MenuButton from "./Header/MenuButton";
+import PlannedEvents from "./PlannedEvents";
+import ScrollBackToTopButton from "./ScrollBackToTopButton";
+import StartButton from "./StartButton";
+import StartConcurrentButton from "./StartConcurrentButton";
+import StopButton from "./StopButton";
+import TocForm from "./Details/Component/TocForm";
+import ToggleButton from "./ToggleButton";
 import * as types from "./types";
 import { useDispatch, useSelector } from "./types";
 import * as actions from "./actions";
@@ -14,24 +26,12 @@ import { prevent_propagation } from "./utils";
 import * as ops from "./ops";
 import * as toast from "./toast";
 import * as undoable from "./undoable";
-import AutoHeightTextArea from "./AutoHeightTextArea";
-import MenuButton from "./Header/MenuButton";
-import TocForm from "./Details/Component/TocForm";
-import ScrollBackToTopButton from "./ScrollBackToTopButton";
-import ToggleButton from "./ToggleButton";
-import GanttChart from "./GanttChart";
-import PlannedEvents from "./PlannedEvents";
 
 const SCROLL_BACK_TO_TOP_MARK = (
   <span className="material-icons">vertical_align_top</span>
 );
-const WEEK_0_BEGIN = new Date(Date.UTC(2021, 12 - 1, 27));
-const WEEK_MSEC = 86400 * 1000 * 7;
-const EMPTY_STRING = "";
 
 const TREE_PREFIX = "t-";
-
-const DEFAULT_DELAY_MSEC = 10_000;
 
 export const MobileApp = React.memo(
   (props: { ctx: states.PersistentStateManager; logOut: () => void }) => {
@@ -67,7 +67,7 @@ const MobileNodeFilterQueryInput = () => {
     [setNodeFilterQuery],
   );
   const clear_input = useCallback(() => {
-    const v = EMPTY_STRING;
+    const v = consts.EMPTY_STRING;
     setNodeFilterQuery(v);
   }, [setNodeFilterQuery]);
   return (
@@ -100,7 +100,7 @@ const NodeFilterQueryInput = () => {
     [setNodeFilterQuery],
   );
   const clear_input = useCallback(() => {
-    const v = EMPTY_STRING;
+    const v = consts.EMPTY_STRING;
     setNodeFilterQuery(v);
   }, [setNodeFilterQuery]);
   const ref = useMetaK();
@@ -200,7 +200,7 @@ const NodeIdsInput = () => {
     [setNodeIds],
   );
   const clear_input = useCallback(() => {
-    const v = EMPTY_STRING;
+    const v = consts.EMPTY_STRING;
     setNodeIds(v);
   }, [setNodeIds]);
   return (
@@ -401,6 +401,7 @@ const Body = () => {
           <TreeNode node_id={root} />
         </div>
         <GanttChart indexColumnWidth={320} />
+        <Calendar />
         <div className={`overflow-y-auto flex-none`}>
           <Timeline />
         </div>
@@ -523,7 +524,7 @@ const CoveyQuadrant = React.memo(
     const dispatch = useDispatch();
     const selectedNodeIds = Jotai.useAtomValue(states.nodeIdsState);
     const assign_nodes = React.useCallback(() => {
-      const node_ids = node_ids_list_of_node_ids_string(selectedNodeIds);
+      const node_ids = utils.node_ids_list_of_node_ids_string(selectedNodeIds);
       if (node_ids.length < 1) {
         return;
       }
@@ -568,8 +569,8 @@ const CoveyQuadrantNode = React.memo(
       (state) => state.data.nodes[props.node_id].status,
     );
     const dispatch = useDispatch();
-    const { isOn, turnOn, turnOff } = useOn();
-    const is_running = useIsRunning(props.node_id);
+    const { isOn, turnOn, turnOff } = utils.useOn();
+    const is_running = utils.useIsRunning(props.node_id);
     const unassign_node = React.useCallback(() => {
       dispatch(
         actions.unassign_nodes_of_covey_quadrant_action({
@@ -642,14 +643,14 @@ const TimeNode = React.memo((props: { time_node_id: types.TTimeNodeId }) => {
   );
 
   const year_begin = useSelector((state) => state.data.timeline.year_begin);
-  const child_time_node_ids = child_time_node_ids_of(
+  const child_time_node_ids = utils.child_time_node_ids_of(
     props.time_node_id,
     year_begin,
   );
   const id = `tl-${props.time_node_id}`;
   const id_el = (
     <a href={`#${id}`} id={id}>
-      {time_node_id_repr_of(props.time_node_id, year_begin)}
+      {utils.getTimeNodeIdEl(props.time_node_id, year_begin)}
     </a>
   );
 
@@ -733,15 +734,15 @@ const TimeNodeEntry = React.memo(
       (state) => state.data.timeline.time_nodes[props.time_node_id],
     );
     const selectedNodeIds = Jotai.useAtomValue(states.nodeIdsState);
-    const text = time_node?.text ? time_node.text : EMPTY_STRING;
-    const { isOn, turnOn, turnOff } = useOn(0);
+    const text = time_node?.text ? time_node.text : consts.EMPTY_STRING;
+    const { isOn, turnOn, turnOff } = utils.useOn(0);
 
     const toggle_show_children = React.useCallback(() => {
       const payload = props.time_node_id;
       dispatch(actions.toggle_show_time_node_children_action(payload));
     }, [props.time_node_id, dispatch]);
     const assign_nodes = React.useCallback(() => {
-      const node_ids = node_ids_list_of_node_ids_string(selectedNodeIds);
+      const node_ids = utils.node_ids_list_of_node_ids_string(selectedNodeIds);
       if (node_ids.length < 1) {
         return;
       }
@@ -803,8 +804,8 @@ const PlannedNode = (props: {
   const text = useSelector((state) => state.caches[props.node_id].text);
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
   const dispatch = useDispatch();
-  const { isOn, turnOn, turnOff } = useOn();
-  const is_running = useIsRunning(props.node_id);
+  const { isOn, turnOn, turnOff } = utils.useOn();
+  const is_running = utils.useIsRunning(props.node_id);
   const unassign_node = React.useCallback(() => {
     dispatch(
       actions.unassign_nodes_of_time_node_action({
@@ -990,14 +991,14 @@ const Edge = React.memo(
 );
 
 const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
-  const { isOn, turnOn, turnOff } = useOn(0);
+  const { isOn, turnOn, turnOff } = utils.useOn(0);
   const show_detail = useSelector(
     (state) => state.caches[props.node_id].show_detail,
   );
   const cache = useSelector((state) => state.caches[props.node_id]);
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
   const is_todo = status === "todo";
-  const is_running = useIsRunning(props.node_id);
+  const is_running = utils.useIsRunning(props.node_id);
   const to_tree = utils.useToTree(props.node_id);
   const handleKeyDown = useTaskShortcutKeys(props.node_id, TREE_PREFIX);
 
@@ -1169,8 +1170,8 @@ const TreeEntry = React.memo(
     const show_detail = useSelector(
       (state) => state.caches[props.node_id].show_detail,
     );
-    const { isOn, turnOn, turnOff } = useOn(0);
-    const is_running = useIsRunning(props.node_id);
+    const { isOn, turnOn, turnOff } = utils.useOn(0);
+    const is_running = utils.useIsRunning(props.node_id);
     const cache = useSelector((state) => state.caches[props.node_id]);
     const status = useSelector(
       (state) => state.data.nodes[props.node_id].status,
@@ -1214,7 +1215,7 @@ const useTaskShortcutKeys = (node_id: null | types.TNodeId, prefix: string) => {
   const show_mobile = Jotai.useAtomValue(
     states.show_mobile_atom_map.get(session),
   );
-  const is_running = useIsRunning(node_id);
+  const is_running = utils.useIsRunning(node_id);
   return React.useCallback(
     (event: React.KeyboardEvent<HTMLElement>) => {
       if (node_id === null) {
@@ -1274,7 +1275,7 @@ const DetailsImpl = React.memo((props: { node_id: types.TNodeId }) => {
   const handle_add_parents = React.useCallback(() => {
     dispatch(
       actions.add_edges_action(
-        node_ids_list_of_node_ids_string(nodeIds).map((p) => ({
+        utils.node_ids_list_of_node_ids_string(nodeIds).map((p) => ({
           p,
           c: props.node_id,
           t: new_edge_type,
@@ -1285,7 +1286,7 @@ const DetailsImpl = React.memo((props: { node_id: types.TNodeId }) => {
   const handle_add_children = React.useCallback(() => {
     dispatch(
       actions.add_edges_action(
-        node_ids_list_of_node_ids_string(nodeIds).map((c) => ({
+        utils.node_ids_list_of_node_ids_string(nodeIds).map((c) => ({
           p: props.node_id,
           c,
           t: new_edge_type,
@@ -1587,16 +1588,6 @@ const EdgeRowContent = React.memo((props: { node_id: types.TNodeId }) => {
   );
 });
 
-const useIsRunning = (node_id: null | types.TNodeId) => {
-  const ranges = useSelector((state) =>
-    node_id === null ? null : state.data.nodes[node_id].ranges,
-  );
-  if (ranges === null) return false;
-  const last_range = ranges.at(-1);
-  const is_running = last_range && last_range.end === null;
-  return is_running;
-};
-
 const EntryWrapper = (props: {
   node_id: types.TNodeId;
   children: React.ReactNode;
@@ -1604,7 +1595,7 @@ const EntryWrapper = (props: {
   onMouseLeave?: () => void;
   component?: keyof JSX.IntrinsicElements;
 }) => {
-  const is_running = useIsRunning(props.node_id);
+  const is_running = utils.useIsRunning(props.node_id);
   const n_hidden_child_edges = useSelector(
     (state) => state.caches[props.node_id].n_hidden_child_edges,
   );
@@ -1772,41 +1763,6 @@ const StartOrStopButtons = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const StartButton = (props: { node_id: types.TNodeId }) => {
-  const dispatch = useDispatch();
-  const on_click = React.useCallback(() => {
-    dispatch(
-      actions.start_action({ node_id: props.node_id, is_concurrent: false }),
-    );
-  }, [props.node_id, dispatch]);
-  return (
-    <button
-      className="btn-icon"
-      onClick={on_click}
-      onDoubleClick={prevent_propagation}
-    >
-      {consts.START_MARK}
-    </button>
-  );
-};
-const StartConcurrentButton = (props: { node_id: types.TNodeId }) => {
-  const dispatch = useDispatch();
-  const on_click = React.useCallback(() => {
-    dispatch(
-      actions.start_action({ node_id: props.node_id, is_concurrent: true }),
-    );
-  }, [props.node_id, dispatch]);
-  return (
-    <button
-      className="btn-icon"
-      onClick={on_click}
-      onDoubleClick={prevent_propagation}
-    >
-      {consts.START_CONCURRNET_MARK}
-    </button>
-  );
-};
-
 const AddButton = (props: {
   node_id: types.TNodeId;
   prefix?: undefined | string;
@@ -1835,28 +1791,6 @@ const AddButton = (props: {
     </button>
   );
 };
-
-const StopButton = React.forwardRef<
-  HTMLButtonElement,
-  { node_id: types.TNodeId }
->((props, ref) => {
-  const dispatch = useDispatch();
-  const on_click = React.useCallback(() => {
-    dispatch(actions.stop_action(props.node_id));
-  }, [props.node_id, dispatch]);
-
-  return (
-    <button
-      className="btn-icon"
-      arial-label="Stop."
-      onClick={on_click}
-      ref={ref}
-      onDoubleClick={prevent_propagation}
-    >
-      {consts.STOP_MARK}
-    </button>
-  );
-});
 
 const TopButton = (props: { node_id: types.TNodeId; disabled?: boolean }) => {
   const dispatch = useDispatch();
@@ -2056,31 +1990,6 @@ const PredictedNextNode = React.memo((props: { node_id: types.TNodeId }) => {
   );
 });
 
-const CopyNodeIdButton = (props: { node_id: types.TNodeId }) => {
-  const { copy, is_copied } = utils.useClipboard();
-  const setNodeIds = Jotai.useSetAtom(states.nodeIdsState);
-  const handle_click = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      const multi = e.ctrlKey || e.metaKey;
-      setNodeIds((node_ids: string) => {
-        const res = multi ? props.node_id + " " + node_ids : props.node_id;
-        copy(res);
-        return res;
-      });
-    },
-    [props.node_id, setNodeIds, copy],
-  );
-  return (
-    <button
-      className="btn-icon"
-      onClick={handle_click}
-      onDoubleClick={prevent_propagation}
-    >
-      {is_copied ? consts.DONE_MARK : consts.COPY_MARK}
-    </button>
-  );
-};
-
 const TextArea = ({
   node_id,
   className,
@@ -2248,46 +2157,6 @@ const useToQueue = (node_id: types.TNodeId) => {
   }, [node_id]);
 };
 
-const useOn = (delayMsec: number = DEFAULT_DELAY_MSEC) => {
-  const [isOn, setHover] = React.useState(false);
-  const timeoutRef = React.useRef<number | null>(null);
-
-  const clearDelay = useCallback(() => {
-    if (timeoutRef.current !== null) {
-      window.clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-  }, []);
-
-  const turnOn = useCallback(() => {
-    clearDelay();
-    setHover(true);
-  }, [clearDelay]);
-
-  const turnOff = useCallback(() => {
-    clearDelay();
-    if (0 < delayMsec) {
-      timeoutRef.current = window.setTimeout(() => {
-        setHover(false);
-      }, delayMsec);
-    } else {
-      setHover(false);
-    }
-  }, [clearDelay, delayMsec]);
-
-  React.useEffect(() => {
-    return clearDelay;
-  }, [clearDelay]);
-
-  return React.useMemo(() => {
-    return {
-      isOn,
-      turnOn,
-      turnOff,
-    };
-  }, [isOn, turnOn, turnOff]);
-};
-
 const _should_hide_of = (
   node_filter_query: string,
   text: string,
@@ -2303,16 +2172,6 @@ const _should_hide_of = (
     }
   }
   return !is_match_filter_node_query;
-};
-
-const node_ids_list_of_node_ids_string = (node_ids: string) => {
-  const seen = new Set<types.TNodeId>();
-  for (const node_id of node_ids.split(" ")) {
-    if (node_id && types.is_TNodeId(node_id) && !seen.has(node_id)) {
-      seen.add(node_id);
-    }
-  }
-  return Array.from(seen);
 };
 
 const digits2 = (x: number) => {
@@ -2338,164 +2197,6 @@ const last_range_of = (ranges: types.TRange[]): null | types.TRange => {
     } else {
       return last;
     }
-  }
-};
-
-const time_node_id_repr_of = (
-  time_node_id: types.TTimeNodeId,
-  year_begin: number,
-) => {
-  if (time_node_id[0] === "e") {
-    // dEcade
-    const i_count = parseInt(time_node_id.slice(1));
-    if (isNaN(i_count)) {
-      throw new Error(`Invalid format: ${time_node_id}`);
-    }
-    const y0 = year_begin + 10 * i_count;
-    return (
-      <>
-        <b>{"E "}</b>
-        {`${y0}/P10Y`}
-      </>
-    );
-  } else if (time_node_id[0] === "y") {
-    return (
-      <>
-        <b>{"Y "}</b>
-        {time_node_id.slice(1)}
-      </>
-    );
-  } else if (time_node_id[0] === "q") {
-    return (
-      <>
-        <b>{"Q "}</b>
-        {time_node_id.slice(1)}
-      </>
-    );
-  } else if (time_node_id[0] === "m") {
-    return (
-      <>
-        <b>{"M "}</b>
-        {time_node_id.slice(1)}
-      </>
-    );
-  } else if (time_node_id[0] === "w") {
-    const w = parseInt(time_node_id.slice(1));
-    if (isNaN(w)) {
-      throw new Error(`Invalid format: ${time_node_id}`);
-    }
-    const t0 = new Date(Number(WEEK_0_BEGIN) + WEEK_MSEC * w);
-    const y0 = t0.getUTCFullYear();
-    const m0 = (t0.getUTCMonth() + 1).toString().padStart(2, "0");
-    const d0 = t0.getUTCDate().toString().padStart(2, "0");
-    return (
-      <>
-        <b>{"W "}</b>
-        {`${y0}-${m0}-${d0}/P7D`}
-      </>
-    );
-  } else if (time_node_id[0] === "d") {
-    return <>{time_node_id.slice(-8)}</>;
-  } else if (time_node_id[0] === "h") {
-    return <>{time_node_id.slice(-2)}</>;
-  } else {
-    throw new Error(`Unsupported time_node_id: ${time_node_id}`);
-  }
-};
-
-const child_time_node_ids_of = (
-  time_node_id: types.TTimeNodeId,
-  year_begin: number,
-) => {
-  const child_time_node_ids: string[] = child_time_node_ids_of_impl(
-    time_node_id,
-    year_begin,
-  );
-  return child_time_node_ids as types.TTimeNodeId[];
-};
-const child_time_node_ids_of_impl = (
-  time_node_id: types.TTimeNodeId,
-  year_begin: number,
-) => {
-  if (time_node_id[0] === "e") {
-    // dEcade
-    const decade_count = parseInt(time_node_id.slice(1));
-    if (isNaN(decade_count)) {
-      throw new Error(`Invalid format: ${time_node_id}`);
-    }
-    const offset = year_begin + 10 * decade_count;
-    const res = [];
-    for (let dy = 0; dy < 10; ++dy) {
-      res.push(`y${offset + dy}`);
-    }
-    return res;
-  } else if (time_node_id[0] === "y") {
-    const y = time_node_id.slice(1);
-    return [`q${y}-Q1`, `q${y}-Q2`, `q${y}-Q3`, `q${y}-Q4`];
-  } else if (time_node_id[0] === "q") {
-    const y = time_node_id.slice(1, 5);
-    const q = time_node_id.at(-1);
-    if (q === "1") {
-      return [`m${y}-01`, `m${y}-02`, `m${y}-03`];
-    } else if (q === "2") {
-      return [`m${y}-04`, `m${y}-05`, `m${y}-06`];
-    } else if (q === "3") {
-      return [`m${y}-07`, `m${y}-08`, `m${y}-09`];
-    } else if (q === "4") {
-      return [`m${y}-10`, `m${y}-11`, `m${y}-12`];
-    } else {
-      throw new Error(`Invalid format: ${time_node_id}`);
-    }
-  } else if (time_node_id[0] === "m") {
-    const y = parseInt(time_node_id.slice(1, 5));
-    if (isNaN(y)) {
-      throw new Error(`Invalid format: ${time_node_id}`);
-    }
-    const m = parseInt(time_node_id.slice(6, 8));
-    if (isNaN(m)) {
-      throw new Error(`Invalid format: ${time_node_id}`);
-    }
-    const w0 = Math.floor(
-      (Date.UTC(y, m - 1, 1) - Number(WEEK_0_BEGIN)) / WEEK_MSEC,
-    );
-    const w1 = Math.floor(
-      (Date.UTC(y, m - 1 + 1, 0) - Number(WEEK_0_BEGIN)) / WEEK_MSEC,
-    );
-    const res = [];
-    for (let w = w0; w < w1 + 1; ++w) {
-      res.push(`w${w}`);
-    }
-    return res;
-  } else if (time_node_id[0] === "w") {
-    const w = parseInt(time_node_id.slice(1));
-    if (isNaN(w)) {
-      throw new Error(`Invalid format: ${time_node_id}`);
-    }
-    const t0 = new Date(Number(WEEK_0_BEGIN) + WEEK_MSEC * w);
-    const y0 = t0.getUTCFullYear();
-    const m0 = t0.getUTCMonth();
-    const d0 = t0.getUTCDate();
-    const res = [];
-    for (let i = 0; i < 7; ++i) {
-      const t = new Date(Date.UTC(y0, m0, d0 + i));
-      res.push(
-        `d${t.getUTCFullYear()}-${(t.getUTCMonth() + 1)
-          .toString()
-          .padStart(2, "0")}-${t.getUTCDate().toString().padStart(2, "0")}`,
-      );
-    }
-    return res;
-  } else if (time_node_id[0] === "d") {
-    const d = time_node_id.slice(1);
-    const res = [];
-    for (let h = 0; h < 24; ++h) {
-      res.push(`h${d}T${h.toString().padStart(2, "0")}`);
-    }
-    return res;
-  } else if (time_node_id[0] === "h") {
-    return [];
-  } else {
-    throw new Error(`Unsupported time_node_id: ${time_node_id}`);
   }
 };
 
@@ -2541,7 +2242,7 @@ const collect_descendant_time_nodes_planned_node_ids = (
   if (!descend) {
     return res;
   }
-  for (const child_time_node_id of child_time_node_ids_of(
+  for (const child_time_node_id of utils.child_time_node_ids_of(
     time_node_id,
     state.data.timeline.year_begin,
   )) {

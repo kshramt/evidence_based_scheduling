@@ -39,3 +39,9 @@ export const IS_PARTIAL_MARK = (
 export const SPINNER = (
   <div className="animate-spin h-[3rem] w-[3rem] border-4 border-blue-500 rounded-full border-t-transparent"></div>
 );
+
+export const WEEK_0_BEGIN = new Date(Date.UTC(2021, 12 - 1, 27));
+export const WEEK_MSEC = 86400 * 1000 * 7;
+export const EMPTY_STRING = "";
+
+export const DEFAULT_DELAY_MSEC = 10_000;
