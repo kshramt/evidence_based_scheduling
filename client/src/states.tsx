@@ -141,38 +141,6 @@ const get_state_and_patch = async (arg: {
   return { state, patch };
 };
 
-export class Loadable<T> {
-  _state:
-    | { status: "pending"; promise: Promise<T> }
-    | { status: "resolved"; value: T }
-    | { status: "rejected"; error: unknown };
-  constructor(promise: Promise<T>) {
-    this._state = {
-      status: "pending",
-      promise: promise
-        .then((value) => {
-          this._state = { status: "resolved", value };
-          return value;
-        })
-        .catch((error) => {
-          this._state = { status: "rejected", error };
-          throw error;
-        }),
-    };
-  }
-  get = () => {
-    const state = this._state;
-    switch (state.status) {
-      case "pending":
-        throw state.promise;
-      case "resolved":
-        return state.value;
-      case "rejected":
-        throw state.error;
-    }
-  };
-}
-
 class WeakMapV<K extends object, V> extends WeakMap<K, V> {
   get = (k: K) => {
     const res = super.get(k);
