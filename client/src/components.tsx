@@ -400,16 +400,16 @@ const Body = () => {
           <SBTTB />
           <TreeNode node_id={root} />
         </div>
+        <div className={`overflow-y-auto flex-none`}>
+          <SBTTB />
+          <NonTodoQueueNodes />
+        </div>
         <GanttChart indexColumnWidth={320} />
         <div className="overflow-y-auto flex-none">
           <Calendar />
         </div>
         <div className={`overflow-y-auto flex-none`}>
           <Timeline />
-        </div>
-        <div className={`overflow-y-auto flex-none`}>
-          <SBTTB />
-          <NonTodoQueueNodes />
         </div>
         <PinnedSubTrees />
         <CoveyQuadrants />
