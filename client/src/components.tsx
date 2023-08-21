@@ -395,14 +395,14 @@ const Body = () => {
         <hr />
         <TodoQueueNodes />
       </div>
+      <div className={`overflow-y-auto flex-none`}>
+        <SBTTB />
+        <NonTodoQueueNodes />
+      </div>
       <div className={utils.join("flex", pin && "w-full overflow-x-auto")}>
         <div className={`overflow-y-auto flex-none`}>
           <SBTTB />
           <TreeNode node_id={root} />
-        </div>
-        <div className={`overflow-y-auto flex-none`}>
-          <SBTTB />
-          <NonTodoQueueNodes />
         </div>
         <GanttChart indexColumnWidth={320} />
         <div className="overflow-y-auto flex-none">
