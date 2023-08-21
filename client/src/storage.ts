@@ -39,8 +39,6 @@ export type _TPatchValueV2 = {
   created_at: Date;
 };
 
-export type TDb = _TDbV2;
-
 export type _TDbV1 = {
   booleans: {
     key: string;
@@ -91,6 +89,33 @@ export type _TDbV2 = {
   };
 };
 
+export type _TDbV3 = {
+  numbers: {
+    key: string;
+    value: number;
+  };
+  heads: {
+    key: "remote" | "local";
+    value: THead;
+  };
+  patches: {
+    key: [number, number, number];
+    value: _TPatchValueV2;
+  };
+  snapshots: {
+    key: [number, number, number];
+    value: TSnapshot;
+  };
+  pending_patches: {
+    key: [number, number, number];
+    value: THead;
+  };
+  ui_calendar_open_set: {
+    key: string;
+    value: { id: string };
+  };
+};
+
 export const _getDbV1 = async (db_name: string) => {
   return await Idb.openDB<_TDbV1>(db_name, 1, {
     upgrade: async (db, oldVersion) => {
@@ -114,7 +139,36 @@ export const _getDbV2 = async (db_name: string) => {
   });
 };
 
-export const getDb = _getDbV2;
+export const _getDbV3 = async (dbName: string) => {
+  return await Idb.openDB<_TDbV3>(dbName, 3, {
+    upgrade: upgradeToV3,
+  });
+};
+
+export type TDb = _TDbV3;
+export const getDb = _getDbV3;
+
+const upgradeToV3: Exclude<
+  Idb.OpenDBCallbacks<_TDbV3>["upgrade"],
+  undefined
+> = async (db, oldVersion, _, transaction) => {
+  if (oldVersion < 1) {
+    await upgradeFromV0(db as unknown as Idb.IDBPDatabase<_TDbV1>);
+  }
+  if (oldVersion < 2) {
+    await upgradeFromV1(
+      db as unknown as Idb.IDBPDatabase<_TDbV2>,
+      transaction as unknown as Idb.IDBPTransaction<
+        _TDbV2,
+        Idb.StoreNames<_TDbV2>[],
+        "versionchange"
+      >,
+    );
+  }
+  if (oldVersion < 3) {
+    db.createObjectStore("ui_calendar_open_set", { keyPath: "id" });
+  }
+};
 
 const upgradeFromV0 = async (db: Idb.IDBPDatabase<_TDbV1>) => {
   db.createObjectStore("booleans");

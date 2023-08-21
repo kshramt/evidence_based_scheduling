@@ -32,33 +32,15 @@ import {
 import * as types_prev from "./types20";
 
 export type {
-  TActionWithoutPayload,
-  TActionWithPayload,
   TAnyPayloadAction,
   TCaches,
-  TEdge,
-  TEdgeId,
   TEdges,
-  TEdgeType,
-  TNode,
   TNodeId,
   TNodes,
-  TOrderedTEdgeIds,
   TOrderedTNodeIds,
-  TRange,
-  TStatus,
   TTimeline,
-  TTimeNode,
-  TTimeNodeId,
-  TVids,
 } from "./common_types1";
-export {
-  edge_type_values,
-  is_TEdgeType,
-  is_TNodeId,
-  is_TOrderedTNodeIds,
-  is_TTimeNodeId,
-} from "./common_types1";
+export { is_TNodeId, is_TOrderedTNodeIds } from "./common_types1";
 
 export const VERSION = 21 as const;
 

@@ -141,38 +141,6 @@ const get_state_and_patch = async (arg: {
   return { state, patch };
 };
 
-export class Loadable<T> {
-  _state:
-    | { status: "pending"; promise: Promise<T> }
-    | { status: "resolved"; value: T }
-    | { status: "rejected"; error: unknown };
-  constructor(promise: Promise<T>) {
-    this._state = {
-      status: "pending",
-      promise: promise
-        .then((value) => {
-          this._state = { status: "resolved", value };
-          return value;
-        })
-        .catch((error) => {
-          this._state = { status: "rejected", error };
-          throw error;
-        }),
-    };
-  }
-  get = () => {
-    const state = this._state;
-    switch (state.status) {
-      case "pending":
-        throw state.promise;
-      case "resolved":
-        return state.value;
-      case "rejected":
-        throw state.error;
-    }
-  };
-}
-
 class WeakMapV<K extends object, V> extends WeakMap<K, V> {
   get = (k: K) => {
     const res = super.get(k);
@@ -969,4 +937,43 @@ const _get_store = () => {
     get_state: () => state,
     set_state,
   };
+};
+
+export const idbContext =
+  React.createContext<null | Idb.IDBPDatabase<storage.TDb>>(null);
+export const useIdb = () => {
+  const db = React.useContext(idbContext);
+  if (db === null) {
+    throw new Error("idbContext is not set");
+  }
+  return db;
+};
+
+export const useUiCalendarOpenSet = (id: string) => {
+  const db = useIdb();
+  const [isOpen, setIsOpen] = React.useState(false);
+  const toggle = React.useCallback(async () => {
+    const tx = db.transaction("ui_calendar_open_set", "readwrite");
+    const store = tx.objectStore("ui_calendar_open_set");
+    if (await store.get(id)) {
+      await store.delete(id);
+      setIsOpen(false);
+    } else {
+      await store.add({ id });
+      setIsOpen(true);
+    }
+    await tx.done;
+  }, [id, db, setIsOpen]);
+  React.useEffect(() => {
+    db.transaction("ui_calendar_open_set", "readonly")
+      .objectStore("ui_calendar_open_set")
+      .get(id)
+      .then((x) => {
+        setIsOpen(!!x);
+      });
+  }, [id, db]);
+
+  return React.useMemo(() => {
+    return [isOpen, toggle] as const;
+  }, [isOpen, toggle]);
 };
