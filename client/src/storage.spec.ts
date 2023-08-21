@@ -1,15 +1,15 @@
-import { test, expect } from "vitest";
+import * as vt from "vitest";
 import * as idb from "idb";
 import * as Immer from "immer";
 
 import * as T from "./storage";
 import * as utils from "src/utils";
 
-test("_getDbV1", async () => {
+vt.test("_getDbV1", async () => {
   const id = crypto.randomUUID();
   const db = await T._getDbV1(id);
   try {
-    expect(Array.from(db.objectStoreNames).sort()).toStrictEqual(
+    vt.expect(Array.from(db.objectStoreNames).sort()).toStrictEqual(
       [
         "booleans",
         "numbers",
@@ -25,11 +25,11 @@ test("_getDbV1", async () => {
   }
 });
 
-test("_getDbV2", async () => {
+vt.test("_getDbV2", async () => {
   const id = crypto.randomUUID();
   const db = await T._getDbV2(id);
   try {
-    expect(Array.from(db.objectStoreNames).sort()).toStrictEqual(
+    vt.expect(Array.from(db.objectStoreNames).sort()).toStrictEqual(
       ["numbers", "heads", "patches", "snapshots", "pending_patches"].sort(),
     );
   } finally {
@@ -38,7 +38,7 @@ test("_getDbV2", async () => {
   }
 });
 
-test("_getDbV1 -> _getDbV2", async () => {
+vt.test("_getDbV1 -> _getDbV2", async () => {
   const id = crypto.randomUUID();
   const db = await T._getDbV1(id);
   db.close();
@@ -46,7 +46,7 @@ test("_getDbV1 -> _getDbV2", async () => {
     const db = await T._getDbV2(id);
     const storeNames = Array.from(db.objectStoreNames).sort();
     db.close();
-    expect(storeNames).toStrictEqual(
+    vt.expect(storeNames).toStrictEqual(
       ["numbers", "heads", "patches", "snapshots", "pending_patches"].sort(),
     );
   } finally {
@@ -54,7 +54,7 @@ test("_getDbV1 -> _getDbV2", async () => {
   }
 });
 
-test("_getDbV1 -> insert data -> _getDbV2", async () => {
+vt.test("_getDbV1 -> insert data -> _getDbV2", async () => {
   const id = crypto.randomUUID();
   const db = await T._getDbV1(id);
   try {
@@ -77,14 +77,14 @@ test("_getDbV1 -> insert data -> _getDbV2", async () => {
       const db = await T._getDbV2(id);
       const newData = await utils.getAllFromIndexedDb(db);
       db.close();
-      expect(newData).toStrictEqual(indexedDbV2Data);
+      vt.expect(newData).toStrictEqual(indexedDbV2Data);
     }
   } finally {
     await idb.deleteDB(id);
   }
 });
 
-test("_getDbV1 -> insert data -> _getDbV2 -> _getDbV3", async () => {
+vt.test("_getDbV1 -> insert data -> _getDbV2 -> _getDbV3", async () => {
   const id = crypto.randomUUID();
   const db = await T._getDbV1(id);
   try {
@@ -106,8 +106,21 @@ test("_getDbV1 -> insert data -> _getDbV2 -> _getDbV3", async () => {
     {
       const db = await T._getDbV3(id);
       const newData = await utils.getAllFromIndexedDb(db);
+      {
+        const tx = db.transaction(["ui_calendar_open_set"], "readwrite");
+        const store = tx.objectStore("ui_calendar_open_set");
+        await store.put({ id: "2023-01M" });
+        await tx.done;
+      }
+      {
+        const tx = db.transaction(["ui_calendar_open_set"], "readwrite");
+        const store = tx.objectStore("ui_calendar_open_set");
+        const res = await store.get("2023-01M");
+        await tx.done;
+        vt.expect(res).toStrictEqual({ id: "2023-01M" });
+      }
       db.close();
-      expect(newData).toStrictEqual(indexedDbV3Data);
+      vt.expect(newData).toStrictEqual(indexedDbV3Data);
     }
   } finally {
     await idb.deleteDB(id);
@@ -807,5 +820,5 @@ const indexedDbV2Data = {
 
 const indexedDbV3Data = Immer.produce(indexedDbV2Data, (draft) => {
   // @ts-expect-error
-  draft.ui_calender_open_set = [];
+  draft.ui_calendar_open_set = [];
 });

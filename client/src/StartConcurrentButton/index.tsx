@@ -24,4 +24,3 @@ const StartConcurrentButton = (props: { node_id: types.TNodeId }) => {
 };
 
 export default StartConcurrentButton;
-

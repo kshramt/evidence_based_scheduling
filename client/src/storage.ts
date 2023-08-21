@@ -110,9 +110,9 @@ export type _TDbV3 = {
     key: [number, number, number];
     value: THead;
   };
-  ui_calender_open_set: {
-    key: "id";
-    value: string;
+  ui_calendar_open_set: {
+    key: string;
+    value: { id: string };
   };
 };
 
@@ -166,7 +166,7 @@ const upgradeToV3: Exclude<
     );
   }
   if (oldVersion < 3) {
-    db.createObjectStore("ui_calender_open_set", { keyPath: "id" });
+    db.createObjectStore("ui_calendar_open_set", { keyPath: "id" });
   }
 };
 

@@ -207,10 +207,12 @@ const AppComponentImpl = (props: {
   props.ctx.useCheckUpdates();
   return (
     <states.session_key_context.Provider value={props.ctx.session_key}>
-      <Provider store={props.store}>
-        <App ctx={props.ctx} logOut={props.auth.logOut} />
-        <props.ctx.Component />
-      </Provider>
+      <states.idbContext.Provider value={props.ctx.db}>
+        <Provider store={props.store}>
+          <App ctx={props.ctx} logOut={props.auth.logOut} />
+          <props.ctx.Component />
+        </Provider>
+      </states.idbContext.Provider>
     </states.session_key_context.Provider>
   );
 };

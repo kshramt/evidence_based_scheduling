@@ -401,7 +401,9 @@ const Body = () => {
           <TreeNode node_id={root} />
         </div>
         <GanttChart indexColumnWidth={320} />
-        <Calendar />
+        <div className="overflow-y-auto flex-none">
+          <Calendar />
+        </div>
         <div className={`overflow-y-auto flex-none`}>
           <Timeline />
         </div>

@@ -938,3 +938,42 @@ const _get_store = () => {
     set_state,
   };
 };
+
+export const idbContext =
+  React.createContext<null | Idb.IDBPDatabase<storage.TDb>>(null);
+export const useIdb = () => {
+  const db = React.useContext(idbContext);
+  if (db === null) {
+    throw new Error("idbContext is not set");
+  }
+  return db;
+};
+
+export const useUiCalendarOpenSet = (id: string) => {
+  const db = useIdb();
+  const [isOpen, setIsOpen] = React.useState(false);
+  const toggle = React.useCallback(async () => {
+    const tx = db.transaction("ui_calendar_open_set", "readwrite");
+    const store = tx.objectStore("ui_calendar_open_set");
+    if (await store.get(id)) {
+      await store.delete(id);
+      setIsOpen(false);
+    } else {
+      await store.add({ id });
+      setIsOpen(true);
+    }
+    await tx.done;
+  }, [id, db, setIsOpen]);
+  React.useEffect(() => {
+    db.transaction("ui_calendar_open_set", "readonly")
+      .objectStore("ui_calendar_open_set")
+      .get(id)
+      .then((x) => {
+        setIsOpen(!!x);
+      });
+  }, [id, db]);
+
+  return React.useMemo(() => {
+    return [isOpen, toggle] as const;
+  }, [isOpen, toggle]);
+};

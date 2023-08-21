@@ -3,6 +3,8 @@ import React from "react";
 
 import * as actions from "./actions";
 import * as consts from "./consts";
+import * as intervals from "./intervals";
+import * as times from "./times";
 import * as types from "./types";
 
 // Vose (1991)'s linear version of Walker (1974)'s alias method.
@@ -432,3 +434,227 @@ export const useIsRunning = (node_id: null | types.TNodeId) => {
   return is_running;
 };
 
+export const getChildTimeIds = (timeId: string) => {
+  const prefix = timeId[0];
+  switch (prefix) {
+    case "F": {
+      const yyyy = parseInt(timeId.slice(1, 5));
+      return [`Y${yyyy + 0}`, `Y${yyyy + 1}`, `Y${yyyy + 2}`, `Y${yyyy + 3}`];
+    }
+    case "Y": {
+      const yyyy = parseInt(timeId.slice(1, 5));
+      return [`Q${yyyy}-01`, `Q${yyyy}-04`, `Q${yyyy}-07`, `Q${yyyy}-10`];
+    }
+    case "Q": {
+      const yyyy = parseInt(timeId.slice(1, 5));
+      const mm = parseInt(timeId.slice(6, 8));
+      return [
+        `M${yyyy}-${(mm + 0).toString().padStart(2, "0")}`,
+        `M${yyyy}-${(mm + 1).toString().padStart(2, "0")}`,
+        `M${yyyy}-${(mm + 2).toString().padStart(2, "0")}`,
+      ];
+    }
+    case "M": {
+      // Return the week of the year.
+      const yyyy = parseInt(timeId.slice(1, 5));
+      const mm = parseInt(timeId.slice(6, 8));
+      const w0 = Math.floor(
+        (Date.UTC(yyyy, mm - 1, 1) - Number(consts.WEEK_0_BEGIN)) /
+          consts.WEEK_MSEC,
+      );
+      const w1 = Math.floor(
+        (Date.UTC(yyyy, mm - 1 + 1, 0) - Number(consts.WEEK_0_BEGIN)) /
+          consts.WEEK_MSEC,
+      );
+      const res = [];
+      for (let w = w0; w < w1 + 1; ++w) {
+        res.push(`W${w}`);
+      }
+      return res;
+    }
+    case "W": {
+      const t0 = getDateOfWeek(parseInt(timeId.slice(1)));
+      const y0 = t0.getUTCFullYear();
+      const m0 = t0.getUTCMonth();
+      const d0 = t0.getUTCDate();
+      const res = [];
+      for (let i = 0; i < 7; ++i) {
+        const t = new Date(Date.UTC(y0, m0, d0 + i));
+        res.push(
+          `D${t.getUTCFullYear()}-${(t.getUTCMonth() + 1)
+            .toString()
+            .padStart(2, "0")}-${t.getUTCDate().toString().padStart(2, "0")}`,
+        );
+      }
+      return res;
+    }
+    case "D": {
+      const yyyymmdd = timeId.slice(1);
+      return [
+        `H${yyyymmdd}T00`,
+        `H${yyyymmdd}T01`,
+        `H${yyyymmdd}T02`,
+        `H${yyyymmdd}T03`,
+        `H${yyyymmdd}T04`,
+        `H${yyyymmdd}T05`,
+        `H${yyyymmdd}T06`,
+        `H${yyyymmdd}T07`,
+        `H${yyyymmdd}T08`,
+        `H${yyyymmdd}T09`,
+        `H${yyyymmdd}T10`,
+        `H${yyyymmdd}T11`,
+        `H${yyyymmdd}T12`,
+        `H${yyyymmdd}T13`,
+        `H${yyyymmdd}T14`,
+        `H${yyyymmdd}T15`,
+        `H${yyyymmdd}T16`,
+        `H${yyyymmdd}T17`,
+        `H${yyyymmdd}T18`,
+        `H${yyyymmdd}T19`,
+        `H${yyyymmdd}T20`,
+        `H${yyyymmdd}T21`,
+        `H${yyyymmdd}T22`,
+        `H${yyyymmdd}T23`,
+      ];
+    }
+    // default
+    default: {
+      return [];
+    }
+  }
+};
+
+export const getStringOfTimeId = (timeId: string) => {
+  switch (timeId[0]) {
+    case "W": {
+      const t0 = getDateOfWeek(parseInt(timeId.slice(1)));
+      const y0 = t0.getUTCFullYear();
+      const m0 = t0.getUTCMonth();
+      const d0 = t0.getUTCDate();
+      return `W${y0}-${(m0 + 1).toString().padStart(2, "0")}-${d0
+        .toString()
+        .padStart(2, "0")}`;
+    }
+    case "H": {
+      return timeId.slice(12);
+    }
+    default: {
+      return timeId;
+    }
+  }
+};
+
+const getDateOfWeek = (w: number) => {
+  return new Date(Number(consts.WEEK_0_BEGIN) + consts.WEEK_MSEC * w);
+};
+
+// const deltaHour = 60 * 60 * 1_000;
+const deltaDay = 24 * 60 * 60 * 1_000;
+const deltaWeek = 7 * 24 * 60 * 60 * 1_000;
+const deltaMonth = 28 * 24 * 60 * 60 * 1_000;
+const deltaQuarter = 90 * 24 * 60 * 60 * 1_000;
+const deltaYear = 365 * 24 * 60 * 60 * 1_000;
+const deltaFourYears = 4 * 365 * 24 * 60 * 60 * 1_000;
+const deltaRanges: Record<string, [number, number]> = {
+  H: [0, deltaDay],
+  D: [deltaDay, deltaWeek],
+  W: [deltaWeek, deltaMonth],
+  M: [deltaMonth, deltaQuarter],
+  Q: [deltaQuarter, deltaYear],
+  Y: [deltaYear, deltaFourYears],
+  F: [deltaFourYears, Infinity],
+};
+
+export const usePlannedNodeIds = (timeId: string) => {
+  const nodes = types.useSelector((state) => state.data.nodes);
+  const todoNodeIds = types.useSelector((state) => state.todo_node_ids);
+  const nonTodoNodeIds = types.useSelector((state) => state.non_todo_node_ids);
+  const res = React.useMemo(() => {
+    const _res: types.TNodeId[] = [];
+    const prefix = timeId[0];
+    if (!(prefix in deltaRanges)) {
+      return _res;
+    }
+    const [deltaLo, deltaHi] = deltaRanges[prefix];
+    const [t0, t1] = getRangeOfTimeId(timeId);
+    const start = { f: t0 };
+    const end = { f: t1 };
+    for (const nodeId of todoNodeIds.concat(nonTodoNodeIds)) {
+      const node = nodes[nodeId];
+      if (!("events" in node)) {
+        continue;
+      }
+      for (const event of node.events) {
+        if (
+          event.interval_set.delta < deltaLo ||
+          deltaHi <= event.interval_set.delta
+        ) {
+          continue;
+        }
+        // Check for the overlap state
+        const overlapState = intervals.getOverlapState(
+          start,
+          end,
+          times.ensureFloatingTime(event.interval_set.start),
+          times.ensureFloatingTime(event.interval_set.end),
+          event.interval_set.delta,
+          intervals.getFloatingTimeOfLimit(event.interval_set),
+        );
+        if (overlapState === intervals.Overlap.NO_OVERLAP) {
+          continue;
+        }
+        _res.push(nodeId);
+      }
+    }
+    return _res;
+  }, [nodes, nonTodoNodeIds, timeId, todoNodeIds]);
+  return res;
+};
+
+const getRangeOfTimeId = (timeId: string) => {
+  switch (timeId[0]) {
+    case "H": {
+      const t0 = new Date(timeId.slice(1) + ":00:00Z").getTime();
+      return [t0, t0 + 3_600_000];
+    }
+    case "D": {
+      const t0 = new Date(timeId.slice(1)).getTime();
+      return [t0, t0 + 86_400_000];
+    }
+    case "W": {
+      const t0 =
+        consts.WEEK_0_BEGIN.getTime() +
+        consts.WEEK_MSEC * parseInt(timeId.slice(1));
+      return [t0, t0 + consts.WEEK_MSEC];
+    }
+    case "M": {
+      const yyyy = parseInt(timeId.slice(1, 5));
+      const mm = parseInt(timeId.slice(6, 8));
+      const t0 = new Date(yyyy, mm - 1).getTime();
+      const t1 = new Date(yyyy, mm).getTime();
+      return [t0, t1];
+    }
+    case "Q": {
+      const yyyy = parseInt(timeId.slice(1, 5));
+      const mm = parseInt(timeId.slice(6, 8));
+      const t0 = new Date(yyyy, mm - 1).getTime();
+      const t1 = new Date(yyyy, mm + 2).getTime();
+      return [t0, t1];
+    }
+    case "Y": {
+      const yyyy = parseInt(timeId.slice(1, 5));
+      const t0 = new Date(yyyy, 0).getTime();
+      const t1 = new Date(yyyy + 1, 0).getTime();
+      return [t0, t1];
+    }
+    case "F": {
+      const yyyy = parseInt(timeId.slice(1, 5));
+      const t0 = new Date(yyyy, 0).getTime();
+      const t1 = new Date(yyyy + 4, 0).getTime();
+      return [t0, t1];
+    }
+    default: {
+      return [0, 0];
+    }
+  }
+};
