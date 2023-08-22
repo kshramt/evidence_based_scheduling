@@ -585,13 +585,14 @@ export const usePlannedNodeIds = (timeId: string) => {
         continue;
       }
       for (const event of node.events) {
-        if (
-          event.interval_set.delta < deltaLo ||
-          deltaHi <= event.interval_set.delta
-        ) {
-          continue;
+        {
+          const duration =
+            times.ensureFloatingTime(event.interval_set.end).f -
+            times.ensureFloatingTime(event.interval_set.start).f;
+          if (duration < deltaLo || deltaHi <= duration) {
+            continue;
+          }
         }
-        // Check for the overlap state
         const overlapState = intervals.getOverlapState(
           start,
           end,
