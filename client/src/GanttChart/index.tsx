@@ -3,6 +3,7 @@ import * as RWindow from "react-window";
 
 import * as consts from "src/consts";
 import * as intervals from "src/intervals";
+import * as ops from "src/ops";
 import * as utils from "src/utils";
 import * as times from "src/times";
 import * as types from "src/types";
@@ -124,7 +125,29 @@ const Cell = React.memo(
 
 const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
   const resize = useComponentSize();
-  const todoNodeIds = types.useSelector((state) => state.todo_node_ids);
+  const todoNodeIds = types.useSelector((state) => {
+    const res: types.TNodeId[] = [];
+    const seen = new Set();
+    const rec = (nodeId: types.TNodeId) => {
+      if (seen.has(nodeId)) {
+        return;
+      }
+      const node = state.data.nodes[nodeId];
+      if (node.status !== "todo") {
+        return;
+      }
+      if (nodeId !== state.data.root) {
+        seen.add(nodeId);
+        res.push(nodeId);
+      }
+      for (const childEdgeId of ops.sorted_keys_of(node.children)) {
+        const childNodeId = state.data.edges[childEdgeId].c;
+        rec(childNodeId);
+      }
+    };
+    rec(state.data.root);
+    return res;
+  });
   const nodes = types.useSelector((state) => state.data.nodes);
   const headerRef = React.useRef<RWindow.FixedSizeGrid>(null);
   const indexColumnRef = React.useRef<RWindow.FixedSizeGrid>(null);
