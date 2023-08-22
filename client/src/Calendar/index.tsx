@@ -45,10 +45,15 @@ const TimeNode = React.memo((props: { timeId: string }) => {
       const children = childIds.map((timeId) => {
         return <TimeNode timeId={timeId} key={timeId} />;
       });
-      if (props.timeId[0] === "W") {
-        return children;
+      switch (props.timeId[0]) {
+        case "W":
+        case "D": {
+          return children;
+        }
+        default: {
+          return <div>{children}</div>;
+        }
       }
-      return <div>{children}</div>;
     }
     return null;
   }, [isOpen, props.timeId]);
