@@ -99,7 +99,7 @@ const CalendarEventForm = React.memo(
     const duration = (end.f - start.f) / MINUTE;
     const delta = props.event.interval_set.delta / HOUR;
     return (
-      <button onClick={handleOpen}>
+      <button className="block" onClick={handleOpen}>
         {times.getLocalStringOfFloatingTime(start)} + {duration} min / {delta} h
       </button>
     );
