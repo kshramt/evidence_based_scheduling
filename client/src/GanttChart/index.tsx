@@ -111,11 +111,15 @@ const Cell = React.memo(
       }
       return hit;
     }, [events, props.columnIndex]);
+    const bg =
+      props.rowIndex % 2
+        ? "bg-neutral-100 dark:bg-neutral-900"
+        : "bg-neutral-200 dark:bg-neutral-800";
     return (
       <div
         className={utils.join(
           "border dark:border-neutral-500 border-neutral-400",
-          hit && "bg-blue-400 dark:bg-blue-900",
+          hit ? "bg-blue-400 dark:bg-blue-900" : bg,
         )}
         style={props.style}
       />
