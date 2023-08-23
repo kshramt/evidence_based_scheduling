@@ -20,7 +20,8 @@ const PlannedEvents = (props: { nodeId: types.TNodeId }) => {
     return events
       .slice()
       .reverse()
-      .map((event, i) => {
+      .map((event, _i) => {
+        const i = n - 1 - _i;
         return (
           <CalendarEventForm
             key={i}
@@ -29,8 +30,8 @@ const PlannedEvents = (props: { nodeId: types.TNodeId }) => {
               dispatch(
                 actions.updateEventAction({
                   nodeId: props.nodeId,
-                  event: event,
-                  i: n - 1 - i,
+                  event,
+                  i,
                 }),
               );
             }}
