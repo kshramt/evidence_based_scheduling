@@ -66,7 +66,10 @@ const HeaderCell = React.memo(
 );
 
 const isToday = (columnIndex: number) => {
-  return Math.floor((Date.now() - START_TIME.f) / DAY_MS) === columnIndex;
+  return (
+    Math.floor((times.getFloatingNow().f - START_TIME.f) / DAY_MS) ===
+    columnIndex
+  );
 };
 
 const IndexCell = React.memo(
