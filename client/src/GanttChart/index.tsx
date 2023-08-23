@@ -37,20 +37,37 @@ const useComponentSize = () => {
   return res;
 };
 
+const getRowBackgroundColor = (rowIndex: number) => {
+  return rowIndex % 2
+    ? "bg-neutral-100 dark:bg-neutral-900"
+    : "bg-neutral-200 dark:bg-neutral-800";
+};
+
 const HeaderCell = React.memo(
   (props: { columnIndex: number; style: React.CSSProperties }) => {
     const t = new Date(START_TIME.f + props.columnIndex * DAY_MS);
-    const title = `${t.getFullYear()}-${t.getMonth() + 1}-${t.getDate()}`;
+    const yyyy = t.getUTCFullYear();
+    const mm = t.getUTCMonth() + 1;
+    const dd = t.getUTCDate();
+    const title = `${yyyy}-${mm + 1}-${dd}`;
     return (
       <div
         style={props.style}
-        className="border dark:border-neutral-500 border-neutral-400"
+        className={utils.join(
+          "border dark:border-neutral-500 border-neutral-400",
+          isToday(props.columnIndex) &&
+            "border-x-yellow-300 dark:border-x-yellow-700 bg-yellow-200 dark:bg-yellow-800",
+        )}
       >
         {title}
       </div>
     );
   },
 );
+
+const isToday = (columnIndex: number) => {
+  return Math.floor((Date.now() - START_TIME.f) / DAY_MS) === columnIndex;
+};
 
 const IndexCell = React.memo(
   (props: {
@@ -71,7 +88,10 @@ const IndexCell = React.memo(
         <button
           onClick={toTree}
           title={text}
-          className="w-full whitespace-nowrap text-left overflow-hidden"
+          className={utils.join(
+            "w-full whitespace-nowrap text-left overflow-hidden",
+            getRowBackgroundColor(props.rowIndex),
+          )}
         >
           {text}
         </button>
@@ -111,15 +131,15 @@ const Cell = React.memo(
       }
       return hit;
     }, [events, props.columnIndex]);
-    const bg =
-      props.rowIndex % 2
-        ? "bg-neutral-100 dark:bg-neutral-900"
-        : "bg-neutral-200 dark:bg-neutral-800";
     return (
       <div
         className={utils.join(
           "border dark:border-neutral-500 border-neutral-400",
-          hit ? "bg-blue-400 dark:bg-blue-900" : bg,
+          isToday(props.columnIndex) &&
+            "border-x-yellow-300 dark:border-x-yellow-700",
+          hit
+            ? "bg-blue-400 dark:bg-blue-900"
+            : getRowBackgroundColor(props.rowIndex),
         )}
         style={props.style}
       />
