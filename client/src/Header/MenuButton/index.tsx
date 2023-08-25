@@ -51,7 +51,10 @@ const MenuButton = React.memo(
           <span className="material-icons">menu</span>
         </button>
         {isOpen && (
-          <div ref={menuListRef} className="absolute">
+          <div
+            ref={menuListRef}
+            className="absolute flex flex-col gap-[0.5em] bg-neutral-200 dark:bg-neutral-900 pr-[1em] pb-[1em]"
+          >
             <div>
               <ToggleShowMobileButton />
             </div>

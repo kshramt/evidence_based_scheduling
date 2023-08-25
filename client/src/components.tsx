@@ -294,7 +294,7 @@ const Menu = (props: {
   }, [props.ctx]);
   return (
     <div
-      className={`flex items-center overflow-x-auto h-[3rem] gap-x-[0.25em] w-full top-0  bg-neutral-200 dark:bg-neutral-900`}
+      className={`flex items-center overflow-x-auto h-[3rem] gap-x-[0.25em] w-full top-0`}
     >
       <MenuButton
         onClickCheckRemoteButton={check_remote_head}
