@@ -382,7 +382,6 @@ const Body = () => {
   return (
     <div className="flex flex-1 gap-x-[1em] overflow-y-hidden">
       <div className={`overflow-y-auto flex-none`}>
-        <div style={{ width: "300px", height: "100px" }}></div>
         <SBTTB />
         <ToggleButton
           value={pin}
