@@ -2016,7 +2016,6 @@ const TextArea = (props: {
   onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
 }) => {
   const stateText = useSelector((state) => state.caches[props.node_id].text);
-  const status = useSelector((state) => state.data.nodes[props.node_id].status);
   const dispatch = useDispatch();
   const onBlur = React.useMemo(() => {
     const _onBlur = props.onBlur;
@@ -2047,19 +2046,14 @@ const TextArea = (props: {
     },
     [setLocalText],
   );
-  const styles = React.useMemo(() => {
-    return status === "done"
-      ? ({ input: { color: "red" } } as const)
-      : status === "dont"
-      ? ({ input: { color: "gray" } } as const)
-      : {};
-  }, [status]);
+  const classNames = React.useMemo(() => {
+    return { input: props.className };
+  }, [props.className]);
 
   if (props.id === undefined) {
     return (
       <Mt.Textarea
-        className={props.className}
-        styles={styles}
+        classNames={classNames}
         value={localText}
         onBlur={onBlur}
         onClick={props.onClick}
@@ -2072,8 +2066,7 @@ const TextArea = (props: {
   }
   return (
     <Mt.Textarea
-      className={props.className}
-      styles={styles}
+      classNames={classNames}
       value={localText}
       onBlur={onBlur}
       onClick={props.onClick}
