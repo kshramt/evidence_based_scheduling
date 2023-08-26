@@ -1985,8 +1985,8 @@ const PredictedNextNodes = () => {
   return (
     <ol className="list-outside pl-[4em]">
       {predicted_next_nodes.map((node_id) => (
-        <li>
-          <PredictedNextNode node_id={node_id} key={node_id} />
+        <li key={node_id}>
+          <PredictedNextNode node_id={node_id} />
         </li>
       ))}
     </ol>

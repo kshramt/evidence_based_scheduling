@@ -152,30 +152,32 @@ const Cell = React.memo(
 
 const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
   const resize = useComponentSize();
-  const todoNodeIds = types.useSelector((state) => {
+  const nodes = types.useSelector((state) => state.data.nodes);
+  const edges = types.useSelector((state) => state.data.edges);
+  const root = types.useSelector((state) => state.data.root);
+  const todoNodeIds = React.useMemo(() => {
     const res: types.TNodeId[] = [];
     const seen = new Set();
     const rec = (nodeId: types.TNodeId) => {
       if (seen.has(nodeId)) {
         return;
       }
-      const node = state.data.nodes[nodeId];
+      const node = nodes[nodeId];
       if (node.status !== "todo") {
         return;
       }
-      if (nodeId !== state.data.root) {
+      if (nodeId !== root) {
         seen.add(nodeId);
         res.push(nodeId);
       }
       for (const childEdgeId of ops.sorted_keys_of(node.children)) {
-        const childNodeId = state.data.edges[childEdgeId].c;
+        const childNodeId = edges[childEdgeId].c;
         rec(childNodeId);
       }
     };
-    rec(state.data.root);
+    rec(root);
     return res;
-  });
-  const nodes = types.useSelector((state) => state.data.nodes);
+  }, [nodes, edges, root]);
   const headerRef = React.useRef<RWindow.FixedSizeGrid>(null);
   const indexColumnRef = React.useRef<RWindow.FixedSizeGrid>(null);
   const tnow = times.getFloatingNow();
