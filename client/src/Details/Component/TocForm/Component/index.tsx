@@ -1,8 +1,8 @@
 import * as React from "react";
+import * as Mt from "@mantine/core";
 
 import * as consts from "src/consts";
 import * as utils from "src/utils";
-import AutoHeightTextArea from "src/AutoHeightTextArea";
 
 const TocForm = React.memo(
   React.forwardRef<
@@ -26,7 +26,7 @@ const TocForm = React.memo(
           >
             Parse
           </button>
-          <AutoHeightTextArea className="w-[29em]" text="" ref={ref} />
+          <Mt.Textarea className="w-[29em]" ref={ref} autosize />
         </div>
       </>
     );
