@@ -47,8 +47,8 @@ const HeaderCell = React.memo(
   (props: { columnIndex: number; style: React.CSSProperties }) => {
     const t = new Date(START_TIME.f + props.columnIndex * DAY_MS);
     const yyyy = t.getUTCFullYear();
-    const mm = t.getUTCMonth() + 1;
-    const dd = t.getUTCDate();
+    const mm = (t.getUTCMonth() + 1).toString().padStart(2, "0");
+    const dd = t.getUTCDate().toString().padStart(2, "0");
     const title = `${yyyy}-${mm}-${dd}`;
     return (
       <div
