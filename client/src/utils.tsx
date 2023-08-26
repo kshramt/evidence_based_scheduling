@@ -605,6 +605,7 @@ export const usePlannedNodeIds = (timeId: string) => {
           continue;
         }
         _res.push(nodeId);
+        break;
       }
     }
     return _res;
