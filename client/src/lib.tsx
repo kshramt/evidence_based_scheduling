@@ -206,7 +206,7 @@ const AppComponentImpl = (props: {
   store: Awaited<ReturnType<states.PersistentStateManager["get_redux_store"]>>;
   auth: Auth.Auth;
 }) => {
-  const preferredColorScheme = Mth.useColorScheme();
+  const preferredColorScheme = Mth.useColorScheme("dark");
   const [colorScheme, setColorScheme] =
     React.useState<Mt.ColorScheme>(preferredColorScheme);
   const toggleColorScheme = React.useCallback((value?: Mt.ColorScheme) => {
