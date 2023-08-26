@@ -217,7 +217,16 @@ const AppComponentImpl = (props: {
     }
   }, []);
   const theme = React.useMemo(() => {
-    return { colorScheme };
+    return {
+      colorScheme,
+      fontSizes: {
+        xs: "0.73rem",
+        sm: "0.81rem",
+        md: "0.9rem",
+        lg: "1.1rem",
+        xl: "1.23rem",
+      },
+    };
   }, [colorScheme]);
   props.ctx.useCheckUpdates();
   return (
