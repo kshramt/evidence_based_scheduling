@@ -49,7 +49,7 @@ const HeaderCell = React.memo(
     const yyyy = t.getUTCFullYear();
     const mm = t.getUTCMonth() + 1;
     const dd = t.getUTCDate();
-    const title = `${yyyy}-${mm + 1}-${dd}`;
+    const title = `${yyyy}-${mm}-${dd}`;
     return (
       <div
         style={props.style}
