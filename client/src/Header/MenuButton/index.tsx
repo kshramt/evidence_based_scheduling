@@ -5,6 +5,7 @@ import CheckRemoteButton from "./CheckRemoteButton";
 import ExportIndexedDbButton from "./ExportIndexedDbButton";
 import LogoutButton from "./LogoutButton";
 import * as storage from "src/storage";
+import { Menu } from "@mantine/core";
 
 const MenuButton = React.memo(
   (props: {
@@ -42,34 +43,32 @@ const MenuButton = React.memo(
     }, [handleClickOutside]);
 
     return (
-      <div>
-        <button
-          ref={menuButtonRef}
-          onClick={handleButtonClick}
-          className="btn-icon"
-        >
-          <span className="material-icons">menu</span>
-        </button>
-        {isOpen && (
-          <div
-            ref={menuListRef}
-            className="absolute flex flex-col gap-[0.5em] bg-neutral-200 dark:bg-neutral-900 pr-[1em] pb-[1em]"
+      <Menu shadow="md" width={200} closeOnItemClick={false}>
+        <Menu.Target>
+          <button
+            ref={menuButtonRef}
+            onClick={handleButtonClick}
+            className="btn-icon"
           >
-            <div>
-              <ToggleShowMobileButton />
-            </div>
-            <div>
-              <CheckRemoteButton onClick={props.onClickCheckRemoteButton} />
-            </div>
-            <div>
-              <ExportIndexedDbButton db={props.db} />
-            </div>
-            <div>
-              <LogoutButton logOut={props.logOut} />
-            </div>
-          </div>
-        )}
-      </div>
+            <span className="material-icons">menu</span>
+          </button>
+        </Menu.Target>
+
+        <Menu.Dropdown>
+          <Menu.Item>
+            <ToggleShowMobileButton />
+          </Menu.Item>
+          <Menu.Item>
+            <CheckRemoteButton onClick={props.onClickCheckRemoteButton} />
+          </Menu.Item>
+          <Menu.Item>
+            <ExportIndexedDbButton db={props.db} />
+          </Menu.Item>
+          <Menu.Item>
+            <LogoutButton logOut={props.logOut} />
+          </Menu.Item>
+        </Menu.Dropdown>
+      </Menu>
     );
   },
 );

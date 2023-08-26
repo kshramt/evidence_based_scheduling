@@ -1,9 +1,7 @@
 import * as React from "react";
 
-import Component from "./Component";
-
 const LogoutButton = React.memo((props: { logOut: () => void }) => {
-  return <Component logOut={props.logOut} />;
+  return <span onClick={props.logOut}>Log out</span>;
 });
 
 export default LogoutButton;

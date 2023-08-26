@@ -4,8 +4,6 @@ import * as React from "react";
 import * as states from "src/states";
 import * as utils from "src/utils";
 
-import Component from "./Component";
-
 const ToggleShowMobileButton = () => {
   const session = React.useContext(states.session_key_context);
   const [show_mobile, set_show_mobile] = Jotai.useAtom(
@@ -19,11 +17,9 @@ const ToggleShowMobileButton = () => {
     setShowMobileUpdatedAt(Date.now());
   }, [set_show_mobile, setShowMobileUpdatedAt]);
   return (
-    <Component
-      onClick={handleClick}
-      show_mobile={show_mobile}
-      onDoubleClick={utils.prevent_propagation}
-    />
+    <span onClick={handleClick} onDoubleClick={utils.prevent_propagation}>
+      {show_mobile ? "Show desktop version" : "Show mobile version"}
+    </span>
   );
 };
 
