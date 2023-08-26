@@ -2,8 +2,8 @@ import * as Jotai from "jotai";
 import * as React from "react";
 import { useCallback } from "react";
 import * as Dnd from "react-dnd";
+import * as Mt from "@mantine/core";
 
-import AutoHeightTextArea from "./AutoHeightTextArea";
 import Calendar from "./Calendar";
 import CopyNodeIdButton from "./CopyNodeIdButton";
 import GanttChart from "./GanttChart";
@@ -759,7 +759,7 @@ const TimeNodeEntry = React.memo(
         dispatch(
           actions.set_time_node_text_action({
             time_node_id: props.time_node_id,
-            text: el.innerText,
+            text: el.value,
           }),
         );
       },
@@ -768,12 +768,12 @@ const TimeNodeEntry = React.memo(
 
     return (
       <td onMouseLeave={turnOff}>
-        <AutoHeightTextArea
-          text={text}
+        <Mt.Textarea
+          defaultValue={text}
           onBlur={dispatch_set_text_action}
           onClick={turnOn}
           onDoubleClick={prevent_propagation}
-          className="textarea whitespace-pre-wrap overflow-wrap-anywhere w-[17em] overflow-hidden p-[0.125em] bg-white dark:bg-neutral-800 py-[0.4em]"
+          autosize
         />
         {isOn && (
           <div className="flex w-fit gap-x-[0.125em]">
@@ -1011,7 +1011,14 @@ const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
         <TextArea
           node_id={props.node_id}
           id={utils.queue_textarea_id_of(props.node_id)}
-          className="w-[29em]"
+          className={utils.join(
+            "w-[29em]",
+            status === "done"
+              ? "text-red-600 dark:text-red-400"
+              : status === "dont"
+              ? "text-neutral-500"
+              : null,
+          )}
           onKeyDown={handleKeyDown}
           onClick={turnOn}
         />
@@ -1188,13 +1195,22 @@ const TreeEntry = React.memo(
         <div className="flex items-end w-fit">
           {is_root ? null : <button onClick={to_queue}>→</button>}
           <CopyNodeIdButton node_id={props.node_id} />
-          <TextArea
-            node_id={props.node_id}
-            id={`${prefix}${props.node_id}`}
-            className="w-[29em]"
-            onKeyDown={handleKeyDown}
-            onClick={turnOn}
-          />
+          {is_root ? null : (
+            <TextArea
+              node_id={props.node_id}
+              id={`${prefix}${props.node_id}`}
+              className={utils.join(
+                "w-[29em]",
+                status === "done"
+                  ? "text-red-600 dark:text-red-400"
+                  : status === "dont"
+                  ? "text-neutral-500"
+                  : null,
+              )}
+              onKeyDown={handleKeyDown}
+              onClick={turnOn}
+            />
+          )}
           <EntryInfos node_id={props.node_id} />
         </div>
         {status === "todo" &&
@@ -1991,31 +2007,20 @@ const PredictedNextNode = React.memo((props: { node_id: types.TNodeId }) => {
   );
 });
 
-const TextArea = ({
-  node_id,
-  className,
-  ...textarea_props
-}: { node_id: types.TNodeId } & React.HTMLProps<HTMLTextAreaElement>) => {
-  const root = useSelector((state) => state.data.root);
-  return node_id === root ? null : (
-    <TextAreaImpl node_id={node_id} {...textarea_props} className={className} />
-  );
-};
-
-const TextAreaImpl = ({
-  node_id,
-  className,
-  ...textarea_props
-}: { node_id: types.TNodeId } & Omit<
-  React.HTMLProps<HTMLTextAreaElement>,
-  "ref"
->) => {
-  const state_text = useSelector((state) => state.caches[node_id].text);
-  const status = useSelector((state) => state.data.nodes[node_id].status);
+const TextArea = (props: {
+  node_id: types.TNodeId;
+  className: string;
+  onBlur?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
+  onClick?: (e: React.MouseEvent<HTMLTextAreaElement>) => void;
+  id?: string;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+}) => {
+  const stateText = useSelector((state) => state.caches[props.node_id].text);
+  const status = useSelector((state) => state.data.nodes[props.node_id].status);
   const dispatch = useDispatch();
-  const onBlur = useCallback(
-    (e: React.FocusEvent<HTMLTextAreaElement>) => {
-      const _onBlur = textarea_props.onBlur;
+  const onBlur = React.useMemo(() => {
+    const _onBlur = props.onBlur;
+    return (e: React.FocusEvent<HTMLTextAreaElement>) => {
       if (_onBlur !== undefined) {
         _onBlur(e);
       }
@@ -2024,28 +2029,59 @@ const TextAreaImpl = ({
       const el = e.target;
       dispatch(
         actions.set_text_action({
-          k: node_id,
+          k: props.node_id,
           text: el.value,
         }),
       );
+    };
+  }, [dispatch, props.node_id, props.onBlur]);
+
+  const [localText, setLocalText] = React.useState(stateText);
+  React.useEffect(() => {
+    setLocalText(stateText);
+  }, [stateText]);
+  const onChange = React.useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const el = e.target;
+      setLocalText(el.value);
     },
-    [dispatch, node_id, textarea_props.onBlur],
+    [setLocalText],
   );
+  const styles = React.useMemo(() => {
+    return status === "done"
+      ? ({ input: { color: "red" } } as const)
+      : status === "dont"
+      ? ({ input: { color: "gray" } } as const)
+      : {};
+  }, [status]);
+
+  if (props.id === undefined) {
+    return (
+      <Mt.Textarea
+        className={props.className}
+        styles={styles}
+        value={localText}
+        onBlur={onBlur}
+        onClick={props.onClick}
+        onChange={onChange}
+        onKeyDown={props.onKeyDown}
+        onDoubleClick={prevent_propagation}
+        autosize
+      />
+    );
+  }
   return (
-    <AutoHeightTextArea
-      {...textarea_props}
-      text={state_text}
+    <Mt.Textarea
+      className={props.className}
+      styles={styles}
+      value={localText}
       onBlur={onBlur}
+      onClick={props.onClick}
+      onChange={onChange}
+      onKeyDown={props.onKeyDown}
       onDoubleClick={prevent_propagation}
-      className={utils.join(
-        "whitespace-pre-wrap overflow-wrap-anywhere overflow-hidden  bg-white dark:bg-neutral-800 px-[0.75em] py-[0.5em]",
-        className,
-        status === "done"
-          ? "text-red-600 dark:text-red-400"
-          : status === "dont"
-          ? "text-neutral-500"
-          : undefined,
-      )}
+      autosize
+      id={props.id}
     />
   );
 };
