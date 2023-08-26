@@ -2,8 +2,8 @@ import * as Jotai from "jotai";
 import * as React from "react";
 import { useCallback } from "react";
 import * as Dnd from "react-dnd";
-import * as Mt from "@mantine/core";
 
+import AutoHeightTextArea from "src/AutoHeightTextArea";
 import Calendar from "./Calendar";
 import CopyNodeIdButton from "./CopyNodeIdButton";
 import GanttChart from "./GanttChart";
@@ -768,12 +768,12 @@ const TimeNodeEntry = React.memo(
 
     return (
       <td onMouseLeave={turnOff}>
-        <Mt.Textarea
-          defaultValue={text}
+        <AutoHeightTextArea
+          text={text}
+          className="textarea whitespace-pre-wrap overflow-wrap-anywhere w-[17em] overflow-hidden bg-white dark:bg-neutral-800 px-[0.75em] py-[0.5em]"
           onBlur={dispatch_set_text_action}
           onClick={turnOn}
           onDoubleClick={prevent_propagation}
-          autosize
         />
         {isOn && (
           <div className="flex w-fit gap-x-[0.125em]">
@@ -1012,7 +1012,7 @@ const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
           node_id={props.node_id}
           id={utils.queue_textarea_id_of(props.node_id)}
           className={utils.join(
-            "w-[29em]",
+            "w-[29em] px-[0.75em] py-[0.5em]",
             status === "done"
               ? "text-red-600 dark:text-red-400"
               : status === "dont"
@@ -1163,7 +1163,10 @@ const MobileQueueNodesImpl = React.memo(
       <>
         {props.node_ids.map((node_id) => (
           <EntryWrapper node_id={node_id} key={node_id}>
-            <TextArea node_id={node_id} className="w-[100vw]" />
+            <TextArea
+              node_id={node_id}
+              className="w-[100vw] px-[0.75em] py-[0.5em]"
+            />
             <MobileEntryButtons node_id={node_id} />
             <Details node_id={node_id} />
           </EntryWrapper>
@@ -1200,7 +1203,7 @@ const TreeEntry = React.memo(
               node_id={props.node_id}
               id={`${prefix}${props.node_id}`}
               className={utils.join(
-                "w-[29em]",
+                "w-[29em] px-[0.75em] py-[0.5em]",
                 status === "done"
                   ? "text-red-600 dark:text-red-400"
                   : status === "dont"
@@ -2015,7 +2018,7 @@ const TextArea = (props: {
   id?: string;
   onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
 }) => {
-  const stateText = useSelector((state) => state.caches[props.node_id].text);
+  const text = useSelector((state) => state.caches[props.node_id].text);
   const dispatch = useDispatch();
   const onBlur = React.useMemo(() => {
     const _onBlur = props.onBlur;
@@ -2035,46 +2038,14 @@ const TextArea = (props: {
     };
   }, [dispatch, props.node_id, props.onBlur]);
 
-  const [localText, setLocalText] = React.useState(stateText);
-  React.useEffect(() => {
-    setLocalText(stateText);
-  }, [stateText]);
-  const onChange = React.useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const el = e.target;
-      setLocalText(el.value);
-    },
-    [setLocalText],
-  );
-  const classNames = React.useMemo(() => {
-    return { input: props.className };
-  }, [props.className]);
-
-  if (props.id === undefined) {
-    return (
-      <Mt.Textarea
-        classNames={classNames}
-        value={localText}
-        onBlur={onBlur}
-        onClick={props.onClick}
-        onChange={onChange}
-        onKeyDown={props.onKeyDown}
-        onDoubleClick={prevent_propagation}
-        autosize
-      />
-    );
-  }
   return (
-    <Mt.Textarea
-      classNames={classNames}
-      value={localText}
+    <AutoHeightTextArea
+      text={text}
+      className={props.className}
       onBlur={onBlur}
       onClick={props.onClick}
-      onChange={onChange}
-      onKeyDown={props.onKeyDown}
-      onDoubleClick={prevent_propagation}
-      autosize
       id={props.id}
+      onKeyDown={props.onKeyDown}
     />
   );
 };

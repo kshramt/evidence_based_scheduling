@@ -60,36 +60,7 @@
     margin: 0;
     -moz-appearance: textfield !important;
   }
-
-  .auto_height_container {
-    position: relative;
-  }
-
-  .auto_height_spacer {
-    overflow: hidden;
-    visibility: hidden;
-    box-sizing: border-box;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    border: 1px solid;
-  }
-
-  .auto_height_textarea {
-    position: absolute;
-    top: 0;
-    left: 0;
-    display: block;
-    overflow: hidden;
-    box-sizing: border-box;
-    width: 100%;
-    height: 100%;
-    font: inherit;
-    letter-spacing: inherit;
-    resize: none;
-  }
 }
-
 @layer components {
   .btn-icon {
     @apply px-[0.15rem] bg-neutral-300 dark:bg-neutral-600 hover:bg-neutral-400 dark:hover:bg-neutral-500 disabled:bg-neutral-300 disabled:dark:bg-neutral-600 disabled:opacity-40 text-center min-w-[2rem] h-[2rem] text-[1rem] border-none shadow-none;
