@@ -381,7 +381,7 @@ const Body = () => {
   const [pin, setPin] = Jotai.useAtom(states.pinQueueAtomMap.get(session));
   return (
     <div className="flex flex-1 gap-x-[1em] overflow-y-hidden">
-      <div className="overflow-y-auto flex-none w-[46em]">
+      <div className="content-visibility-auto overflow-y-auto flex-none w-[46em]">
         <SBTTB />
         <ToggleButton
           value={pin}
@@ -395,19 +395,19 @@ const Body = () => {
         <TodoQueueNodes />
       </div>
       <div className={utils.join("flex", pin && "w-full overflow-x-auto")}>
-        <div className="overflow-y-auto flex-none w-[46em]">
+        <div className="content-visibility-auto overflow-y-auto flex-none w-[46em]">
           <SBTTB />
           <NonTodoQueueNodes />
         </div>
-        <div className={`overflow-y-auto flex-none`}>
+        <div className="content-visibility-auto overflow-y-auto flex-none">
           <SBTTB />
           <TreeNode node_id={root} />
         </div>
         <GanttChart indexColumnWidth={320} />
-        <div className="overflow-y-auto flex-none">
+        <div className="content-visibility-auto overflow-y-auto flex-none">
           <Calendar />
         </div>
-        <div className={`overflow-y-auto flex-none`}>
+        <div className={`content-visibility-auto overflow-y-auto flex-none`}>
           <Timeline />
         </div>
         <PinnedSubTrees />
@@ -420,11 +420,11 @@ const Body = () => {
 const CoveyQuadrants = () => {
   return (
     <>
-      <div className={`w-[16em] flex-none`}>
+      <div className="content-visibility-auto w-[16em] flex-none">
         <CoveyQuadrant quadrant_id="important_urgent" />
         <CoveyQuadrant quadrant_id="not_important_urgent" />
       </div>
-      <div className={`w-[16em] flex-none`}>
+      <div className="content-visibility-auto w-[16em] flex-none">
         <CoveyQuadrant quadrant_id="important_not_urgent" />
         <CoveyQuadrant quadrant_id="not_important_not_urgent" />
       </div>
@@ -919,8 +919,8 @@ const DndTreeNode = React.memo((props: { node_id: types.TNodeId }) => {
     <div
       ref={ref}
       className={utils.join(
+        "content-visibility-auto overflow-y-auto flex-none relative",
         isDragging ? "opacity-50" : "opacity-100",
-        "overflow-y-auto flex-none relative",
       )}
     >
       <TreeNode node_id={props.node_id} prefix="p-" />

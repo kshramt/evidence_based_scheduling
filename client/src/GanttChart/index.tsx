@@ -262,7 +262,7 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
     );
   }
   return (
-    <div className="h-full w-full flex-none flex flex-col">
+    <div className="content-visibility-auto h-full w-full flex-none flex flex-col">
       <div className="flex-none flex h-[3rem] items-center gap-[0.5em]">
         <label>Filter active:</label>
         <input

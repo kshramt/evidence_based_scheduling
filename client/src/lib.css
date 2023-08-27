@@ -65,6 +65,11 @@
   }
 }
 
+.content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 1em;
+}
+
 .material-icons {
   font-family: "Material Icons";
   font-weight: normal;
