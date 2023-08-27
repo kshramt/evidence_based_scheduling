@@ -104,19 +104,18 @@ const NodeFilterQueryInput = () => {
     setNodeFilterQuery(v);
   }, [setNodeFilterQuery]);
   const ref = useMetaK();
-  const queue = useQueue("todo_node_ids");
-  const node_id = queue[0] || null;
-  const taskShortcutKeys = useTaskShortcutKeys(node_id, TREE_PREFIX);
+  const nodeId = useFirstQueueNodeId("todo_node_ids");
+  const taskShortcutKeys = useTaskShortcutKeys(nodeId, TREE_PREFIX);
   const onKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLElement>) => {
       if (taskShortcutKeys(event)) {
         if (event.key === "Enter" && !event.nativeEvent.isComposing) {
           event.preventDefault();
-          doFocusTextArea(`${TREE_PREFIX}${node_id}`);
+          doFocusTextArea(`${TREE_PREFIX}${nodeId}`);
         }
       }
     },
-    [taskShortcutKeys, node_id],
+    [taskShortcutKeys, nodeId],
   );
 
   return (
@@ -153,21 +152,23 @@ const RunningNodes = () => {
   return <QueueNodes node_ids={nodeIds} />;
 };
 
-const useQueue = (column: "todo_node_ids" | "non_todo_node_ids") => {
+const useFirstQueueNodeId = (column: "todo_node_ids" | "non_todo_node_ids") => {
   const nodeFilterQuery = React.useDeferredValue(
     Jotai.useAtomValue(states.nodeFilterQueryState),
   );
   const queue = useSelector((state) => state[column]);
   const caches = useSelector((state) => state.caches);
 
-  const filtered_queue = React.useMemo(() => {
-    return queue.filter((node_id) => {
-      const cache = caches[node_id];
-      return !_should_hide_of(nodeFilterQuery, cache.text, node_id);
-    });
-  }, [queue, caches, nodeFilterQuery]);
-
-  return filtered_queue;
+  const res = React.useMemo(() => {
+    for (const nodeId of queue) {
+      const cache = caches[nodeId];
+      if (!_should_hide_of(nodeFilterQuery, cache.text, nodeId)) {
+        return nodeId;
+      }
+    }
+    return null;
+  }, [nodeFilterQuery, caches, queue]);
+  return res;
 };
 
 const useMetaK = () => {
@@ -860,8 +861,8 @@ const PlannedNode = (props: {
 };
 
 const TodoQueueNodes = () => {
-  const queue = useQueue("todo_node_ids");
-  return <QueueNodes node_ids={queue} />;
+  const nodeIds = useSelector((state) => state.todo_node_ids);
+  return <QueueNodes node_ids={nodeIds} />;
 };
 
 const QueueNodes = React.memo((props: { node_ids: types.TNodeId[] }) => {
@@ -943,8 +944,8 @@ const TreeNode = React.memo(
 );
 
 const NonTodoQueueNodes = () => {
-  const node_ids = useQueue("non_todo_node_ids");
-  return <QueueNodes node_ids={node_ids} />;
+  const nodeIds = useSelector((state) => state.non_todo_node_ids);
+  return <QueueNodes node_ids={nodeIds} />;
 };
 
 const EdgeList = React.memo(
@@ -1004,7 +1005,11 @@ const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
   const handleKeyDown = useTaskShortcutKeys(props.node_id, TREE_PREFIX);
 
   return (
-    <EntryWrapper node_id={props.node_id} onMouseLeave={turnOff} component="li">
+    <QueueEntryWrapper
+      node_id={props.node_id}
+      onMouseLeave={turnOff}
+      component="li"
+    >
       <div className="flex items-end w-fit">
         <button onClick={to_tree}>←</button>
         <CopyNodeIdButton node_id={props.node_id} />
@@ -1032,7 +1037,7 @@ const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
         <EntryButtons node_id={props.node_id} />
       )}
       <Details node_id={props.node_id} />
-    </EntryWrapper>
+    </QueueEntryWrapper>
   );
 });
 
@@ -1162,14 +1167,14 @@ const MobileQueueNodesImpl = React.memo(
     return (
       <>
         {props.node_ids.map((node_id) => (
-          <EntryWrapper node_id={node_id} key={node_id}>
+          <QueueEntryWrapper node_id={node_id} key={node_id}>
             <TextArea
               node_id={node_id}
               className="w-[100vw] px-[0.75em] py-[0.5em]"
             />
             <MobileEntryButtons node_id={node_id} />
             <Details node_id={node_id} />
-          </EntryWrapper>
+          </QueueEntryWrapper>
         ))}
       </>
     );
@@ -1194,7 +1199,7 @@ const TreeEntry = React.memo(
     const handleKeyDown = useTaskShortcutKeys(props.node_id, prefix);
 
     return (
-      <EntryWrapper node_id={props.node_id} onMouseLeave={turnOff}>
+      <TreeEntryWrapper node_id={props.node_id} onMouseLeave={turnOff}>
         <div className="flex items-end w-fit">
           {is_root ? null : <button onClick={to_queue}>→</button>}
           <CopyNodeIdButton node_id={props.node_id} />
@@ -1224,7 +1229,7 @@ const TreeEntry = React.memo(
           <EntryButtons node_id={props.node_id} prefix={prefix} />
         )}
         <Details node_id={props.node_id} />
-      </EntryWrapper>
+      </TreeEntryWrapper>
     );
   },
 );
@@ -1608,7 +1613,39 @@ const EdgeRowContent = React.memo((props: { node_id: types.TNodeId }) => {
   );
 });
 
-const EntryWrapper = (props: {
+const QueueEntryWrapper = (props: {
+  node_id: types.TNodeId;
+  children: React.ReactNode;
+  onMouseOver?: () => void;
+  onMouseLeave?: () => void;
+  component?: keyof JSX.IntrinsicElements;
+}) => {
+  const nodeFilterQuery = React.useDeferredValue(
+    Jotai.useAtomValue(states.nodeFilterQueryState),
+  );
+  const text = useSelector((state) => state.caches[props.node_id].text);
+  const hide = React.useMemo(() => {
+    return _should_hide_of(nodeFilterQuery, text, props.node_id);
+  }, [nodeFilterQuery, text, props.node_id]);
+
+  const is_running = utils.useIsRunning(props.node_id);
+
+  const Component = props.component || "div";
+  return (
+    <Component
+      className={utils.join(
+        hide && "content-visibility-hidden",
+        is_running && "running",
+      )}
+      onMouseOver={props.onMouseOver}
+      onMouseLeave={props.onMouseLeave}
+    >
+      {props.children}
+    </Component>
+  );
+};
+
+const TreeEntryWrapper = (props: {
   node_id: types.TNodeId;
   children: React.ReactNode;
   onMouseOver?: () => void;
@@ -1629,11 +1666,9 @@ const EntryWrapper = (props: {
   const Component = props.component || "div";
   return (
     <Component
-      className={
-        utils.join(
-          is_running ? "running" : has_hidden_leaf ? "hidden-leafs" : undefined,
-        ) || undefined
-      }
+      className={utils.join(
+        is_running ? "running" : has_hidden_leaf ? "hidden-leafs" : undefined,
+      )}
       onDoubleClick={handle_toggle_show_children}
       onMouseOver={props.onMouseOver}
       onMouseLeave={props.onMouseLeave}

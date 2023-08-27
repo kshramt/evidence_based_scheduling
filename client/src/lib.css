@@ -3,15 +3,6 @@
 @tailwind utilities;
 
 @layer base {
-  /* content-visibility: auto hides lis' bullets. */
-  /*
-  tr,
-  li {
-    content-visibility: auto;
-    contain-intrinsic-size: auto 1em;
-  }
-  */
-
   ul {
     list-style-type: disc;
   }
@@ -63,6 +54,10 @@
   .overflow-wrap-anywhere {
     overflow-wrap: anywhere;
   }
+}
+
+.content-visibility-hidden {
+  content-visibility: hidden;
 }
 
 .content-visibility-auto {
