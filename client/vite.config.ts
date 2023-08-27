@@ -79,7 +79,7 @@ export default defineConfig({
     browser: {
       enabled: true,
       headless: true,
-      name: "chromium",
+      name: "firefox",
       provider: "playwright",
     },
     coverage: {
