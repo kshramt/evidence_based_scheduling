@@ -3,20 +3,6 @@
 @tailwind utilities;
 
 @layer base {
-  button,
-  input,
-  select,
-  textarea {
-    font-family: inherit;
-    font-size: inherit;
-    background-color: inherit;
-  }
-  input,
-  textarea {
-    border-style: solid;
-    border-width: 1px;
-    border-color: gray;
-  }
   /* content-visibility: auto hides lis' bullets. */
   /*
   tr,
