@@ -55,7 +55,6 @@ export const moveUp_ = register_history_type(
 export const moveDown_ = register_history_type(
   rtk.action_of_of<types.TNodeId>("moveDown_"),
 );
-export const flipShowDetail = rtk.action_of_of<types.TNodeId>("flipShowDetail");
 export const todoToDone = register_history_type(
   rtk.action_of_of<types.TNodeId>("todoToDone"),
 );

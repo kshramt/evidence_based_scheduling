@@ -2,19 +2,20 @@ import * as Jotai from "jotai";
 import * as React from "react";
 import { useCallback } from "react";
 import * as Dnd from "react-dnd";
+import * as Mth from "@mantine/hooks";
 
 import AutoHeightTextArea from "src/AutoHeightTextArea";
 import Calendar from "./Calendar";
 import CopyNodeIdButton from "./CopyNodeIdButton";
 import GanttChart from "./GanttChart";
 import MenuButton from "./Header/MenuButton";
-import PlannedEvents from "./PlannedEvents";
 import ScrollBackToTopButton from "./ScrollBackToTopButton";
+import ShowDetailsButton from "./ShowDetailsButton";
 import StartButton from "./StartButton";
 import StartConcurrentButton from "./StartConcurrentButton";
 import StopButton from "./StopButton";
-import TocForm from "./Details/Component/TocForm";
 import ToggleButton from "./ToggleButton";
+import TopButton from "./TopButton";
 import * as types from "./types";
 import { useDispatch, useSelector } from "./types";
 import * as actions from "./actions";
@@ -24,7 +25,6 @@ import * as total_time_utils from "./total_time_utils";
 import * as utils from "./utils";
 import { prevent_propagation } from "./utils";
 import * as ops from "./ops";
-import * as toast from "./toast";
 import * as undoable from "./undoable";
 
 const SCROLL_BACK_TO_TOP_MARK = (
@@ -330,7 +330,7 @@ const Menu = (props: {
         <input
           type="radio"
           checked={show_todo_only}
-          onChange={_suppress_missing_onChange_handler_warning}
+          onChange={utils.suppress_missing_onChange_handler_warning}
         />
       </div>
       <div
@@ -341,7 +341,7 @@ const Menu = (props: {
         <input
           type="radio"
           checked={show_strong_edge_only}
-          onChange={_suppress_missing_onChange_handler_warning}
+          onChange={utils.suppress_missing_onChange_handler_warning}
         />
       </div>
       <button
@@ -444,26 +444,6 @@ const PinnedSubTrees = React.memo(() => {
     </>
   );
 });
-
-const TogglePinButton = (props: { node_id: types.TNodeId }) => {
-  const dispatch = useDispatch();
-  const pinned_sub_trees = useSelector((state) => {
-    return state.data.pinned_sub_trees;
-  });
-  const on_click = React.useCallback(() => {
-    dispatch(actions.toggle_pin_action({ node_id: props.node_id }));
-  }, [props.node_id, dispatch]);
-  const is_pinned = pinned_sub_trees.includes(props.node_id);
-  return (
-    <button
-      className="btn-icon"
-      onClick={on_click}
-      onDoubleClick={prevent_propagation}
-    >
-      {is_pinned ? "Unpin" : "Pin"}
-    </button>
-  );
-};
 
 const DoneOrDontToTodoButton = (props: { node_id: types.TNodeId }) => {
   const dispatch = useDispatch();
@@ -993,15 +973,13 @@ const Edge = React.memo(
 
 const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
   const { isOn, turnOn, turnOff } = utils.useOn(0);
-  const show_detail = useSelector(
-    (state) => state.caches[props.node_id].show_detail,
-  );
   const cache = useSelector((state) => state.caches[props.node_id]);
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
   const is_todo = status === "todo";
   const is_running = utils.useIsRunning(props.node_id);
   const to_tree = utils.useToTree(props.node_id);
   const handleKeyDown = useTaskShortcutKeys(props.node_id, TREE_PREFIX);
+  const [opened, handlers] = Mth.useDisclosure(false);
 
   return (
     <EntryWrapper node_id={props.node_id} onMouseLeave={turnOff} component="li">
@@ -1028,10 +1006,13 @@ const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
         0 <= cache.leaf_estimates_sum &&
         digits1(cache.leaf_estimates_sum) + " | "}
       {is_todo && cache.percentiles.map(digits1).join(", ")}
-      {(isOn || is_running || show_detail) && (
-        <EntryButtons node_id={props.node_id} />
+      {(isOn || is_running || opened) && (
+        <EntryButtons
+          node_id={props.node_id}
+          opened={opened}
+          handlers={handlers}
+        />
       )}
-      <Details node_id={props.node_id} />
     </EntryWrapper>
   );
 });
@@ -1099,7 +1080,7 @@ const MobileMenu = (props: {
         <input
           type="radio"
           checked={show_todo_only}
-          onChange={_suppress_missing_onChange_handler_warning}
+          onChange={utils.suppress_missing_onChange_handler_warning}
         />
       </div>
       <MobileNodeFilterQueryInput />
@@ -1161,26 +1142,32 @@ const MobileQueueNodesImpl = React.memo(
   (props: { node_ids: types.TNodeId[] }) => {
     return (
       <>
-        {props.node_ids.map((node_id) => (
-          <EntryWrapper node_id={node_id} key={node_id}>
-            <TextArea
-              node_id={node_id}
-              className="w-[100vw] px-[0.75em] py-[0.5em]"
-            />
-            <MobileEntryButtons node_id={node_id} />
-            <Details node_id={node_id} />
-          </EntryWrapper>
+        {props.node_ids.map((nodeId) => (
+          <MobileQueueNode nodeId={nodeId} key={nodeId} />
         ))}
       </>
     );
   },
 );
+const MobileQueueNode = React.memo((props: { nodeId: types.TNodeId }) => {
+  const [opened, handlers] = Mth.useDisclosure(false);
+  return (
+    <EntryWrapper node_id={props.nodeId}>
+      <TextArea
+        node_id={props.nodeId}
+        className="w-[100vw] px-[0.75em] py-[0.5em]"
+      />
+      <MobileEntryButtons
+        node_id={props.nodeId}
+        opened={opened}
+        handlers={handlers}
+      />
+    </EntryWrapper>
+  );
+});
 
 const TreeEntry = React.memo(
   (props: { node_id: types.TNodeId; prefix?: undefined | string }) => {
-    const show_detail = useSelector(
-      (state) => state.caches[props.node_id].show_detail,
-    );
     const { isOn, turnOn, turnOff } = utils.useOn(0);
     const is_running = utils.useIsRunning(props.node_id);
     const cache = useSelector((state) => state.caches[props.node_id]);
@@ -1192,6 +1179,7 @@ const TreeEntry = React.memo(
     const is_root = props.node_id === root;
     const prefix = props.prefix || TREE_PREFIX;
     const handleKeyDown = useTaskShortcutKeys(props.node_id, prefix);
+    const [opened, handlers] = Mth.useDisclosure(false);
 
     return (
       <EntryWrapper node_id={props.node_id} onMouseLeave={turnOff}>
@@ -1220,10 +1208,14 @@ const TreeEntry = React.memo(
           0 <= cache.leaf_estimates_sum &&
           digits1(cache.leaf_estimates_sum) + " | "}
         {status === "todo" && cache.percentiles.map(digits1).join(", ")}
-        {(isOn || is_running || show_detail) && (
-          <EntryButtons node_id={props.node_id} prefix={prefix} />
+        {(isOn || is_running || opened) && (
+          <EntryButtons
+            node_id={props.node_id}
+            prefix={prefix}
+            opened={opened}
+            handlers={handlers}
+          />
         )}
-        <Details node_id={props.node_id} />
       </EntryWrapper>
     );
   },
@@ -1269,345 +1261,6 @@ const useTaskShortcutKeys = (node_id: null | types.TNodeId, prefix: string) => {
   );
 };
 
-const Details = React.memo((props: { node_id: types.TNodeId }) => {
-  const show_detail = useSelector(
-    (state) => state.caches[props.node_id].show_detail,
-  );
-  return show_detail ? <DetailsImpl node_id={props.node_id} /> : null;
-});
-
-const DetailsImpl = React.memo((props: { node_id: types.TNodeId }) => {
-  const [new_edge_type, set_new_edge_type] =
-    React.useState<types.TEdgeType>("weak");
-  const handle_new_edge_type_change = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const v = e.target.value;
-      if (types.is_TEdgeType(v)) {
-        set_new_edge_type(v);
-      } else {
-        toast.add("error", `Invalid edge type: ${v}`);
-      }
-    },
-    [set_new_edge_type],
-  );
-  const dispatch = useDispatch();
-  const nodeIds = Jotai.useAtomValue(states.nodeIdsState);
-  const handle_add_parents = React.useCallback(() => {
-    dispatch(
-      actions.add_edges_action(
-        utils.node_ids_list_of_node_ids_string(nodeIds).map((p) => ({
-          p,
-          c: props.node_id,
-          t: new_edge_type,
-        })),
-      ),
-    );
-  }, [dispatch, nodeIds, new_edge_type, props.node_id]);
-  const handle_add_children = React.useCallback(() => {
-    dispatch(
-      actions.add_edges_action(
-        utils.node_ids_list_of_node_ids_string(nodeIds).map((c) => ({
-          p: props.node_id,
-          c,
-          t: new_edge_type,
-        })),
-      ),
-    );
-  }, [dispatch, nodeIds, new_edge_type, props.node_id]);
-  const hline = (
-    <hr className="my-[0.5em] border-neutral-300 dark:border-neutral-600 bg-neutral-300 dark:bg-neutral-600" />
-  );
-  return (
-    <div className="pt-[0.25em] bg-neutral-200 dark:bg-neutral-900">
-      {hline}
-      <div className="flex w-fit gap-x-[0.25em] items-baseline">
-        <TogglePinButton node_id={props.node_id} />
-        <TocForm nodeId={props.node_id} />
-      </div>
-      {hline}
-      <div className="flex gap-x-[0.25em] items-baseline">
-        Add:
-        <select value={new_edge_type} onChange={handle_new_edge_type_change}>
-          {types.edgeTypeValues.map((t, i) => (
-            <option value={t} key={i}>
-              {t}
-            </option>
-          ))}
-        </select>
-        <button
-          className="btn-icon"
-          onClick={handle_add_parents}
-          onDoubleClick={prevent_propagation}
-        >
-          Parents
-        </button>
-        <button
-          className="btn-icon"
-          onClick={handle_add_children}
-          onDoubleClick={prevent_propagation}
-        >
-          Children
-        </button>
-      </div>
-      {hline}
-      <ParentEdgeTable node_id={props.node_id} />
-      {hline}
-      <ChildEdgeTable node_id={props.node_id} />
-      {hline}
-      <RangesTable node_id={props.node_id} />
-      {hline}
-      <PlannedEvents nodeId={props.node_id} />
-      {hline}
-    </div>
-  );
-});
-
-const RangesTable = (props: { node_id: types.TNodeId }) => {
-  const rows_per_page = 10;
-  const [offset, set_offset] = React.useState(0);
-  const n = useSelector(
-    (state) => state.data.nodes[props.node_id].ranges.length,
-  );
-  const handle_offset_input = React.useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) =>
-      set_offset(Math.min(Math.max(0, parseInt(e.target.value)), n - 1)),
-    [n, set_offset],
-  );
-  const handle_offset_next = React.useCallback(
-    () => set_offset((offset) => Math.min(offset + rows_per_page, n - 1)),
-    [n, set_offset],
-  );
-  const handle_offset_prev = React.useCallback(
-    () => set_offset((offset) => Math.max(offset - rows_per_page, 0)),
-    [set_offset],
-  );
-  const rows = [];
-  for (let i = offset; i < Math.min(offset + rows_per_page, n); ++i) {
-    const i_range = n - i - 1;
-    rows[i] = (
-      <RangesTableRow i_range={i_range} node_id={props.node_id} key={i_range} />
-    );
-  }
-  return (
-    <>
-      <div className="flex gap-x-[0.25em] items-baseline">
-        <button
-          disabled={offset - rows_per_page < 0}
-          onClick={handle_offset_prev}
-          className="btn-icon"
-          onDoubleClick={prevent_propagation}
-        >
-          {consts.BACK_MARK}
-        </button>
-        <input
-          onChange={handle_offset_input}
-          type="number"
-          className="w-[5em]"
-          value={offset}
-        />
-        /{n}
-        <button
-          disabled={n <= offset + rows_per_page}
-          onClick={handle_offset_next}
-          className="btn-icon"
-          onDoubleClick={prevent_propagation}
-        >
-          {consts.FORWARD_MARK}
-        </button>
-      </div>
-      <table className="table-auto">
-        <tbody className="block max-h-[10em] overflow-y-auto">{rows}</tbody>
-      </table>
-    </>
-  );
-};
-const RangesTableRow = (props: { node_id: types.TNodeId; i_range: number }) => {
-  const range = useSelector(
-    (state) => state.data.nodes[props.node_id].ranges[props.i_range],
-  );
-  const dispatch = useDispatch();
-  const set_start = React.useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      dispatch(
-        actions.set_range_value_action({
-          node_id: props.node_id,
-          i_range: props.i_range,
-          k: "start",
-          v: e.target.value,
-        }),
-      );
-    },
-    [props.node_id, props.i_range, dispatch],
-  );
-  const set_end = React.useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      dispatch(
-        actions.set_range_value_action({
-          node_id: props.node_id,
-          i_range: props.i_range,
-          k: "end",
-          v: e.target.value,
-        }),
-      );
-    },
-    [props.node_id, props.i_range, dispatch],
-  );
-  const handle_delete = React.useCallback(() => {
-    dispatch(
-      actions.delete_range_action({
-        node_id: props.node_id,
-        i_range: props.i_range,
-      }),
-    );
-  }, [props.node_id, props.i_range, dispatch]);
-  const start_date = utils.getStringOfLocalTime(range.start);
-  const end_date = range.end
-    ? utils.getStringOfLocalTime(range.end)
-    : undefined;
-  return React.useMemo(
-    () => (
-      <tr>
-        <td className="p-[0.25em]">
-          <input
-            type="datetime-local"
-            value={start_date}
-            onChange={set_start}
-          />
-        </td>
-        <td className="p-[0.25em]">
-          {end_date && (
-            <input type="datetime-local" value={end_date} onChange={set_end} />
-          )}
-        </td>
-        <td className="p-[0.25em]">
-          <button
-            className="btn-icon"
-            onClick={handle_delete}
-            onDoubleClick={prevent_propagation}
-          >
-            {consts.DELETE_MARK}
-          </button>
-        </td>
-      </tr>
-    ),
-    [end_date, start_date, handle_delete, set_start, set_end],
-  );
-};
-
-const ChildEdgeTable = React.memo((props: { node_id: types.TNodeId }) => {
-  const children = useSelector(
-    (state) => state.data.nodes[props.node_id].children,
-  );
-  return (
-    <table className="table-auto">
-      <tbody className="block max-h-[10em] overflow-y-auto">
-        {ops.sorted_keys_of(children).map((edge_id) => (
-          <EdgeRow edge_id={edge_id} key={edge_id} target="c" />
-        ))}
-      </tbody>
-    </table>
-  );
-});
-
-const ParentEdgeTable = React.memo((props: { node_id: types.TNodeId }) => {
-  const parents = useSelector(
-    (state) => state.data.nodes[props.node_id].parents,
-  );
-  return (
-    <table className="table-auto">
-      <tbody className="block max-h-[10em] overflow-y-auto">
-        {ops.sorted_keys_of(parents).map((edge_id) => (
-          <EdgeRow edge_id={edge_id} key={edge_id} target={"p"} />
-        ))}
-      </tbody>
-    </table>
-  );
-});
-
-const EdgeRow = React.memo(
-  (props: { edge_id: types.TEdgeId; target: "p" | "c" }) => {
-    const edge = useSelector((state) => state.data.edges[props.edge_id]);
-    const hide = useSelector((state) => state.data.edges[props.edge_id].hide);
-    const dispatch = useDispatch();
-    const delete_edge = React.useCallback(
-      () => dispatch(actions.delete_edge_action(props.edge_id)),
-      [props.edge_id, dispatch],
-    );
-    const set_edge_type = React.useCallback(
-      (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const edge_type = e.target.value;
-        if (types.is_TEdgeType(edge_type)) {
-          dispatch(
-            actions.set_edge_type_action({
-              edge_id: props.edge_id,
-              edge_type,
-            }),
-          );
-        } else {
-          toast.add("error", `Invalid edge type: ${edge_type}`);
-        }
-      },
-      [props.edge_id, dispatch],
-    );
-    const toggle_edge_hide = React.useCallback(() => {
-      dispatch(actions.toggle_edge_hide_action(props.edge_id));
-    }, [props.edge_id, dispatch]);
-    const node_id = edge[props.target];
-    return (
-      <tr>
-        <EdgeRowContent node_id={node_id} />
-        <td className="p-[0.25em]">
-          <select value={edge.t} onChange={set_edge_type}>
-            {types.edgeTypeValues.map((t, i) => (
-              <option value={t} key={i}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </td>
-        <td className="p-[0.25em]">
-          <input
-            type="radio"
-            checked={!hide}
-            onClick={toggle_edge_hide}
-            onChange={_suppress_missing_onChange_handler_warning}
-          />
-        </td>
-        <td className="p-[0.25em]">
-          <button
-            className="btn-icon"
-            onClick={delete_edge}
-            onDoubleClick={prevent_propagation}
-          >
-            {consts.DELETE_MARK}
-          </button>
-        </td>
-      </tr>
-    );
-  },
-);
-
-const EdgeRowContent = React.memo((props: { node_id: types.TNodeId }) => {
-  const to_tree = utils.useToTree(props.node_id);
-  const text = useSelector((state) => state.caches[props.node_id].text);
-  const disabled = useSelector((state) => {
-    return (
-      props.node_id === state.data.root ||
-      state.data.nodes[props.node_id].status !== "todo"
-    );
-  });
-  return (
-    <>
-      <td>
-        <TopButton node_id={props.node_id} disabled={disabled} />
-      </td>
-      <td title={text} onClick={to_tree} className="p-[0.25em] cursor-pointer">
-        {text.slice(0, 15)}
-      </td>
-    </>
-  );
-});
-
 const EntryWrapper = (props: {
   node_id: types.TNodeId;
   children: React.ReactNode;
@@ -1643,67 +1296,62 @@ const EntryWrapper = (props: {
   );
 };
 
-const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
+const MobileEntryButtons = (props: {
+  node_id: types.TNodeId;
+  opened: boolean;
+  handlers: { toggle: () => void; close: () => void };
+}) => {
   const cache = useSelector((state) => state.caches[props.node_id]);
-
   const status = useSelector((state) => state.data.nodes[props.node_id].status);
-
   const root = useSelector((state) => state.data.root);
   const is_root = props.node_id === root;
 
-  return React.useMemo(
-    () => (
-      <div
-        className={utils.join(
-          !cache.show_detail && "opacity-40 hover:opacity-100",
+  return (
+    <div>
+      <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
+        {is_root || <EstimationInput node_id={props.node_id} />}
+        {is_root || status !== "todo" || (
+          <StartOrStopButtons node_id={props.node_id} />
         )}
-      >
-        <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
-          {is_root || <EstimationInput node_id={props.node_id} />}
-          {is_root || status !== "todo" || (
-            <StartOrStopButtons node_id={props.node_id} />
-          )}
-          {is_root || status !== "todo" || (
-            <TodoToDoneButton node_id={props.node_id} />
-          )}
-          {is_root || status !== "todo" || (
-            <TodoToDontButton node_id={props.node_id} />
-          )}
-          {is_root || status === "todo" || (
-            <DoneOrDontToTodoButton node_id={props.node_id} />
-          )}
-          {status === "todo" && <EvalButton node_id={props.node_id} />}
-          {is_root || status !== "todo" || (
-            <TopButton node_id={props.node_id} />
-          )}
-          <DeleteButton node_id={props.node_id} />
-          <CopyNodeIdButton node_id={props.node_id} />
-          {status === "todo" && <AddButton node_id={props.node_id} />}
-          <ShowDetailButton node_id={props.node_id} />
-          <TotalTime node_id={props.node_id} />
-          {is_root || <LastRange node_id={props.node_id} />}
-        </div>
-        <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
-          {status === "todo" &&
-            0 <= cache.leaf_estimates_sum &&
-            digits1(cache.leaf_estimates_sum) + " | "}
-          {status === "todo" && cache.percentiles.map(digits1).join(", ")}
-        </div>
+        {is_root || status !== "todo" || (
+          <TodoToDoneButton node_id={props.node_id} />
+        )}
+        {is_root || status !== "todo" || (
+          <TodoToDontButton node_id={props.node_id} />
+        )}
+        {is_root || status === "todo" || (
+          <DoneOrDontToTodoButton node_id={props.node_id} />
+        )}
+        {status === "todo" && <EvalButton node_id={props.node_id} />}
+        {is_root || status !== "todo" || <TopButton node_id={props.node_id} />}
+        <DeleteButton node_id={props.node_id} />
+        <CopyNodeIdButton node_id={props.node_id} />
+        {status === "todo" && <AddButton node_id={props.node_id} />}
+        <ShowDetailsButton
+          node_id={props.node_id}
+          opened={props.opened}
+          handlers={props.handlers}
+        />
+        <TotalTime node_id={props.node_id} />
+        {is_root || <LastRange node_id={props.node_id} />}
       </div>
-    ),
-    [
-      cache.percentiles,
-      cache.leaf_estimates_sum,
-      cache.show_detail,
-      status,
-      is_root,
-      props.node_id,
-    ],
+      <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
+        {status === "todo" &&
+          0 <= cache.leaf_estimates_sum &&
+          digits1(cache.leaf_estimates_sum) + " | "}
+        {status === "todo" && cache.percentiles.map(digits1).join(", ")}
+      </div>
+    </div>
   );
 };
 
 const EntryButtons = React.memo(
-  (props: { node_id: types.TNodeId; prefix?: string }) => {
+  (props: {
+    node_id: types.TNodeId;
+    prefix?: string;
+    opened: boolean;
+    handlers: { toggle: () => void; close: () => void };
+  }) => {
     const status = useSelector(
       (state) => state.data.nodes[props.node_id].status,
     );
@@ -1726,7 +1374,11 @@ const EntryButtons = React.memo(
         {is_root || !is_todo || <MoveDownButton node_id={props.node_id} />}
         <DeleteButton node_id={props.node_id} />
         {is_todo && <AddButton node_id={props.node_id} prefix={props.prefix} />}
-        <ShowDetailButton node_id={props.node_id} />
+        <ShowDetailsButton
+          node_id={props.node_id}
+          opened={props.opened}
+          handlers={props.handlers}
+        />
       </div>
     );
   },
@@ -1812,23 +1464,6 @@ const AddButton = (props: {
   );
 };
 
-const TopButton = (props: { node_id: types.TNodeId; disabled?: boolean }) => {
-  const dispatch = useDispatch();
-  const on_click = React.useCallback(() => {
-    dispatch(actions.top_action(props.node_id));
-  }, [props.node_id, dispatch]);
-  return (
-    <button
-      className="btn-icon"
-      onClick={on_click}
-      onDoubleClick={prevent_propagation}
-      disabled={props.disabled}
-    >
-      {consts.TOP_MARK}
-    </button>
-  );
-};
-
 const MoveUpButton = (props: { node_id: types.TNodeId }) => {
   const dispatch = useDispatch();
   const on_click = useCallback(() => {
@@ -1903,23 +1538,23 @@ const TodoToDontButton = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const ShowDetailButton = (props: { node_id: types.TNodeId }) => {
-  const dispatch = useDispatch();
-  const on_click = useCallback(
-    () => dispatch(actions.flipShowDetail(props.node_id)),
-    [props.node_id, dispatch],
-  );
+// const ShowDetailButton = (props: { node_id: types.TNodeId }) => {
+//   const dispatch = useDispatch();
+//   const on_click = useCallback(
+//     () => dispatch(actions.flipShowDetail(props.node_id)),
+//     [props.node_id, dispatch],
+//   );
 
-  return (
-    <button
-      className="btn-icon"
-      onClick={on_click}
-      onDoubleClick={prevent_propagation}
-    >
-      {consts.DETAIL_MARK}
-    </button>
-  );
-};
+//   return (
+//     <button
+//       className="btn-icon"
+//       onClick={on_click}
+//       onDoubleClick={prevent_propagation}
+//     >
+//       {consts.DETAIL_MARK}
+//     </button>
+//   );
+// };
 
 const DeleteButton = (props: { node_id: types.TNodeId }) => {
   const dispatch = useDispatch();
@@ -2266,5 +1901,3 @@ const get_toggle = utils.memoize1(
   (set: (fn: typeof _toggle) => void) => () => set(_toggle),
 );
 const _toggle = (x: boolean) => !x;
-
-const _suppress_missing_onChange_handler_warning = () => {};

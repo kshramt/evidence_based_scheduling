@@ -101,7 +101,6 @@ const tCache = rt.$object({
   total_time: rt.$number(),
   percentiles: rt.$readonly(rt.$array(rt.$number())), // 0, 10, 33, 50, 67, 90, 100
   leaf_estimates_sum: rt.$readonly(rt.$number()),
-  show_detail: rt.$readonly(rt.$boolean()),
   n_hidden_child_edges: rt.$readonly(rt.$number()),
   text: rt.$readonly(rt.$string()),
 });

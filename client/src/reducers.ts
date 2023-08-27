@@ -196,10 +196,6 @@ export const get_root_reducer_def = (
           : "none";
       state.data.timeline.time_nodes[action.payload] = time_node;
     });
-    builder(actions.flipShowDetail, (state, action) => {
-      const node_id = action.payload;
-      state.caches[node_id].show_detail = !state.caches[node_id].show_detail;
-    });
     builder(actions.start_action, (state, action) => {
       const vid = utils.visit_counter_of();
       const node_id = action.payload.node_id;

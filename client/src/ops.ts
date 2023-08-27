@@ -105,7 +105,6 @@ export const new_cache_of = (
     percentiles: [],
     leaf_estimates_sum: -1,
     text: ACS.get(),
-    show_detail: false,
     n_hidden_child_edges,
   };
 };
