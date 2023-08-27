@@ -9,6 +9,8 @@
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow-wrap: break-word;
+  font: inherit;
+  letter-spacing: inherit;
 }
 
 .auto_height_textarea {
