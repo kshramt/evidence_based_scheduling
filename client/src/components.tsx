@@ -381,7 +381,7 @@ const Body = () => {
   const [pin, setPin] = Jotai.useAtom(states.pinQueueAtomMap.get(session));
   return (
     <div className="flex flex-1 gap-x-[1em] overflow-y-hidden">
-      <div className={`overflow-y-auto flex-none`}>
+      <div className="overflow-y-auto flex-none w-[46em]">
         <SBTTB />
         <ToggleButton
           value={pin}
@@ -395,7 +395,7 @@ const Body = () => {
         <TodoQueueNodes />
       </div>
       <div className={utils.join("flex", pin && "w-full overflow-x-auto")}>
-        <div className={`overflow-y-auto flex-none`}>
+        <div className="overflow-y-auto flex-none w-[46em]">
           <SBTTB />
           <NonTodoQueueNodes />
         </div>
