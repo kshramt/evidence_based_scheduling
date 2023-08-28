@@ -31,7 +31,8 @@ def run(args):
         Platform(os="linux", arch="amd64"),
         Platform(os="linux", arch="arm64"),
     ):
-        ks = []
+        test_ks = []
+        prod_ks = []
         for target, image_name in (
             ("test_client", "/client/test"),
             ("prod_envoy", "/envoy"),
@@ -67,8 +68,12 @@ def run(args):
                 ],
             }
             spec["target"][k] = v
-            ks.append(k)
-        spec["group"][f"{platform.os}-{platform.arch}"] = dict(targets=ks)
+            if k.startswith("prod_"):
+                prod_ks.append(k)
+            else:
+                test_ks.append(k)
+        spec["group"][f"{platform.os}-{platform.arch}-prod"] = dict(targets=prod_ks)
+        spec["group"][f"{platform.os}-{platform.arch}-test"] = dict(targets=test_ks)
     json.dump(
         spec,
         sys.stdout,
