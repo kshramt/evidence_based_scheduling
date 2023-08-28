@@ -54,7 +54,7 @@ const HeaderCell = React.memo(
       <div
         style={props.style}
         className={utils.join(
-          "border dark:border-neutral-500 border-neutral-400",
+          "border border-solid dark:border-neutral-500 border-neutral-400",
           isToday(props.columnIndex) &&
             "border-x-yellow-300 dark:border-x-yellow-700 bg-yellow-200 dark:bg-yellow-800",
         )}
@@ -85,7 +85,7 @@ const IndexCell = React.memo(
     });
     return (
       <div
-        className="px-[0.5em] border dark:border-neutral-500 border-neutral-400 flex"
+        className="px-[0.5em] border border-solid dark:border-neutral-500 border-neutral-400 flex"
         style={props.style}
       >
         <button
@@ -137,7 +137,7 @@ const Cell = React.memo(
     return (
       <div
         className={utils.join(
-          "border dark:border-neutral-500 border-neutral-400",
+          "border border-solid dark:border-neutral-500 border-neutral-400",
           isToday(props.columnIndex) &&
             "border-x-yellow-300 dark:border-x-yellow-700",
           hit
