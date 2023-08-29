@@ -110,9 +110,11 @@ const TimeNode = React.memo((props: { timeId: string }) => {
 });
 
 const PlannedNode = (props: { node_id: types.TNodeId }) => {
-  const text = types.useSelector((state) => state.caches[props.node_id].text);
+  const text = types.useSelector(
+    (state) => state.swapped_caches.text[props.node_id],
+  );
   const status = types.useSelector(
-    (state) => state.data.nodes[props.node_id].status,
+    (state) => state.swapped_nodes.status[props.node_id],
   );
   const { isOn, turnOn, turnOff } = utils.useOn();
   const is_running = utils.useIsRunning(props.node_id);

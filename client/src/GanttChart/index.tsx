@@ -81,7 +81,7 @@ const IndexCell = React.memo(
     const nodeId = props.data[props.rowIndex];
     const toTree = utils.useToTree(nodeId);
     const text = types.useSelector((state) => {
-      return state.caches[nodeId].text;
+      return state.swapped_caches.text[nodeId];
     });
     return (
       <div
@@ -112,7 +112,7 @@ const Cell = React.memo(
   }) => {
     const nodeId = props.data[props.rowIndex];
     const events = types.useSelector(
-      (state) => state.data.nodes[nodeId].events,
+      (state) => state.swapped_nodes.events[nodeId],
     );
     const hit = React.useMemo(() => {
       const start = { f: START_TIME.f + props.columnIndex * DAY_MS };
@@ -152,9 +152,11 @@ const Cell = React.memo(
 
 const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
   const resize = useComponentSize();
-  const nodes = types.useSelector((state) => state.data.nodes);
-  const edges = types.useSelector((state) => state.data.edges);
+  const eventss = types.useSelector((state) => state.swapped_nodes.events);
+  const statuses = types.useSelector((state) => state.swapped_nodes.status);
+  const childrens = types.useSelector((state) => state.swapped_nodes.children);
   const root = types.useSelector((state) => state.data.root);
+  const edgeCs = types.useSelector((state) => state.swapped_edges.c);
   const todoNodeIds = React.useMemo(() => {
     const res: types.TNodeId[] = [];
     const seen = new Set();
@@ -162,22 +164,21 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
       if (seen.has(nodeId)) {
         return;
       }
-      const node = nodes[nodeId];
-      if (node.status !== "todo") {
+      if (statuses[nodeId] !== "todo") {
         return;
       }
       if (nodeId !== root) {
         seen.add(nodeId);
         res.push(nodeId);
       }
-      for (const childEdgeId of ops.sorted_keys_of(node.children)) {
-        const childNodeId = edges[childEdgeId].c;
+      for (const childEdgeId of ops.sorted_keys_of(childrens[nodeId])) {
+        const childNodeId = edgeCs[childEdgeId];
         rec(childNodeId);
       }
     };
     rec(root);
     return res;
-  }, [nodes, edges, root]);
+  }, [childrens, edgeCs, root, statuses]);
   const headerRef = React.useRef<RWindow.FixedSizeGrid>(null);
   const indexColumnRef = React.useRef<RWindow.FixedSizeGrid>(null);
   const tnow = times.getFloatingNow();
@@ -211,7 +212,7 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
     const head = [];
     const tail = [];
     for (const nodeId of todoNodeIds) {
-      const events = nodes[nodeId].events;
+      const events = eventss[nodeId];
       if (events === undefined) {
         tail.push(nodeId);
       } else {
@@ -238,7 +239,7 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
       }
     }
     return head.concat(tail);
-  }, [filterActive, scrollLeft, resize.width, todoNodeIds, nodes]);
+  }, [filterActive, scrollLeft, resize.width, todoNodeIds, eventss]);
 
   const indexColumnStyle = React.useMemo(() => {
     return { width: props.indexColumnWidth };

@@ -2,6 +2,7 @@ import * as sequenceComparisons from "@kshramt/sequence-comparisons";
 
 import * as checks from "./checks";
 import * as consts from "./consts";
+import * as swapper from "./swapper";
 import * as types from "./types";
 import * as toast from "./toast";
 import { Draft } from "immer";
@@ -56,6 +57,9 @@ export const emptyStateOf = (): types.TState => {
     data,
     caches,
     predicted_next_nodes: [],
+    swapped_caches: swapper.swapKeys(caches),
+    swapped_edges: swapper.swapKeys(data.edges),
+    swapped_nodes: swapper.swapKeys(data.nodes),
     n_unsaved_patches: 0,
     todo_node_ids: [],
     non_todo_node_ids: [],

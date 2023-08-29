@@ -9,9 +9,15 @@ import * as utils from "src/utils";
 
 const EdgeRow = React.memo(
   (props: { edge_id: types.TEdgeId; target: "p" | "c" }) => {
-    const edge = types.useSelector((state) => state.data.edges[props.edge_id]);
-    const hide = types.useSelector(
-      (state) => state.data.edges[props.edge_id].hide,
+    // const edge = types.useSelector((state) => state.data.edges[props.edge_id]);
+    const edgeT = types.useSelector(
+      (state) => state.swapped_edges.t[props.edge_id],
+    );
+    const nodeId = types.useSelector(
+      (state) => state.swapped_edges[props.target][props.edge_id],
+    );
+    const edgeHide = types.useSelector(
+      (state) => state.swapped_edges.hide[props.edge_id],
     );
     const dispatch = types.useDispatch();
     const delete_edge = React.useCallback(
@@ -37,12 +43,11 @@ const EdgeRow = React.memo(
     const toggle_edge_hide = React.useCallback(() => {
       dispatch(actions.toggle_edge_hide_action(props.edge_id));
     }, [props.edge_id, dispatch]);
-    const node_id = edge[props.target];
     return (
       <tr>
-        <EdgeRowContent node_id={node_id} />
+        <EdgeRowContent node_id={nodeId} />
         <td className="p-[0.25em]">
-          <select value={edge.t} onChange={set_edge_type}>
+          <select value={edgeT} onChange={set_edge_type}>
             {types.edgeTypeValues.map((t, i) => (
               <option value={t} key={i}>
                 {t}
@@ -53,7 +58,7 @@ const EdgeRow = React.memo(
         <td className="p-[0.25em]">
           <input
             type="radio"
-            checked={!hide}
+            checked={!edgeHide}
             onClick={toggle_edge_hide}
             onChange={utils.suppress_missing_onChange_handler_warning}
           />
@@ -74,11 +79,13 @@ const EdgeRow = React.memo(
 
 const EdgeRowContent = React.memo((props: { node_id: types.TNodeId }) => {
   const to_tree = utils.useToTree(props.node_id);
-  const text = types.useSelector((state) => state.caches[props.node_id].text);
+  const text = types.useSelector(
+    (state) => state.swapped_caches.text[props.node_id],
+  );
   const disabled = types.useSelector((state) => {
     return (
       props.node_id === state.data.root ||
-      state.data.nodes[props.node_id].status !== "todo"
+      state.swapped_nodes.status[props.node_id] !== "todo"
     );
   });
   return (
