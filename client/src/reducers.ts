@@ -586,22 +586,22 @@ export const get_root_reducer_def = (
 };
 
 const stop = (
-  draft: immer.Draft<types.TState>,
+  state: immer.Draft<types.TState>,
   node_id: types.TNodeId,
   vid: number,
   t?: number,
 ) => {
-  const last_range = draft.data.nodes[node_id].ranges.at(-1);
+  const last_range = state.data.nodes[node_id].ranges.at(-1);
   if (last_range && last_range.end === null) {
     last_range.end = t ?? Date.now();
-    _set_total_time_of_ancestors(draft, node_id, vid);
+    _set_total_time_of_ancestors(state, node_id, vid);
   }
 };
 
-const stop_all = (draft: immer.Draft<types.TState>, vid: number) => {
+const stop_all = (state: immer.Draft<types.TState>, vid: number) => {
   const t = Date.now();
-  for (const node_id of draft.todo_node_ids) {
-    stop(draft, node_id, vid, t);
+  for (const node_id of state.todo_node_ids) {
+    stop(state, node_id, vid, t);
   }
 };
 
@@ -634,20 +634,20 @@ export const set_predicted_next_nodes = (
 };
 
 const _eval_ = (
-  draft: immer.Draft<types.TState>,
+  state: immer.Draft<types.TState>,
   k: types.TNodeId,
   vid: number,
 ) => {
-  _set_total_time(draft, k, vid);
-  const candidates = draft.non_todo_node_ids.filter((node_id) => {
-    const v = draft.data.nodes[node_id];
+  _set_total_time(state, k, vid);
+  const candidates = state.non_todo_node_ids.filter((node_id) => {
+    const v = state.data.nodes[node_id];
     return v.estimate !== consts.NO_ESTIMATION;
   });
   const ratios = candidates.length
     ? candidates.map((node_id) => {
-        const node = draft.data.nodes[node_id];
+        const node = state.data.nodes[node_id];
         return (
-          _set_total_time(draft, node_id, vid) / (1000 * 3600) / node.estimate
+          _set_total_time(state, node_id, vid) / (1000 * 3600) / node.estimate
         );
         // return draft.caches[v.start_time].total_time / 3600 / v.estimate;
       })
@@ -657,7 +657,7 @@ const _eval_ = (
   // todo: The sampling weight should be a function of both the leaves and the candidates.
   const weights = candidates.length
     ? candidates.map((node_id) => {
-        const node = draft.data.nodes[node_id];
+        const node = state.data.nodes[node_id];
         if (!node.end_time) {
           return 0; // Must not happen.
         }
@@ -667,7 +667,7 @@ const _eval_ = (
       })
     : [1];
   const leaf_estimates = Array.from(
-    todo_leafs_of(k, draft, (edge) => edge.t === "strong"),
+    todo_leafs_of(k, state, (edge) => edge.t === "strong"),
   )
     .map(([_, v]) => v)
     .filter((v) => {
@@ -678,8 +678,8 @@ const _eval_ = (
     });
   const n_mc = 2000;
   const ts = _estimate(leaf_estimates, ratios, weights, n_mc);
-  draft.caches[k].leaf_estimates_sum = utils.sum(leaf_estimates);
-  draft.caches[k].percentiles = [
+  state.caches[k].leaf_estimates_sum = utils.sum(leaf_estimates);
+  state.caches[k].percentiles = [
     ts[0],
     ts[Math.round(n_mc / 10)],
     ts[Math.round(n_mc / 3)],
@@ -799,46 +799,46 @@ const collect_ranges_from_strong_descendants = (
   }
 };
 
-const _top = (draft: immer.Draft<types.TState>, node_id: types.TNodeId) => {
-  if (draft.data.nodes[node_id].status !== "todo") {
+const _top = (state: immer.Draft<types.TState>, node_id: types.TNodeId) => {
+  if (state.data.nodes[node_id].status !== "todo") {
     toast.add("error", `Non-todo node ${node_id} cannot be moved.`);
     return;
   }
-  _topTree(draft, node_id);
-  _topQueue(draft, node_id);
+  _topTree(state, node_id);
+  _topQueue(state, node_id);
 };
 
-const _topTree = (draft: immer.Draft<types.TState>, node_id: types.TNodeId) => {
-  if (draft.data.nodes[node_id].status !== "todo") {
+const _topTree = (state: immer.Draft<types.TState>, node_id: types.TNodeId) => {
+  if (state.data.nodes[node_id].status !== "todo") {
     toast.add("error", `Non-todo node ${node_id} cannot be moved.`);
     return;
   }
-  const parents = ops.sorted_keys_of(draft.data.nodes[node_id].parents);
+  const parents = ops.sorted_keys_of(state.data.nodes[node_id].parents);
   if (parents.length < 1) {
     return;
   }
   for (const edge_id of parents) {
-    const edge = draft.data.edges[edge_id];
-    if (edge.t === "strong" && draft.data.nodes[edge.p].status === "todo") {
-      ops.move_to_front(draft.data.nodes[edge.p].children, edge_id);
+    const edge = state.data.edges[edge_id];
+    if (edge.t === "strong" && state.data.nodes[edge.p].status === "todo") {
+      ops.move_to_front(state.data.nodes[edge.p].children, edge_id);
       return;
     }
   }
 };
 
 const _topQueue = (
-  draft: immer.Draft<types.TState>,
+  state: immer.Draft<types.TState>,
   node_id: types.TNodeId,
 ) => {
-  if (draft.data.nodes[node_id].status !== "todo") {
+  if (state.data.nodes[node_id].status !== "todo") {
     toast.add("error", `Non-todo node ${node_id} cannot be moved.`);
     return;
   }
-  ops.move_to_front(draft.data.queue, node_id);
+  ops.move_to_front(state.data.queue, node_id);
   const node_ids =
-    draft.data.nodes[node_id].status === "todo"
-      ? draft.todo_node_ids
-      : draft.non_todo_node_ids;
+    state.data.nodes[node_id].status === "todo"
+      ? state.todo_node_ids
+      : state.non_todo_node_ids;
   const i = node_ids.indexOf(node_id);
   if (i < 0) {
     return;
@@ -847,15 +847,15 @@ const _topQueue = (
 };
 
 const _show_path_to_selected_node = (
-  draft: immer.Draft<types.TState>,
+  state: immer.Draft<types.TState>,
   node_id: types.TNodeId,
 ) => {
-  while (ops.keys_of(draft.data.nodes[node_id].parents).length) {
+  while (ops.keys_of(state.data.nodes[node_id].parents).length) {
     let parent_edge_id = null;
     for (const edge_id of ops.sorted_keys_of(
-      draft.data.nodes[node_id].parents,
+      state.data.nodes[node_id].parents,
     )) {
-      if (draft.data.edges[edge_id].t === "strong") {
+      if (state.data.edges[edge_id].t === "strong") {
         parent_edge_id = edge_id;
         break;
       }
@@ -863,11 +863,11 @@ const _show_path_to_selected_node = (
     if (parent_edge_id === null) {
       return;
     }
-    node_id = draft.data.edges[parent_edge_id].p;
-    const edge = draft.data.edges[parent_edge_id];
+    node_id = state.data.edges[parent_edge_id].p;
+    const edge = state.data.edges[parent_edge_id];
     if (edge.hide) {
       delete edge.hide;
-      --draft.caches[edge.p].n_hidden_child_edges;
+      --state.caches[edge.p].n_hidden_child_edges;
     }
   }
 };
