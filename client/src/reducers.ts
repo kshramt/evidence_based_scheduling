@@ -374,7 +374,17 @@ export const get_root_reducer_def = (
           }
         }
         if (src_min !== null && src_min !== dst) {
-          ops.move_before(state.data.queue, src_min, dst, state.todo_node_ids);
+          {
+            const index = ops.move_before(
+              state.data.queue,
+              src_min,
+              dst,
+              state.todo_node_ids,
+            );
+            if (index !== null) {
+              state.data.queue[index[0]] = index[1];
+            }
+          }
           ops.move(state.todo_node_ids, src_min, dst);
           return;
         }
@@ -496,7 +506,18 @@ export const get_root_reducer_def = (
           state.data.nodes[action.payload].parents,
         )) {
           const node_id = state.data.edges[edge_id].p;
-          ops.move_up(state.data.nodes[node_id].children, edge_id);
+          swapper.set(
+            state.data.nodes,
+            state.swapped_nodes,
+            node_id,
+            "children",
+            immer.produce(state.data.nodes[node_id].children, (children) => {
+              const index = ops.move_up(children, edge_id);
+              if (index !== null) {
+                children[edge_id] = index[1];
+              }
+            }),
+          );
         }
         ops.move_up_todo_queue(state, action.payload);
       } else {
@@ -514,7 +535,18 @@ export const get_root_reducer_def = (
             state.data.nodes[action.payload].parents,
           )) {
             const node_id = state.data.edges[edge_id].p;
-            ops.move_down(state.data.nodes[node_id].children, edge_id);
+            swapper.set(
+              state.data.nodes,
+              state.swapped_nodes,
+              node_id,
+              "children",
+              immer.produce(state.data.nodes[node_id].children, (children) => {
+                const index = ops.move_down(children, edge_id);
+                if (index !== null) {
+                  children[edge_id] = index[1];
+                }
+              }),
+            );
           }
           ops.move_down_todo_queue(state, action.payload);
         } else {
@@ -747,9 +779,18 @@ export const get_root_reducer_def = (
           state.todo_node_ids.splice(0, 0, node_id);
         }
         for (const edge_id of ops.keys_of(state.data.nodes[node_id].parents)) {
-          ops.move_to_front(
-            state.data.nodes[state.data.edges[edge_id].p].children,
-            edge_id,
+          const parent_node_id = state.data.edges[edge_id].p;
+          swapper.set(
+            state.data.nodes,
+            state.swapped_nodes,
+            parent_node_id,
+            "children",
+            immer.produce(
+              state.data.nodes[parent_node_id].children,
+              (children) => {
+                children[edge_id] = ops.getFrontIndex(children);
+              },
+            ),
           );
         }
       },
@@ -1151,7 +1192,15 @@ const _topTree = (
   for (const edge_id of parents) {
     const edge = state.data.edges[edge_id];
     if (edge.t === "strong" && state.data.nodes[edge.p].status === "todo") {
-      ops.move_to_front(state.data.nodes[edge.p].children, edge_id);
+      swapper.set(
+        state.data.nodes,
+        state.swapped_nodes,
+        edge.p,
+        "children",
+        immer.produce(state.data.nodes[edge.p].children, (children) => {
+          children[edge_id] = ops.getFrontIndex(children);
+        }),
+      );
       return;
     }
   }
@@ -1165,7 +1214,7 @@ const _topQueue = (
     toast.add("error", `Non-todo node ${node_id} cannot be moved.`);
     return;
   }
-  ops.move_to_front(state.data.queue, node_id);
+  state.data.queue[node_id] = ops.getFrontIndex(state.data.queue);
   const node_ids =
     state.data.nodes[node_id].status === "todo"
       ? state.todo_node_ids
