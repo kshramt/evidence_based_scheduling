@@ -107,9 +107,11 @@ FROM envoyproxy/envoy:v1.25.1 AS base_envoy
 FROM postgres:15.3-bookworm AS base_postgres
 
 FROM base_py AS base_poetry
-RUN apt-get update \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+   --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+   apt-get update \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
-RUN pip install poetry==1.3.1
+RUN --mount=type=cache,target=/root/.cache pip install poetry==1.3.1
 
 FROM golang:1.21.0-bookworm AS base_go
 ENV CGO_ENABLED 0
@@ -152,7 +154,7 @@ RUN apt-get update \
    libxrender1\
    libxtst6
 COPY --link client/package.json client/package-lock.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/root/.npm npm ci
 RUN npx playwright install
 
 FROM client_npm_ci AS client_proto
@@ -169,7 +171,7 @@ FROM builder_client AS test_client
 RUN scripts/check.sh
 
 FROM builder_client AS prod_client
-RUN npm run build
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/root/.npm npm run build
 
 FROM base_nginx AS prod_nginx
 COPY --link --from=prod_client /app/client/dist/static/ /usr/share/nginx/html/static/
@@ -183,7 +185,7 @@ WORKDIR /app
 COPY --link ./envoy.yaml /etc/envoy/envoy.yaml
 
 FROM base_go AS dbmate_builder
-RUN go install github.com/amacneil/dbmate/v2@v2.4.0
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install github.com/amacneil/dbmate/v2@v2.4.0
 
 FROM base_postgres AS prod_postgres
 
@@ -194,9 +196,11 @@ COPY --link db/migrations /app/db/migrations
 ENTRYPOINT ["/app/scripts/migrate.sh"]
 
 FROM base_go AS sqlc_builder
-RUN apt-get update \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+   --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+   apt-get update \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
-RUN CGO_ENABLED=1 go install github.com/kyleconroy/sqlc/cmd/sqlc@v1.18.0
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod CGO_ENABLED=1 go install github.com/kyleconroy/sqlc/cmd/sqlc@v1.18.0
 
 FROM base_go AS go_db_builder
 WORKDIR /app
@@ -206,20 +210,20 @@ COPY --link sqlc.yaml ./
 RUN /usr/local/bin/sqlc --experimental generate
 
 FROM base_go AS buf_builder
-RUN go install github.com/bufbuild/buf/cmd/buf@v1.21.0
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install github.com/bufbuild/buf/cmd/buf@v1.21.0
 
 FROM base_go AS protoc_gen_connect_go_builder
-RUN go install github.com/bufbuild/connect-go/cmd/protoc-gen-connect-go@v1.5.2
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install github.com/bufbuild/connect-go/cmd/protoc-gen-connect-go@v1.5.2
 
 FROM base_go AS protoc_gen_go_builder
-RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.30.0
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.30.0
 
 FROM base_go AS staticcheck_builder
-RUN go install honnef.co/go/tools/cmd/staticcheck@2023.1.3
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install honnef.co/go/tools/cmd/staticcheck@2023.1.3
 
 # Install gosec
 FROM base_go AS gosec_builder
-RUN go install github.com/securego/gosec/v2/cmd/gosec@v2.16.0
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go install github.com/securego/gosec/v2/cmd/gosec@v2.16.0
 
 FROM base_go AS go_api_v1_grpc_builder
 COPY --link --from=protoc_gen_go_builder /go/bin/protoc-gen-go /usr/local/bin/protoc-gen-go
@@ -234,7 +238,7 @@ RUN cd proto \
 FROM base_poetry AS tests_e2e_grpc_builder
 WORKDIR /grpc_py
 COPY --link grpc_py/poetry.toml grpc_py/pyproject.toml grpc_py/poetry.lock ./
-RUN python3 -m poetry install --only main
+RUN --mount=type=cache,target=/root/.cache python3 -m poetry install --only main
 WORKDIR /app
 COPY --link proto proto
 RUN mkdir -p gen/api/v1 \
@@ -245,22 +249,22 @@ RUN mkdir -p gen/api/v1 \
 FROM base_go AS base_go_builder
 WORKDIR /app
 COPY --link go/go.mod go/go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go mod download
 COPY --link go .
 COPY --link --from=go_db_builder /app/go/db db
 COPY --link --from=go_api_v1_grpc_builder /app/go/gen gen
 COPY --link --from=staticcheck_builder /go/bin/staticcheck /usr/local/bin/staticcheck
 COPY --link --from=gosec_builder /go/bin/gosec /usr/local/bin/gosec
-RUN gofmt -s -d . | if grep ^ ; then exit 1 ; else : ; fi
-RUN go vet -v ./...
-RUN staticcheck ./...
-RUN gosec ./...
-RUN go test -v ./...
-RUN go test -v ./...
-# RUN CGO_ENABLED=1 go test -race -v ./...
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod gofmt -s -d . | if grep ^ ; then exit 1 ; else : ; fi
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go vet -v ./...
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod staticcheck ./...
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod gosec ./...
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go test -v ./...
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go test -v ./...
+# RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod CGO_ENABLED=1 go test -race -v ./...
 
 FROM base_go_builder AS api_v1_builder
-RUN go build api_v1/main.go
+RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod go build api_v1/main.go
 
 FROM gcr.io/distroless/static-debian11:nonroot AS prod_api_v1
 WORKDIR /app
@@ -269,12 +273,14 @@ ENTRYPOINT ["./main"]
 
 FROM base_poetry AS tests_e2e
 COPY --link tests/e2e/poetry.toml tests/e2e/pyproject.toml tests/e2e/poetry.lock ./
-RUN python3 -m poetry install --only main
-RUN python3 -m poetry run python3 -m playwright install-deps
+RUN --mount=type=cache,target=/root/.cache python3 -m poetry install --only main
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+   --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+   python3 -m poetry run python3 -m playwright install-deps
 RUN python3 -m poetry run python3 -m playwright install
 COPY --link --from=docker:24.0.2-cli-alpine3.18 /usr/local/bin/docker /usr/local/bin/docker
 COPY --link --from=docker:24.0.2-cli-alpine3.18 /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
 COPY --link --from=docker:24.0.2-cli-alpine3.18 /usr/local/libexec/docker/cli-plugins/docker-buildx /usr/local/libexec/docker/cli-plugins/docker-buildx
 COPY --link tests/e2e/src src
 COPY --link --from=tests_e2e_grpc_builder /app/gen src/gen
-RUN python3 -m poetry install --only main
+RUN --mount=type=cache,target=/root/.cache python3 -m poetry install --only main
