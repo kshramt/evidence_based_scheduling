@@ -1,3 +1,4 @@
+import * as immer from "immer";
 import { ThunkDispatch } from "redux-thunk";
 import {
   TypedUseSelectorHook,
@@ -241,11 +242,25 @@ const current_of_prev = (data_prev: {
   };
 };
 
+type TStateOmitted = Omit<TState, "caches" | "data"> & {
+  data: Omit<TState["data"], "edges" | "nodes">;
+};
+type TStateDraft = immer.Draft<TState>;
+export type TStateDraftWithReadonly = Omit<
+  TStateDraft,
+  "caches" | "data" | "swapped_caches" | "swapped_edges" | "swapped_nodes"
+> &
+  immer.Immutable<
+    Pick<
+      TStateDraft,
+      "caches" | "swapped_caches" | "swapped_edges" | "swapped_nodes"
+    >
+  > & {
+    readonly data: Omit<TStateDraft["data"], "nodes" | "edges"> &
+      immer.Immutable<Pick<TStateDraft["data"], "nodes" | "edges">>;
+  };
+
 export type AppDispatch = ThunkDispatch<TState, {}, TAnyPayloadAction>;
 
 export const useDispatch = () => _useDispatch<AppDispatch>();
-export const useSelector: TypedUseSelectorHook<
-  Omit<TState, "caches" | "data"> & {
-    data: Omit<TState["data"], "edges" | "nodes">;
-  }
-> = _useSelector;
+export const useSelector: TypedUseSelectorHook<TStateOmitted> = _useSelector;
