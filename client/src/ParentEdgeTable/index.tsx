@@ -6,7 +6,7 @@ import * as types from "src/types";
 
 const ParentEdgeTable = React.memo((props: { node_id: types.TNodeId }) => {
   const parents = types.useSelector(
-    (state) => state.data.nodes[props.node_id].parents,
+    (state) => state.swapped_nodes.parents[props.node_id],
   );
   return (
     <table className="table-auto">

@@ -1,10 +1,11 @@
 import * as sequenceComparisons from "@kshramt/sequence-comparisons";
+import * as immer from "immer";
 
 import * as checks from "./checks";
 import * as consts from "./consts";
+import * as swapper from "./swapper";
 import * as types from "./types";
 import * as toast from "./toast";
-import { Draft } from "immer";
 
 export interface ITocNode {
   text: string;
@@ -14,11 +15,11 @@ export interface ITocNode {
   children: ITocNode[];
 }
 
-const new_node_id_of = (state: types.TState) =>
+const new_node_id_of = (state: types.TStateDraftWithReadonly) =>
   new_id_of(state) as types.TNodeId;
-const new_edge_id_of = (state: types.TState) =>
+const new_edge_id_of = (state: types.TStateDraftWithReadonly) =>
   new_id_of(state) as types.TEdgeId;
-const new_id_of = (state: Draft<types.TState>) =>
+const new_id_of = (state: types.TStateDraftWithReadonly) =>
   id_string_of_number(++state.data.id_seq);
 const id_string_of_number = (x: number) => x.toString(36);
 
@@ -56,6 +57,9 @@ export const emptyStateOf = (): types.TState => {
     data,
     caches,
     predicted_next_nodes: [],
+    swapped_caches: swapper.swapKeys(caches),
+    swapped_edges: swapper.swapKeys(data.edges),
+    swapped_nodes: swapper.swapKeys(data.nodes),
     n_unsaved_patches: 0,
     todo_node_ids: [],
     non_todo_node_ids: [],
@@ -111,76 +115,124 @@ export const new_cache_of = (
 
 export const set_estimate = (
   payload: { node_id: types.TNodeId; estimate: number },
-  draft: Draft<types.TState>,
+  state: types.TStateDraftWithReadonly,
 ) => {
-  if (draft.data.nodes[payload.node_id].estimate === payload.estimate) {
+  if (state.data.nodes[payload.node_id].estimate === payload.estimate) {
     return;
   }
-  draft.data.nodes[payload.node_id].estimate = payload.estimate;
+  swapper.set(
+    state.data.nodes,
+    state.swapped_nodes,
+    payload.node_id,
+    "estimate",
+    payload.estimate,
+  );
 };
 
 export const add_node = (
-  draft: Draft<types.TState>,
+  state: types.TStateDraftWithReadonly,
   parent_node_id: types.TNodeId,
   top_of_queue: boolean,
 ) => {
-  if (draft.data.nodes[parent_node_id].status !== "todo") {
+  if (state.data.nodes[parent_node_id].status !== "todo") {
     toast.add(
       "error",
       `No strong child can be added to a non-todo parent ${parent_node_id}.`,
     );
     return null;
   }
-  const node_id = new_node_id_of(draft);
-  const edge_id = new_edge_id_of(draft);
+  const node_id = new_node_id_of(state);
+  const edge_id = new_edge_id_of(state);
   const node = new_node_value_of([edge_id]);
   const edge = { p: parent_node_id, c: node_id, t: "strong" as const };
-  draft.data.nodes[node_id] = node;
-  draft.data.edges[edge_id] = edge;
-  draft.data.nodes[parent_node_id].children[edge_id] = _front_value_of(
-    draft.data.nodes[parent_node_id].children,
+  swapper.add(state.data.nodes, state.swapped_nodes, node_id, node);
+  swapper.add(state.data.edges, state.swapped_edges, edge_id, edge);
+  swapper.set(
+    state.data.nodes,
+    state.swapped_nodes,
+    parent_node_id,
+    "children",
+    immer.produce(state.data.nodes[parent_node_id].children, (children) => {
+      children[edge_id] = _front_value_of(children);
+    }),
   );
-  draft.data.queue[node_id] = (top_of_queue ? _front_value_of : _back_value_of)(
-    draft.data.queue,
+  state.data.queue[node_id] = (top_of_queue ? _front_value_of : _back_value_of)(
+    state.data.queue,
   );
   if (top_of_queue) {
-    draft.todo_node_ids.splice(0, 0, node_id);
+    state.todo_node_ids.splice(0, 0, node_id);
   } else {
-    draft.todo_node_ids.push(node_id);
+    state.todo_node_ids.push(node_id);
   }
-  draft.caches[node_id] = new_cache_of(0, node.text_patches);
+  swapper.add(
+    state.caches,
+    state.swapped_caches,
+    node_id,
+    new_cache_of(0, node.text_patches),
+  );
   return node_id;
 };
 
-export const add_edges = (edges: types.TEdge[], draft: Draft<types.TState>) => {
+export const add_edges = (
+  edges: types.TEdge[],
+  state: types.TStateDraftWithReadonly,
+) => {
   for (const edge of edges) {
-    if (edge.c === draft.data.root) {
+    if (edge.c === state.data.root) {
       toast.add(
         "error",
         `No node should have the root node as its child: ${edge}`,
       );
       continue;
     }
-    if (!(edge.p in draft.data.nodes && edge.c in draft.data.nodes)) {
+    if (!(edge.p in state.data.nodes && edge.c in state.data.nodes)) {
       toast.add("error", `Nodes for ${JSON.stringify(edge)} does not exist.`);
       continue;
     }
-    if (checks.has_edge(edge.p, edge.c, draft)) {
+    if (checks.has_edge(edge.p, edge.c, state)) {
       toast.add("error", `Edges for ${JSON.stringify(edge)} already exist.`);
       continue;
     }
-    const edge_id = new_edge_id_of(draft);
-    draft.data.edges[edge_id] = edge;
-    draft.data.nodes[edge.c].parents[edge_id] = _front_value_of(
-      draft.data.nodes[edge.c].parents,
+    const edge_id = new_edge_id_of(state);
+    swapper.add(state.data.edges, state.swapped_edges, edge_id, edge);
+    swapper.set(
+      state.data.nodes,
+      state.swapped_nodes,
+      edge.c,
+      "parents",
+      immer.produce(state.data.nodes[edge.c].parents, (parents) => {
+        parents[edge_id] = _front_value_of(parents);
+      }),
     );
-    draft.data.nodes[edge.p].children[edge_id] = _front_value_of(
-      draft.data.nodes[edge.p].children,
+    swapper.set(
+      state.data.nodes,
+      state.swapped_nodes,
+      edge.p,
+      "children",
+      immer.produce(state.data.nodes[edge.p].children, (children) => {
+        children[edge_id] = _front_value_of(children);
+      }),
     );
-    if (checks.has_cycle_of(edge_id, draft)) {
-      delete draft.data.edges[edge_id];
-      delete draft.data.nodes[edge.c].parents[edge_id];
-      delete draft.data.nodes[edge.p].children[edge_id];
+    if (checks.has_cycle_of(edge_id, state)) {
+      swapper.del(state.data.edges, state.swapped_edges, edge_id);
+      swapper.set(
+        state.data.nodes,
+        state.swapped_nodes,
+        edge.c,
+        "parents",
+        immer.produce(state.data.nodes[edge.c].parents, (parents) => {
+          delete parents[edge_id];
+        }),
+      );
+      swapper.set(
+        state.data.nodes,
+        state.swapped_nodes,
+        edge.p,
+        "children",
+        immer.produce(state.data.nodes[edge.p].children, (children) => {
+          delete children[edge_id];
+        }),
+      );
       toast.add(
         "error",
         `Detected a cycle for ${JSON.stringify(JSON.stringify(edge))}.`,
@@ -188,17 +240,17 @@ export const add_edges = (edges: types.TEdge[], draft: Draft<types.TState>) => {
       continue;
     }
     {
-      const status = draft.data.nodes[edge.c].status;
+      const status = state.data.nodes[edge.c].status;
       switch (status) {
         case "todo": {
           break;
         }
         case "done": {
-          move_down_to_boundary(draft, edge.c, (status) => status !== "todo");
+          move_down_to_boundary(state, edge.c, (status) => status !== "todo");
           break;
         }
         case "dont": {
-          move_down_to_boundary(draft, edge.c, (status) => status === "dont");
+          move_down_to_boundary(state, edge.c, (status) => status === "dont");
           break;
         }
         default: {
@@ -208,14 +260,20 @@ export const add_edges = (edges: types.TEdge[], draft: Draft<types.TState>) => {
       }
     }
     if (edge.hide) {
-      ++draft.caches[edge.p].n_hidden_child_edges;
+      swapper.set(
+        state.caches,
+        state.swapped_caches,
+        edge.p,
+        "n_hidden_child_edges",
+        state.caches[edge.p].n_hidden_child_edges + 1,
+      );
     }
     toast.add("info", `Added a edge ${edge.p} -> ${edge.c}.`);
   }
 };
 
 export const move_down_to_boundary = (
-  state: Draft<types.TState>,
+  state: types.TStateDraftWithReadonly,
   node_id: types.TNodeId,
   is_different: (status: types.TStatus) => boolean,
 ) => {
@@ -252,9 +310,9 @@ export const move_down_to_boundary = (
 
 export const makeNodesOfToc = (
   payload: { nodeId: types.TNodeId; text: string },
-  draft: Draft<types.TState>,
+  state: types.TStateDraftWithReadonly,
 ) => {
-  if (draft.data.nodes[payload.nodeId].status !== "todo") {
+  if (state.data.nodes[payload.nodeId].status !== "todo") {
     toast.add("error", "TOC cannot be created for used nodes.");
     return;
   }
@@ -264,9 +322,9 @@ export const makeNodesOfToc = (
     return;
   }
   toc_root.id = payload.nodeId;
-  make_tree_from_toc(toc_root, draft);
+  make_tree_from_toc(toc_root, state);
   const edges = add_weak_edges_from_toc(toc_root, []);
-  add_edges(edges, draft);
+  add_edges(edges, state);
 };
 
 const add_weak_edges_from_toc = (toc: ITocNode, edges: types.TEdge[]) => {
@@ -290,10 +348,13 @@ const add_weak_edges_from_toc = (toc: ITocNode, edges: types.TEdge[]) => {
   return edges;
 };
 
-const make_tree_from_toc = (toc: ITocNode, draft: Draft<types.TState>) => {
+const make_tree_from_toc = (
+  toc: ITocNode,
+  state: types.TStateDraftWithReadonly,
+) => {
   for (let i = toc.children.length - 1; -1 < i; --i) {
     const child_toc = toc.children[i];
-    const node_id = add_node(draft, toc.id, false);
+    const node_id = add_node(state, toc.id, false);
     if (node_id === null) {
       const msg = "Must not happen: node_id === null.";
       toast.add("error", msg);
@@ -301,9 +362,15 @@ const make_tree_from_toc = (toc: ITocNode, draft: Draft<types.TState>) => {
       return;
     }
     child_toc.id = node_id;
-    draft.caches[node_id].text = child_toc.text; // todo: Use set_text.
-    set_estimate({ node_id, estimate: child_toc.estimate }, draft);
-    make_tree_from_toc(child_toc, draft);
+    swapper.set(
+      state.caches,
+      state.swapped_caches,
+      node_id,
+      "text",
+      child_toc.text,
+    );
+    set_estimate({ node_id, estimate: child_toc.estimate }, state);
+    make_tree_from_toc(child_toc, state);
   }
 };
 
@@ -477,7 +544,7 @@ export function move_down<K extends string | number | symbol>(
 }
 
 export function move_up_todo_queue(
-  state: types.TState,
+  state: types.TStateDraftWithReadonly,
   node_id: types.TNodeId,
 ) {
   const i = state.todo_node_ids.indexOf(node_id);
@@ -496,7 +563,7 @@ export function move_up_todo_queue(
 }
 
 export function move_down_todo_queue(
-  state: types.TState,
+  state: types.TStateDraftWithReadonly,
   node_id: types.TNodeId,
 ) {
   const i = state.todo_node_ids.indexOf(node_id);

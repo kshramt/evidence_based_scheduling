@@ -144,12 +144,12 @@ const NodeFilterQueryInput = () => {
 
 const RunningNodes = () => {
   const queue = useSelector((state) => state.todo_node_ids);
-  const nodes = useSelector((state) => state.data.nodes);
+  const ranges = useSelector((state) => state.swapped_nodes.ranges);
   const nodeIds = React.useMemo(() => {
     return queue.filter((nodeId) => {
-      return nodes[nodeId].ranges.at(-1)?.end === null;
+      return ranges[nodeId].at(-1)?.end === null;
     });
-  }, [nodes, queue]);
+  }, [queue, ranges]);
   return <QueueNodes node_ids={nodeIds} />;
 };
 
@@ -158,14 +158,13 @@ const useQueue = (column: "todo_node_ids" | "non_todo_node_ids") => {
     Jotai.useAtomValue(states.nodeFilterQueryState),
   );
   const queue = useSelector((state) => state[column]);
-  const caches = useSelector((state) => state.caches);
+  const texts = useSelector((state) => state.swapped_caches.text);
 
   const filtered_queue = React.useMemo(() => {
     return queue.filter((node_id) => {
-      const cache = caches[node_id];
-      return !_should_hide_of(nodeFilterQuery, cache.text, node_id);
+      return !_should_hide_of(nodeFilterQuery, texts[node_id], node_id);
     });
-  }, [queue, caches, nodeFilterQuery]);
+  }, [queue, texts, nodeFilterQuery]);
 
   return filtered_queue;
 };
@@ -463,7 +462,7 @@ const DoneOrDontToTodoButton = (props: { node_id: types.TNodeId }) => {
 
 const EstimationInput = React.memo((props: { node_id: types.TNodeId }) => {
   const estimate = useSelector(
-    (state) => state.data.nodes[props.node_id].estimate,
+    (state) => state.swapped_nodes.estimate[props.node_id],
   );
   const dispatch = useDispatch();
   const on_change = React.useCallback(
@@ -545,9 +544,11 @@ const CoveyQuadrantNode = React.memo(
       | "not_important_urgent"
       | "not_important_not_urgent";
   }) => {
-    const text = useSelector((state) => state.caches[props.node_id].text);
+    const text = useSelector(
+      (state) => state.swapped_caches.text[props.node_id],
+    );
     const status = useSelector(
-      (state) => state.data.nodes[props.node_id].status,
+      (state) => state.swapped_nodes.status[props.node_id],
     );
     const dispatch = useDispatch();
     const { isOn, turnOn, turnOff } = utils.useOn();
@@ -782,8 +783,10 @@ const PlannedNode = (props: {
   time_node_id: types.TTimeNodeId;
   Component: "div" | "td";
 }) => {
-  const text = useSelector((state) => state.caches[props.node_id].text);
-  const status = useSelector((state) => state.data.nodes[props.node_id].status);
+  const text = useSelector((state) => state.swapped_caches.text[props.node_id]);
+  const status = useSelector(
+    (state) => state.swapped_nodes.status[props.node_id],
+  );
   const dispatch = useDispatch();
   const { isOn, turnOn, turnOff } = utils.useOn();
   const is_running = utils.useIsRunning(props.node_id);
@@ -930,7 +933,7 @@ const NonTodoQueueNodes = () => {
 const EdgeList = React.memo(
   (props: { node_id: types.TNodeId; prefix?: undefined | string }) => {
     const children = useSelector(
-      (state) => state.data.nodes[props.node_id].children,
+      (state) => state.swapped_nodes.children[props.node_id],
     );
     const edge_ids = ops.sorted_keys_of(children);
     return edge_ids.length ? (
@@ -952,20 +955,24 @@ const Edge = React.memo(
     const show_strong_edge_only = Jotai.useAtomValue(
       states.show_strong_edge_only_atom_map.get(session),
     );
-    const edge = useSelector((state) => state.data.edges[props.edge_id]);
-    const child_node_status = useSelector(
-      (state) => state.data.nodes[edge.c].status,
+    const edgeHide = useSelector(
+      (state) => state.swapped_edges.hide[props.edge_id],
+    );
+    const edgeT = useSelector((state) => state.swapped_edges.t[props.edge_id]);
+    const edgeC = useSelector((state) => state.swapped_edges.c[props.edge_id]);
+    const childNodeStatus = useSelector(
+      (state) => state.swapped_nodes.status[edgeC],
     );
     if (
-      edge.hide ||
-      (show_strong_edge_only && edge.t === "weak") ||
-      (show_todo_only && child_node_status !== "todo")
+      edgeHide ||
+      (show_strong_edge_only && edgeT === "weak") ||
+      (show_todo_only && childNodeStatus !== "todo")
     ) {
       return null;
     }
     return (
       <li>
-        <TreeNode node_id={edge.c} prefix={props.prefix} />
+        <TreeNode node_id={edgeC} prefix={props.prefix} />
       </li>
     );
   },
@@ -973,8 +980,15 @@ const Edge = React.memo(
 
 const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
   const { isOn, turnOn, turnOff } = utils.useOn(0);
-  const cache = useSelector((state) => state.caches[props.node_id]);
-  const status = useSelector((state) => state.data.nodes[props.node_id].status);
+  const leaf_estimates_sum = useSelector(
+    (state) => state.swapped_caches.leaf_estimates_sum[props.node_id],
+  );
+  const percentiles = useSelector(
+    (state) => state.swapped_caches.percentiles[props.node_id],
+  );
+  const status = useSelector(
+    (state) => state.swapped_nodes.status[props.node_id],
+  );
   const is_todo = status === "todo";
   const is_running = utils.useIsRunning(props.node_id);
   const to_tree = utils.useToTree(props.node_id);
@@ -1003,9 +1017,9 @@ const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
         <EntryInfos node_id={props.node_id} />
       </div>
       {is_todo &&
-        0 <= cache.leaf_estimates_sum &&
-        digits1(cache.leaf_estimates_sum) + " | "}
-      {is_todo && cache.percentiles.map(digits1).join(", ")}
+        0 <= leaf_estimates_sum &&
+        digits1(leaf_estimates_sum) + " | "}
+      {is_todo && percentiles.map(digits1).join(", ")}
       {(isOn || is_running || opened) && (
         <EntryButtons
           node_id={props.node_id}
@@ -1111,8 +1125,8 @@ const MobileQueueColumn = () => {
 
 const MobileQueueNodes = () => {
   const queue = useSelector((state) => state.data.queue);
-  const caches = useSelector((state) => state.caches);
-  const nodes = useSelector((state) => state.data.nodes);
+  const statuses = useSelector((state) => state.swapped_nodes.status);
+  const texts = useSelector((state) => state.swapped_caches.text);
   const session = React.useContext(states.session_key_context);
   const show_todo_only = Jotai.useAtomValue(
     states.show_todo_only_atom_map.get(session),
@@ -1125,15 +1139,13 @@ const MobileQueueNodes = () => {
     return ops
       .sorted_keys_of(queue)
       .filter((node_id) => {
-        const node = nodes[node_id];
-        const cache = caches[node_id];
         return !(
-          (show_todo_only && node.status !== "todo") ||
-          _should_hide_of(nodeFilterQuery, cache.text, node_id)
+          (show_todo_only && statuses[node_id] !== "todo") ||
+          _should_hide_of(nodeFilterQuery, texts[node_id], node_id)
         );
       })
       .slice(0, 100);
-  }, [queue, caches, nodes, show_todo_only, nodeFilterQuery]);
+  }, [queue, show_todo_only, statuses, nodeFilterQuery, texts]);
 
   return <MobileQueueNodesImpl node_ids={node_ids} />;
 };
@@ -1170,10 +1182,16 @@ const TreeEntry = React.memo(
   (props: { node_id: types.TNodeId; prefix?: undefined | string }) => {
     const { isOn, turnOn, turnOff } = utils.useOn(0);
     const is_running = utils.useIsRunning(props.node_id);
-    const cache = useSelector((state) => state.caches[props.node_id]);
-    const status = useSelector(
-      (state) => state.data.nodes[props.node_id].status,
+    const leaf_estimates_sum = useSelector(
+      (state) => state.swapped_caches.leaf_estimates_sum[props.node_id],
     );
+    const percentiles = useSelector(
+      (state) => state.swapped_caches.percentiles[props.node_id],
+    );
+    const status = useSelector(
+      (state) => state.swapped_nodes.status[props.node_id],
+    );
+
     const to_queue = useToQueue(props.node_id);
     const root = useSelector((state) => state.data.root);
     const is_root = props.node_id === root;
@@ -1205,9 +1223,9 @@ const TreeEntry = React.memo(
           <EntryInfos node_id={props.node_id} />
         </div>
         {status === "todo" &&
-          0 <= cache.leaf_estimates_sum &&
-          digits1(cache.leaf_estimates_sum) + " | "}
-        {status === "todo" && cache.percentiles.map(digits1).join(", ")}
+          0 <= leaf_estimates_sum &&
+          digits1(leaf_estimates_sum) + " | "}
+        {status === "todo" && percentiles.map(digits1).join(", ")}
         {(isOn || is_running || opened) && (
           <EntryButtons
             node_id={props.node_id}
@@ -1270,7 +1288,7 @@ const EntryWrapper = (props: {
 }) => {
   const is_running = utils.useIsRunning(props.node_id);
   const n_hidden_child_edges = useSelector(
-    (state) => state.caches[props.node_id].n_hidden_child_edges,
+    (state) => state.swapped_caches.n_hidden_child_edges[props.node_id],
   );
   const has_hidden_leaf = 0 < n_hidden_child_edges;
 
@@ -1301,8 +1319,15 @@ const MobileEntryButtons = (props: {
   opened: boolean;
   handlers: { toggle: () => void; close: () => void };
 }) => {
-  const cache = useSelector((state) => state.caches[props.node_id]);
-  const status = useSelector((state) => state.data.nodes[props.node_id].status);
+  const leaf_estimates_sum = useSelector(
+    (state) => state.swapped_caches.leaf_estimates_sum[props.node_id],
+  );
+  const percentiles = useSelector(
+    (state) => state.swapped_caches.percentiles[props.node_id],
+  );
+  const status = useSelector(
+    (state) => state.swapped_nodes.status[props.node_id],
+  );
   const root = useSelector((state) => state.data.root);
   const is_root = props.node_id === root;
 
@@ -1337,9 +1362,9 @@ const MobileEntryButtons = (props: {
       </div>
       <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
         {status === "todo" &&
-          0 <= cache.leaf_estimates_sum &&
-          digits1(cache.leaf_estimates_sum) + " | "}
-        {status === "todo" && cache.percentiles.map(digits1).join(", ")}
+          0 <= leaf_estimates_sum &&
+          digits1(leaf_estimates_sum) + " | "}
+        {status === "todo" && percentiles.map(digits1).join(", ")}
       </div>
     </div>
   );
@@ -1353,7 +1378,7 @@ const EntryButtons = React.memo(
     handlers: { toggle: () => void; close: () => void };
   }) => {
     const status = useSelector(
-      (state) => state.data.nodes[props.node_id].status,
+      (state) => state.swapped_nodes.status[props.node_id],
     );
 
     const root = useSelector((state) => state.data.root);
@@ -1399,7 +1424,7 @@ const EntryInfos = React.memo((props: { node_id: types.TNodeId }) => {
 
 const TotalTime = (props: { node_id: types.TNodeId }) => {
   const total_time = useSelector(
-    (state) => state.caches[props.node_id].total_time,
+    (state) => state.swapped_caches.total_time[props.node_id],
   );
   const dispatch = useDispatch();
   const observe = total_time_utils.observe_of(dispatch);
@@ -1421,7 +1446,9 @@ const TotalTime = (props: { node_id: types.TNodeId }) => {
 };
 
 const StartOrStopButtons = (props: { node_id: types.TNodeId }) => {
-  const ranges = useSelector((state) => state.data.nodes[props.node_id].ranges);
+  const ranges = useSelector(
+    (state) => state.swapped_nodes.ranges[props.node_id],
+  );
   const last_range = ranges.at(-1);
   const running = last_range && last_range.end === null;
 
@@ -1603,7 +1630,7 @@ const MobilePredictedNextNodes = () => {
   );
 };
 const MobilePredictedNextNode = (props: { node_id: types.TNodeId }) => {
-  const text = useSelector((state) => state.caches[props.node_id].text);
+  const text = useSelector((state) => state.swapped_caches.text[props.node_id]);
   const to_tree = utils.useToTree(props.node_id);
   return (
     <div className="flex w-fit gap-x-[0.25em] items-baseline py-[0.125em]">
@@ -1631,7 +1658,7 @@ const PredictedNextNodes = () => {
   );
 };
 const PredictedNextNode = React.memo((props: { node_id: types.TNodeId }) => {
-  const text = useSelector((state) => state.caches[props.node_id].text);
+  const text = useSelector((state) => state.swapped_caches.text[props.node_id]);
   const to_tree = utils.useToTree(props.node_id);
   return (
     <div className="flex w-fit gap-x-[0.25em] items-baseline py-[0.125em]">
@@ -1653,7 +1680,7 @@ const TextArea = (props: {
   id?: string;
   onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
 }) => {
-  const text = useSelector((state) => state.caches[props.node_id].text);
+  const text = useSelector((state) => state.swapped_caches.text[props.node_id]);
   const dispatch = useDispatch();
   const onBlur = React.useMemo(() => {
     const _onBlur = props.onBlur;
@@ -1763,7 +1790,9 @@ const moveDownButtonRefOf = utils.memoize1((_: types.TNodeId) =>
 );
 
 const LastRange = (props: { node_id: types.TNodeId }) => {
-  const ranges = useSelector((state) => state.data.nodes[props.node_id].ranges);
+  const ranges = useSelector(
+    (state) => state.swapped_nodes.ranges[props.node_id],
+  );
   const last_range = last_range_of(ranges);
   return (
     <>

@@ -9,7 +9,7 @@ const RangesTable = (props: { node_id: types.TNodeId }) => {
   const rows_per_page = 10;
   const [offset, set_offset] = React.useState(0);
   const n = types.useSelector(
-    (state) => state.data.nodes[props.node_id].ranges.length,
+    (state) => state.swapped_nodes.ranges[props.node_id].length,
   );
   const handle_offset_input = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -66,7 +66,7 @@ const RangesTable = (props: { node_id: types.TNodeId }) => {
 };
 const RangesTableRow = (props: { node_id: types.TNodeId; i_range: number }) => {
   const range = types.useSelector(
-    (state) => state.data.nodes[props.node_id].ranges[props.i_range],
+    (state) => state.swapped_nodes.ranges[props.node_id][props.i_range],
   );
   const dispatch = types.useDispatch();
   const set_start = React.useCallback(

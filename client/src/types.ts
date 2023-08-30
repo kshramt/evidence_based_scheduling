@@ -1,3 +1,4 @@
+import * as immer from "immer";
 import { ThunkDispatch } from "redux-thunk";
 import {
   TypedUseSelectorHook,
@@ -11,6 +12,7 @@ import * as ops from "./ops";
 import * as toast from "./toast";
 import * as producer from "./producer";
 import * as intervals from "src/intervals";
+import * as swapper from "src/swapper";
 
 import type { TAnyPayloadAction } from "./common_types1";
 import { tEdgeId, tNodeId, tTimeNodeId } from "./common_types1";
@@ -116,14 +118,6 @@ export const tData = rt.$object({
   timeline: rt.$readonly(tTimeline),
   version: rt.$readonly(rt.$literal(VERSION)),
 });
-export const tState = rt.$object({
-  data: rt.$readonly(tData),
-  caches: rt.$readonly(tCaches),
-  predicted_next_nodes: rt.$readonly(rt.$array(tNodeId)),
-  n_unsaved_patches: rt.$readonly(rt.$number()),
-  todo_node_ids: rt.$readonly(rt.$array(tNodeId)),
-  non_todo_node_ids: rt.$readonly(rt.$array(tNodeId)),
-});
 const ref = {};
 export const is_TEdgeType = (x: unknown): x is TEdgeType => tEdgeType(x, ref);
 export type TEvent = rt.$infer<typeof tEvent>;
@@ -138,7 +132,19 @@ export type TEdges = rt.$infer<typeof tEdges>;
 export type TNodes = rt.$infer<typeof tNodes>;
 export type TEdge = rt.$infer<typeof tEdge>;
 export type TNode = rt.$infer<typeof tNode>;
-export type TState = rt.$infer<typeof tState>;
+type TData = rt.$infer<typeof tData>;
+type TNodeId = rt.$infer<typeof tNodeId>;
+export type TState = {
+  readonly data: TData;
+  readonly caches: TCaches;
+  readonly predicted_next_nodes: TNodeId[];
+  readonly swapped_caches: swapper.TSwapped1<TCaches>;
+  readonly swapped_edges: swapper.TSwapped1<TData["edges"]>;
+  readonly swapped_nodes: swapper.TSwapped1<TData["nodes"]>;
+  readonly n_unsaved_patches: number;
+  readonly todo_node_ids: TNodeId[];
+  readonly non_todo_node_ids: TNodeId[];
+};
 
 export const parse_data = (x: {
   data: unknown;
@@ -236,12 +242,25 @@ const current_of_prev = (data_prev: {
   };
 };
 
-export type AppDispatch = ThunkDispatch<
-  rt.$infer<typeof tState>,
-  {},
-  TAnyPayloadAction
->;
+type TStateOmitted = Omit<TState, "caches" | "data"> & {
+  data: Omit<TState["data"], "edges" | "nodes">;
+};
+type TStateDraft = immer.Draft<TState>;
+export type TStateDraftWithReadonly = Omit<
+  TStateDraft,
+  "caches" | "data" | "swapped_caches" | "swapped_edges" | "swapped_nodes"
+> &
+  immer.Immutable<
+    Pick<
+      TStateDraft,
+      "caches" | "swapped_caches" | "swapped_edges" | "swapped_nodes"
+    >
+  > & {
+    readonly data: Omit<TStateDraft["data"], "nodes" | "edges"> &
+      immer.Immutable<Pick<TStateDraft["data"], "nodes" | "edges">>;
+  };
+
+export type AppDispatch = ThunkDispatch<TState, {}, TAnyPayloadAction>;
 
 export const useDispatch = () => _useDispatch<AppDispatch>();
-export const useSelector: TypedUseSelectorHook<rt.$infer<typeof tState>> =
-  _useSelector;
+export const useSelector: TypedUseSelectorHook<TStateOmitted> = _useSelector;

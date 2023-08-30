@@ -75,7 +75,9 @@
         "files.trimTrailingWhitespace": true,
         "go.toolsManagement.autoUpdate": true,
         "insertDateString.format": "YYYY-MM-DDThh:mm:ssZZZZ",
-        "rust-analyzer.check.command": "clippy"
+        "javascript.preferGoToSourceDefinition": true
+        "rust-analyzer.check.command": "clippy",
+        "typescript.preferGoToSourceDefinition": true
       }
     }
   }

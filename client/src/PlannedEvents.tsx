@@ -6,7 +6,7 @@ import * as types from "src/types";
 
 const PlannedEvents = (props: { nodeId: types.TNodeId }) => {
   const events = types.useSelector(
-    (state) => state.data.nodes[props.nodeId].events || [],
+    (state) => state.swapped_nodes.events[props.nodeId],
   );
   const dispatch = types.useDispatch();
   const addNewEvent = React.useCallback(
@@ -16,6 +16,7 @@ const PlannedEvents = (props: { nodeId: types.TNodeId }) => {
     [dispatch, props.nodeId],
   );
   const eventEls = React.useMemo(() => {
+    if (!events) return null;
     const n = events.length;
     return events
       .slice()

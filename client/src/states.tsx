@@ -22,6 +22,7 @@ import * as C from "./gen/api/v1/api_connect";
 import * as Pb from "./gen/api/v1/api_pb";
 import * as pb2 from "./pb2";
 import * as storage from "./storage";
+import * as swapper from "./swapper";
 import * as utils from "./utils";
 
 const retryer = new retryers.Retryer();
@@ -132,6 +133,9 @@ const get_state_and_patch = async (arg: {
       data: parsed_data.data,
       caches,
       predicted_next_nodes: [],
+      swapped_caches: swapper.swapKeys(caches),
+      swapped_edges: swapper.swapKeys(parsed_data.data.edges),
+      swapped_nodes: swapper.swapKeys(parsed_data.data.nodes),
       n_unsaved_patches: 0,
       todo_node_ids,
       non_todo_node_ids,

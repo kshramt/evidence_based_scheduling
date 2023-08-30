@@ -426,7 +426,7 @@ export const useOn = (delayMsec: number = consts.DEFAULT_DELAY_MSEC) => {
 
 export const useIsRunning = (node_id: null | types.TNodeId) => {
   const ranges = types.useSelector((state) =>
-    node_id === null ? null : state.data.nodes[node_id].ranges,
+    node_id === null ? null : state.swapped_nodes.ranges[node_id],
   );
   if (ranges === null) return false;
   const last_range = ranges.at(-1);
@@ -566,8 +566,8 @@ const deltaRanges: Record<string, [number, number]> = {
 };
 
 export const usePlannedNodeIds = (timeId: string) => {
-  const nodes = types.useSelector((state) => state.data.nodes);
   const todoNodeIds = types.useSelector((state) => state.todo_node_ids);
+  const eventss = types.useSelector((state) => state.swapped_nodes.events);
   const nonTodoNodeIds = types.useSelector((state) => state.non_todo_node_ids);
   const res = React.useMemo(() => {
     const _res: types.TNodeId[] = [];
@@ -580,11 +580,11 @@ export const usePlannedNodeIds = (timeId: string) => {
     const start = { f: t0 };
     const end = { f: t1 };
     for (const nodeId of todoNodeIds.concat(nonTodoNodeIds)) {
-      const node = nodes[nodeId];
-      if (!("events" in node)) {
+      const events = eventss[nodeId];
+      if (events === undefined) {
         continue;
       }
-      for (const event of node.events) {
+      for (const event of events) {
         {
           const duration =
             times.ensureFloatingTime(event.interval_set.end).f -
@@ -609,7 +609,7 @@ export const usePlannedNodeIds = (timeId: string) => {
       }
     }
     return _res;
-  }, [nodes, nonTodoNodeIds, timeId, todoNodeIds]);
+  }, [eventss, nonTodoNodeIds, timeId, todoNodeIds]);
   return res;
 };
 
