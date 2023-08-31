@@ -178,6 +178,9 @@ const useQueue = (column: "todo_node_ids" | "non_todo_node_ids") => {
         tail.push(nodeId);
       }
     }
+    if (head.length === 0) {
+      return queue;
+    }
     return head.concat(tail);
   }, [processedQuery, queue, texts]);
 
