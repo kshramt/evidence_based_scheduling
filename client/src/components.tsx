@@ -160,13 +160,28 @@ const useQueue = (column: "todo_node_ids" | "non_todo_node_ids") => {
   const queue = useSelector((state) => state[column]);
   const texts = useSelector((state) => state.swapped_caches.text);
 
-  const filtered_queue = React.useMemo(() => {
-    return queue.filter((node_id) => {
-      return !_should_hide_of(nodeFilterQuery, texts[node_id], node_id);
-    });
-  }, [queue, texts, nodeFilterQuery]);
+  const processedQuery = React.useMemo(() => {
+    return nodeFilterQuery.toLowerCase().split(" ");
+  }, [nodeFilterQuery]);
 
-  return filtered_queue;
+  const filteredQueue = React.useMemo(() => {
+    if (processedQuery.length === 0) {
+      return queue;
+    }
+    const head = [];
+    const tail = [];
+    for (const nodeId of queue) {
+      const text = texts[nodeId];
+      if (getIsMatch(processedQuery, text, nodeId)) {
+        head.push(nodeId);
+      } else {
+        tail.push(nodeId);
+      }
+    }
+    return head.concat(tail);
+  }, [processedQuery, queue, texts]);
+
+  return filteredQueue;
 };
 
 const useMetaK = () => {
@@ -1134,18 +1149,21 @@ const MobileQueueNodes = () => {
   const nodeFilterQuery = React.useDeferredValue(
     Jotai.useAtomValue(states.nodeFilterQueryState),
   );
+  const processedQuery = React.useMemo(() => {
+    return nodeFilterQuery.toLowerCase().split(" ");
+  }, [nodeFilterQuery]);
 
   const node_ids = React.useMemo(() => {
     return ops
       .sorted_keys_of(queue)
       .filter((node_id) => {
-        return !(
-          (show_todo_only && statuses[node_id] !== "todo") ||
-          _should_hide_of(nodeFilterQuery, texts[node_id], node_id)
+        return (
+          !(show_todo_only && statuses[node_id] === "todo") &&
+          getIsMatch(processedQuery, texts[node_id], node_id)
         );
       })
       .slice(0, 100);
-  }, [queue, show_todo_only, statuses, nodeFilterQuery, texts]);
+  }, [queue, show_todo_only, statuses, processedQuery, texts]);
 
   return <MobileQueueNodesImpl node_ids={node_ids} />;
 };
@@ -1822,21 +1840,18 @@ const useToQueue = (node_id: types.TNodeId) => {
   }, [node_id]);
 };
 
-const _should_hide_of = (
-  node_filter_query: string,
+const getIsMatch = (
+  processedQuery: readonly string[],
   text: string,
-  node_id: types.TNodeId,
+  nodeId: types.TNodeId,
 ) => {
-  const node_filter_query_lower = node_filter_query.toLowerCase();
-  const text_lower = text.toLowerCase();
-  let is_match_filter_node_query = true;
-  for (const q of node_filter_query_lower.split(" ")) {
-    if (node_id !== q && !text_lower.includes(q)) {
-      is_match_filter_node_query = false;
-      break;
+  const textLower = text.toLowerCase();
+  for (const q of processedQuery) {
+    if (nodeId !== q && !textLower.includes(q)) {
+      return false;
     }
   }
-  return !is_match_filter_node_query;
+  return true;
 };
 
 const digits2 = (x: number) => {
