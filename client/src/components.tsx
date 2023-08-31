@@ -861,7 +861,9 @@ const PlannedNode = (props: {
 };
 
 const TodoQueueNodes = () => {
-  const nodeFilterQuery = Jotai.useAtomValue(states.nodeFilterQueryState);
+  const nodeFilterQuery = React.useDeferredValue(
+    Jotai.useAtomValue(states.nodeFilterQueryState),
+  );
   const queue = useQueue("todo_node_ids", nodeFilterQuery);
   return <QueueNodes node_ids={queue} />;
 };
