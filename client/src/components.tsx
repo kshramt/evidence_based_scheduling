@@ -1167,7 +1167,7 @@ const MobileQueueNodes = () => {
       .sorted_keys_of(queue)
       .filter((node_id) => {
         return (
-          !(show_todo_only && statuses[node_id] === "todo") &&
+          !(show_todo_only && statuses[node_id] !== "todo") &&
           getIsMatch(processedQuery, texts[node_id], node_id)
         );
       })
