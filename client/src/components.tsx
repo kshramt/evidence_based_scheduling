@@ -104,7 +104,7 @@ const NodeFilterQueryInput = () => {
     setNodeFilterQuery(v);
   }, [setNodeFilterQuery]);
   const ref = useMetaK();
-  const queue = useQueue("todo_node_ids");
+  const queue = useQueue("todo_node_ids", nodeFilterQuery);
   const node_id = queue[0] || null;
   const taskShortcutKeys = useTaskShortcutKeys(node_id, TREE_PREFIX);
   const onKeyDown = React.useCallback(
@@ -153,10 +153,10 @@ const RunningNodes = () => {
   return <QueueNodes node_ids={nodeIds} />;
 };
 
-const useQueue = (column: "todo_node_ids" | "non_todo_node_ids") => {
-  const nodeFilterQuery = React.useDeferredValue(
-    Jotai.useAtomValue(states.nodeFilterQueryState),
-  );
+const useQueue = (
+  column: "todo_node_ids" | "non_todo_node_ids",
+  nodeFilterQuery: string,
+) => {
   const queue = useSelector((state) => state[column]);
   const texts = useSelector((state) => state.swapped_caches.text);
 
@@ -861,7 +861,8 @@ const PlannedNode = (props: {
 };
 
 const TodoQueueNodes = () => {
-  const queue = useQueue("todo_node_ids");
+  const nodeFilterQuery = Jotai.useAtomValue(states.nodeFilterQueryState);
+  const queue = useQueue("todo_node_ids", nodeFilterQuery);
   return <QueueNodes node_ids={queue} />;
 };
 
@@ -944,7 +945,10 @@ const TreeNode = React.memo(
 );
 
 const NonTodoQueueNodes = () => {
-  const node_ids = useQueue("non_todo_node_ids");
+  const nodeFilterQuery = React.useDeferredValue(
+    Jotai.useAtomValue(states.nodeFilterQueryState),
+  );
+  const node_ids = useQueue("non_todo_node_ids", nodeFilterQuery);
   return <QueueNodes node_ids={node_ids} />;
 };
 
