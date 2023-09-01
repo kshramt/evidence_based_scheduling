@@ -1,15 +1,17 @@
 import * as Jotai from "jotai";
+import * as JotaiU from "jotai/utils";
 import * as React from "react";
 import { useCallback } from "react";
+import * as Rr from "react-redux";
 import * as Dnd from "react-dnd";
 import * as Mth from "@mantine/hooks";
+import * as Rv from "react-virtuoso";
 
 import AutoHeightTextArea from "src/AutoHeightTextArea";
 import Calendar from "./Calendar";
 import CopyNodeIdButton from "./CopyNodeIdButton";
 import GanttChart from "./GanttChart";
 import MenuButton from "./Header/MenuButton";
-import ScrollBackToTopButton from "./ScrollBackToTopButton";
 import ShowDetailsButton from "./ShowDetailsButton";
 import StartButton from "./StartButton";
 import StartConcurrentButton from "./StartConcurrentButton";
@@ -32,6 +34,9 @@ const SCROLL_BACK_TO_TOP_MARK = (
 );
 
 const TREE_PREFIX = "t-";
+
+const nonTodoQueueNodesRef = React.createRef<Rv.VirtuosoHandle>();
+const todoQueueNodesRef = React.createRef<Rv.VirtuosoHandle>();
 
 export const MobileApp = React.memo(
   (props: { ctx: states.PersistentStateManager; logOut: () => void }) => {
@@ -89,6 +94,7 @@ const MobileNodeFilterQueryInput = () => {
 };
 
 const NodeFilterQueryInput = () => {
+  const dispatch = types.useDispatch();
   const [nodeFilterQuery, setNodeFilterQuery] = Jotai.useAtom(
     states.nodeFilterQueryState,
   );
@@ -111,12 +117,16 @@ const NodeFilterQueryInput = () => {
     (event: React.KeyboardEvent<HTMLElement>) => {
       if (taskShortcutKeys(event)) {
         if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+          if (node_id === null) {
+            return;
+          }
           event.preventDefault();
-          doFocusTextArea(`${TREE_PREFIX}${node_id}`);
+          dispatch(actions.show_path_to_selected_node(node_id));
+          setTimeout(() => doFocusTextArea(`${TREE_PREFIX}${node_id}`), 100);
         }
       }
     },
-    [taskShortcutKeys, node_id],
+    [taskShortcutKeys, node_id, dispatch],
   );
 
   return (
@@ -153,38 +163,65 @@ const RunningNodes = () => {
   return <QueueNodes node_ids={nodeIds} />;
 };
 
+function memo1_3<A, B, C, R>(
+  fn: (a: A, b: B, c: C) => R,
+): (a: A, b: B, c: C) => R {
+  let a: A | undefined;
+  let b: B | undefined;
+  let c: C | undefined;
+  let r: R | undefined;
+  return (a_, b_, c_) => {
+    if (a === a_ && b === b_ && c === c_) {
+      return r!;
+    }
+    a = a_;
+    b = b_;
+    c = c_;
+    r = fn(a_, b_, c_);
+    return r!;
+  };
+}
+
+const getQueueNodeIds = (
+  queue: types.TState["todo_node_ids"],
+  texts: types.TState["swapped_caches"]["text"],
+  nodeFilterQuery: string,
+) => {
+  if (nodeFilterQuery.length === 0) {
+    return queue;
+  }
+  const processedQuery = nodeFilterQuery.toLowerCase().split(" ");
+  if (processedQuery.length === 0) {
+    return queue;
+  }
+  const head = [];
+  const tail = [];
+  for (const nodeId of queue) {
+    const text = texts[nodeId];
+    if (getIsMatch(processedQuery, text, nodeId)) {
+      head.push(nodeId);
+    } else {
+      tail.push(nodeId);
+    }
+  }
+  if (head.length === 0) {
+    return queue;
+  }
+  return head.concat(tail);
+};
+
+const getTodoQueueNodeIds = memo1_3(getQueueNodeIds);
+const getNonTodoQueueNodeIds = memo1_3(getQueueNodeIds);
+
 const useQueue = (
   column: "todo_node_ids" | "non_todo_node_ids",
   nodeFilterQuery: string,
 ) => {
   const queue = useSelector((state) => state[column]);
   const texts = useSelector((state) => state.swapped_caches.text);
-
-  const processedQuery = React.useMemo(() => {
-    return nodeFilterQuery.toLowerCase().split(" ");
-  }, [nodeFilterQuery]);
-
-  const filteredQueue = React.useMemo(() => {
-    if (processedQuery.length === 0) {
-      return queue;
-    }
-    const head = [];
-    const tail = [];
-    for (const nodeId of queue) {
-      const text = texts[nodeId];
-      if (getIsMatch(processedQuery, text, nodeId)) {
-        head.push(nodeId);
-      } else {
-        tail.push(nodeId);
-      }
-    }
-    if (head.length === 0) {
-      return queue;
-    }
-    return head.concat(tail);
-  }, [processedQuery, queue, texts]);
-
-  return filteredQueue;
+  return column === "todo_node_ids"
+    ? getTodoQueueNodeIds(queue, texts, nodeFilterQuery)
+    : getNonTodoQueueNodeIds(queue, texts, nodeFilterQuery);
 };
 
 const useMetaK = () => {
@@ -241,11 +278,16 @@ const NodeIdsInput = () => {
   );
 };
 
-const SBTTB = () => {
+const SBTTB: React.FC<{
+  onClick: () => void;
+}> = (props) => {
   return (
-    <ScrollBackToTopButton className="sticky top-[60%] left-[50%] -translate-x-1/2 -translate-y-1/2 px-[0.15rem] dark:bg-neutral-300 bg-neutral-600 dark:hover:bg-neutral-400 hover:bg-neutral-500 text-center min-w-[3rem] h-[3rem] text-[2rem] border-none shadow-none opacity-70 hover:opacity-100 float-left mt-[-3rem] z-40">
+    <button
+      onClick={props.onClick}
+      className="sticky top-[60%] left-[50%] -translate-x-1/2 -translate-y-1/2 px-[0.15rem] dark:bg-neutral-300 bg-neutral-600 dark:hover:bg-neutral-400 hover:bg-neutral-500 text-center min-w-[3rem] h-[3rem] text-[2rem] border-none shadow-none opacity-70 hover:opacity-100 float-left mt-[-3rem] z-40"
+    >
       {SCROLL_BACK_TO_TOP_MARK}
-    </ScrollBackToTopButton>
+    </button>
   );
 };
 
@@ -309,6 +351,7 @@ const Menu = (props: {
       await props.ctx.check_remote_head();
     } catch {}
   }, [props.ctx]);
+  const [pin, setPin] = Jotai.useAtom(states.pinQueueAtomMap.get(session));
   return (
     <div
       className={`flex items-center overflow-x-auto h-[3rem] gap-x-[0.25em] w-full top-0`}
@@ -384,6 +427,12 @@ const Menu = (props: {
       </button>
       <NodeFilterQueryInput />
       <NodeIdsInput />
+      <ToggleButton
+        value={pin}
+        setValue={setPin}
+        titleOnFalse="Pin"
+        titleOnTrue="Unpin"
+      />
       <span className="grow" />
       <NLeftButton />
     </div>
@@ -395,29 +444,36 @@ const Body = () => {
     return state.data.root;
   });
   const session = React.useContext(states.session_key_context);
-  const [pin, setPin] = Jotai.useAtom(states.pinQueueAtomMap.get(session));
+  const pin = Jotai.useAtomValue(states.pinQueueAtomMap.get(session));
+  const handleNonTodoQueueSBTTBClick = useCallback(() => {
+    nonTodoQueueNodesRef.current?.scrollTo({ top: 0 });
+  }, []);
+  const handleTodoQueueSBTTBClick = useCallback(() => {
+    todoQueueNodesRef.current?.scrollTo({ top: 0 });
+  }, []);
+  const treeNodesRef = React.useRef<HTMLDivElement>(null);
+  const handleTreeSBTTBClick = useCallback(() => {
+    treeNodesRef.current?.scrollTo({ top: 0 });
+  }, [treeNodesRef]);
   return (
     <div className="flex flex-1 gap-x-[1em] overflow-y-hidden">
-      <div className="content-visibility-auto overflow-y-auto flex-none w-[46em]">
-        <SBTTB />
-        <ToggleButton
-          value={pin}
-          setValue={setPin}
-          titleOnFalse="Pin"
-          titleOnTrue="Unpin"
-        />
+      <div className="content-visibility-auto overflow-y-auto flex-none w-[46em] pl-[2em]">
+        <SBTTB onClick={handleTodoQueueSBTTBClick} />
         <RunningNodes />
         <PredictedNextNodes />
         <hr />
-        <TodoQueueNodes />
+        <TodoQueueNodes virtuosoRef={todoQueueNodesRef} />
       </div>
       <div className={utils.join("flex", pin && "w-full overflow-x-auto")}>
-        <div className="content-visibility-auto overflow-y-auto flex-none w-[46em]">
-          <SBTTB />
-          <NonTodoQueueNodes />
+        <div className="content-visibility-auto overflow-y-auto flex-none w-[46em] pl-[2em]">
+          <SBTTB onClick={handleNonTodoQueueSBTTBClick} />
+          <NonTodoQueueNodes virtuosoRef={nonTodoQueueNodesRef} />
         </div>
-        <div className="content-visibility-auto overflow-y-auto flex-none">
-          <SBTTB />
+        <div
+          className="content-visibility-auto overflow-y-auto flex-none"
+          ref={treeNodesRef}
+        >
+          <SBTTB onClick={handleTreeSBTTBClick} />
           <TreeNode node_id={root} />
         </div>
         <GanttChart indexColumnWidth={320} />
@@ -860,23 +916,58 @@ const PlannedNode = (props: {
   );
 };
 
-const TodoQueueNodes = () => {
+const TodoQueueNodes: React.FC<{
+  virtuosoRef: React.RefObject<Rv.VirtuosoHandle>;
+}> = (props) => {
   const nodeFilterQuery = React.useDeferredValue(
     Jotai.useAtomValue(states.nodeFilterQueryState),
   );
   const queue = useQueue("todo_node_ids", nodeFilterQuery);
-  return <QueueNodes node_ids={queue} />;
+  return (
+    <VirtualizedQueueNodes node_ids={queue} virtuosoRef={props.virtuosoRef} />
+  );
 };
 
 const QueueNodes = React.memo((props: { node_ids: types.TNodeId[] }) => {
   return (
-    <ol className="list-outside pl-[4em]">
-      {props.node_ids.map((node_id) => (
-        <QueueEntry node_id={node_id} key={node_id} />
+    <div>
+      {props.node_ids.map((node_id, index) => (
+        <div className="flex items-end gap-x-[0.5em]">
+          {index}
+          <QueueEntry node_id={node_id} key={node_id} />
+        </div>
       ))}
-    </ol>
+    </div>
   );
 });
+
+const VirtualizedQueueNodes: React.FC<{
+  node_ids: types.TNodeId[];
+  virtuosoRef: React.Ref<Rv.VirtuosoHandle>;
+}> = React.memo((props) => {
+  return (
+    <Rv.Virtuoso
+      style={{ height: "100%" }}
+      data={props.node_ids}
+      computeItemKey={queueComputeItemKey}
+      itemContent={queueItemContent}
+      ref={props.virtuosoRef}
+    />
+  );
+});
+
+function queueItemContent(index: number, node_item: types.TNodeId) {
+  return (
+    <div className="flex items-end gap-x-[0.5em]">
+      {index}
+      <QueueEntry node_id={node_item} />
+    </div>
+  );
+}
+
+function queueComputeItemKey(_: number, item: types.TNodeId) {
+  return item;
+}
 
 const DndTreeNode = React.memo((props: { node_id: types.TNodeId }) => {
   const dispatch = useDispatch();
@@ -946,13 +1037,20 @@ const TreeNode = React.memo(
   },
 );
 
-const NonTodoQueueNodes = () => {
+const NonTodoQueueNodes: React.FC<{
+  virtuosoRef: React.Ref<Rv.VirtuosoHandle>;
+}> = React.memo((props) => {
   const nodeFilterQuery = React.useDeferredValue(
     Jotai.useAtomValue(states.nodeFilterQueryState),
   );
   const node_ids = useQueue("non_todo_node_ids", nodeFilterQuery);
-  return <QueueNodes node_ids={node_ids} />;
-};
+  return (
+    <VirtualizedQueueNodes
+      node_ids={node_ids}
+      virtuosoRef={props.virtuosoRef}
+    />
+  );
+});
 
 const EdgeList = React.memo(
   (props: { node_id: types.TNodeId; prefix?: undefined | string }) => {
@@ -1020,7 +1118,11 @@ const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
   const [opened, handlers] = Mth.useDisclosure(false);
 
   return (
-    <EntryWrapper node_id={props.node_id} onMouseLeave={turnOff} component="li">
+    <EntryWrapper
+      node_id={props.node_id}
+      onMouseLeave={turnOff}
+      component="div"
+    >
       <div className="flex items-end w-fit">
         <button onClick={to_tree}>←</button>
         <CopyNodeIdButton node_id={props.node_id} />
@@ -1844,9 +1946,58 @@ const focusFirstChildTextAreaActionOf =
   };
 
 const useToQueue = (node_id: types.TNodeId) => {
-  return React.useCallback(() => {
-    utils.focus(document.getElementById(utils.queue_textarea_id_of(node_id)));
-  }, [node_id]);
+  const store = Rr.useStore<types.TState>();
+  return JotaiU.useAtomCallback(
+    React.useCallback(
+      (get) => {
+        const nodeFilterQuery = get(states.nodeFilterQueryState);
+        const texts = store.getState().swapped_caches.text;
+        const handle = (
+          queue: types.TNodeId[],
+          ref: typeof todoQueueNodesRef,
+        ) => {
+          const index = queue.indexOf(node_id);
+          if (index !== -1) {
+            ref.current?.scrollToIndex(index);
+            setTimeout(
+              () =>
+                utils.focus(
+                  document.getElementById(utils.queue_textarea_id_of(node_id)),
+                ),
+              100,
+            );
+            return true;
+          }
+          return false;
+        };
+        if (
+          handle(
+            getTodoQueueNodeIds(
+              store.getState().todo_node_ids,
+              texts,
+              nodeFilterQuery,
+            ),
+            todoQueueNodesRef,
+          )
+        ) {
+          return;
+        }
+        if (
+          handle(
+            getNonTodoQueueNodeIds(
+              store.getState().non_todo_node_ids,
+              texts,
+              nodeFilterQuery,
+            ),
+            nonTodoQueueNodesRef,
+          )
+        ) {
+          return;
+        }
+      },
+      [store, node_id],
+    ),
+  );
 };
 
 const getIsMatch = (
