@@ -1,6 +1,8 @@
 import * as Jotai from "jotai";
+import * as JotaiU from "jotai/utils";
 import * as React from "react";
 import { useCallback } from "react";
+import * as Rr from "react-redux";
 import * as Dnd from "react-dnd";
 import * as Mth from "@mantine/hooks";
 import * as Rv from "react-virtuoso";
@@ -32,6 +34,9 @@ const SCROLL_BACK_TO_TOP_MARK = (
 );
 
 const TREE_PREFIX = "t-";
+
+const nonTodoQueueNodesRef = React.createRef<Rv.VirtuosoHandle>();
+const todoQueueNodesRef = React.createRef<Rv.VirtuosoHandle>();
 
 export const MobileApp = React.memo(
   (props: { ctx: states.PersistentStateManager; logOut: () => void }) => {
@@ -158,38 +163,65 @@ const RunningNodes = () => {
   return <QueueNodes node_ids={nodeIds} />;
 };
 
+function memo1_3<A, B, C, R>(
+  fn: (a: A, b: B, c: C) => R,
+): (a: A, b: B, c: C) => R {
+  let a: A | undefined;
+  let b: B | undefined;
+  let c: C | undefined;
+  let r: R | undefined;
+  return (a_, b_, c_) => {
+    if (a === a_ && b === b_ && c === c_) {
+      return r!;
+    }
+    a = a_;
+    b = b_;
+    c = c_;
+    r = fn(a_, b_, c_);
+    return r!;
+  };
+}
+
+const getQueueNodeIds = (
+  queue: types.TState["todo_node_ids"],
+  texts: types.TState["swapped_caches"]["text"],
+  nodeFilterQuery: string,
+) => {
+  if (nodeFilterQuery.length === 0) {
+    return queue;
+  }
+  const processedQuery = nodeFilterQuery.toLowerCase().split(" ");
+  if (processedQuery.length === 0) {
+    return queue;
+  }
+  const head = [];
+  const tail = [];
+  for (const nodeId of queue) {
+    const text = texts[nodeId];
+    if (getIsMatch(processedQuery, text, nodeId)) {
+      head.push(nodeId);
+    } else {
+      tail.push(nodeId);
+    }
+  }
+  if (head.length === 0) {
+    return queue;
+  }
+  return head.concat(tail);
+};
+
+const getTodoQueueNodeIds = memo1_3(getQueueNodeIds);
+const getNonTodoQueueNodeIds = memo1_3(getQueueNodeIds);
+
 const useQueue = (
   column: "todo_node_ids" | "non_todo_node_ids",
   nodeFilterQuery: string,
 ) => {
   const queue = useSelector((state) => state[column]);
   const texts = useSelector((state) => state.swapped_caches.text);
-
-  const processedQuery = React.useMemo(() => {
-    return nodeFilterQuery.toLowerCase().split(" ");
-  }, [nodeFilterQuery]);
-
-  const filteredQueue = React.useMemo(() => {
-    if (processedQuery.length === 0) {
-      return queue;
-    }
-    const head = [];
-    const tail = [];
-    for (const nodeId of queue) {
-      const text = texts[nodeId];
-      if (getIsMatch(processedQuery, text, nodeId)) {
-        head.push(nodeId);
-      } else {
-        tail.push(nodeId);
-      }
-    }
-    if (head.length === 0) {
-      return queue;
-    }
-    return head.concat(tail);
-  }, [processedQuery, queue, texts]);
-
-  return filteredQueue;
+  return column === "todo_node_ids"
+    ? getTodoQueueNodeIds(queue, texts, nodeFilterQuery)
+    : getNonTodoQueueNodeIds(queue, texts, nodeFilterQuery);
 };
 
 const useMetaK = () => {
@@ -413,14 +445,12 @@ const Body = () => {
   });
   const session = React.useContext(states.session_key_context);
   const pin = Jotai.useAtomValue(states.pinQueueAtomMap.get(session));
-  const nonTodoQueueNodesRef = React.useRef<Rv.VirtuosoHandle>(null);
   const handleNonTodoQueueSBTTBClick = useCallback(() => {
     nonTodoQueueNodesRef.current?.scrollTo({ top: 0 });
-  }, [nonTodoQueueNodesRef]);
-  const todoQueueNodesRef = React.useRef<Rv.VirtuosoHandle>(null);
+  }, []);
   const handleTodoQueueSBTTBClick = useCallback(() => {
     todoQueueNodesRef.current?.scrollTo({ top: 0 });
-  }, [todoQueueNodesRef]);
+  }, []);
   const treeNodesRef = React.useRef<HTMLDivElement>(null);
   const handleTreeSBTTBClick = useCallback(() => {
     treeNodesRef.current?.scrollTo({ top: 0 });
@@ -1916,9 +1946,58 @@ const focusFirstChildTextAreaActionOf =
   };
 
 const useToQueue = (node_id: types.TNodeId) => {
-  return React.useCallback(() => {
-    utils.focus(document.getElementById(utils.queue_textarea_id_of(node_id)));
-  }, [node_id]);
+  const store = Rr.useStore<types.TState>();
+  return JotaiU.useAtomCallback(
+    React.useCallback(
+      (get) => {
+        const nodeFilterQuery = get(states.nodeFilterQueryState);
+        const texts = store.getState().swapped_caches.text;
+        const handle = (
+          queue: types.TNodeId[],
+          ref: typeof todoQueueNodesRef,
+        ) => {
+          const index = queue.indexOf(node_id);
+          if (index !== -1) {
+            ref.current?.scrollToIndex(index);
+            setTimeout(
+              () =>
+                utils.focus(
+                  document.getElementById(utils.queue_textarea_id_of(node_id)),
+                ),
+              100,
+            );
+            return true;
+          }
+          return false;
+        };
+        if (
+          handle(
+            getTodoQueueNodeIds(
+              store.getState().todo_node_ids,
+              texts,
+              nodeFilterQuery,
+            ),
+            todoQueueNodesRef,
+          )
+        ) {
+          return;
+        }
+        if (
+          handle(
+            getNonTodoQueueNodeIds(
+              store.getState().non_todo_node_ids,
+              texts,
+              nodeFilterQuery,
+            ),
+            nonTodoQueueNodesRef,
+          )
+        ) {
+          return;
+        }
+      },
+      [store, node_id],
+    ),
+  );
 };
 
 const getIsMatch = (
