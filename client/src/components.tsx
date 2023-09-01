@@ -89,6 +89,7 @@ const MobileNodeFilterQueryInput = () => {
 };
 
 const NodeFilterQueryInput = () => {
+  const dispatch = types.useDispatch();
   const [nodeFilterQuery, setNodeFilterQuery] = Jotai.useAtom(
     states.nodeFilterQueryState,
   );
@@ -111,12 +112,16 @@ const NodeFilterQueryInput = () => {
     (event: React.KeyboardEvent<HTMLElement>) => {
       if (taskShortcutKeys(event)) {
         if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+          if (node_id === null) {
+            return;
+          }
           event.preventDefault();
-          doFocusTextArea(`${TREE_PREFIX}${node_id}`);
+          dispatch(actions.show_path_to_selected_node(node_id));
+          setTimeout(() => doFocusTextArea(`${TREE_PREFIX}${node_id}`), 100);
         }
       }
     },
-    [taskShortcutKeys, node_id],
+    [taskShortcutKeys, node_id, dispatch],
   );
 
   return (
