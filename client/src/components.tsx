@@ -1478,7 +1478,7 @@ const MobileEntryButtons = (props: {
         )}
         {status === "todo" && <EvalButton node_id={props.node_id} />}
         {is_root || status !== "todo" || <TopButton node_id={props.node_id} />}
-        <DeleteButton node_id={props.node_id} />
+        {/* <DeleteButton node_id={props.node_id} /> */}
         <CopyNodeIdButton node_id={props.node_id} />
         {status === "todo" && <AddButton node_id={props.node_id} />}
         <ShowDetailsButton
@@ -1526,7 +1526,7 @@ const EntryButtons = React.memo(
         {is_root || !is_todo || <TopButton node_id={props.node_id} />}
         {is_root || !is_todo || <MoveUpButton node_id={props.node_id} />}
         {is_root || !is_todo || <MoveDownButton node_id={props.node_id} />}
-        <DeleteButton node_id={props.node_id} />
+        {/* <DeleteButton node_id={props.node_id} /> */}
         {is_todo && <AddButton node_id={props.node_id} prefix={props.prefix} />}
         <ShowDetailsButton
           node_id={props.node_id}
@@ -1694,12 +1694,11 @@ const TodoToDontButton = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-// const ShowDetailButton = (props: { node_id: types.TNodeId }) => {
+// const DeleteButton = (props: { node_id: types.TNodeId }) => {
 //   const dispatch = useDispatch();
-//   const on_click = useCallback(
-//     () => dispatch(actions.flipShowDetail(props.node_id)),
-//     [props.node_id, dispatch],
-//   );
+//   const on_click = React.useCallback(() => {
+//     dispatch(actions.delete_action(props.node_id));
+//   }, [props.node_id, dispatch]);
 
 //   return (
 //     <button
@@ -1707,27 +1706,10 @@ const TodoToDontButton = (props: { node_id: types.TNodeId }) => {
 //       onClick={on_click}
 //       onDoubleClick={prevent_propagation}
 //     >
-//       {consts.DETAIL_MARK}
+//       {consts.DELETE_MARK}
 //     </button>
 //   );
 // };
-
-const DeleteButton = (props: { node_id: types.TNodeId }) => {
-  const dispatch = useDispatch();
-  const on_click = React.useCallback(() => {
-    dispatch(actions.delete_action(props.node_id));
-  }, [props.node_id, dispatch]);
-
-  return (
-    <button
-      className="btn-icon"
-      onClick={on_click}
-      onDoubleClick={prevent_propagation}
-    >
-      {consts.DELETE_MARK}
-    </button>
-  );
-};
 
 const EvalButton = (props: { node_id: types.TNodeId }) => {
   const dispatch = useDispatch();
