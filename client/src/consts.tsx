@@ -41,7 +41,12 @@ export const SPINNER = (
 );
 
 export const WEEK_0_BEGIN = new Date(Date.UTC(2021, 12 - 1, 27));
-export const WEEK_MSEC = 86400 * 1000 * 7;
+export const DAY_MSEC = 86_400 * 1_000;
+export const WEEK_MSEC = 7 * DAY_MSEC;
+export const MSECS = {
+  D: DAY_MSEC,
+  W: WEEK_MSEC,
+};
 export const EMPTY_STRING = "";
 
 export const DEFAULT_DELAY_MSEC = 10_000;

@@ -1,18 +1,46 @@
+import * as Jotai from "jotai";
 import * as React from "react";
 import * as RWindow from "react-window";
 
 import * as consts from "src/consts";
 import * as intervals from "src/intervals";
 import * as ops from "src/ops";
+import * as states from "src/states";
 import * as utils from "src/utils";
 import * as times from "src/times";
 import * as types from "src/types";
 
-const DAY_MS = 86_400_000;
-const START_TIME = { f: Number(new Date("2000-01-01T00:00:00Z")) };
+const START_TIME = { f: Number(consts.WEEK_0_BEGIN) };
 const END_TIME = { f: Number(new Date("2100-01-01T00:00:00Z")) };
 
 const DISABLE_SCROLLING_STYLE = { overflow: "hidden" };
+
+const useGanttZoomValue = () => {
+  const session = React.useContext(states.session_key_context);
+  return Jotai.useAtomValue(states.ganttZoomAtomMap.get(session));
+};
+const useGanttZoom = () => {
+  const session = React.useContext(states.session_key_context);
+  return Jotai.useAtom(states.ganttZoomAtomMap.get(session));
+};
+
+const ensureGanttZoom = (ganttZoom: string): types.TGanttZoom => {
+  switch (ganttZoom) {
+    case "D": {
+      return ganttZoom;
+    }
+    case "W": {
+      return ganttZoom;
+    }
+    default: {
+      return "D";
+    }
+  }
+};
+
+const getMsecOfGanttZoom = (ganttZoom: string) => {
+  return consts.MSECS[ensureGanttZoom(ganttZoom)];
+};
 
 const useComponentSize = () => {
   const ref = React.useRef<HTMLDivElement>(null);
@@ -45,7 +73,8 @@ const getRowBackgroundColor = (rowIndex: number) => {
 
 const HeaderCell = React.memo(
   (props: { columnIndex: number; style: React.CSSProperties }) => {
-    const t = new Date(START_TIME.f + props.columnIndex * DAY_MS);
+    const ganttDt = getMsecOfGanttZoom(useGanttZoomValue());
+    const t = new Date(START_TIME.f + props.columnIndex * ganttDt);
     const yyyy = t.getUTCFullYear();
     const mm = (t.getUTCMonth() + 1).toString().padStart(2, "0");
     const dd = t.getUTCDate().toString().padStart(2, "0");
@@ -55,7 +84,7 @@ const HeaderCell = React.memo(
         style={props.style}
         className={utils.join(
           "border border-solid dark:border-neutral-500 border-neutral-400",
-          isToday(props.columnIndex) &&
+          isToday(props.columnIndex, ganttDt) &&
             "border-x-yellow-300 dark:border-x-yellow-700 bg-yellow-200 dark:bg-yellow-800",
         )}
       >
@@ -65,9 +94,9 @@ const HeaderCell = React.memo(
   },
 );
 
-const isToday = (columnIndex: number) => {
+const isToday = (columnIndex: number, ganttDt: number) => {
   return (
-    Math.floor((times.getFloatingNow().f - START_TIME.f) / DAY_MS) ===
+    Math.floor((times.getFloatingNow().f - START_TIME.f) / ganttDt) ===
     columnIndex
   );
 };
@@ -114,9 +143,10 @@ const Cell = React.memo(
     const events = types.useSelector(
       (state) => state.swapped_nodes.events[nodeId],
     );
+    const ganttDt = getMsecOfGanttZoom(useGanttZoomValue());
     const hit = React.useMemo(() => {
-      const start = { f: START_TIME.f + props.columnIndex * DAY_MS };
-      const end = { f: start.f + DAY_MS };
+      const start = { f: START_TIME.f + props.columnIndex * ganttDt };
+      const end = { f: start.f + ganttDt };
       let hit = false;
       for (const event of events || []) {
         const overlapState = intervals.getOverlapState(
@@ -133,12 +163,12 @@ const Cell = React.memo(
         }
       }
       return hit;
-    }, [events, props.columnIndex]);
+    }, [events, ganttDt, props.columnIndex]);
     return (
       <div
         className={utils.join(
           "border border-solid dark:border-neutral-500 border-neutral-400",
-          isToday(props.columnIndex) &&
+          isToday(props.columnIndex, ganttDt) &&
             "border-x-yellow-300 dark:border-x-yellow-700",
           hit
             ? "bg-blue-400 dark:bg-blue-900"
@@ -149,6 +179,26 @@ const Cell = React.memo(
     );
   },
 );
+
+const GanttZoomSelector = React.memo(() => {
+  const [ganttZoom, setGanttZoom] = useGanttZoom();
+  const handleChange = React.useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      setGanttZoom(ensureGanttZoom(e.target.value));
+    },
+    [setGanttZoom],
+  );
+  return (
+    <select value={ganttZoom} onChange={handleChange}>
+      <option value="D">Day</option>
+      <option value="W">Week</option>
+    </select>
+  );
+});
+
+const getScrollLeft = (now: number, ganttDt: number, columnWidth: number) => {
+  return columnWidth * Math.floor((now - START_TIME.f) / ganttDt);
+};
 
 const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
   const resize = useComponentSize();
@@ -181,13 +231,14 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
   }, [childrens, edgeCs, root, statuses]);
   const headerRef = React.useRef<RWindow.FixedSizeGrid>(null);
   const indexColumnRef = React.useRef<RWindow.FixedSizeGrid>(null);
-  const tnow = times.getFloatingNow();
-  const columnCount = (END_TIME.f - START_TIME.f) / DAY_MS;
+  const ganttRef = React.useRef<RWindow.FixedSizeGrid>(null);
+  const tnow = React.useMemo(() => times.getFloatingNow(), []);
+  const ganttDt = getMsecOfGanttZoom(useGanttZoomValue());
+  const columnCount = (END_TIME.f - START_TIME.f) / ganttDt;
   const columnWidth = 96;
   const rowHeight = 32;
   const [filterActive, toggleFilterActive] = utils.useToggle(true);
-  const initialScrollLeft =
-    columnWidth * Math.floor((tnow.f - START_TIME.f) / DAY_MS);
+  const initialScrollLeft = getScrollLeft(tnow.f, ganttDt, columnWidth);
   const initialScrollTop = rowHeight * 0;
   const [scrollLeft, setScrollLeft] = React.useState(initialScrollLeft);
   const onScroll = React.useCallback(
@@ -206,9 +257,8 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
     if (!filterActive) {
       return todoNodeIds;
     }
-    const dt = DAY_MS;
-    const tStart = { f: (scrollLeft / columnWidth) * dt + START_TIME.f };
-    const tEnd = { f: tStart.f + (resize.width / columnWidth) * dt };
+    const tStart = { f: (scrollLeft / columnWidth) * ganttDt + START_TIME.f };
+    const tEnd = { f: tStart.f + (resize.width / columnWidth) * ganttDt };
     const head = [];
     const tail = [];
     for (const nodeId of todoNodeIds) {
@@ -239,7 +289,7 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
       }
     }
     return head.concat(tail);
-  }, [filterActive, scrollLeft, resize.width, todoNodeIds, eventss]);
+  }, [filterActive, scrollLeft, resize.width, todoNodeIds, eventss, ganttDt]);
 
   const indexColumnStyle = React.useMemo(() => {
     return { width: props.indexColumnWidth };
@@ -254,7 +304,13 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
     },
     [nodeIds],
   );
-
+  React.useEffect(() => {
+    if (ganttRef.current) {
+      ganttRef.current.scrollTo({
+        scrollLeft: getScrollLeft(tnow.f, ganttDt, columnWidth),
+      });
+    }
+  }, [ganttDt, tnow.f]);
   if (resize.height <= 0) {
     return (
       <div ref={resize.ref} className="h-full w-full">
@@ -264,13 +320,15 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
   }
   return (
     <div className="content-visibility-auto h-full w-full flex-none flex flex-col">
-      <div className="flex-none flex h-[3rem] items-center gap-[0.5em]">
+      <div className="flex-none flex h-[3rem] items-baseline gap-[0.5em]">
         <label>Filter active:</label>
         <input
           checked={filterActive}
           onChange={toggleFilterActive}
           type="checkbox"
         />
+        <label>Zoom:</label>
+        <GanttZoomSelector />
       </div>
       <div className="flex-none flex" style={headerStyle}>
         <div className="flex-none" style={indexColumnStyle}>
@@ -322,6 +380,7 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
             initialScrollTop={initialScrollTop}
             itemKey={itemKey}
             itemData={nodeIds}
+            ref={ganttRef}
           >
             {Cell}
           </RWindow.FixedSizeGrid>

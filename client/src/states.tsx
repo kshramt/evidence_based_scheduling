@@ -175,6 +175,10 @@ export const pinQueueAtomMap = new WeakMapV<
   { user_id: string; session_id: number },
   ReturnType<typeof JotaiU.atomWithStorage<boolean>>
 >();
+export const ganttZoomAtomMap = new WeakMapV<
+  { user_id: string; session_id: number },
+  ReturnType<typeof JotaiU.atomWithStorage<types.TGanttZoom>>
+>();
 
 export const session_key_context = React.createContext({
   user_id: "",
@@ -790,6 +794,15 @@ export const getPersistentStateManager = async (
     pinQueueAtomMap.set(
       res.session_key,
       JotaiU.atomWithStorage(`${id_token.user_id}/pinQueue`, true),
+    );
+  }
+  if (!ganttZoomAtomMap.has(res.session_key)) {
+    ganttZoomAtomMap.set(
+      res.session_key,
+      JotaiU.atomWithStorage<types.TGanttZoom>(
+        `${id_token.user_id}/ganttZoom`,
+        "D",
+      ),
     );
   }
 
