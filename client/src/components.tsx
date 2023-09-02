@@ -459,9 +459,6 @@ const Body = () => {
     <div className="flex flex-1 gap-x-[1em] overflow-y-hidden">
       <div className="content-visibility-auto overflow-y-auto flex-none w-[46em] pl-[2em]">
         <SBTTB onClick={handleTodoQueueSBTTBClick} />
-        <RunningNodes />
-        <PredictedNextNodes />
-        <hr />
         <TodoQueueNodes virtuosoRef={todoQueueNodesRef} />
       </div>
       <div className={utils.join("flex", pin && "w-full overflow-x-auto")}>
@@ -916,6 +913,13 @@ const PlannedNode = (props: {
   );
 };
 
+type TNodeIdsWithPrefix = [
+  "special/running",
+  "special/predicted",
+  "special/hr",
+  ...types.TNodeId[],
+];
+
 const TodoQueueNodes: React.FC<{
   virtuosoRef: React.RefObject<Rv.VirtuosoHandle>;
 }> = (props) => {
@@ -923,8 +927,16 @@ const TodoQueueNodes: React.FC<{
     Jotai.useAtomValue(states.nodeFilterQueryState),
   );
   const queue = useQueue("todo_node_ids", nodeFilterQuery);
+  const queueWithPrefix = React.useMemo(() => {
+    return ["special/running", "special/predicted", "special/hr"].concat(
+      queue,
+    ) as unknown as TNodeIdsWithPrefix;
+  }, [queue]);
   return (
-    <VirtualizedQueueNodes node_ids={queue} virtuosoRef={props.virtuosoRef} />
+    <VirtualizedQueueNodes
+      node_ids={queueWithPrefix}
+      virtuosoRef={props.virtuosoRef}
+    />
   );
 };
 
@@ -942,7 +954,7 @@ const QueueNodes = React.memo((props: { node_ids: types.TNodeId[] }) => {
 });
 
 const VirtualizedQueueNodes: React.FC<{
-  node_ids: types.TNodeId[];
+  node_ids: types.TNodeId[] | TNodeIdsWithPrefix;
   virtuosoRef: React.Ref<Rv.VirtuosoHandle>;
 }> = React.memo((props) => {
   return (
@@ -956,16 +968,29 @@ const VirtualizedQueueNodes: React.FC<{
   );
 });
 
-function queueItemContent(index: number, node_item: types.TNodeId) {
-  return (
-    <div className="flex items-end gap-x-[0.5em]">
-      {index}
-      <QueueEntry node_id={node_item} />
-    </div>
-  );
+function queueItemContent(index: number, item: TNodeIdsWithPrefix[number]) {
+  switch (item) {
+    case "special/running": {
+      return <RunningNodes />;
+    }
+    case "special/predicted": {
+      return <PredictedNextNodes />;
+    }
+    case "special/hr": {
+      return <hr />;
+    }
+    default: {
+      return (
+        <div className="flex items-end gap-x-[0.5em]">
+          {index}
+          <QueueEntry node_id={item} />
+        </div>
+      );
+    }
+  }
 }
 
-function queueComputeItemKey(_: number, item: types.TNodeId) {
+function queueComputeItemKey(_: number, item: TNodeIdsWithPrefix[number]) {
   return item;
 }
 
@@ -1937,10 +1962,11 @@ const useToQueue = (node_id: types.TNodeId) => {
         const handle = (
           queue: types.TNodeId[],
           ref: typeof todoQueueNodesRef,
+          offset: number,
         ) => {
           const index = queue.indexOf(node_id);
           if (index !== -1) {
-            ref.current?.scrollToIndex(index);
+            ref.current?.scrollToIndex(index + offset);
             setTimeout(
               () =>
                 utils.focus(
@@ -1960,6 +1986,7 @@ const useToQueue = (node_id: types.TNodeId) => {
               nodeFilterQuery,
             ),
             todoQueueNodesRef,
+            3,
           )
         ) {
           return;
@@ -1972,6 +1999,7 @@ const useToQueue = (node_id: types.TNodeId) => {
               nodeFilterQuery,
             ),
             nonTodoQueueNodesRef,
+            0,
           )
         ) {
           return;
