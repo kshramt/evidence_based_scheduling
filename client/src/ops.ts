@@ -374,15 +374,36 @@ const make_tree_from_toc = (
       return;
     }
     child_toc.id = node_id;
-    swapper.set(
-      state.caches,
-      state.swapped_caches,
-      node_id,
-      "text",
-      child_toc.text,
-    );
+    setText(state, node_id, child_toc.text);
     set_estimate({ node_id, estimate: child_toc.estimate }, state);
     make_tree_from_toc(child_toc, state);
+  }
+};
+
+const DIFF_WU = new sequenceComparisons.DiffWu();
+export const setText = (
+  state: types.TStateDraftWithReadonly,
+  nodeId: types.TNodeId,
+  text: string,
+) => {
+  const cache = state.caches[nodeId];
+  if (text !== cache.text) {
+    const xs = Array.from(cache.text);
+    const ys = Array.from(text);
+    const ops = sequenceComparisons.compressOpsForString(
+      DIFF_WU.call(xs, ys),
+      ys,
+    );
+    swapper.set(
+      state.data.nodes,
+      state.swapped_nodes,
+      nodeId,
+      "text_patches",
+      immer.produce(state.data.nodes[nodeId].text_patches, (text_patches) => {
+        text_patches.push({ created_at: Date.now(), ops });
+      }),
+    );
+    swapper.set(state.caches, state.swapped_caches, nodeId, "text", text);
   }
 };
 

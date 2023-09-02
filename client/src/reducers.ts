@@ -1,5 +1,3 @@
-import * as sequenceComparisons from "@kshramt/sequence-comparisons";
-
 import * as actions from "./actions";
 import * as rtk from "./rtk";
 import * as types from "./types";
@@ -630,44 +628,14 @@ export const get_root_reducer_def = (
         );
       },
     );
-    {
-      const dw = new sequenceComparisons.DiffWu();
-      builder(
-        actions.set_text_action,
-        (state: types.TStateDraftWithReadonly, action) => {
-          const node_id = action.payload.k;
-          const text = action.payload.text;
-          const cache = state.caches[node_id];
-          if (text !== cache.text) {
-            const xs = Array.from(cache.text);
-            const ys = Array.from(text);
-            const ops = sequenceComparisons.compressOpsForString(
-              dw.call(xs, ys),
-              ys,
-            );
-            swapper.set(
-              state.data.nodes,
-              state.swapped_nodes,
-              node_id,
-              "text_patches",
-              immer.produce(
-                state.data.nodes[node_id].text_patches,
-                (text_patches) => {
-                  text_patches.push({ created_at: Date.now(), ops });
-                },
-              ),
-            );
-            swapper.set(
-              state.caches,
-              state.swapped_caches,
-              node_id,
-              "text",
-              text,
-            );
-          }
-        },
-      );
-    }
+    builder(
+      actions.set_text_action,
+      (state: types.TStateDraftWithReadonly, action) => {
+        const node_id = action.payload.k;
+        const text = action.payload.text;
+        ops.setText(state, node_id, text);
+      },
+    );
     builder(
       actions.set_time_node_text_action,
       (state: types.TStateDraftWithReadonly, action) => {
