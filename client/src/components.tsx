@@ -160,6 +160,9 @@ const RunningNodes = () => {
       return ranges[nodeId].at(-1)?.end === null;
     });
   }, [queue, ranges]);
+  if (nodeIds.length === 0) {
+    return <div className="h-[1px]" />;
+  }
   return <QueueNodes node_ids={nodeIds} />;
 };
 
