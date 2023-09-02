@@ -75,10 +75,10 @@ const HeaderCell = React.memo(
   (props: { columnIndex: number; style: React.CSSProperties }) => {
     const ganttDt = getMsecOfGanttZoom(useGanttZoomValue());
     const t = new Date(START_TIME.f + props.columnIndex * ganttDt);
-    const yyyy = t.getUTCFullYear();
+    const yy = t.getUTCFullYear() - 2000;
     const mm = (t.getUTCMonth() + 1).toString().padStart(2, "0");
     const dd = t.getUTCDate().toString().padStart(2, "0");
-    const title = `${yyyy}-${mm}-${dd}`;
+    const title = `${yy}${mm}${dd}`;
     return (
       <div
         style={props.style}
@@ -235,7 +235,7 @@ const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
   const tnow = React.useMemo(() => times.getFloatingNow(), []);
   const ganttDt = getMsecOfGanttZoom(useGanttZoomValue());
   const columnCount = (END_TIME.f - START_TIME.f) / ganttDt;
-  const columnWidth = 96;
+  const columnWidth = 64;
   const rowHeight = 32;
   const [filterActive, toggleFilterActive] = utils.useToggle(true);
   const initialScrollLeft = getScrollLeft(tnow.f, ganttDt, columnWidth);
