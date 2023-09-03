@@ -13,6 +13,7 @@ import CopyNodeIdButton from "./CopyNodeIdButton";
 import GanttChart from "./GanttChart";
 import MenuButton from "./Header/MenuButton";
 import ShowDetailsButton from "./ShowDetailsButton";
+import ShowGanttToggle from "./ShowGanttToggle";
 import StartButton from "./StartButton";
 import StartConcurrentButton from "./StartConcurrentButton";
 import StopButton from "./StopButton";
@@ -436,6 +437,7 @@ const Menu = (props: {
         titleOnFalse="Pin"
         titleOnTrue="Unpin"
       />
+      <ShowGanttToggle />
       <span className="grow" />
       <NLeftButton />
     </div>

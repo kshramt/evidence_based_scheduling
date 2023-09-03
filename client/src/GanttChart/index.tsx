@@ -205,6 +205,14 @@ const getScrollLeft = (now: number, ganttDt: number, columnWidth: number) => {
 };
 
 const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
+  const session = React.useContext(states.session_key_context);
+  const showGantt = Jotai.useAtomValue(states.showGanttAtomMap.get(session));
+  if (!showGantt) {
+    return null;
+  }
+  return <GanttChartImpl indexColumnWidth={props.indexColumnWidth} />;
+});
+const GanttChartImpl = React.memo((props: { indexColumnWidth: number }) => {
   const resize = useComponentSize();
   const eventss = types.useSelector((state) => state.swapped_nodes.events);
   const statuses = types.useSelector((state) => state.swapped_nodes.status);

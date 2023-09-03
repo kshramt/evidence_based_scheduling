@@ -179,6 +179,10 @@ export const ganttZoomAtomMap = new WeakMapV<
   { user_id: string; session_id: number },
   ReturnType<typeof JotaiU.atomWithStorage<types.TGanttZoom>>
 >();
+export const showGanttAtomMap = new WeakMapV<
+  { user_id: string; session_id: number },
+  ReturnType<typeof JotaiU.atomWithStorage<boolean>>
+>();
 
 export const session_key_context = React.createContext({
   user_id: "",
@@ -803,6 +807,12 @@ export const getPersistentStateManager = async (
         `${id_token.user_id}/ganttZoom`,
         "D",
       ),
+    );
+  }
+  if (!showGanttAtomMap.has(res.session_key)) {
+    showGanttAtomMap.set(
+      res.session_key,
+      JotaiU.atomWithStorage(`${id_token.user_id}/showGantt`, true),
     );
   }
 
