@@ -46,6 +46,7 @@ export const WEEK_MSEC = 7 * DAY_MSEC;
 export const MSECS = {
   D: DAY_MSEC,
   W: WEEK_MSEC,
+  M: 4 * WEEK_MSEC,
 };
 export const EMPTY_STRING = "";
 
