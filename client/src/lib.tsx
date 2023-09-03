@@ -51,12 +51,12 @@ const App = React.memo(
 
     return (
       <>
+        {toast.component}
         {show_mobile ? (
           <components.MobileApp ctx={props.ctx} logOut={props.logOut} />
         ) : (
           <components.DesktopApp ctx={props.ctx} logOut={props.logOut} />
         )}
-        {toast.component}
       </>
     );
   },
