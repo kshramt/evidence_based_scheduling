@@ -71,12 +71,12 @@ const TimeNode = React.memo((props: { timeId: string }) => {
   }, [props.timeId, toggle]);
   const plannedNodeIds = utils.usePlannedNodeIds(props.timeId);
   const plannedNodes = React.useMemo(() => {
-    return isOpen
+    return isOpen || props.timeId[0] === "D" || props.timeId[0] === "H"
       ? plannedNodeIds.map((nodeId) => {
           return <PlannedNode node_id={nodeId} key={nodeId} />;
         })
       : null;
-  }, [plannedNodeIds, isOpen]);
+  }, [isOpen, props.timeId, plannedNodeIds]);
   switch (props.timeId[0]) {
     case "D": {
       return (
