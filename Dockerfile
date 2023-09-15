@@ -154,7 +154,7 @@ RUN apt-get update \
    libxrender1\
    libxtst6
 COPY --link client/package.json client/package-lock.json ./
-RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/root/.npm npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci
 RUN npx playwright install
 
 FROM client_npm_ci AS client_proto
@@ -171,7 +171,7 @@ FROM builder_client AS test_client
 RUN scripts/check.sh
 
 FROM builder_client AS prod_client
-RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/root/.npm npm run build
+RUN --mount=type=cache,target=/root/.npm npm run build
 
 FROM base_nginx AS prod_nginx
 COPY --link --from=prod_client /app/client/dist/static/ /usr/share/nginx/html/static/
