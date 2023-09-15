@@ -3,13 +3,13 @@ module github.com/kshramt/evidence_based_scheduling
 go 1.20
 
 require (
-	github.com/bufbuild/connect-go v1.5.2
+	github.com/bufbuild/connect-go v1.10.0
 	github.com/bufbuild/connect-grpchealth-go v1.0.0
 	github.com/bufbuild/connect-grpcreflect-go v1.0.0
 	github.com/jackc/pgx/v5 v5.3.0
 	github.com/sirupsen/logrus v1.9.0
 	golang.org/x/net v0.15.0
-	google.golang.org/protobuf v1.28.1
+	google.golang.org/protobuf v1.31.0
 )
 
 require (
