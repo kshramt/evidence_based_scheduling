@@ -21,6 +21,10 @@ jobs:
           echo "host-os=$(docker version --format '{{ (index .Server.Components 0).Details.Os }}')"
           } >> "$GITHUB_OUTPUT"
   build-images:
+    if: github.actor == 'dependabot[bot]' || github.actor == github.repository_owner
+    permissions:
+      contents: read
+      packages: write
     needs: [set-vars]
     runs-on: ubuntu-latest
     strategy:
@@ -40,6 +44,10 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - run: scripts/build_test_push.sh ${{ github.sha }} ${{ needs.set-vars.outputs.ref-b64 }} ${{ matrix.os }} ${{ matrix.arch }} ${{ github.ref }} ${{ github.run_number }} ${{ needs.set-vars.outputs.host-arch }} ${{ needs.set-vars.outputs.host-os }}
   build-manifests:
+    if: github.actor == 'dependabot[bot]' || github.actor == github.repository_owner
+    permissions:
+      contents: read
+      packages: write
     needs: [build-images]
     runs-on: ubuntu-latest
     steps:
