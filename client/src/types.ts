@@ -145,7 +145,7 @@ export type TState = {
   readonly todo_node_ids: TNodeId[];
   readonly non_todo_node_ids: TNodeId[];
 };
-export type TGanttZoom = "D" | "W" | "M";
+export type TGanttZoom = "D" | "W" | "M" | "Q" | "Y";
 
 export const parse_data = (x: {
   data: unknown;

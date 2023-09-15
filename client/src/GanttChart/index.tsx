@@ -26,13 +26,11 @@ const useGanttZoom = () => {
 
 const ensureGanttZoom = (ganttZoom: string): types.TGanttZoom => {
   switch (ganttZoom) {
-    case "D": {
-      return ganttZoom;
-    }
-    case "W": {
-      return ganttZoom;
-    }
-    case "M": {
+    case "D":
+    case "W":
+    case "M":
+    case "Q":
+    case "Y": {
       return ganttZoom;
     }
     default: {
@@ -196,6 +194,8 @@ const GanttZoomSelector = React.memo(() => {
       <option value="D">Day</option>
       <option value="W">Week</option>
       <option value="M">Month</option>
+      <option value="Q">Quarter</option>
+      <option value="Y">Year</option>
     </select>
   );
 });
