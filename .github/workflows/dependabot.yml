@@ -1,0 +1,22 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/client"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: poetry
+    directory: "/"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: go
+    directory: "/go"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: poetry
+    directory: "/grpc_py"
+    schedule:
+    interval: "daily"
+  - package-ecosystem: poetry
+    directory: "/tests/e2e"
+    schedule:
+      interval: "daily"
