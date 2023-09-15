@@ -18,7 +18,7 @@
     "@mantine/dates": "^6.0.19",
     "@mantine/form": "^6.0.20",
     "@mantine/hooks": "^6.0.19",
-    "@mantine/notifications": "^6.0.19",
+    "@mantine/notifications": "^6.0.20",
     "@types/react-window": "^1.8.5",
     "dayjs": "^1.11.9",
     "idb": "^7.1.1",
