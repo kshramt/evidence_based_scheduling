@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/bufbuild/connect-go v1.10.0
 	github.com/bufbuild/connect-grpchealth-go v1.1.1
-	github.com/bufbuild/connect-grpcreflect-go v1.0.0
+	github.com/bufbuild/connect-grpcreflect-go v1.1.0
 	github.com/jackc/pgx/v5 v5.3.0
 	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/net v0.15.0
