@@ -4,19 +4,19 @@ updates:
     directory: "/client"
     schedule:
       interval: "daily"
-  - package-ecosystem: poetry
+  - package-ecosystem: pip
     directory: "/"
     schedule:
       interval: "daily"
-  - package-ecosystem: go
+  - package-ecosystem: gomod
     directory: "/go"
     schedule:
       interval: "daily"
-  - package-ecosystem: poetry
+  - package-ecosystem: pip
     directory: "/grpc_py"
     schedule:
-    interval: "daily"
-  - package-ecosystem: poetry
+      interval: "daily"
+  - package-ecosystem: pip
     directory: "/tests/e2e"
     schedule:
       interval: "daily"
