@@ -5,28 +5,70 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 1000
+    groups:
+      patch:
+        update-types:
+          - "patch"
+      minor:
+        update-types:
+          - "minor"
   - package-ecosystem: npm
     directory: "/client"
     schedule:
       interval: "daily"
     open-pull-requests-limit: 1000
+    groups:
+      patch:
+        update-types:
+          - "patch"
+      minor:
+        update-types:
+          - "minor"
   - package-ecosystem: pip
     directory: "/"
     schedule:
       interval: "daily"
     open-pull-requests-limit: 1000
+    groups:
+      patch:
+        update-types:
+          - "patch"
+      minor:
+        update-types:
+          - "minor"
   - package-ecosystem: gomod
     directory: "/go"
     schedule:
       interval: "daily"
     open-pull-requests-limit: 1000
+    groups:
+      patch:
+        update-types:
+          - "patch"
+      minor:
+        update-types:
+          - "minor"
   - package-ecosystem: pip
     directory: "/grpc_py"
     schedule:
       interval: "daily"
     open-pull-requests-limit: 1000
+    groups:
+      patch:
+        update-types:
+          - "patch"
+      minor:
+        update-types:
+          - "minor"
   - package-ecosystem: pip
     directory: "/tests/e2e"
     schedule:
       interval: "daily"
     open-pull-requests-limit: 1000
+    groups:
+      patch:
+        update-types:
+          - "patch"
+      minor:
+        update-types:
+          - "minor"
