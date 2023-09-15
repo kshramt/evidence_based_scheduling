@@ -11,7 +11,6 @@ updates:
           - "patch"
       minor:
         update-types:
-          - "patch"
           - "minor"
   - package-ecosystem: npm
     directory: "/client"
@@ -24,7 +23,6 @@ updates:
           - "patch"
       minor:
         update-types:
-          - "patch"
           - "minor"
   - package-ecosystem: pip
     directory: "/"
@@ -37,7 +35,6 @@ updates:
           - "patch"
       minor:
         update-types:
-          - "patch"
           - "minor"
   - package-ecosystem: gomod
     directory: "/go"
@@ -50,7 +47,6 @@ updates:
           - "patch"
       minor:
         update-types:
-          - "patch"
           - "minor"
   - package-ecosystem: pip
     directory: "/grpc_py"
@@ -63,7 +59,6 @@ updates:
           - "patch"
       minor:
         update-types:
-          - "patch"
           - "minor"
   - package-ecosystem: pip
     directory: "/tests/e2e"
@@ -76,5 +71,4 @@ updates:
           - "patch"
       minor:
         update-types:
-          - "patch"
           - "minor"
