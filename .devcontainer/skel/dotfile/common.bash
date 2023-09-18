@@ -165,3 +165,8 @@ fi
 if which minikube > /dev/null ; then
    source <(minikube completion bash)
 fi
+
+if which rustup > /dev/null; then
+   . <(rustup completions bash)
+   . <(rustup completions bash cargo)
+fi
