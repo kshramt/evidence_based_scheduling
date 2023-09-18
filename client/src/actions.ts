@@ -164,9 +164,6 @@ export const toggle_edge_hide_action = register_history_type(
 export const add_edges_action = register_history_type(
   rtk.action_of_of<types.TEdge[]>("add_edges_action"),
 );
-export const set_n_unsaved_patches_action = rtk.action_of_of<number>(
-  "set_n_unsaved_patches_action",
-);
 export const increment_count_action = register_history_type(
   rtk.action_of_of("increment_count_action"),
 );

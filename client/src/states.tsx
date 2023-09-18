@@ -136,7 +136,6 @@ const get_state_and_patch = async (arg: {
       swapped_caches: swapper.swapKeys(caches),
       swapped_edges: swapper.swapKeys(parsed_data.data.edges),
       swapped_nodes: swapper.swapKeys(parsed_data.data.nodes),
-      n_unsaved_patches: 0,
       todo_node_ids,
       non_todo_node_ids,
     };

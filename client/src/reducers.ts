@@ -82,12 +82,6 @@ export const get_root_reducer_def = (
         }
       },
     );
-    builder(
-      actions.set_n_unsaved_patches_action,
-      (state: types.TStateDraftWithReadonly, action) => {
-        state.n_unsaved_patches = action.payload;
-      },
-    );
     builder(actions.eval_, (state: types.TStateDraftWithReadonly, action) => {
       const k = action.payload;
       _eval_(state, k, utils.visit_counter_of());

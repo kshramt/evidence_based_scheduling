@@ -60,7 +60,6 @@ export const emptyStateOf = (): types.TState => {
     swapped_caches: swapper.swapKeys(caches),
     swapped_edges: swapper.swapKeys(data.edges),
     swapped_nodes: swapper.swapKeys(data.nodes),
-    n_unsaved_patches: 0,
     todo_node_ids: [],
     non_todo_node_ids: [],
   };

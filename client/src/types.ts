@@ -141,7 +141,6 @@ export type TState = {
   readonly swapped_caches: swapper.TSwapped1<TCaches>;
   readonly swapped_edges: swapper.TSwapped1<TData["edges"]>;
   readonly swapped_nodes: swapper.TSwapped1<TData["nodes"]>;
-  readonly n_unsaved_patches: number;
   readonly todo_node_ids: TNodeId[];
   readonly non_todo_node_ids: TNodeId[];
 };

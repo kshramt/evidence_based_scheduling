@@ -439,7 +439,6 @@ const Menu = (props: {
       />
       <ShowGanttToggle />
       <span className="grow" />
-      <NLeftButton />
     </div>
   );
 };
@@ -1255,7 +1254,6 @@ const MobileMenu = (props: {
       </div>
       <MobileNodeFilterQueryInput />
       <span className="grow" />
-      <NLeftButton />
     </div>
   );
 };
@@ -1852,27 +1850,6 @@ const TextArea = (props: {
     />
   );
 };
-
-const NLeftButton = () => {
-  const dispatch = useDispatch();
-  const n_unsaved_patches = useSelector((state) => state.n_unsaved_patches);
-  const handle_click = React.useCallback(() => {
-    dispatch((disptch, getState) => {
-      const state = getState();
-      utils.downloadJson("evidence_based_scheduling.json", state.data);
-    });
-  }, [dispatch]);
-  return (
-    <button
-      className="btn-icon"
-      onClick={handle_click}
-      onDoubleClick={prevent_propagation}
-    >
-      {n_unsaved_patches}
-    </button>
-  );
-};
-
 const CopyDescendantTimeNodesPlannedNodeIdsButton = (props: {
   time_node_id: types.TTimeNodeId;
 }) => {

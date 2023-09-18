@@ -3,6 +3,7 @@ import * as React from "react";
 import ToggleShowMobileButton from "./ToggleShowMobileButton";
 import CheckRemoteButton from "./CheckRemoteButton";
 import ExportIndexedDbButton from "./ExportIndexedDbButton";
+import ExportStateButton from "./ExportStateButton";
 import LogoutButton from "./LogoutButton";
 import * as storage from "src/storage";
 import { Menu } from "@mantine/core";
@@ -60,6 +61,9 @@ const MenuButton = React.memo(
           </Menu.Item>
           <Menu.Item>
             <CheckRemoteButton onClick={props.onClickCheckRemoteButton} />
+          </Menu.Item>
+          <Menu.Item>
+            <ExportStateButton />
           </Menu.Item>
           <Menu.Item>
             <ExportIndexedDbButton db={props.db} />
