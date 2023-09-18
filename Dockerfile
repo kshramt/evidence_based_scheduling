@@ -10,7 +10,7 @@ COPY --link --from=node_downloader /usr/local/node /usr/local/node
 ENV PATH "/usr/local/node/bin:${PATH}"
 
 
-FROM docker:24.0.4-cli-alpine3.18 AS docker_downloader
+FROM docker:24.0.6-cli-alpine3.18 AS docker_downloader
 COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/bin/docker /usr/local/bin/docker
 COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/libexec/docker /usr/local/libexec/docker
 
@@ -95,7 +95,7 @@ ENV GOPATH "/h/${host_home:?}/devcontainer/go"
 USER "${devcontainer_user:?}"
 
 
-FROM python:3.11.0-slim-bullseye AS base_py
+FROM python:3.11.5-slim-bullseye AS base_py
 ENV PYTHONUNBUFFERED 1
 ENV PYTHONDONTWRITEBYTECODE 1
 WORKDIR /app
@@ -113,7 +113,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
 RUN --mount=type=cache,target=/root/.cache pip install poetry==1.3.1
 
-FROM golang:1.21.0-bookworm AS base_go
+FROM golang:1.21.1-bookworm AS base_go
 ENV CGO_ENABLED 0
 
 FROM base_js AS base_client
