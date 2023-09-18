@@ -1,10 +1,24 @@
 version: 2
 updates:
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      timezone: "Asia/Tokyo"
+    groups:
+      patch:
+        update-types:
+          - "patch"
+      minor:
+        update-types:
+          - "minor"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
-    open-pull-requests-limit: 1000
+      interval: "weekly"
+      day: "saturday"
+      timezone: "Asia/Tokyo"
     groups:
       patch:
         update-types:
@@ -15,8 +29,9 @@ updates:
   - package-ecosystem: npm
     directory: "/client"
     schedule:
-      interval: "daily"
-    open-pull-requests-limit: 1000
+      interval: "weekly"
+      day: "saturday"
+      timezone: "Asia/Tokyo"
     groups:
       patch:
         update-types:
@@ -27,8 +42,9 @@ updates:
   - package-ecosystem: pip
     directory: "/"
     schedule:
-      interval: "daily"
-    open-pull-requests-limit: 1000
+      interval: "weekly"
+      day: "saturday"
+      timezone: "Asia/Tokyo"
     groups:
       patch:
         update-types:
@@ -39,8 +55,9 @@ updates:
   - package-ecosystem: gomod
     directory: "/go"
     schedule:
-      interval: "daily"
-    open-pull-requests-limit: 1000
+      interval: "weekly"
+      day: "saturday"
+      timezone: "Asia/Tokyo"
     groups:
       patch:
         update-types:
@@ -51,8 +68,9 @@ updates:
   - package-ecosystem: pip
     directory: "/grpc_py"
     schedule:
-      interval: "daily"
-    open-pull-requests-limit: 1000
+      interval: "weekly"
+      day: "saturday"
+      timezone: "Asia/Tokyo"
     groups:
       patch:
         update-types:
@@ -63,8 +81,9 @@ updates:
   - package-ecosystem: pip
     directory: "/tests/e2e"
     schedule:
-      interval: "daily"
-    open-pull-requests-limit: 1000
+      interval: "weekly"
+      day: "saturday"
+      timezone: "Asia/Tokyo"
     groups:
       patch:
         update-types:
