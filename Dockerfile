@@ -1,4 +1,4 @@
-FROM node:20.4.0-bookworm-slim AS node_downloader
+FROM node:20.6.1-bookworm-slim AS node_downloader
 RUN mkdir -p /usr/local/node \
    && cp -a /usr/local/bin /usr/local/node/bin && rm -f /usr/local/node/bin/docker-entrypoint.sh \
    && cp -a /usr/local/include /usr/local/node/include \
@@ -100,9 +100,9 @@ ENV PYTHONUNBUFFERED 1
 ENV PYTHONDONTWRITEBYTECODE 1
 WORKDIR /app
 
-FROM nginx:1.23.3-alpine AS base_nginx
+FROM nginx:1.25.2-alpine AS base_nginx
 
-FROM envoyproxy/envoy:v1.25.1 AS base_envoy
+FROM envoyproxy/envoy:v1.27.0 AS base_envoy
 
 FROM postgres:15.3-bookworm AS base_postgres
 
