@@ -189,7 +189,7 @@ RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod
 
 FROM base_postgres AS prod_postgres
 
-FROM debian:11.7-slim AS prod_postgres_migration
+FROM debian:12.1-slim AS prod_postgres_migration
 COPY --link --from=dbmate_builder /go/bin/dbmate /usr/local/bin/dbmate
 COPY --link db/scripts/migrate.sh /app/scripts/migrate.sh
 COPY --link db/migrations /app/db/migrations
