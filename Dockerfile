@@ -1,4 +1,4 @@
-FROM node:20.4.0-bookworm-slim AS node_downloader
+FROM node:20.6.1-bookworm-slim AS node_downloader
 RUN mkdir -p /usr/local/node \
    && cp -a /usr/local/bin /usr/local/node/bin && rm -f /usr/local/node/bin/docker-entrypoint.sh \
    && cp -a /usr/local/include /usr/local/node/include \
@@ -10,7 +10,7 @@ COPY --link --from=node_downloader /usr/local/node /usr/local/node
 ENV PATH "/usr/local/node/bin:${PATH}"
 
 
-FROM docker:24.0.4-cli-alpine3.18 AS docker_downloader
+FROM docker:24.0.6-cli-alpine3.18 AS docker_downloader
 COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/bin/docker /usr/local/bin/docker
 COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/libexec/docker /usr/local/libexec/docker
 
@@ -95,14 +95,14 @@ ENV GOPATH "/h/${host_home:?}/devcontainer/go"
 USER "${devcontainer_user:?}"
 
 
-FROM python:3.11.0-slim-bullseye AS base_py
+FROM python:3.11.5-slim-bullseye AS base_py
 ENV PYTHONUNBUFFERED 1
 ENV PYTHONDONTWRITEBYTECODE 1
 WORKDIR /app
 
-FROM nginx:1.23.3-alpine AS base_nginx
+FROM nginx:1.25.2-alpine AS base_nginx
 
-FROM envoyproxy/envoy:v1.25.1 AS base_envoy
+FROM envoyproxy/envoy:v1.27.0 AS base_envoy
 
 FROM postgres:15.3-bookworm AS base_postgres
 
@@ -113,7 +113,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
 RUN --mount=type=cache,target=/root/.cache pip install poetry==1.3.1
 
-FROM golang:1.21.0-bookworm AS base_go
+FROM golang:1.21.1-bookworm AS base_go
 ENV CGO_ENABLED 0
 
 FROM base_js AS base_client
@@ -189,7 +189,7 @@ RUN --mount=type=cache,target=/root/.cache --mount=type=cache,target=/go/pkg/mod
 
 FROM base_postgres AS prod_postgres
 
-FROM debian:11.7-slim AS prod_postgres_migration
+FROM debian:12.1-slim AS prod_postgres_migration
 COPY --link --from=dbmate_builder /go/bin/dbmate /usr/local/bin/dbmate
 COPY --link db/scripts/migrate.sh /app/scripts/migrate.sh
 COPY --link db/migrations /app/db/migrations
