@@ -13,7 +13,7 @@ const ExportStateButton = React.memo(() => {
   }, [dispatch]);
   return (
     <span onClick={handleClick} onDoubleClick={utils.prevent_propagation}>
-      Export State
+      Export state
     </span>
   );
 });

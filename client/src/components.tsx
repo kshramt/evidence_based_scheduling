@@ -161,9 +161,6 @@ const RunningNodes = () => {
       return ranges[nodeId].at(-1)?.end === null;
     });
   }, [queue, ranges]);
-  if (nodeIds.length === 0) {
-    return <div className="h-[1px]" />;
-  }
   return <QueueNodes node_ids={nodeIds} />;
 };
 
@@ -917,12 +914,7 @@ const PlannedNode = (props: {
   );
 };
 
-type TNodeIdsWithPrefix = [
-  "special/running",
-  "special/predicted",
-  "special/hr",
-  ...types.TNodeId[],
-];
+type TNodeIdsWithPrefix = ["special/header", ...types.TNodeId[]];
 
 const TodoQueueNodes: React.FC<{
   virtuosoRef: React.RefObject<Rv.VirtuosoHandle>;
@@ -932,9 +924,7 @@ const TodoQueueNodes: React.FC<{
   );
   const queue = useQueue("todo_node_ids", nodeFilterQuery);
   const queueWithPrefix = React.useMemo(() => {
-    return ["special/running", "special/predicted", "special/hr"].concat(
-      queue,
-    ) as unknown as TNodeIdsWithPrefix;
+    return ["special/header"].concat(queue) as unknown as TNodeIdsWithPrefix;
   }, [queue]);
   return (
     <VirtualizedQueueNodes
@@ -974,14 +964,14 @@ const VirtualizedQueueNodes: React.FC<{
 
 function queueItemContent(index: number, item: TNodeIdsWithPrefix[number]) {
   switch (item) {
-    case "special/running": {
-      return <RunningNodes />;
-    }
-    case "special/predicted": {
-      return <PredictedNextNodes />;
-    }
-    case "special/hr": {
-      return <hr />;
+    case "special/header": {
+      return (
+        <div className="min-h-[1px]">
+          <RunningNodes />
+          <PredictedNextNodes />
+          <hr />
+        </div>
+      );
     }
     default: {
       return (
