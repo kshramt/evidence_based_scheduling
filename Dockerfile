@@ -95,7 +95,7 @@ ENV GOPATH "/h/${host_home:?}/devcontainer/go"
 USER "${devcontainer_user:?}"
 
 
-FROM python:3.11.5-slim-bullseye AS base_py
+FROM python:3.12.0-slim-bullseye AS base_py
 ENV PYTHONUNBUFFERED 1
 ENV PYTHONDONTWRITEBYTECODE 1
 WORKDIR /app
