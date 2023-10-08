@@ -1,5 +1,5 @@
 import * as idb from "idb";
-import React from "react";
+import * as React from "react";
 
 import * as actions from "./actions";
 import * as consts from "./consts";
