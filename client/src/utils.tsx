@@ -65,7 +65,7 @@ export const useClipboard = () => {
   const [is_copied, set_is_copied] = React.useState(false);
   const copy = React.useCallback((text: string) => {
     navigator.clipboard
-      ?.writeText(text)
+      .writeText(text)
       .then(() => {
         set_is_copied(true);
         setTimeout(() => set_is_copied(false), 400);
