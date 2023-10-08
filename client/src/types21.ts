@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { ThunkDispatch } from "redux-thunk";
 import {
   TypedUseSelectorHook,
@@ -100,7 +104,7 @@ const current_of_prev = (data_prev: {
   };
   const produced = producer.produce_with_patche(
     data_prev,
-    // @ts-expect-error
+    // @ts-expect-error current_of_prev
     fn,
   );
   const record_if_false = record_if_false_of();
@@ -155,7 +159,11 @@ export const is_TData = (
   record_if_false.check_array(data.pinned_sub_trees, is_TNodeId) &&
   record_if_false(data.version === VERSION, "version");
 
-export type AppDispatch = ThunkDispatch<IState, {}, TAnyPayloadAction>;
+export type AppDispatch = ThunkDispatch<
+  IState,
+  Record<string, never>,
+  TAnyPayloadAction
+>;
 
 export const useDispatch = () => _useDispatch<AppDispatch>();
 export const useSelector: TypedUseSelectorHook<IState> = _useSelector;

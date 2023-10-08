@@ -819,6 +819,6 @@ const indexedDbV2Data = {
 } as const;
 
 const indexedDbV3Data = Immer.produce(indexedDbV2Data, (draft) => {
-  // @ts-expect-error
+  // @ts-expect-error Just ignore the error
   draft.ui_calendar_open_set = [];
 });

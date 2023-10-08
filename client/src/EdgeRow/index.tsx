@@ -93,7 +93,12 @@ const EdgeRowContent = React.memo((props: { node_id: types.TNodeId }) => {
       <td>
         <TopButton node_id={props.node_id} disabled={disabled} />
       </td>
-      <td title={text} onClick={to_tree} className="p-[0.25em] cursor-pointer">
+      <td
+        title={text}
+        onClick={to_tree}
+        className="p-[0.25em] cursor-pointer"
+        role="gridcell"
+      >
         {text.slice(0, 15)}
       </td>
     </>

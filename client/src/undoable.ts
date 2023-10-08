@@ -80,7 +80,9 @@ export const undoable_of = (
 };
 
 export const history_type_set = new Set<string>();
-export const register_history_type = <T extends {}>(x: T) => {
+export const register_history_type = <T extends { toString: () => string }>(
+  x: T,
+) => {
   history_type_set.add(x.toString());
   return x;
 };

@@ -12,7 +12,12 @@ const ExportStateButton = React.memo(() => {
     });
   }, [dispatch]);
   return (
-    <span onClick={handleClick} onDoubleClick={utils.prevent_propagation}>
+    <span
+      onClick={handleClick}
+      onDoubleClick={utils.prevent_propagation}
+      role="button"
+      tabIndex={0}
+    >
       Export state
     </span>
   );

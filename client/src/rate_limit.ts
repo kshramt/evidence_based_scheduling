@@ -89,11 +89,11 @@ export const rate_limit_of = (
 
   const push = (fn: () => Promise<boolean>) => {
     queue.push(fn);
-    process(true);
+    void process(true);
   };
   const unshift = (fn: () => Promise<boolean>) => {
     queue.unshift(fn);
-    process(true);
+    void process(true);
   };
 
   const add_before_process_hook = (fn: (q: typeof queue) => void) =>

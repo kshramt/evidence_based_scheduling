@@ -36,7 +36,7 @@ export class Auth {
       })
       .then((id_token) => {
         if (id_token !== undefined) {
-          this._set_id_token(id_token);
+          void this._set_id_token(id_token);
         }
       });
   }
@@ -52,7 +52,7 @@ export class Auth {
       throw new Error("`userId` is not set");
     }
     const id_token = { user_id: resp.token.userId };
-    this._set_id_token(id_token);
+    void this._set_id_token(id_token);
     return id_token;
   };
   logIn = async (name: string) => {
@@ -68,7 +68,7 @@ export class Auth {
       throw new Error("Failed to get an ID token");
     }
     const id_token = { user_id: resp.token.userId };
-    this._set_id_token(id_token);
+    void this._set_id_token(id_token);
     return id_token;
   };
   logOut = async () => {

@@ -10,7 +10,12 @@ const ExportIndexedDbButton = React.memo(
       utils.downloadJson("indexeddb.json", res);
     }, [props.db]);
     return (
-      <span onClick={onClick} onDoubleClick={utils.prevent_propagation}>
+      <span
+        onClick={onClick}
+        onDoubleClick={utils.prevent_propagation}
+        role="button"
+        tabIndex={0}
+      >
         Export IndexedDB
       </span>
     );

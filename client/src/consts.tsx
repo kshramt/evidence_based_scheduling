@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 
 export const DELETE_MARK = <span className="material-icons">close</span>;
 

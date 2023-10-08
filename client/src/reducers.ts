@@ -170,7 +170,9 @@ export const get_root_reducer_def = (
         if (!checks.is_deletable_edge_of(edge_id, state)) {
           toast.add(
             "error",
-            `Edge ${state.data.edges[edge_id]} cannot be deleted.`,
+            `Edge ${JSON.stringify(
+              state.data.edges[edge_id],
+            )} cannot be deleted.`,
           );
           return;
         }
@@ -222,12 +224,15 @@ export const get_root_reducer_def = (
       actions.assign_nodes_to_time_node_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const time_node =
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           state.data.timeline.time_nodes[action.payload.time_node_id] ||
           ops.new_time_node_of();
         const t_msec = Date.now();
         action.payload.node_ids.forEach((node_id, i) => {
           if (
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             state.data.nodes[node_id] &&
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             time_node.nodes[node_id] === undefined
           ) {
             time_node.nodes[node_id] = -(t_msec + i);
@@ -241,6 +246,7 @@ export const get_root_reducer_def = (
       (state: types.TStateDraftWithReadonly, action) => {
         const time_node =
           state.data.timeline.time_nodes[action.payload.time_node_id];
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (time_node === undefined) {
           return;
         }
@@ -281,6 +287,7 @@ export const get_root_reducer_def = (
       actions.toggle_show_time_node_children_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const time_node =
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           state.data.timeline.time_nodes[action.payload] ||
           ops.new_time_node_of();
         time_node.show_children =
@@ -469,6 +476,7 @@ export const get_root_reducer_def = (
       total_time_utils.set_total_time_action,
       (state: types.TStateDraftWithReadonly, action) => {
         for (const node_id of action.payload.node_ids) {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           if (state.data.nodes[node_id] === undefined) {
             continue;
           }
@@ -634,6 +642,7 @@ export const get_root_reducer_def = (
       actions.set_time_node_text_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const time_node =
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           state.data.timeline.time_nodes[action.payload.time_node_id] ||
           ops.new_time_node_of();
         time_node.text = action.payload.text;
@@ -1071,7 +1080,7 @@ const total_time_of = (
     }
   }
   n *= 2;
-  const events: [number, -1 | 1][] = Array(n);
+  const events = Array<[number, -1 | 1]>(n);
   let i = 0;
   for (const ranges of ranges_list) {
     for (const range of ranges) {
@@ -1231,7 +1240,7 @@ const _estimate = (
   weights: number[],
   n_mc: number,
 ) => {
-  const ts = Array(n_mc);
+  const ts = Array<number>(n_mc);
   const rng = new utils.Multinomial(weights);
   for (let i = 0; i < n_mc; i++) {
     let t = 0;

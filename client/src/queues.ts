@@ -9,13 +9,20 @@ export class Queue<T> {
     if (this.#resolves.length === 0) {
       this.#add_pair();
     }
-    this.#resolves.shift()!(value);
+    const resolve = this.#resolves.shift();
+    if (resolve) {
+      resolve(value);
+    }
   };
   pop = async () => {
     if (this.#promises.length === 0) {
       this.#add_pair();
     }
-    return await this.#promises.shift()!;
+    const promise = this.#promises.shift();
+    if (!promise) {
+      throw new Error("Must not happen.");
+    }
+    return await promise;
   };
   #add_pair = () => {
     this.#promises.push(

@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import * as toast from "./toast";
 
 import * as producer from "./producer";
@@ -86,7 +89,7 @@ const current_of_prev = (data_prev: {
   };
   const produced = producer.produce_with_patche(
     data_prev,
-    // @ts-expect-error
+    // @ts-expect-error current_of_prev
     fn,
   );
   const record_if_false = record_if_false_of();

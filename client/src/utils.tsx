@@ -15,10 +15,10 @@ export class Multinomial {
   constructor(ws: number[]) {
     const n = ws.length;
     const total = sum(ws);
-    const thresholds = Array(n);
-    const i_large_of = Array(n);
-    const i_small_list = Array(n);
-    const i_large_list = Array(n);
+    const thresholds = Array<number>(n);
+    const i_large_of = Array<number>(n);
+    const i_small_list = Array<number>(n);
+    const i_large_list = Array<number>(n);
     let small_last = -1;
     let large_last = -1;
     {
@@ -166,7 +166,15 @@ export function dnd_move<X>(xs: X[], i_from: number, i_to: number) {
   return xs;
 }
 
-export const downloadJson = (fileName: string, data: any) => {
+export type TJson =
+  | null
+  | boolean
+  | number
+  | string
+  | TJson[]
+  | { [k: string]: TJson };
+
+export const downloadJson = (fileName: string, data: TJson) => {
   const a = document.createElement("a");
   try {
     const uri = URL.createObjectURL(
@@ -187,7 +195,7 @@ export const downloadJson = (fileName: string, data: any) => {
 };
 
 export async function getAllFromIndexedDb<T>(db: idb.IDBPDatabase<T>) {
-  const res: any = {};
+  const res: Record<string, TJson> = {};
   const tx = db.transaction(db.objectStoreNames, "readonly");
   for (const storeName of db.objectStoreNames) {
     const store = tx.objectStore(storeName);
@@ -195,6 +203,7 @@ export async function getAllFromIndexedDb<T>(db: idb.IDBPDatabase<T>) {
     for await (const cursor of store) {
       records.push({ key: cursor.key, value: cursor.value });
     }
+    // @ts-expect-error For some reason, storeName is not inferred to be string | number.
     res[storeName] = records;
   }
   await tx.done;

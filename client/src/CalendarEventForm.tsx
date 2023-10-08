@@ -1,5 +1,5 @@
 import * as immer from "immer";
-import React, { useState, useCallback } from "react";
+import * as React from "react";
 
 import * as intervals from "src/intervals";
 import * as times from "src/times";
@@ -23,7 +23,7 @@ const LocalTimeField = (props: {
   t: times.TTime;
   setT: (t: times.TTime) => void;
 }) => {
-  const handleTimeChange = useCallback(
+  const handleTimeChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const setT = props.setT;
       const t = props.t;
@@ -35,7 +35,7 @@ const LocalTimeField = (props: {
     },
     [props.t, props.setT],
   );
-  const handleTzChange = useCallback(
+  const handleTzChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const setT = props.setT;
       const t = props.t;
@@ -59,13 +59,15 @@ const LocalTimeField = (props: {
         value={times.getLocalStringOfTzTime(times.ensureTzTime(props.t))}
         onChange={handleTimeChange}
       />
-      <label className="text-right">TZ:</label>
-      <input
-        type="checkbox"
-        className="self-stretch"
-        checked={times.tTzTime(props.t)}
-        onChange={handleTzChange}
-      />
+      <label className="text-right">
+        TZ:
+        <input
+          type="checkbox"
+          className="self-stretch"
+          checked={times.tTzTime(props.t)}
+          onChange={handleTzChange}
+        />
+      </label>
     </>
   );
 };
@@ -78,7 +80,7 @@ const CalendarEventForm = React.memo(
     event?: types.TEvent;
     onSubmit: (event: types.TEvent) => void;
   }) => {
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = React.useState(false);
     const handleSubmit = React.useMemo(() => {
       const onSubmit = props.onSubmit;
       return (event: types.TEvent) => {
@@ -117,17 +119,17 @@ const CalendarEventFormImpl = React.memo(
     const tomorrow = React.useMemo(() => {
       return { f: today.f + DAY };
     }, [today]);
-    const [start, setStart] = useState<times.TTime>(
+    const [start, setStart] = React.useState<times.TTime>(
       props.event?.interval_set.start || today,
     ); // 0 will not happen in practice.
 
-    const [duration, setDuration] = useState<number>(
+    const [duration, setDuration] = React.useState<number>(
       props.event
         ? times.ensureTzTime(props.event.interval_set.end) -
             times.ensureTzTime(props.event.interval_set.start)
         : DAY,
     );
-    const handleDurationChange = useCallback(
+    const handleDurationChange = React.useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         const duration = parseFloat(e.target.value);
         if (isNaN(duration)) {
@@ -138,10 +140,10 @@ const CalendarEventFormImpl = React.memo(
       [setDuration],
     );
 
-    const [delta, setDelta] = useState<number>(
+    const [delta, setDelta] = React.useState<number>(
       props.event?.interval_set.delta || DAY,
     ); // 0 will not happen in practice.
-    const handleDeltaChange = useCallback(
+    const handleDeltaChange = React.useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         const delta = parseFloat(e.target.value);
         if (isNaN(delta)) {
@@ -152,10 +154,10 @@ const CalendarEventFormImpl = React.memo(
       [setDelta],
     );
 
-    const [limit, setLimit] = useState<intervals.TLimit>(
+    const [limit, setLimit] = React.useState<intervals.TLimit>(
       props.event === undefined ? { c: 1 } : props.event.interval_set.limit,
     );
-    const handleCountLimitChange = useCallback(
+    const handleCountLimitChange = React.useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         const c = parseInt(e.target.value);
         if (isNaN(c)) {
@@ -179,7 +181,7 @@ const CalendarEventFormImpl = React.memo(
       [tomorrow],
     );
 
-    const handleSubmit = useCallback(
+    const handleSubmit = React.useCallback(
       (e: React.MouseEvent<HTMLButtonElement>) => {
         const propsEvent = props.event;
         const propsOnSubmit = props.onSubmit;
@@ -216,55 +218,65 @@ const CalendarEventFormImpl = React.memo(
         style={gridStyle}
       >
         {/* Row 1 */}
-        <label className="text-right">Start:</label>
-        <LocalTimeField t={start} setT={setStart} />
+        <label className="text-right">
+          Start:
+          <LocalTimeField t={start} setT={setStart} />
+        </label>
 
         {/* Row 2 */}
-        <label className="text-right">Duration (min):</label>
-        <input
-          type="number"
-          required
-          value={duration / MINUTE}
-          onChange={handleDurationChange}
-        />
+        <label className="text-right">
+          Duration (min):
+          <input
+            type="number"
+            required
+            value={duration / MINUTE}
+            onChange={handleDurationChange}
+          />
+        </label>
         <div />
         <div />
 
         {/* Row 3 */}
-        <label className="text-right">Delta (h):</label>
-        <input
-          type="number"
-          required
-          value={delta / HOUR}
-          onChange={handleDeltaChange}
-        />
+        <label className="text-right">
+          Delta (h):
+          <input
+            type="number"
+            required
+            value={delta / HOUR}
+            onChange={handleDeltaChange}
+          />
+        </label>
         <div />
         <div />
 
         {/* Row 4 */}
-        <label className="text-right">Limit type:</label>
-        <select value={getLimitType(limit)} onChange={handleLimitTypeChange}>
-          <option value="None">None</option>
-          <option value="Count">Count</option>
-          <option value="Until">Until</option>
-        </select>
+        <label className="text-right">
+          Limit type:
+          <select value={getLimitType(limit)} onChange={handleLimitTypeChange}>
+            <option value="None">None</option>
+            <option value="Count">Count</option>
+            <option value="Until">Until</option>
+          </select>
+        </label>
         <div />
         <div />
 
         {/* Conditional Row 5 */}
         {limit !== null && (
           <>
-            <label className="text-right">Limit:</label>
-            {times.tTime(limit) ? (
-              <LocalTimeField t={limit} setT={setLimit} />
-            ) : (
-              <input
-                type="number"
-                value={limit.c}
-                required
-                onChange={handleCountLimitChange}
-              />
-            )}
+            <label className="text-right">
+              Limit:
+              {times.tTime(limit) ? (
+                <LocalTimeField t={limit} setT={setLimit} />
+              ) : (
+                <input
+                  type="number"
+                  value={limit.c}
+                  required
+                  onChange={handleCountLimitChange}
+                />
+              )}
+            </label>
             <div />
             <div />
           </>
