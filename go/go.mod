@@ -8,7 +8,7 @@ require (
 	github.com/bufbuild/connect-grpcreflect-go v1.1.0
 	github.com/jackc/pgx/v5 v5.4.3
 	github.com/sirupsen/logrus v1.9.3
-	golang.org/x/net v0.16.0
+	golang.org/x/net v0.17.0
 	google.golang.org/protobuf v1.31.0
 )
 
