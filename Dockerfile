@@ -102,7 +102,7 @@ WORKDIR /app
 
 FROM nginx:1.25.2-alpine AS base_nginx
 
-FROM envoyproxy/envoy:v1.27.0 AS base_envoy
+FROM envoyproxy/envoy:v1.27.1 AS base_envoy
 
 FROM postgres:16.0-bookworm AS base_postgres
 
@@ -113,7 +113,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
 RUN pip install poetry==1.3.1
 
-FROM golang:1.21.2-bookworm AS base_go
+FROM golang:1.21.3-bookworm AS base_go
 ENV CGO_ENABLED 0
 
 FROM base_js AS base_client
