@@ -95,7 +95,7 @@ ENV GOPATH "/h/${host_home:?}/devcontainer/go"
 USER "${devcontainer_user:?}"
 
 
-FROM python:3.11.5-slim-bullseye AS base_py
+FROM python:3.12.0-slim-bullseye AS base_py
 ENV PYTHONUNBUFFERED 1
 ENV PYTHONDONTWRITEBYTECODE 1
 WORKDIR /app
@@ -189,7 +189,7 @@ RUN go install github.com/amacneil/dbmate/v2@v2.4.0
 
 FROM base_postgres AS prod_postgres
 
-FROM debian:12.1-slim AS prod_postgres_migration
+FROM debian:12.2-slim AS prod_postgres_migration
 COPY --link --from=dbmate_builder /go/bin/dbmate /usr/local/bin/dbmate
 COPY --link db/scripts/migrate.sh /app/scripts/migrate.sh
 COPY --link db/migrations /app/db/migrations
