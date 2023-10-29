@@ -10,7 +10,7 @@ COPY --link --from=node_downloader /usr/local/node /usr/local/node
 ENV PATH "/usr/local/node/bin:${PATH}"
 
 
-FROM docker:24.0.6-cli-alpine3.18 AS docker_downloader
+FROM docker:24.0.7-cli-alpine3.18 AS docker_downloader
 COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/bin/docker /usr/local/bin/docker
 COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/libexec/docker /usr/local/libexec/docker
 
@@ -100,7 +100,7 @@ ENV PYTHONUNBUFFERED 1
 ENV PYTHONDONTWRITEBYTECODE 1
 WORKDIR /app
 
-FROM nginx:1.25.2-alpine AS base_nginx
+FROM nginx:1.25.3-alpine AS base_nginx
 
 FROM envoyproxy/envoy:v1.27.1 AS base_envoy
 
