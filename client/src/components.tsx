@@ -691,6 +691,68 @@ const Timeline = React.memo(() => {
   );
 });
 
+const getTimeNodeIdEl = (
+  time_node_id: types.TTimeNodeId,
+  year_begin: number,
+) => {
+  if (time_node_id[0] === "e") {
+    // dEcade
+    const i_count = parseInt(time_node_id.slice(1));
+    if (isNaN(i_count)) {
+      throw new Error(`Invalid format: ${time_node_id}`);
+    }
+    const y0 = year_begin + 10 * i_count;
+    return (
+      <>
+        <b>{"E "}</b>
+        {`${y0}/P10Y`}
+      </>
+    );
+  } else if (time_node_id[0] === "y") {
+    return (
+      <>
+        <b>{"Y "}</b>
+        {time_node_id.slice(1)}
+      </>
+    );
+  } else if (time_node_id[0] === "q") {
+    return (
+      <>
+        <b>{"Q "}</b>
+        {time_node_id.slice(1)}
+      </>
+    );
+  } else if (time_node_id[0] === "m") {
+    return (
+      <>
+        <b>{"M "}</b>
+        {time_node_id.slice(1)}
+      </>
+    );
+  } else if (time_node_id[0] === "w") {
+    const w = parseInt(time_node_id.slice(1));
+    if (isNaN(w)) {
+      throw new Error(`Invalid format: ${time_node_id}`);
+    }
+    const t0 = new Date(Number(consts.WEEK_0_BEGIN) + consts.WEEK_MSEC * w);
+    const y0 = t0.getUTCFullYear();
+    const m0 = (t0.getUTCMonth() + 1).toString().padStart(2, "0");
+    const d0 = t0.getUTCDate().toString().padStart(2, "0");
+    return (
+      <>
+        <b>{"W "}</b>
+        {`${y0}-${m0}-${d0}/P7D`}
+      </>
+    );
+  } else if (time_node_id[0] === "d") {
+    return <>{time_node_id.slice(-8)}</>;
+  } else if (time_node_id[0] === "h") {
+    return <>{time_node_id.slice(-2)}</>;
+  } else {
+    throw new Error(`Unsupported time_node_id: ${time_node_id}`);
+  }
+};
+
 const TimeNode = React.memo((props: { time_node_id: types.TTimeNodeId }) => {
   const time_node = useSelector(
     (state) => state.data.timeline.time_nodes[props.time_node_id],
@@ -704,7 +766,7 @@ const TimeNode = React.memo((props: { time_node_id: types.TTimeNodeId }) => {
   const id = `tl-${props.time_node_id}`;
   const id_el = (
     <a href={`#${id}`} id={id}>
-      {utils.getTimeNodeIdEl(props.time_node_id, year_begin)}
+      {getTimeNodeIdEl(props.time_node_id, year_begin)}
     </a>
   );
 
