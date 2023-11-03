@@ -17,7 +17,12 @@ const ToggleShowMobileButton = () => {
     setShowMobileUpdatedAt(Date.now());
   }, [set_show_mobile, setShowMobileUpdatedAt]);
   return (
-    <span onClick={handleClick} onDoubleClick={utils.prevent_propagation}>
+    <span
+      onClick={handleClick}
+      onDoubleClick={utils.prevent_propagation}
+      role="button"
+      tabIndex={0}
+    >
       {show_mobile ? "Show desktop version" : "Show mobile version"}
     </span>
   );

@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import * as toast from "./toast";
 
 import * as producer from "./producer";
@@ -60,9 +63,9 @@ const current_of_prev = (data_prev: {
       patch: producer.TOperation[];
     } => {
   const produced = producer.produce_with_patche(data_prev, (draft) => {
-    // @ts-expect-error
+    // @ts-expect-error current_of_prev
     draft.data.version = VERSION;
-    // @ts-expect-error
+    // @ts-expect-error current_of_prev
     draft.data.timeline = {
       year_begin: new Date().getFullYear(),
       count: 0,

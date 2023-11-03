@@ -23,7 +23,7 @@ vt.test("getLocalStringOfFloatingTime", () => {
 });
 
 vt.test("getLocalStringOfTzTime", () => {
-  vt.expect(T.getLocalStringOfTzTime(UTC01 as T.TTzTime, UTC01)).toStrictEqual(
+  vt.expect(T.getLocalStringOfTzTime(UTC01, UTC01)).toStrictEqual(
     "1970-01-01T00:00:00",
   );
 });

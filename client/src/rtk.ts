@@ -58,7 +58,9 @@ export function async_thunk_of_of<Payload, Rejected = Error>(
       try {
         const payload = await payload_of();
         dispatch(fulfilled(payload));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         dispatch(rejected(e));
       }
     };
@@ -69,7 +71,7 @@ export function async_thunk_of_of<Payload, Rejected = Error>(
   return async_thunk_of;
 }
 
-export const reducer_with_patch_of = <State extends {}>(
+export const reducer_with_patch_of = <State extends object>(
   initial_state: State,
   ctor: (
     builder: <Payload>(
@@ -78,6 +80,7 @@ export const reducer_with_patch_of = <State extends {}>(
     ) => void,
   ) => void,
 ) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const map: Record<string, TReduce<State, any> | TReduce<State, void>> = {};
   ctor((action_of, reduce) => {
     map[action_of.type] = reduce;
@@ -91,6 +94,7 @@ export const reducer_with_patch_of = <State extends {}>(
       return { state: initial_state, patch: [] };
     }
     const reduce = map[action.type];
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!reduce) {
       return { state, patch: [] };
     }

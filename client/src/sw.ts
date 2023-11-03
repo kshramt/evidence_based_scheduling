@@ -31,6 +31,7 @@ const network_first = new NetworkFirst({
 setDefaultHandler(network_first);
 
 self.addEventListener("install", (event) => {
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
   self.skipWaiting();
   const base = new URL(".", self.location.toString()).pathname;
   event.waitUntil(

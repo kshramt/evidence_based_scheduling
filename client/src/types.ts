@@ -225,7 +225,7 @@ const current_of_prev = (data_prev: {
   };
   const produced = producer.produce_with_patche(
     data_prev,
-    // @ts-expect-error
+    // @ts-expect-error Just ignore the error.
     fn,
   );
   const data = produced.value.data;
@@ -260,7 +260,11 @@ export type TStateDraftWithReadonly = Omit<
       immer.Immutable<Pick<TStateDraft["data"], "nodes" | "edges">>;
   };
 
-export type AppDispatch = ThunkDispatch<TState, {}, TAnyPayloadAction>;
+export type AppDispatch = ThunkDispatch<
+  TState,
+  Record<string, never>,
+  TAnyPayloadAction
+>;
 
 export const useDispatch = () => _useDispatch<AppDispatch>();
 export const useSelector: TypedUseSelectorHook<TStateOmitted> = _useSelector;

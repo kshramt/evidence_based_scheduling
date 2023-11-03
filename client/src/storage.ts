@@ -11,7 +11,7 @@ export type TSnapshot = {
   client_id: number;
   session_id: number;
   patch_id: number;
-  snapshot: any;
+  snapshot: Record<string, unknown>;
   created_at: Date;
 };
 
@@ -118,9 +118,9 @@ export type _TDbV3 = {
 
 export const _getDbV1 = async (db_name: string) => {
   return await Idb.openDB<_TDbV1>(db_name, 1, {
-    upgrade: async (db, oldVersion) => {
+    upgrade: (db, oldVersion) => {
       if (oldVersion < 1) {
-        await upgradeFromV0(db);
+        upgradeFromV0(db);
       }
     },
   });
@@ -130,7 +130,7 @@ export const _getDbV2 = async (db_name: string) => {
   return await Idb.openDB<_TDbV2>(db_name, 2, {
     upgrade: async (db, oldVersion, _, transaction) => {
       if (oldVersion < 1) {
-        await upgradeFromV0(db as unknown as Idb.IDBPDatabase<_TDbV1>);
+        upgradeFromV0(db as unknown as Idb.IDBPDatabase<_TDbV1>);
       }
       if (oldVersion < 2) {
         await upgradeFromV1(db, transaction);
@@ -153,7 +153,7 @@ const upgradeToV3: Exclude<
   undefined
 > = async (db, oldVersion, _, transaction) => {
   if (oldVersion < 1) {
-    await upgradeFromV0(db as unknown as Idb.IDBPDatabase<_TDbV1>);
+    upgradeFromV0(db as unknown as Idb.IDBPDatabase<_TDbV1>);
   }
   if (oldVersion < 2) {
     await upgradeFromV1(
@@ -170,7 +170,7 @@ const upgradeToV3: Exclude<
   }
 };
 
-const upgradeFromV0 = async (db: Idb.IDBPDatabase<_TDbV1>) => {
+const upgradeFromV0 = (db: Idb.IDBPDatabase<_TDbV1>) => {
   db.createObjectStore("booleans");
   db.createObjectStore("numbers");
   db.createObjectStore("heads");
@@ -194,7 +194,7 @@ const upgradeFromV1 = async (
     "versionchange"
   >,
 ) => {
-  // @ts-expect-error
+  // @ts-expect-error Just ignore the error.
   db.deleteObjectStore("booleans");
   {
     const store = transaction.objectStore("numbers");
@@ -203,9 +203,12 @@ const upgradeFromV1 = async (
   {
     const store = transaction.objectStore("patches");
     for await (const cursor of store) {
-      const patch = JSON.parse(cursor.value.patch as unknown as string);
+      const patch = JSON.parse(
+        cursor.value.patch as unknown as string,
+      ) as unknown;
       await cursor.update(
         Immer.produce(cursor.value, (draft) => {
+          // @ts-expect-error Just ignore the error.
           draft.patch = patch;
         }),
       );

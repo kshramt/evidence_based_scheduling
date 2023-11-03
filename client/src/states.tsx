@@ -101,7 +101,7 @@ const get_state_and_patch = async (arg: {
   } else {
     const parsed_data = types.parse_data({ data: snapshot.data });
     if (!parsed_data.success) {
-      throw new Error(`parse_data failed ${snapshot}`);
+      throw new Error(`parse_data failed ${JSON.stringify(snapshot)}`);
     }
     const caches: types.TCaches = {};
     for (const node_id in parsed_data.data.nodes) {
@@ -148,7 +148,7 @@ class WeakMapV<K extends object, V> extends WeakMap<K, V> {
   get = (k: K) => {
     const res = super.get(k);
     if (res === undefined) {
-      throw new Error(`get returned undefined for ${k}`);
+      throw new Error(`get returned undefined for ${JSON.stringify(k)}`);
     }
     return res;
   };
@@ -251,9 +251,9 @@ export class PersistentStateManager {
       session_id,
     };
     this.reduxStore = this.get_redux_store({ ...heads.parent });
-    this.#run_rpc_loop();
-    this.#run_push_local_patches_loop();
-    this.#run_patch_saving_loop();
+    void this.#run_rpc_loop();
+    void this.#run_push_local_patches_loop();
+    void this.#run_patch_saving_loop();
   }
 
   stop = () => {
@@ -363,7 +363,7 @@ export class PersistentStateManager {
             head.patch_id,
           ]);
           if (p === undefined) {
-            throw new Error(`Patch not found: ${head}`);
+            throw new Error(`Patch not found: ${JSON.stringify(head)}`);
           }
           patches.push(
             new Pb.Patch({
@@ -392,7 +392,7 @@ export class PersistentStateManager {
         const tx = this.db.transaction("pending_patches", "readwrite");
         const store = tx.objectStore("pending_patches");
         for (const head of heads) {
-          store.delete([head.client_id, head.session_id, head.patch_id]);
+          void store.delete([head.client_id, head.session_id, head.patch_id]);
         }
         await tx.done;
       }
@@ -489,7 +489,9 @@ export class PersistentStateManager {
       }
       try {
         await rpc();
-      } catch {}
+      } catch {
+        // Ignore errors.
+      }
     }
   };
 
@@ -645,7 +647,7 @@ export class PersistentStateManager {
       window.addEventListener("visibilitychange", handle_focus);
 
       // Check for update on load.
-      handle_focus();
+      void handle_focus();
 
       return () => {
         window.removeEventListener("focus", handle_focus);
@@ -867,43 +869,50 @@ const save_and_remove_remote_pending_patches = async (
     const store = tx.objectStore("patches");
     for (const patch of resp.patches) {
       if (patch.clientId === undefined) {
-        throw new Error(`getPendingPatches returned no client_id for ${patch}`);
+        throw new Error(
+          `getPendingPatches returned no client_id for ${patch.toJsonString()}`,
+        );
       }
       if (patch.sessionId === undefined) {
         throw new Error(
-          `getPendingPatches returned no session_id for ${patch}`,
+          `getPendingPatches returned no session_id for ${patch.toJsonString()}`,
         );
       }
       if (patch.patchId === undefined) {
-        throw new Error(`getPendingPatches returned no patch_id for ${patch}`);
+        throw new Error(
+          `getPendingPatches returned no patch_id for ${patch.toJsonString()}`,
+        );
       }
       if (patch.patch === undefined) {
-        throw new Error(`getPendingPatches returned no patch for ${patch}`);
+        throw new Error(
+          `getPendingPatches returned no patch for ${patch.toJsonString()}`,
+        );
       }
       if (patch.parentClientId === undefined) {
         throw new Error(
-          `getPendingPatches returned no parent_client_id for ${patch}`,
+          `getPendingPatches returned no parent_client_id for ${patch.toJsonString()}`,
         );
       }
       if (patch.parentSessionId === undefined) {
         throw new Error(
-          `getPendingPatches returned no parent_session_id for ${patch}`,
+          `getPendingPatches returned no parent_session_id for ${patch.toJsonString()}`,
         );
       }
       if (patch.parentPatchId === undefined) {
         throw new Error(
-          `getPendingPatches returned no parent_patch_id for ${patch}`,
+          `getPendingPatches returned no parent_patch_id for ${patch.toJsonString()}`,
         );
       }
       if (patch.createdAt === undefined) {
         throw new Error(
-          `getPendingPatches returned no created_at for ${patch}`,
+          `getPendingPatches returned no created_at for ${patch.toJsonString()}`,
         );
       }
       await store.put({
         client_id: Number(patch.clientId),
         session_id: Number(patch.sessionId),
         patch_id: Number(patch.patchId),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         patch: JSON.parse(patch.patch),
         parent_client_id: Number(patch.parentClientId),
         parent_session_id: Number(patch.parentSessionId),
@@ -991,7 +1000,8 @@ export const useUiCalendarOpenSet = (id: string) => {
     await tx.done;
   }, [id, db, setIsOpen]);
   React.useEffect(() => {
-    db.transaction("ui_calendar_open_set", "readonly")
+    void db
+      .transaction("ui_calendar_open_set", "readonly")
       .objectStore("ui_calendar_open_set")
       .get(id)
       .then((x) => {

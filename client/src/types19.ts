@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import * as toast from "./toast";
 
 import * as producer from "./producer";
@@ -65,11 +68,12 @@ const current_of_prev = (data_prev: {
       patch: producer.TOperation[];
     } => {
   const produced = producer.produce_with_patche(data_prev, (draft) => {
-    // @ts-expect-error
+    // @ts-expect-error current_of_prev
     draft.data.version = VERSION;
     for (const time_node of Object.values(draft.data.timeline.time_nodes)) {
-      // @ts-expect-error
+      // @ts-expect-error current_of_prev
       time_node.show_children =
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         time_node.show_children === undefined
           ? "partial"
           : time_node.show_children

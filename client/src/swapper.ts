@@ -13,11 +13,12 @@ export const add = <K1 extends PropertyKey, Data extends object>(
 ) => {
   x[k1] = value;
   for (const k2 in value) {
-    if (!value.hasOwnProperty(k2)) {
+    if (!Object.prototype.hasOwnProperty.call(value, k2)) {
       continue;
     }
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!swapped[k2]) {
-      // @ts-expect-error
+      // @ts-expect-error Just ignore the error.
       swapped[k2] = {};
     }
     swapped[k2][k1] = value[k2];
@@ -35,7 +36,7 @@ export const del = <K1 extends PropertyKey, Data extends object>(
   const value = x[k1];
   delete x[k1];
   for (const k2 in value) {
-    if (!value.hasOwnProperty(k2)) {
+    if (!Object.prototype.hasOwnProperty.call(value, k2)) {
       continue;
     }
     if (!(k2 in swapped)) {
@@ -75,10 +76,10 @@ export const set = <K1 extends PropertyKey, Data extends object>(
 export const swapKeys = <K1 extends PropertyKey, Data extends object>(
   x: Record<K1, Data>,
 ) => {
-  // @ts-expect-error
+  // @ts-expect-error: The 'swapped' object is initialized later in the code.
   const swapped: TSwapped<K1, Data> = {};
   for (const k1 in x) {
-    if (!x.hasOwnProperty(k1)) {
+    if (!Object.prototype.hasOwnProperty.call(x, k1)) {
       continue;
     }
     add(x, swapped, k1, x[k1]);

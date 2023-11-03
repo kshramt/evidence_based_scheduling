@@ -311,8 +311,8 @@ const GanttChartImpl = React.memo((props: { indexColumnWidth: number }) => {
   }, [rowHeight]);
 
   const itemKey = React.useCallback(
-    (props: { columnIndex: number; rowIndex: number }) => {
-      return `${nodeIds[props.rowIndex]}/${props.columnIndex}`;
+    (index: { columnIndex: number; rowIndex: number }) => {
+      return `${nodeIds[index.rowIndex]}/${index.columnIndex}`;
     },
     [nodeIds],
   );
@@ -333,14 +333,18 @@ const GanttChartImpl = React.memo((props: { indexColumnWidth: number }) => {
   return (
     <div className="content-visibility-auto h-full w-full flex-none flex flex-col">
       <div className="flex-none flex h-[3rem] items-baseline gap-[0.5em]">
-        <label>Filter active:</label>
-        <input
-          checked={filterActive}
-          onChange={toggleFilterActive}
-          type="checkbox"
-        />
-        <label>Zoom:</label>
-        <GanttZoomSelector />
+        <label>
+          Filter active:
+          <input
+            checked={filterActive}
+            onChange={toggleFilterActive}
+            type="checkbox"
+          />
+        </label>
+        <label>
+          Zoom:
+          <GanttZoomSelector />
+        </label>
       </div>
       <div className="flex-none flex" style={headerStyle}>
         <div className="flex-none" style={indexColumnStyle}>

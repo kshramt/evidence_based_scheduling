@@ -17,7 +17,7 @@ const StopButton = React.forwardRef<
   return (
     <button
       className="btn-icon"
-      arial-label="Stop."
+      aria-label="Stop."
       onClick={on_click}
       ref={ref}
       onDoubleClick={utils.prevent_propagation}

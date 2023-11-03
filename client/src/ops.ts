@@ -180,7 +180,9 @@ export const add_edges = (
     if (edge.c === state.data.root) {
       toast.add(
         "error",
-        `No node should have the root node as its child: ${edge}`,
+        `No node should have the root node as its child: ${JSON.stringify(
+          edge,
+        )}`,
       );
       continue;
     }

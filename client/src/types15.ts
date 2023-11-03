@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import * as toast from "./toast";
 
 import * as producer from "./producer";
@@ -66,26 +70,26 @@ const current_of_prev = (data_prev: {
       patch: producer.TOperation[];
     } => {
   const produced = producer.produce_with_patche(data_prev, (draft) => {
-    // @ts-expect-error
+    // @ts-expect-error current_of_prev
     draft.data.version = VERSION;
     const queue: TOrderedTNodeIds = {};
     for (let i = 0; i < draft.data.queue.length; ++i) {
       queue[draft.data.queue[i]] = i;
     }
-    // @ts-expect-error
+    // @ts-expect-error current_of_prev
     draft.data.queue = queue;
     for (const node of Object.values(draft.data.nodes)) {
       const children: TOrderedTEdgeIds = {};
       for (let i = 0; i < node.children.length; ++i) {
         children[node.children[i]] = i;
       }
-      // @ts-expect-error
+      // @ts-expect-error current_of_prev
       node.children = children;
       const parents: TOrderedTEdgeIds = {};
       for (let i = 0; i < node.parents.length; ++i) {
         parents[node.parents[i]] = i;
       }
-      // @ts-expect-error
+      // @ts-expect-error current_of_prev
       node.parents = parents;
     }
   });

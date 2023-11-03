@@ -1,4 +1,5 @@
 import * as Mtn from "@mantine/notifications";
+import * as React from "react";
 
 const severity_values = ["error", "info"] as const;
 type TSeverity = (typeof severity_values)[number];

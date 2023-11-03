@@ -1,6 +1,6 @@
 import * as Jotai from "jotai";
 import * as React from "react";
-import ReactDOM from "react-dom/client";
+import * as ReactDOM from "react-dom/client";
 import { Provider } from "react-redux";
 import "@fontsource/material-icons";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -91,7 +91,9 @@ const AuthComponent = ({
   const [err, set_err] = React.useState("");
   const [logInLoading, setLogInLoading] = React.useState(false);
   const onLogIn = React.useCallback(async () => {
-    const el = document.getElementById("log-in-name") as HTMLInputElement;
+    const el = document.getElementById(
+      "log-in-name",
+    ) as null | HTMLInputElement;
     if (el === null) {
       return;
     }
@@ -113,7 +115,9 @@ const AuthComponent = ({
 
   const [sign_up_loading, set_sign_up_loading] = React.useState(false);
   const on_sign_up = React.useCallback(async () => {
-    const el = document.getElementById("sign-up-name") as HTMLInputElement;
+    const el = document.getElementById(
+      "sign-up-name",
+    ) as null | HTMLInputElement;
     if (el === null) {
       return;
     }
@@ -270,7 +274,10 @@ const AppComponent = (props: {
 
 export const main = async () => {
   const container = document.getElementById("root");
-  const root = ReactDOM.createRoot(container!);
+  if (container === null) {
+    throw new Error("Must not happen: container is null.");
+  }
+  const root = ReactDOM.createRoot(container);
   const renderWithStrictMode = (c: React.ReactNode) => {
     root.render(<React.StrictMode>{c}</React.StrictMode>);
   };
@@ -282,6 +289,7 @@ export const main = async () => {
         <span>Check for availability of the persistent storage.</span>
       </Center>,
     );
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!(await navigator?.storage?.persist())) {
       await new Promise((resolve) => {
         renderWithStrictMode(

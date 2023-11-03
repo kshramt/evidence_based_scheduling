@@ -4,6 +4,7 @@ import * as React from "react";
 import { useCallback } from "react";
 import * as Rr from "react-redux";
 import * as Dnd from "react-dnd";
+import * as Mt from "@mantine/core";
 import * as Mth from "@mantine/hooks";
 import * as Rv from "react-virtuoso";
 
@@ -173,13 +174,16 @@ function memo1_3<A, B, C, R>(
   let r: R | undefined;
   return (a_, b_, c_) => {
     if (a === a_ && b === b_ && c === c_) {
-      return r!;
+      if (r === undefined) {
+        throw new Error("Must not happen: r is undefined");
+      }
+      return r;
     }
     a = a_;
     b = b_;
     c = c_;
     r = fn(a_, b_, c_);
-    return r!;
+    return r;
   };
 }
 
@@ -350,7 +354,9 @@ const Menu = (props: {
   const check_remote_head = useCallback(async () => {
     try {
       await props.ctx.check_remote_head();
-    } catch {}
+    } catch {
+      /* empty */
+    }
   }, [props.ctx]);
   const [pin, setPin] = Jotai.useAtom(states.pinQueueAtomMap.get(session));
   return (
@@ -372,7 +378,7 @@ const Menu = (props: {
       <AddButton node_id={root} id="add-root-button" />
       <button
         className="btn-icon"
-        arial-label="Undo."
+        aria-label="Undo."
         onClick={_undo}
         onDoubleClick={prevent_propagation}
       >
@@ -380,31 +386,22 @@ const Menu = (props: {
       </button>
       <button
         className="btn-icon"
-        arial-label="Redo."
+        aria-label="Redo."
         onClick={_redo}
         onDoubleClick={prevent_propagation}
       >
         <span className="material-icons">redo</span>
       </button>
-      <div onClick={get_toggle(set_show_todo_only)} className="flex-none">
-        TODO{" "}
-        <input
-          type="radio"
-          checked={show_todo_only}
-          onChange={utils.suppress_missing_onChange_handler_warning}
-        />
-      </div>
-      <div
-        onClick={get_toggle(set_show_strong_edge_only)}
-        className="flex-none"
-      >
-        Strong{" "}
-        <input
-          type="radio"
-          checked={show_strong_edge_only}
-          onChange={utils.suppress_missing_onChange_handler_warning}
-        />
-      </div>
+      <Mt.Switch
+        checked={show_todo_only}
+        onChange={get_toggle(set_show_todo_only)}
+        label="To Do"
+      />
+      <Mt.Switch
+        checked={show_strong_edge_only}
+        onChange={get_toggle(set_show_strong_edge_only)}
+        label="Strong"
+      />
       <button
         className="btn-icon flex-none"
         onClick={_smallestToTop}
@@ -641,11 +638,14 @@ const CoveyQuadrantNode = React.memo(
           is_running ? "running" : undefined,
         )}
         onMouseOver={turnOn}
+        onFocus={turnOn}
         onMouseLeave={turnOff}
       >
         <span
           onClick={to_tree}
           className="w-[15em] block whitespace-nowrap overflow-hidden cursor-pointer"
+          role="button"
+          tabIndex={0}
         >
           {text.slice(0, 40)}
         </span>
@@ -709,8 +709,10 @@ const TimeNode = React.memo((props: { time_node_id: types.TTimeNodeId }) => {
   );
 
   const node_ids =
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     time_node?.show_children !== "none"
-      ? ops.sorted_keys_of(time_node?.nodes || {})
+      ? // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        ops.sorted_keys_of(time_node?.nodes || {})
       : [];
   const planned_nodes = node_ids.map((node_id) => (
     <tr key={node_id}>
@@ -757,6 +759,7 @@ const TimeNode = React.memo((props: { time_node_id: types.TTimeNodeId }) => {
     );
   }
   const children =
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     time_node?.show_children === "full" &&
     child_time_node_ids.map((child_time_node_id) => (
       <TimeNode time_node_id={child_time_node_id} key={child_time_node_id} />
@@ -788,6 +791,7 @@ const TimeNodeEntry = React.memo(
       (state) => state.data.timeline.time_nodes[props.time_node_id],
     );
     const selectedNodeIds = Jotai.useAtomValue(states.nodeIdsState);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     const text = time_node?.text ? time_node.text : consts.EMPTY_STRING;
     const { isOn, turnOn, turnOff } = utils.useOn(0);
 
@@ -837,11 +841,14 @@ const TimeNodeEntry = React.memo(
               time_node_id={props.time_node_id}
             />
             <button className="btn-icon" onClick={toggle_show_children}>
-              {time_node === undefined || time_node.show_children === "partial"
-                ? consts.IS_PARTIAL_MARK
-                : time_node.show_children === "full"
-                ? consts.IS_FULL_MARK
-                : consts.IS_NONE_MARK}
+              {
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                time_node === undefined || time_node.show_children === "partial"
+                  ? consts.IS_PARTIAL_MARK
+                  : time_node.show_children === "full"
+                  ? consts.IS_FULL_MARK
+                  : consts.IS_NONE_MARK
+              }
             </button>
           </div>
         )}
@@ -891,6 +898,8 @@ const PlannedNode = (props: {
             ? "text-neutral-500"
             : undefined,
         )}
+        role="button"
+        tabIndex={0}
       >
         {text.slice(0, 40)}
       </span>
@@ -938,7 +947,7 @@ const QueueNodes = React.memo((props: { node_ids: types.TNodeId[] }) => {
   return (
     <div>
       {props.node_ids.map((node_id, index) => (
-        <div className="flex items-end gap-x-[0.5em]">
+        <div className="flex items-end gap-x-[0.5em]" key={node_id}>
           {index}
           <QueueEntry node_id={node_id} key={node_id} />
         </div>
@@ -1199,7 +1208,9 @@ const MobileMenu = (props: {
   const check_remote_head = useCallback(async () => {
     try {
       await props.ctx.check_remote_head();
-    } catch {}
+    } catch {
+      /* empty */
+    }
   }, [props.ctx]);
   return (
     <div
@@ -1220,7 +1231,7 @@ const MobileMenu = (props: {
       <AddButton node_id={root} />
       <button
         className="btn-icon"
-        arial-label="Undo."
+        aria-label="Undo."
         onClick={_undo}
         onDoubleClick={prevent_propagation}
       >
@@ -1228,20 +1239,17 @@ const MobileMenu = (props: {
       </button>
       <button
         className="btn-icon"
-        arial-label="Redo."
+        aria-label="Redo."
         onClick={_redo}
         onDoubleClick={prevent_propagation}
       >
         <span className="material-icons">redo</span>
       </button>
-      <div onClick={get_toggle(set_show_todo_only)} className="flex-none">
-        TODO{" "}
-        <input
-          type="radio"
-          checked={show_todo_only}
-          onChange={utils.suppress_missing_onChange_handler_warning}
-        />
-      </div>
+      <Mt.Switch
+        checked={show_todo_only}
+        onChange={get_toggle(set_show_todo_only)}
+        label="To Do"
+      />
       <MobileNodeFilterQueryInput />
       <span className="grow" />
     </div>
@@ -1765,7 +1773,12 @@ const MobilePredictedNextNode = (props: { node_id: types.TNodeId }) => {
     <div className="flex w-fit gap-x-[0.25em] items-baseline py-[0.125em]">
       <StartButton node_id={props.node_id} />
       <StartConcurrentButton node_id={props.node_id} />
-      <span onClick={to_tree} className="cursor-pointer">
+      <span
+        onClick={to_tree}
+        className="cursor-pointer"
+        role="button"
+        tabIndex={0}
+      >
         {text.slice(0, 30)}
       </span>
     </div>
@@ -1794,7 +1807,12 @@ const PredictedNextNode = React.memo((props: { node_id: types.TNodeId }) => {
       <StartButton node_id={props.node_id} />
       <StartConcurrentButton node_id={props.node_id} />
       <CopyNodeIdButton node_id={props.node_id} />
-      <span onClick={to_tree} className="cursor-pointer">
+      <span
+        onClick={to_tree}
+        className="cursor-pointer"
+        role="button"
+        tabIndex={0}
+      >
         {text.slice(0, 30)}
       </span>
     </div>
@@ -2054,6 +2072,7 @@ const collect_descendant_time_nodes_planned_node_ids = (
   state: types.TState,
 ) => {
   const time_node = state.data.timeline.time_nodes[time_node_id];
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (time_node !== undefined) {
     for (const node of ops.keys_of(time_node.nodes)) {
       if (state.data.nodes[node].status === "todo") {

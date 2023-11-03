@@ -129,8 +129,9 @@ const PlannedNode = (props: { node_id: types.TNodeId }) => {
       )}
       onMouseOver={turnOn}
       onMouseLeave={turnOff}
+      onFocus={turnOn}
     >
-      <span
+      <button
         title={text}
         onClick={to_tree}
         className={utils.join(
@@ -143,7 +144,7 @@ const PlannedNode = (props: { node_id: types.TNodeId }) => {
         )}
       >
         {text.slice(0, 40)}
-      </span>
+      </button>
       {(isOn || is_running) && (
         <div className="flex w-fit gap-x-[0.25em]">
           {is_running ? (
