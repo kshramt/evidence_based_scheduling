@@ -9,7 +9,6 @@ export const is_uncompletable_node_of = (
   state: immer.Immutable<types.TState>,
 ) => {
   const node = state.data.nodes[node_id];
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (node === undefined) {
     return false;
   }
@@ -26,7 +25,6 @@ export const is_uncompletable_node_of_nodes_and_edges = (
 ) => {
   return parents.some((edge_id) => {
     const edge = edges[edge_id];
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     return edge?.t === "strong" && nodes[edge.p]?.status === "todo";
   });
 };
@@ -36,7 +34,6 @@ export const is_completable_node_of = (
   state: immer.Immutable<types.TState>,
 ) => {
   const node = state.data.nodes[node_id];
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (node === undefined) {
     return false;
   }
@@ -53,7 +50,6 @@ export const is_completable_node_of_nodes_and_edges = (
 ) => {
   return !children.some((edge_id) => {
     const edge = edges[edge_id];
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     return edge?.t === "strong" && nodes[edge.c]?.status === "todo";
   });
 };
@@ -65,9 +61,7 @@ export const is_deletable_node = (
   if (node_id === state.data.root) {
     return false;
   }
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const children = state.data.nodes[node_id]?.children;
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!children) {
     return false;
   }
@@ -81,7 +75,6 @@ export const is_deletable_edge_of = (
   state: immer.Immutable<types.TState>,
 ) => {
   const edge = state.data.edges[edge_id];
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (edge === undefined) {
     return false;
   }
@@ -101,7 +94,6 @@ export const is_deletable_edge_of_nodes_and_edges = (
   }
   let count = 0;
   for (const parent_edge_id of ops.keys_of(nodes[edge.c].parents)) {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (edges[parent_edge_id]?.t === "strong") {
       count += 1;
       if (1 < count) {

@@ -289,7 +289,6 @@ export const main = async () => {
         <span>Check for availability of the persistent storage.</span>
       </Center>,
     );
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!(await navigator?.storage?.persist())) {
       await new Promise((resolve) => {
         renderWithStrictMode(

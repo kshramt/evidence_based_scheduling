@@ -75,12 +75,7 @@
           "checksVoidReturn": false
         }
       ],
-      "@typescript-eslint/no-unnecessary-condition": [
-        "error",
-        {
-          "allowConstantLoopConditions": true
-        }
-      ],
+      "@typescript-eslint/no-unnecessary-condition": "off",
       "@typescript-eslint/no-unused-vars": [
         "error",
         {

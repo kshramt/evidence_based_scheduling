@@ -73,7 +73,6 @@ const current_of_prev = (data_prev: {
     for (const time_node of Object.values(draft.data.timeline.time_nodes)) {
       // @ts-expect-error current_of_prev
       time_node.show_children =
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         time_node.show_children === undefined
           ? "partial"
           : time_node.show_children

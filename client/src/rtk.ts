@@ -94,7 +94,6 @@ export const reducer_with_patch_of = <State extends object>(
       return { state: initial_state, patch: [] };
     }
     const reduce = map[action.type];
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!reduce) {
       return { state, patch: [] };
     }

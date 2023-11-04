@@ -16,7 +16,6 @@ export const add = <K1 extends PropertyKey, Data extends object>(
     if (!Object.prototype.hasOwnProperty.call(value, k2)) {
       continue;
     }
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!swapped[k2]) {
       // @ts-expect-error Just ignore the error.
       swapped[k2] = {};

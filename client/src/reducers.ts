@@ -224,15 +224,12 @@ export const get_root_reducer_def = (
       actions.assign_nodes_to_time_node_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const time_node =
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           state.data.timeline.time_nodes[action.payload.time_node_id] ||
           ops.new_time_node_of();
         const t_msec = Date.now();
         action.payload.node_ids.forEach((node_id, i) => {
           if (
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             state.data.nodes[node_id] &&
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             time_node.nodes[node_id] === undefined
           ) {
             time_node.nodes[node_id] = -(t_msec + i);
@@ -246,7 +243,6 @@ export const get_root_reducer_def = (
       (state: types.TStateDraftWithReadonly, action) => {
         const time_node =
           state.data.timeline.time_nodes[action.payload.time_node_id];
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (time_node === undefined) {
           return;
         }
@@ -287,7 +283,6 @@ export const get_root_reducer_def = (
       actions.toggle_show_time_node_children_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const time_node =
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           state.data.timeline.time_nodes[action.payload] ||
           ops.new_time_node_of();
         time_node.show_children =
@@ -476,7 +471,6 @@ export const get_root_reducer_def = (
       total_time_utils.set_total_time_action,
       (state: types.TStateDraftWithReadonly, action) => {
         for (const node_id of action.payload.node_ids) {
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           if (state.data.nodes[node_id] === undefined) {
             continue;
           }
@@ -642,7 +636,6 @@ export const get_root_reducer_def = (
       actions.set_time_node_text_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const time_node =
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           state.data.timeline.time_nodes[action.payload.time_node_id] ||
           ops.new_time_node_of();
         time_node.text = action.payload.text;

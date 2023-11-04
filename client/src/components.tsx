@@ -771,10 +771,8 @@ const TimeNode = React.memo((props: { time_node_id: types.TTimeNodeId }) => {
   );
 
   const node_ids =
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     time_node?.show_children !== "none"
-      ? // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        ops.sorted_keys_of(time_node?.nodes || {})
+      ? ops.sorted_keys_of(time_node?.nodes || {})
       : [];
   const planned_nodes = node_ids.map((node_id) => (
     <tr key={node_id}>
@@ -821,7 +819,6 @@ const TimeNode = React.memo((props: { time_node_id: types.TTimeNodeId }) => {
     );
   }
   const children =
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     time_node?.show_children === "full" &&
     child_time_node_ids.map((child_time_node_id) => (
       <TimeNode time_node_id={child_time_node_id} key={child_time_node_id} />
@@ -853,7 +850,6 @@ const TimeNodeEntry = React.memo(
       (state) => state.data.timeline.time_nodes[props.time_node_id],
     );
     const selectedNodeIds = Jotai.useAtomValue(states.nodeIdsState);
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     const text = time_node?.text ? time_node.text : consts.EMPTY_STRING;
     const { isOn, turnOn, turnOff } = utils.useOn(0);
 
@@ -903,14 +899,11 @@ const TimeNodeEntry = React.memo(
               time_node_id={props.time_node_id}
             />
             <button className="btn-icon" onClick={toggle_show_children}>
-              {
-                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                time_node === undefined || time_node.show_children === "partial"
-                  ? consts.IS_PARTIAL_MARK
-                  : time_node.show_children === "full"
-                  ? consts.IS_FULL_MARK
-                  : consts.IS_NONE_MARK
-              }
+              {time_node === undefined || time_node.show_children === "partial"
+                ? consts.IS_PARTIAL_MARK
+                : time_node.show_children === "full"
+                ? consts.IS_FULL_MARK
+                : consts.IS_NONE_MARK}
             </button>
           </div>
         )}
@@ -2134,7 +2127,6 @@ const collect_descendant_time_nodes_planned_node_ids = (
   state: types.TState,
 ) => {
   const time_node = state.data.timeline.time_nodes[time_node_id];
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (time_node !== undefined) {
     for (const node of ops.keys_of(time_node.nodes)) {
       if (state.data.nodes[node].status === "todo") {
