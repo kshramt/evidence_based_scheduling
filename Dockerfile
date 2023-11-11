@@ -67,6 +67,7 @@ RUN apt-get update \
    less \
    oathtool \
    python3.11-full \
+   python3-pip \
    sudo \
    tig \
    tree \
@@ -74,6 +75,7 @@ RUN apt-get update \
    unzip \
    wget \
    vim
+RUN python3.11 -m pip install poetry==1.7.0
 
 COPY --link .devcontainer/skel /etc/skel
 
@@ -111,7 +113,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
    apt-get update \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
-RUN pip install poetry==1.3.1
+RUN pip install poetry==1.7.0
 
 FROM golang:1.21.4-bookworm AS base_go
 ENV CGO_ENABLED 0
