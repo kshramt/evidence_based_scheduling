@@ -3,7 +3,7 @@ python = ">=3.9.5,<3.12"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.11.0"
-ruff = "^0.1.4"
+ruff = "^0.1.5"
 
 [tool.poetry]
 name = "evidence_based_scheduling"
