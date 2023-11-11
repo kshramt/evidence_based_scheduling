@@ -30,7 +30,8 @@ jobs:
     strategy:
       matrix:
         os: [linux]
-        arch: [amd64, arm64]
+        arch: [amd64]
+        # arch: [amd64, arm64]
     steps:
       # - name: Free up space
       #   run: sudo rm -fr /opt/ghc /usr/share/dotnet /usr/local/lib/android || true

@@ -20,13 +20,16 @@ readonly run_number
 
 create_and_push(){
   local img="$1"
-  docker manifest create "${img}:h-${github_sha}"{,-linux-{amd64,arm64}}
+  docker manifest create "${img}:h-${github_sha}"{,-linux-amd64}
+  # docker manifest create "${img}:h-${github_sha}"{,-linux-{amd64,arm64}}
   docker manifest push "${img}:h-${github_sha}"
 
   if [[ "${ref}" = "refs/heads/main" ]]; then
-    docker manifest create "${img}:"{"b-${run_number}","h-${github_sha}"-linux-{amd64,arm64}}
+    docker manifest create "${img}:"{"b-${run_number}","h-${github_sha}"-linux-amd64}
+    # docker manifest create "${img}:"{"b-${run_number}","h-${github_sha}"-linux-{amd64,arm64}}
     docker manifest push "${img}:b-${run_number}"
-    docker manifest create "${img}:"{latest,h-"${github_sha}"-linux-{amd64,arm64}}
+    docker manifest create "${img}:"{latest,h-"${github_sha}"-linux-amd64}
+    # docker manifest create "${img}:"{latest,h-"${github_sha}"-linux-{amd64,arm64}}
     docker manifest push "${img}:latest"
   fi
 }
