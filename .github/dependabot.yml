@@ -7,13 +7,6 @@ updates:
       day: "saturday"
       time: "01:00"
       timezone: "Asia/Tokyo"
-    groups:
-      patch:
-        update-types:
-          - "patch"
-      minor:
-        update-types:
-          - "minor"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
