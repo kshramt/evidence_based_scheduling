@@ -106,7 +106,7 @@ FROM nginx:1.25.3-alpine AS base_nginx
 
 FROM envoyproxy/envoy:v1.28.0 AS base_envoy
 
-FROM postgres:16.0-bookworm AS base_postgres
+FROM postgres:16.1-bookworm AS base_postgres
 
 FROM base_py AS base_poetry
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
