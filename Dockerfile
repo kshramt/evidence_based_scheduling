@@ -1,4 +1,4 @@
-FROM node:21.1.0-bookworm-slim AS node_downloader
+FROM node:21.2.0-bookworm-slim AS node_downloader
 RUN mkdir -p /usr/local/node \
    && cp -a /usr/local/bin /usr/local/node/bin && rm -f /usr/local/node/bin/docker-entrypoint.sh \
    && cp -a /usr/local/include /usr/local/node/include \
