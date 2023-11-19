@@ -15,6 +15,16 @@ COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/bin/docker /usr/local
 COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/libexec/docker /usr/local/libexec/docker
 
 
+FROM ubuntu:22.04 AS base_rust
+RUN apt-get update \
+   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+   build-essential \
+   ca-certificates \
+   curl
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile complete --no-modify-path
+ENV PATH "/root/.cargo/bin:/root/.rustup/bin:${PATH}"
+
+
 FROM ubuntu:22.04 AS devcontainer
 RUN sed \
    -e 's|^path-exclude=/usr/share/man|# path-exclude=/usr/share/man|g' \
@@ -99,7 +109,8 @@ USER "${devcontainer_user:?}"
 # Rust
 ENV RUSTUP_HOME "/home/${devcontainer_user:?}/.rustup"
 ENV CARGO_HOME "/home/${devcontainer_user:?}/.cargo"
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile complete
+COPY --link --from=base_rust /root/.rustup "${RUSTUP_HOME:?}"
+COPY --link --from=base_rust /root/.cargo "${CARGO_HOME:?}"
 
 FROM python:3.11.5-slim-bullseye AS base_py
 ENV PYTHONUNBUFFERED 1
@@ -271,6 +282,17 @@ RUN go test -v ./...
 
 FROM base_go_builder AS api_v1_builder
 RUN go build api_v1/main.go
+
+FROM base_rust AS base_rust_builder
+WORKDIR /app/id_generator
+COPY --link id_generator/Cargo.toml id_generator/Cargo.lock ./
+COPY --link id_generator/src src
+RUN cargo fetch
+RUN cargo fmt --check
+RUN cargo clippy --all-targets --all-features -- -D warnings
+RUN cargo test --all-targets --all-features
+
+FROM base_rust_builder AS prod_api_v2
 
 FROM gcr.io/distroless/static-debian11:nonroot AS prod_api_v1
 WORKDIR /app

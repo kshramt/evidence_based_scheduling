@@ -77,6 +77,20 @@ updates:
       minor:
         update-types:
           - "minor"
+  - package-ecosystem: cargo
+    directory: "/id_generator"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "01:00"
+      timezone: "Asia/Tokyo"
+    groups:
+      patch:
+        update-types:
+          - "patch"
+      minor:
+        update-types:
+          - "minor"
   - package-ecosystem: pip
     directory: "/tests/e2e"
     schedule:
