@@ -166,6 +166,10 @@ if which minikube > /dev/null ; then
    source <(minikube completion bash)
 fi
 
+# Rust
+PATH="${RUSTUP_HOME:-"${HOME}/.rustup"}/bin:${CARGO_HOME:-"${$HOME}/.cargo"}/bin:${PATH}"
+export PATH
+
 if which rustup > /dev/null; then
    . <(rustup completions bash)
    . <(rustup completions bash cargo)

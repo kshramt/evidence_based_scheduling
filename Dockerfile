@@ -96,6 +96,10 @@ ENV PATH "/usr/local/go/bin:${PATH}"
 ENV GOPATH "/h/${host_home:?}/devcontainer/go"
 USER "${devcontainer_user:?}"
 
+# Rust
+ENV RUSTUP_HOME "/home/${devcontainer_user:?}/.rustup"
+ENV CARGO_HOME "/home/${devcontainer_user:?}/.cargo"
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile complete
 
 FROM python:3.11.5-slim-bullseye AS base_py
 ENV PYTHONUNBUFFERED 1
