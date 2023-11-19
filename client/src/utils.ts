@@ -174,7 +174,7 @@ export type TJson =
   | TJson[]
   | { [k: string]: TJson };
 
-export const downloadJson = (fileName: string, data: TJson) => {
+export const downloadJson = <Data = TJson>(fileName: string, data: Data) => {
   const a = document.createElement("a");
   try {
     const uri = URL.createObjectURL(

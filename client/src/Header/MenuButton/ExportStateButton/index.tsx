@@ -8,7 +8,7 @@ const ExportStateButton = React.memo(() => {
   const handleClick = React.useCallback(() => {
     dispatch((disptch, getState) => {
       const state = getState();
-      utils.downloadJson("evidence_based_scheduling.json", state.data);
+      utils.downloadJson<typeof state>("evidence_based_scheduling.json", state);
     });
   }, [dispatch]);
   return (

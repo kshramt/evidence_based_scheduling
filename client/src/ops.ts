@@ -27,7 +27,7 @@ export const emptyStateOf = (): types.TState => {
   const id_seq = 0;
   const root = id_string_of_number(id_seq) as types.TNodeId;
   const nodes = {
-    [root]: new_node_value_of([]),
+    [root]: { events: [], ...new_node_value_of([]) },
   };
   const data = {
     covey_quadrants: {
@@ -58,7 +58,8 @@ export const emptyStateOf = (): types.TState => {
     caches,
     predicted_next_nodes: [],
     swapped_caches: swapper.swapKeys(caches),
-    swapped_edges: swapper.swapKeys(data.edges),
+    // `swapper.swapKeys(data.edges)` does not work for the empty value.
+    swapped_edges: { hide: {}, p: {}, c: {}, t: {} },
     swapped_nodes: swapper.swapKeys(data.nodes),
     todo_node_ids: [],
     non_todo_node_ids: [],
