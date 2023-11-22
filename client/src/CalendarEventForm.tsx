@@ -59,15 +59,13 @@ const LocalTimeField = (props: {
         value={times.getLocalStringOfTzTime(times.ensureTzTime(props.t))}
         onChange={handleTimeChange}
       />
-      <label className="text-right">
-        TZ:
-        <input
-          type="checkbox"
-          className="self-stretch"
-          checked={times.tTzTime(props.t)}
-          onChange={handleTzChange}
-        />
-      </label>
+      <span className="text-right">TZ:</span>
+      <input
+        type="checkbox"
+        className="self-stretch"
+        checked={times.tTzTime(props.t)}
+        onChange={handleTzChange}
+      />
     </>
   );
 };
@@ -218,65 +216,55 @@ const CalendarEventFormImpl = React.memo(
         style={gridStyle}
       >
         {/* Row 1 */}
-        <label className="text-right">
-          Start:
-          <LocalTimeField t={start} setT={setStart} />
-        </label>
+        <span className="text-right">Start:</span>
+        <LocalTimeField t={start} setT={setStart} />
 
         {/* Row 2 */}
-        <label className="text-right">
-          Duration (min):
-          <input
-            type="number"
-            required
-            value={duration / MINUTE}
-            onChange={handleDurationChange}
-          />
-        </label>
+        <span className="text-right">Duration (min):</span>
+        <input
+          type="number"
+          required
+          value={duration / MINUTE}
+          onChange={handleDurationChange}
+        />
         <div />
         <div />
 
         {/* Row 3 */}
-        <label className="text-right">
-          Delta (h):
-          <input
-            type="number"
-            required
-            value={delta / HOUR}
-            onChange={handleDeltaChange}
-          />
-        </label>
+        <span className="text-right">Delta (h):</span>
+        <input
+          type="number"
+          required
+          value={delta / HOUR}
+          onChange={handleDeltaChange}
+        />
         <div />
         <div />
 
         {/* Row 4 */}
-        <label className="text-right">
-          Limit type:
-          <select value={getLimitType(limit)} onChange={handleLimitTypeChange}>
-            <option value="None">None</option>
-            <option value="Count">Count</option>
-            <option value="Until">Until</option>
-          </select>
-        </label>
+        <span className="text-right">Limit type:</span>
+        <select value={getLimitType(limit)} onChange={handleLimitTypeChange}>
+          <option value="None">None</option>
+          <option value="Count">Count</option>
+          <option value="Until">Until</option>
+        </select>
         <div />
         <div />
 
         {/* Conditional Row 5 */}
         {limit !== null && (
           <>
-            <label className="text-right">
-              Limit:
-              {times.tTime(limit) ? (
-                <LocalTimeField t={limit} setT={setLimit} />
-              ) : (
-                <input
-                  type="number"
-                  value={limit.c}
-                  required
-                  onChange={handleCountLimitChange}
-                />
-              )}
-            </label>
+            <span className="text-right">Limit:</span>
+            {times.tTime(limit) ? (
+              <LocalTimeField t={limit} setT={setLimit} />
+            ) : (
+              <input
+                type="number"
+                value={limit.c}
+                required
+                onChange={handleCountLimitChange}
+              />
+            )}
             <div />
             <div />
           </>
