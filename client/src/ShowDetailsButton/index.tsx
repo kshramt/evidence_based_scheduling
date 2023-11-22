@@ -106,8 +106,8 @@ const ShowDetailsButton = (props: {
   opened: boolean;
   handlers: { close: () => void; toggle: () => void };
 }) => {
-  const text = types.useSelector(
-    (state) => state.swapped_caches.text[props.node_id],
+  const text = utils.assertV(
+    types.useSelector((state) => state.swapped_caches.text?.[props.node_id]),
   );
   const text30 = React.useMemo(() => {
     return text.slice(0, 30);

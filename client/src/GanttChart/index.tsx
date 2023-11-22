@@ -110,9 +110,11 @@ const IndexCell = React.memo(
   }) => {
     const nodeId = props.data[props.rowIndex];
     const toTree = utils.useToTree(nodeId);
-    const text = types.useSelector((state) => {
-      return state.swapped_caches.text[nodeId];
-    });
+    const text = utils.assertV(
+      types.useSelector((state) => {
+        return state.swapped_caches.text?.[nodeId];
+      }),
+    );
     return (
       <div
         className="px-[0.5em] border border-solid dark:border-neutral-500 border-neutral-400 flex"
@@ -142,7 +144,7 @@ const Cell = React.memo(
   }) => {
     const nodeId = props.data[props.rowIndex];
     const events = types.useSelector(
-      (state) => state.swapped_nodes.events[nodeId],
+      (state) => state.swapped_nodes.events?.[nodeId],
     );
     const ganttDt = getMsecOfGanttZoom(useGanttZoomValue());
     const hit = React.useMemo(() => {
@@ -226,15 +228,17 @@ const GanttChartImpl = React.memo((props: { indexColumnWidth: number }) => {
       if (seen.has(nodeId)) {
         return;
       }
-      if (statuses[nodeId] !== "todo") {
+      if (utils.assertV(statuses?.[nodeId]) !== "todo") {
         return;
       }
       if (nodeId !== root) {
         seen.add(nodeId);
         res.push(nodeId);
       }
-      for (const childEdgeId of ops.sorted_keys_of(childrens[nodeId])) {
-        const childNodeId = edgeCs[childEdgeId];
+      for (const childEdgeId of ops.sorted_keys_of(
+        utils.assertV(childrens?.[nodeId]),
+      )) {
+        const childNodeId = utils.assertV(edgeCs?.[childEdgeId]);
         rec(childNodeId);
       }
     };
@@ -274,7 +278,7 @@ const GanttChartImpl = React.memo((props: { indexColumnWidth: number }) => {
     const head = [];
     const tail = [];
     for (const nodeId of todoNodeIds) {
-      const events = eventss[nodeId];
+      const events = eventss?.[nodeId];
       if (events === undefined) {
         tail.push(nodeId);
       } else {

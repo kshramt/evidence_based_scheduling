@@ -372,8 +372,10 @@ export const useOn = (delayMsec: number = consts.DEFAULT_DELAY_MSEC) => {
 };
 
 export const useIsRunning = (node_id: null | types.TNodeId) => {
-  const ranges = types.useSelector((state) =>
-    node_id === null ? null : state.swapped_nodes.ranges[node_id],
+  const ranges = assertV(
+    types.useSelector((state) =>
+      node_id === null ? null : state.swapped_nodes.ranges?.[node_id],
+    ),
   );
   if (ranges === null) return false;
   const last_range = ranges.at(-1);
@@ -527,7 +529,7 @@ export const usePlannedNodeIds = (timeId: string) => {
     const start = { f: t0 };
     const end = { f: t1 };
     for (const nodeId of todoNodeIds.concat(nonTodoNodeIds)) {
-      const events = eventss[nodeId];
+      const events = eventss?.[nodeId];
       if (events === undefined) {
         continue;
       }
@@ -609,3 +611,10 @@ const getRangeOfTimeId = (timeId: string) => {
 };
 
 export const suppress_missing_onChange_handler_warning = () => {};
+
+export const assertV = <T>(x: undefined | T): T => {
+  if (x === undefined) {
+    throw new Error("The value is undefined.");
+  }
+  return x;
+};

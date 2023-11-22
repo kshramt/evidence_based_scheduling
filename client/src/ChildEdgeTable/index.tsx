@@ -3,10 +3,11 @@ import * as React from "react";
 import EdgeRow from "src/EdgeRow";
 import * as ops from "src/ops";
 import * as types from "src/types";
+import * as utils from "src/utils";
 
 const ChildEdgeTable = React.memo((props: { node_id: types.TNodeId }) => {
-  const children = types.useSelector(
-    (state) => state.swapped_nodes.children[props.node_id],
+  const children = utils.assertV(
+    types.useSelector((state) => state.swapped_nodes.children?.[props.node_id]),
   );
   return (
     <table className="table-auto">

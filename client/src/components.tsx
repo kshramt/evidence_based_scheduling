@@ -159,7 +159,7 @@ const RunningNodes = () => {
   const ranges = useSelector((state) => state.swapped_nodes.ranges);
   const nodeIds = React.useMemo(() => {
     return queue.filter((nodeId) => {
-      return ranges[nodeId].at(-1)?.end === null;
+      return ranges?.[nodeId].at(-1)?.end === null;
     });
   }, [queue, ranges]);
   return <QueueNodes node_ids={nodeIds} />;
@@ -202,7 +202,7 @@ const getQueueNodeIds = (
   const head = [];
   const tail = [];
   for (const nodeId of queue) {
-    const text = texts[nodeId];
+    const text = utils.assertV(texts?.[nodeId]);
     if (getIsMatch(processedQuery, text, nodeId)) {
       head.push(nodeId);
     } else {
@@ -530,8 +530,8 @@ const DoneOrDontToTodoButton = (props: { node_id: types.TNodeId }) => {
 };
 
 const EstimationInput = React.memo((props: { node_id: types.TNodeId }) => {
-  const estimate = useSelector(
-    (state) => state.swapped_nodes.estimate[props.node_id],
+  const estimate = utils.assertV(
+    useSelector((state) => state.swapped_nodes.estimate?.[props.node_id]),
   );
   const dispatch = useDispatch();
   const on_change = React.useCallback(
@@ -613,11 +613,11 @@ const CoveyQuadrantNode = React.memo(
       | "not_important_urgent"
       | "not_important_not_urgent";
   }) => {
-    const text = useSelector(
-      (state) => state.swapped_caches.text[props.node_id],
+    const text = utils.assertV(
+      useSelector((state) => state.swapped_caches.text?.[props.node_id]),
     );
-    const status = useSelector(
-      (state) => state.swapped_nodes.status[props.node_id],
+    const status = utils.assertV(
+      useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
     );
     const dispatch = useDispatch();
     const { isOn, turnOn, turnOff } = utils.useOn();
@@ -917,9 +917,11 @@ const PlannedNode = (props: {
   time_node_id: types.TTimeNodeId;
   Component: "div" | "td";
 }) => {
-  const text = useSelector((state) => state.swapped_caches.text[props.node_id]);
-  const status = useSelector(
-    (state) => state.swapped_nodes.status[props.node_id],
+  const text = utils.assertV(
+    useSelector((state) => state.swapped_caches.text?.[props.node_id]),
+  );
+  const status = utils.assertV(
+    useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
   );
   const dispatch = useDispatch();
   const { isOn, turnOn, turnOff } = utils.useOn();
@@ -1137,8 +1139,8 @@ const NonTodoQueueNodes: React.FC<{
 
 const EdgeList = React.memo(
   (props: { node_id: types.TNodeId; prefix?: undefined | string }) => {
-    const children = useSelector(
-      (state) => state.swapped_nodes.children[props.node_id],
+    const children = utils.assertV(
+      useSelector((state) => state.swapped_nodes.children?.[props.node_id]),
     );
     const edge_ids = ops.sorted_keys_of(children);
     return edge_ids.length ? (
@@ -1161,12 +1163,16 @@ const Edge = React.memo(
       states.show_strong_edge_only_atom_map.get(session),
     );
     const edgeHide = useSelector(
-      (state) => state.swapped_edges.hide[props.edge_id],
+      (state) => state.swapped_edges.hide?.[props.edge_id],
     );
-    const edgeT = useSelector((state) => state.swapped_edges.t[props.edge_id]);
-    const edgeC = useSelector((state) => state.swapped_edges.c[props.edge_id]);
-    const childNodeStatus = useSelector(
-      (state) => state.swapped_nodes.status[edgeC],
+    const edgeT = utils.assertV(
+      useSelector((state) => state.swapped_edges.t?.[props.edge_id]),
+    );
+    const edgeC = utils.assertV(
+      useSelector((state) => state.swapped_edges.c?.[props.edge_id]),
+    );
+    const childNodeStatus = utils.assertV(
+      useSelector((state) => state.swapped_nodes.status?.[edgeC]),
     );
     if (
       edgeHide ||
@@ -1185,14 +1191,16 @@ const Edge = React.memo(
 
 const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
   const { isOn, turnOn, turnOff } = utils.useOn(0);
-  const leaf_estimates_sum = useSelector(
-    (state) => state.swapped_caches.leaf_estimates_sum[props.node_id],
+  const leaf_estimates_sum = utils.assertV(
+    useSelector(
+      (state) => state.swapped_caches.leaf_estimates_sum?.[props.node_id],
+    ),
   );
-  const percentiles = useSelector(
-    (state) => state.swapped_caches.percentiles[props.node_id],
+  const percentiles = utils.assertV(
+    useSelector((state) => state.swapped_caches.percentiles?.[props.node_id]),
   );
-  const status = useSelector(
-    (state) => state.swapped_nodes.status[props.node_id],
+  const status = utils.assertV(
+    useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
   );
   const is_todo = status === "todo";
   const is_running = utils.useIsRunning(props.node_id);
@@ -1332,8 +1340,12 @@ const MobileQueueColumn = () => {
 
 const MobileQueueNodes = () => {
   const queue = useSelector((state) => state.data.queue);
-  const statuses = useSelector((state) => state.swapped_nodes.status);
-  const texts = useSelector((state) => state.swapped_caches.text);
+  const statuses = utils.assertV(
+    useSelector((state) => state.swapped_nodes.status),
+  );
+  const texts = utils.assertV(
+    useSelector((state) => state.swapped_caches.text),
+  );
   const session = React.useContext(states.session_key_context);
   const show_todo_only = Jotai.useAtomValue(
     states.show_todo_only_atom_map.get(session),
@@ -1392,14 +1404,16 @@ const TreeEntry = React.memo(
   (props: { node_id: types.TNodeId; prefix?: undefined | string }) => {
     const { isOn, turnOn, turnOff } = utils.useOn(0);
     const is_running = utils.useIsRunning(props.node_id);
-    const leaf_estimates_sum = useSelector(
-      (state) => state.swapped_caches.leaf_estimates_sum[props.node_id],
+    const leaf_estimates_sum = utils.assertV(
+      useSelector(
+        (state) => state.swapped_caches.leaf_estimates_sum?.[props.node_id],
+      ),
     );
-    const percentiles = useSelector(
-      (state) => state.swapped_caches.percentiles[props.node_id],
+    const percentiles = utils.assertV(
+      useSelector((state) => state.swapped_caches.percentiles?.[props.node_id]),
     );
-    const status = useSelector(
-      (state) => state.swapped_nodes.status[props.node_id],
+    const status = utils.assertV(
+      useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
     );
 
     const to_queue = useToQueue(props.node_id);
@@ -1497,8 +1511,10 @@ const EntryWrapper = (props: {
   component?: keyof JSX.IntrinsicElements;
 }) => {
   const is_running = utils.useIsRunning(props.node_id);
-  const n_hidden_child_edges = useSelector(
-    (state) => state.swapped_caches.n_hidden_child_edges[props.node_id],
+  const n_hidden_child_edges = utils.assertV(
+    useSelector(
+      (state) => state.swapped_caches.n_hidden_child_edges?.[props.node_id],
+    ),
   );
   const has_hidden_leaf = 0 < n_hidden_child_edges;
 
@@ -1529,14 +1545,16 @@ const MobileEntryButtons = (props: {
   opened: boolean;
   handlers: { toggle: () => void; close: () => void };
 }) => {
-  const leaf_estimates_sum = useSelector(
-    (state) => state.swapped_caches.leaf_estimates_sum[props.node_id],
+  const leaf_estimates_sum = utils.assertV(
+    useSelector(
+      (state) => state.swapped_caches.leaf_estimates_sum?.[props.node_id],
+    ),
   );
-  const percentiles = useSelector(
-    (state) => state.swapped_caches.percentiles[props.node_id],
+  const percentiles = utils.assertV(
+    useSelector((state) => state.swapped_caches.percentiles?.[props.node_id]),
   );
-  const status = useSelector(
-    (state) => state.swapped_nodes.status[props.node_id],
+  const status = utils.assertV(
+    useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
   );
   const root = useSelector((state) => state.data.root);
   const is_root = props.node_id === root;
@@ -1587,8 +1605,8 @@ const EntryButtons = React.memo(
     opened: boolean;
     handlers: { toggle: () => void; close: () => void };
   }) => {
-    const status = useSelector(
-      (state) => state.swapped_nodes.status[props.node_id],
+    const status = utils.assertV(
+      useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
     );
 
     const root = useSelector((state) => state.data.root);
@@ -1633,8 +1651,8 @@ const EntryInfos = React.memo((props: { node_id: types.TNodeId }) => {
 });
 
 const TotalTime = (props: { node_id: types.TNodeId }) => {
-  const total_time = useSelector(
-    (state) => state.swapped_caches.total_time[props.node_id],
+  const total_time = utils.assertV(
+    useSelector((state) => state.swapped_caches.total_time?.[props.node_id]),
   );
   const dispatch = useDispatch();
   const observe = total_time_utils.observe_of(dispatch);
@@ -1656,8 +1674,8 @@ const TotalTime = (props: { node_id: types.TNodeId }) => {
 };
 
 const StartOrStopButtons = (props: { node_id: types.TNodeId }) => {
-  const ranges = useSelector(
-    (state) => state.swapped_nodes.ranges[props.node_id],
+  const ranges = utils.assertV(
+    useSelector((state) => state.swapped_nodes.ranges?.[props.node_id]),
   );
   const last_range = ranges.at(-1);
   const running = last_range && last_range.end === null;
@@ -1822,7 +1840,9 @@ const MobilePredictedNextNodes = () => {
   );
 };
 const MobilePredictedNextNode = (props: { node_id: types.TNodeId }) => {
-  const text = useSelector((state) => state.swapped_caches.text[props.node_id]);
+  const text = utils.assertV(
+    useSelector((state) => state.swapped_caches.text?.[props.node_id]),
+  );
   const to_tree = utils.useToTree(props.node_id);
   return (
     <div className="flex w-fit gap-x-[0.25em] items-baseline py-[0.125em]">
@@ -1855,7 +1875,9 @@ const PredictedNextNodes = () => {
   );
 };
 const PredictedNextNode = React.memo((props: { node_id: types.TNodeId }) => {
-  const text = useSelector((state) => state.swapped_caches.text[props.node_id]);
+  const text = utils.assertV(
+    useSelector((state) => state.swapped_caches.text?.[props.node_id]),
+  );
   const to_tree = utils.useToTree(props.node_id);
   return (
     <div className="flex w-fit gap-x-[0.25em] items-baseline py-[0.125em]">
@@ -1882,7 +1904,9 @@ const TextArea = (props: {
   id?: string;
   onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
 }) => {
-  const text = useSelector((state) => state.swapped_caches.text[props.node_id]);
+  const text = utils.assertV(
+    useSelector((state) => state.swapped_caches.text?.[props.node_id]),
+  );
   const dispatch = useDispatch();
   const onBlur = React.useMemo(() => {
     const _onBlur = props.onBlur;
@@ -1971,8 +1995,8 @@ const moveDownButtonRefOf = utils.memoize1((_: types.TNodeId) =>
 );
 
 const LastRange = (props: { node_id: types.TNodeId }) => {
-  const ranges = useSelector(
-    (state) => state.swapped_nodes.ranges[props.node_id],
+  const ranges = utils.assertV(
+    useSelector((state) => state.swapped_nodes.ranges?.[props.node_id]),
   );
   const last_range = last_range_of(ranges);
   return (

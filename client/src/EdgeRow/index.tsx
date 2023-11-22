@@ -10,14 +10,16 @@ import * as utils from "src/utils";
 const EdgeRow = React.memo(
   (props: { edge_id: types.TEdgeId; target: "p" | "c" }) => {
     // const edge = types.useSelector((state) => state.data.edges[props.edge_id]);
-    const edgeT = types.useSelector(
-      (state) => state.swapped_edges.t[props.edge_id],
+    const edgeT = utils.assertV(
+      types.useSelector((state) => state.swapped_edges.t?.[props.edge_id]),
     );
-    const nodeId = types.useSelector(
-      (state) => state.swapped_edges[props.target][props.edge_id],
+    const nodeId = utils.assertV(
+      types.useSelector(
+        (state) => state.swapped_edges[props.target]?.[props.edge_id],
+      ),
     );
     const edgeHide = types.useSelector(
-      (state) => state.swapped_edges.hide[props.edge_id],
+      (state) => state.swapped_edges.hide?.[props.edge_id],
     );
     const dispatch = types.useDispatch();
     const delete_edge = React.useCallback(
@@ -79,13 +81,13 @@ const EdgeRow = React.memo(
 
 const EdgeRowContent = React.memo((props: { node_id: types.TNodeId }) => {
   const to_tree = utils.useToTree(props.node_id);
-  const text = types.useSelector(
-    (state) => state.swapped_caches.text[props.node_id],
+  const text = utils.assertV(
+    types.useSelector((state) => state.swapped_caches.text?.[props.node_id]),
   );
   const disabled = types.useSelector((state) => {
     return (
       props.node_id === state.data.root ||
-      state.swapped_nodes.status[props.node_id] !== "todo"
+      state.swapped_nodes.status?.[props.node_id] !== "todo"
     );
   });
   return (
