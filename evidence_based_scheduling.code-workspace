@@ -1,6 +1,7 @@
 {
   "folders": [
     { "path": "." },
+    { "path": "api_v2" },
     { "path": "client" },
     { "path": "db" },
     { "path": "go" },
