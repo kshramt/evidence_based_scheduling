@@ -1,12 +1,10 @@
 use core::fmt;
 use rand::{Rng, RngCore};
-use std::sync::{Mutex, MutexGuard, PoisonError};
 
 pub struct SortableIdGenerator {
     seq: u16,
     shard: u16,
     time: u64,
-    mutex: Mutex<()>,
 }
 
 /// A 128-bit sortable ID, designed to ensure both uniqueness and a degree of ordering.
@@ -24,36 +22,32 @@ impl SortableIdGenerator {
             seq: 0,
             shard,
             time: 0,
-            mutex: Mutex::new(()),
         }
     }
 
-    pub fn gen(&mut self) -> Result<Id128, PoisonError<MutexGuard<'_, ()>>> {
+    pub fn gen(&mut self) -> Id128 {
         // Create [u8; 16] without initialization
         let mut buf = [0u8; 16];
         let mut rng = rand::thread_rng();
         rng.fill_bytes(&mut buf[8..14]);
         let mut t = chrono::Utc::now().timestamp_millis() as u64;
         let seq;
-        {
-            let _guard = self.mutex.lock()?;
-            if t < self.time {
-                t = self.time;
-            }
-            if t == self.time {
-                seq = self.seq + 1;
-                if seq == 0 {
-                    t = self.time + 1;
-                }
-            } else {
-                seq = rng.gen::<u16>() & 0b0111111111111111;
-            }
-            self.time = t;
-            self.seq = seq;
+        if t < self.time {
+            t = self.time;
         }
+        if t == self.time {
+            seq = self.seq + 1;
+            if seq == 0 {
+                t = self.time + 1;
+            }
+        } else {
+            seq = rng.gen::<u16>() & 0b0111111111111111;
+        }
+        self.time = t;
+        self.seq = seq;
         buf[0..8].copy_from_slice(&((t << 16) | (seq as u64)).to_be_bytes());
         buf[14..16].copy_from_slice(&self.shard.to_be_bytes());
-        Ok(Id128::new(buf))
+        Id128::new(buf)
     }
 }
 
@@ -74,7 +68,7 @@ impl Id128 {
         }
 
         let mut encoded: Vec<u8> = vec![];
-        while num > 0 {
+        while 0 < num {
             let remainder = (num % 62) as usize;
             encoded.push(BASE62_CHARS[remainder]);
             num /= 62;
@@ -120,9 +114,9 @@ mod tests {
     fn test_monotonicity() {
         for shard in 0..10 {
             let mut gen = SortableIdGenerator::new(shard);
-            let mut prev = gen.gen().unwrap();
+            let mut prev = gen.gen();
             for _ in 0..10_000 {
-                let id = gen.gen().unwrap();
+                let id = gen.gen();
                 assert!(prev < id);
                 prev = id;
             }

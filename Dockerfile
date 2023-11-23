@@ -298,14 +298,18 @@ COPY --link api_v2/Cargo.toml api_v2/
 COPY --link data/main.rs api_v2/src/
 COPY --link id_generator/Cargo.toml id_generator/
 COPY --link data/lib.rs id_generator/src/
-RUN cargo build
+RUN cargo fetch
 COPY --link api_v2/src api_v2/src
 COPY --link id_generator/src id_generator/src
 RUN cargo fmt --check
 RUN cargo clippy --all-targets --all-features -- -D warnings
 RUN cargo test --all-targets --all-features
+RUN cargo build --release
 
-FROM base_rust_builder AS prod_api_v2
+FROM gcr.io/distroless/cc-debian12:nonroot AS prod_api_v2
+WORKDIR /app
+COPY --link --from=base_rust_builder /app/target/release/api_v2 .
+ENTRYPOINT ["./api_v2"]
 
 FROM gcr.io/distroless/static-debian11:nonroot AS prod_api_v1
 WORKDIR /app
