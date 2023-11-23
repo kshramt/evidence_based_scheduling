@@ -34,7 +34,8 @@
         "ms-vscode-remote.vscode-remote-extensionpack",
         "ms-vscode.makefile-tools",
         "rust-lang.rust-analyzer",
-        "tamasfe.even-better-toml"
+        "tamasfe.even-better-toml",
+        "zxh404.vscode-proto3"
       ],
       "settings": {
         "[html]": {
