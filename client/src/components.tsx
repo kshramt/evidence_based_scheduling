@@ -1202,11 +1202,15 @@ const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
   const status = utils.assertV(
     useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
   );
+  const text = utils.assertV(
+    useSelector((state) => state.swapped_caches.text?.[props.node_id]),
+  );
   const is_todo = status === "todo";
   const is_running = utils.useIsRunning(props.node_id);
   const to_tree = utils.useToTree(props.node_id);
   const handleKeyDown = useTaskShortcutKeys(props.node_id, TREE_PREFIX);
   const [opened, handlers] = Mth.useDisclosure(false);
+  const id = utils.queue_textarea_id_of(props.node_id);
 
   return (
     <EntryWrapper
@@ -1217,20 +1221,26 @@ const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
       <div className="flex items-end w-fit">
         <button onClick={to_tree}>←</button>
         <CopyNodeIdButton node_id={props.node_id} />
-        <TextArea
-          node_id={props.node_id}
-          id={utils.queue_textarea_id_of(props.node_id)}
-          className={utils.join(
-            "w-[29em] px-[0.75em] py-[0.5em]",
-            status === "done"
-              ? "text-red-600 dark:text-red-400"
-              : status === "dont"
-              ? "text-neutral-500"
-              : null,
-          )}
-          onKeyDown={handleKeyDown}
-          onClick={turnOn}
-        />
+        {is_todo ? (
+          <div id={id} className="w-[29em] px-[0.75em] py-[0.5em]">
+            {text}
+          </div>
+        ) : (
+          <TextArea
+            node_id={props.node_id}
+            id={id}
+            className={utils.join(
+              "w-[29em] px-[0.75em] py-[0.5em]",
+              status === "done"
+                ? "text-red-600 dark:text-red-400"
+                : status === "dont"
+                ? "text-neutral-500"
+                : null,
+            )}
+            onKeyDown={handleKeyDown}
+            onClick={turnOn}
+          />
+        )}
         <EntryInfos node_id={props.node_id} />
       </div>
       {is_todo &&
