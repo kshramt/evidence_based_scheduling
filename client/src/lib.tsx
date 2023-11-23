@@ -6,7 +6,6 @@ import "@fontsource/material-icons";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import * as Dnd from "react-dnd";
 import * as Mt from "@mantine/core";
-import * as Mth from "@mantine/hooks";
 
 import * as consts from "src/consts";
 import * as states from "./states";
@@ -210,42 +209,15 @@ const AppComponentImpl = (props: {
   store: Awaited<ReturnType<states.PersistentStateManager["get_redux_store"]>>;
   auth: Auth.Auth;
 }) => {
-  const preferredColorScheme = Mth.useColorScheme("dark");
-  const [colorScheme, setColorScheme] =
-    React.useState<Mt.ColorScheme>(preferredColorScheme);
-  const toggleColorScheme = React.useCallback((value?: Mt.ColorScheme) => {
-    if (value === undefined) {
-      setColorScheme((value) => (value === "dark" ? "light" : "dark"));
-    } else {
-      setColorScheme(value);
-    }
-  }, []);
-  const theme = React.useMemo(() => {
-    return {
-      colorScheme,
-      fontSizes: {
-        xs: "0.73rem",
-        sm: "0.81rem",
-        md: "0.9rem",
-        lg: "1.1rem",
-        xl: "1.23rem",
-      },
-    };
-  }, [colorScheme]);
   props.ctx.useCheckUpdates();
   return (
     <states.session_key_context.Provider value={props.ctx.session_key}>
       <states.idbContext.Provider value={props.ctx.db}>
         <Provider store={props.store}>
-          <Mt.ColorSchemeProvider
-            colorScheme={colorScheme}
-            toggleColorScheme={toggleColorScheme}
-          >
-            <Mt.MantineProvider theme={theme} withGlobalStyles withNormalizeCSS>
-              <App ctx={props.ctx} logOut={props.auth.logOut} />
-              <props.ctx.Component />
-            </Mt.MantineProvider>
-          </Mt.ColorSchemeProvider>
+          <Mt.MantineProvider defaultColorScheme="dark">
+            <App ctx={props.ctx} logOut={props.auth.logOut} />
+            <props.ctx.Component />
+          </Mt.MantineProvider>
         </Provider>
       </states.idbContext.Provider>
     </states.session_key_context.Provider>
