@@ -284,10 +284,15 @@ FROM base_go_builder AS api_v1_builder
 RUN go build api_v1/main.go
 
 FROM base_rust AS base_rust_builder
-WORKDIR /app/id_generator
-COPY --link id_generator/Cargo.toml id_generator/Cargo.lock ./
-COPY --link id_generator/src src
-RUN cargo fetch
+WORKDIR /app
+COPY --link Cargo.toml Cargo.lock ./
+COPY --link api_v2/Cargo.toml api_v2/
+COPY --link data/main.rs api_v2/src/
+COPY --link id_generator/Cargo.toml id_generator/
+COPY --link data/lib.rs id_generator/src/
+RUN cargo build
+COPY --link api_v2/src api_v2/src
+COPY --link id_generator/src id_generator/src
 RUN cargo fmt --check
 RUN cargo clippy --all-targets --all-features -- -D warnings
 RUN cargo test --all-targets --all-features
