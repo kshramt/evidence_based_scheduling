@@ -15,14 +15,20 @@ COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/bin/docker /usr/local
 COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/libexec/docker /usr/local/libexec/docker
 
 
+FROM rust:1.74.0-bookworm AS rust_downloader
+RUN rustup component add clippy rust-analyzer rustfmt
+
 FROM ubuntu:22.04 AS base_rust
 RUN apt-get update \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
    build-essential \
    ca-certificates \
    curl
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile complete --no-modify-path
-ENV PATH "/root/.cargo/bin:/root/.rustup/bin:${PATH}"
+COPY --link --from=rust_downloader /usr/local/cargo /usr/local/cargo
+COPY --link --from=rust_downloader /usr/local/rustup /usr/local/rustup
+ENV PATH "/usr/local/cargo/bin:/usr/local/rustup/bin:${PATH}"
+ENV RUSTUP_HOME "/usr/local/rustup"
+ENV CARGO_HOME "/usr/local/cargo"
 
 
 FROM ubuntu:22.04 AS devcontainer
@@ -107,10 +113,12 @@ ENV GOPATH "/h/${host_home:?}/devcontainer/go"
 USER "${devcontainer_user:?}"
 
 # Rust
-ENV RUSTUP_HOME "/home/${devcontainer_user:?}/.rustup"
+COPY --link --from=rust_downloader /usr/local/cargo /usr/local/cargo
+COPY --link --from=rust_downloader /usr/local/rustup /usr/local/rustup
+ENV PATH "/usr/local/cargo/bin:/usr/local/rustup/bin:${PATH}"
+ENV RUSTUP_HOME "/usr/local/rustup"
 ENV CARGO_HOME "/home/${devcontainer_user:?}/.cargo"
-COPY --link --from=base_rust /root/.rustup "${RUSTUP_HOME:?}"
-COPY --link --from=base_rust /root/.cargo "${CARGO_HOME:?}"
+
 
 FROM python:3.11.5-slim-bullseye AS base_py
 ENV PYTHONUNBUFFERED 1
