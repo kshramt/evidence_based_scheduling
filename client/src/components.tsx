@@ -1222,7 +1222,10 @@ const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
         <button onClick={to_tree}>←</button>
         <CopyNodeIdButton node_id={props.node_id} />
         {is_todo ? (
-          <div id={id} className="w-[29em] px-[0.75em] py-[0.5em]">
+          <div
+            id={id}
+            className="w-[29em] px-[0.75em] py-[0.5em] h-[2.5em] overflow-y-hidden"
+          >
             {text}
           </div>
         ) : (
