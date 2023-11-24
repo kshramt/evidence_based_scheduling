@@ -214,7 +214,8 @@ const AppComponentImpl = (props: {
     <states.session_key_context.Provider value={props.ctx.session_key}>
       <states.idbContext.Provider value={props.ctx.db}>
         <Provider store={props.store}>
-          <Mt.MantineProvider defaultColorScheme="dark">
+          <Mt.ColorSchemeScript defaultColorScheme="auto" />
+          <Mt.MantineProvider defaultColorScheme="auto">
             <App ctx={props.ctx} logOut={props.auth.logOut} />
             <props.ctx.Component />
           </Mt.MantineProvider>
