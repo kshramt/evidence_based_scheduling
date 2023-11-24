@@ -455,12 +455,12 @@ const Body = () => {
   }, [treeNodesRef]);
   return (
     <div className="flex flex-1 gap-x-[1em] overflow-y-hidden">
-      <div className="content-visibility-auto overflow-y-auto flex-none w-[46em] pl-[2em]">
+      <div className="overflow-y-auto flex-none w-[46em] pl-[2em]">
         <SBTTB onClick={handleTodoQueueSBTTBClick} />
         <TodoQueueNodes virtuosoRef={todoQueueNodesRef} />
       </div>
       <div className={utils.join("flex", pin && "w-full overflow-x-auto")}>
-        <div className="content-visibility-auto overflow-y-auto flex-none w-[46em] pl-[2em]">
+        <div className="overflow-y-auto flex-none w-[46em] pl-[2em]">
           <SBTTB onClick={handleNonTodoQueueSBTTBClick} />
           <NonTodoQueueNodes virtuosoRef={nonTodoQueueNodesRef} />
         </div>
@@ -1004,10 +1004,7 @@ const QueueNodes = React.memo((props: { node_ids: types.TNodeId[] }) => {
   return (
     <div>
       {props.node_ids.map((node_id, index) => (
-        <div className="flex items-end gap-x-[0.5em]" key={node_id}>
-          {index}
-          <QueueEntry node_id={node_id} key={node_id} />
-        </div>
+        <QueueEntry node_id={node_id} index={index} key={node_id} />
       ))}
     </div>
   );
@@ -1040,12 +1037,7 @@ function queueItemContent(index: number, item: TNodeIdsWithPrefix[number]) {
       );
     }
     default: {
-      return (
-        <div className="flex items-end gap-x-[0.5em]">
-          {index}
-          <QueueEntry node_id={item} />
-        </div>
-      );
+      return <QueueEntry index={index} node_id={item} />;
     }
   }
 }
@@ -1189,46 +1181,43 @@ const Edge = React.memo(
   },
 );
 
-const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
-  const { isOn, turnOn, turnOff } = utils.useOn(0);
-  const leaf_estimates_sum = utils.assertV(
-    useSelector(
-      (state) => state.swapped_caches.leaf_estimates_sum?.[props.node_id],
-    ),
-  );
-  const percentiles = utils.assertV(
-    useSelector((state) => state.swapped_caches.percentiles?.[props.node_id]),
-  );
-  const status = utils.assertV(
-    useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
-  );
-  const text = utils.assertV(
-    useSelector((state) => state.swapped_caches.text?.[props.node_id]),
-  );
-  const is_todo = status === "todo";
-  const is_running = utils.useIsRunning(props.node_id);
-  const to_tree = utils.useToTree(props.node_id);
-  const handleKeyDown = useTaskShortcutKeys(props.node_id, TREE_PREFIX);
-  const [opened, handlers] = Mth.useDisclosure(false);
-  const id = utils.queue_textarea_id_of(props.node_id);
+const QueueEntry = React.memo(
+  (props: { node_id: types.TNodeId; index: number }) => {
+    const isTodo =
+      utils.assertV(
+        useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
+      ) === "todo";
 
-  return (
-    <EntryWrapper
-      node_id={props.node_id}
-      onMouseLeave={turnOff}
-      component="div"
-    >
-      <div className="flex items-end w-fit">
-        <button onClick={to_tree}>←</button>
-        <CopyNodeIdButton node_id={props.node_id} />
-        {is_todo ? (
-          <div
-            id={id}
-            className="w-[29em] px-[0.75em] py-[0.5em] h-[2.5em] overflow-y-hidden"
-          >
-            {text}
-          </div>
-        ) : (
+    return isTodo ? (
+      <TodoQueueEntry node_id={props.node_id} index={props.index} />
+    ) : (
+      <NonTodoQueueEntry node_id={props.node_id} index={props.index} />
+    );
+  },
+);
+
+const NonTodoQueueEntry = React.memo(
+  (props: { node_id: types.TNodeId; index: number }) => {
+    const { isOn, turnOn, turnOff } = utils.useOn(0);
+    const status = utils.assertV(
+      useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
+    );
+    const is_running = utils.useIsRunning(props.node_id);
+    const to_tree = utils.useToTree(props.node_id);
+    const handleKeyDown = useTaskShortcutKeys(props.node_id, TREE_PREFIX);
+    const [opened, handlers] = Mth.useDisclosure(false);
+    const id = utils.queue_textarea_id_of(props.node_id);
+
+    return (
+      <EntryWrapper
+        node_id={props.node_id}
+        onMouseLeave={turnOff}
+        component="div"
+      >
+        <div className="flex items-end w-fit">
+          {props.index}
+          <button onClick={to_tree}>←</button>
+          <CopyNodeIdButton node_id={props.node_id} />
           <TextArea
             node_id={props.node_id}
             id={id}
@@ -1243,23 +1232,69 @@ const QueueEntry = React.memo((props: { node_id: types.TNodeId }) => {
             onKeyDown={handleKeyDown}
             onClick={turnOn}
           />
+          <EntryInfos node_id={props.node_id} />
+        </div>
+        {(isOn || is_running || opened) && (
+          <EntryButtons
+            node_id={props.node_id}
+            opened={opened}
+            handlers={handlers}
+          />
         )}
-        <EntryInfos node_id={props.node_id} />
-      </div>
-      {is_todo &&
-        0 <= leaf_estimates_sum &&
-        digits1(leaf_estimates_sum) + " | "}
-      {is_todo && percentiles.map(digits1).join(", ")}
-      {(isOn || is_running || opened) && (
-        <EntryButtons
-          node_id={props.node_id}
-          opened={opened}
-          handlers={handlers}
-        />
-      )}
-    </EntryWrapper>
-  );
-});
+      </EntryWrapper>
+    );
+  },
+);
+
+const TodoQueueEntry = React.memo(
+  (props: { node_id: types.TNodeId; index: number }) => {
+    const leaf_estimates_sum = utils.assertV(
+      useSelector(
+        (state) => state.swapped_caches.leaf_estimates_sum?.[props.node_id],
+      ),
+    );
+    const percentiles = utils.assertV(
+      useSelector((state) => state.swapped_caches.percentiles?.[props.node_id]),
+    );
+    const text = utils.assertV(
+      useSelector((state) => state.swapped_caches.text?.[props.node_id]),
+    );
+    const toTree = utils.useToTree(props.node_id);
+    const [opened, handlers] = Mth.useDisclosure(false);
+
+    return (
+      <>
+        <div className="flex items-baseline gap-x-[0.25em] pb-[0.125em]">
+          <CopyNodeIdButton node_id={props.node_id} />
+          <StartOrStopButtons node_id={props.node_id} />
+          <TodoToDoneButton node_id={props.node_id} />
+          <TodoToDontButton node_id={props.node_id} />
+          <EvalButton node_id={props.node_id} />
+          <ShowDetailsButton
+            node_id={props.node_id}
+            opened={opened}
+            handlers={handlers}
+          />
+          {props.index}
+          <span
+            className="w-[20em] whitespace-nowrap overflow-hidden cursor-pointer"
+            title={text}
+            onClick={toTree}
+            role="button"
+            tabIndex={0}
+          >
+            {text}
+          </span>
+          <EntryInfos node_id={props.node_id} />
+        </div>
+        <div>
+          {0 <= leaf_estimates_sum && digits1(leaf_estimates_sum) + " | "}
+          {percentiles.map(digits1).join(", ")}
+        </div>
+      </>
+    );
+  },
+);
 
 const MobileMenu = (props: {
   ctx: states.PersistentStateManager;
