@@ -1277,7 +1277,7 @@ const TodoQueueEntry = React.memo(
           />
           {props.index}
           <span
-            className="w-[20em] inline-block whitespace-nowrap overflow-hidden cursor-pointer"
+            className="w-[16em] inline-block whitespace-nowrap overflow-hidden cursor-pointer"
             title={text}
             onClick={toTree}
             role="button"
