@@ -12,61 +12,22 @@ This is a TODO application, which offers the following features:
 
 [source,bash]
 ----
-docker run \
-  --rm \
-  --init \
-  --mount type=bind,source="$PWD"/data,target=/data \
-  -e USE_LITESTREAM=no \
-  -p 8080:8080 \
-  ghcr.io/kshramt/evidence_based_scheduling:latest
-
-# or
-
-docker run \
-  --rm \
-  --init \
-  --mount type=bind,source="$PWD"/data,target=/data \
-  -e REPLICA_URI=gcs://<bucket>/data.sqlite \
-  -p 8080:8080 \
-  ghcr.io/kshramt/evidence_based_scheduling:latest
-
-# or
-
-# --log-driver local \
-docker run \
-  -d \
-  --name ebs \
-  --init \
-  --log-driver journald \
-  --mount type=bind,source="$PWD"/data,target=/data \
-  -e REPLICA_URI=gcs://<bucket>/data.sqlite \
-  -p8080:8080 \
-  --restart always \
-  ghcr.io/kshramt/evidence_based_scheduling:latest
-# journalctl  CONTAINER_NAME=ebs
-
-# docker pull ghcr.io/kshramt/evidence_based_scheduling:latest && docker container stop ebs && docker container rm ebs
+TAG=latest-linux-amd64 _POSTGRES_PASSWORD=postgres_password _POSTGRES_APP_USER_PASSWORD=postgres_app_user_password scripts/launch.sh
 ----
 
 == Development
 
 [source,bash]
 ----
-docker compose -f compose.yaml -f compose.dev.yaml up --build
+MY_HOST_PGDATA=./pgdata1 _POSTGRES_PASSWORD=postgres_password _POSTGRES_APP_USER_PASSWORD=postgres_app_user_password docker compose -f compose.yaml -f compose.dev.yaml up --build
 ----
 
 [source,bash]
 ----
 cd client
-npx vite dev --port 3000
-# LOCALHOST=host.docker.internal PORT=3000 npx vite dev
-xdg-open http://localhost:3000
-----
-
-[source,bash]
-----
-docker build -t t:2 --target tests_e2e .
-docker run --mount "type=bind,source=${PWD},target=${PWD}" --mount "type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock" --mount type=bind,source="${HOME}/.docker/buildx,target=/root/.docker/buildx" -e MY_HOST=host.docker.internal -e "MY_COMPOSE_DIR=${PWD}" --add-host=host.docker.internal:host-gateway --init --rm t:2 .venv/bin/python3 -m pytest -s src
+BROWSER=none npx vite dev --port 3122
+# LOCALHOST=host.docker.internal BROWSER=none npx vite dev --port 3122
+xdg-open http://localhost:3122
 ----
 
 === DevContainer for macOS
