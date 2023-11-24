@@ -59,10 +59,7 @@ impl Id128 {
     }
 
     pub fn to_base62(&self) -> String {
-        let mut num = 0u128;
-        for byte in self.0 {
-            num = (num << 8) | (byte as u128);
-        }
+        let mut num = u128::from_be_bytes(self.0);
         if num == 0 {
             return "0".into();
         }
