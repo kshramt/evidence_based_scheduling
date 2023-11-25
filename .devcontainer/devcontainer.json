@@ -17,6 +17,7 @@
   "customizations": {
     "vscode": {
       "extensions": [
+        "42Crunch.vscode-openapi",
         "asciidoctor.asciidoctor-vscode",
         "bradlc.vscode-tailwindcss",
         "charliermarsh.ruff",
