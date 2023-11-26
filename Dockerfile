@@ -18,6 +18,9 @@ COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/libexec/docker /usr/l
 FROM rust:1.74.0-bookworm AS rust_downloader
 RUN rustup component add clippy rust-analyzer rustfmt
 
+FROM rust_downloader AS sqlx_cli_downloader
+RUN cargo install sqlx-cli@0.7.3
+
 FROM ubuntu:22.04 AS base_rust
 RUN apt-get update \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -124,11 +127,14 @@ ARG host_home
 ENV PATH "/usr/local/node/bin:${PATH}"
 ENV PATH "/usr/local/go/bin:${PATH}"
 ENV GOPATH "/h/${host_home:?}/devcontainer/go"
-USER "${devcontainer_user:?}"
+
 
 # Rust
 COPY --link --from=rust_downloader /usr/local/cargo /usr/local/cargo
 COPY --link --from=rust_downloader /usr/local/rustup /usr/local/rustup
+COPY --link --from=sqlx_cli_downloader /usr/local/cargo/bin/sqlx /usr/local/cargo/bin/cargo-sqlx /usr/local/bin/
+
+USER "${devcontainer_user:?}"
 ENV PATH "/usr/local/cargo/bin:/usr/local/rustup/bin:${PATH}"
 ENV RUSTUP_HOME "/usr/local/rustup"
 ENV CARGO_HOME "/home/${devcontainer_user:?}/.cargo"
