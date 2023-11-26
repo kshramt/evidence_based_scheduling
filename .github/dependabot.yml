@@ -1,107 +1,323 @@
-version: 2
-updates:
-  - package-ecosystem: "docker"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "01:00"
-      timezone: "Asia/Tokyo"
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "01:00"
-      timezone: "Asia/Tokyo"
-    groups:
-      patch:
-        update-types:
-          - "patch"
-      minor:
-        update-types:
-          - "minor"
-  - package-ecosystem: npm
-    directory: "/client"
-    schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "01:00"
-      timezone: "Asia/Tokyo"
-    groups:
-      patch:
-        update-types:
-          - "patch"
-      minor:
-        update-types:
-          - "minor"
-  - package-ecosystem: pip
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "01:00"
-      timezone: "Asia/Tokyo"
-    groups:
-      patch:
-        update-types:
-          - "patch"
-      minor:
-        update-types:
-          - "minor"
-  - package-ecosystem: gomod
-    directory: "/go"
-    schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "01:00"
-      timezone: "Asia/Tokyo"
-    groups:
-      patch:
-        update-types:
-          - "patch"
-      minor:
-        update-types:
-          - "minor"
-  - package-ecosystem: pip
-    directory: "/grpc_py"
-    schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "01:00"
-      timezone: "Asia/Tokyo"
-    groups:
-      patch:
-        update-types:
-          - "patch"
-      minor:
-        update-types:
-          - "minor"
-  - package-ecosystem: cargo
-    directory: "/id_generator"
-    schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "01:00"
-      timezone: "Asia/Tokyo"
-    groups:
-      patch:
-        update-types:
-          - "patch"
-      minor:
-        update-types:
-          - "minor"
-  - package-ecosystem: pip
-    directory: "/tests/e2e"
-    schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "01:00"
-      timezone: "Asia/Tokyo"
-    groups:
-      patch:
-        update-types:
-          - "patch"
-      minor:
-        update-types:
-          - "minor"
+{
+  "updates": [
+    {
+      "directory": "/",
+      "package-ecosystem": "docker",
+      "schedule": {
+        "day": "saturday",
+        "interval": "weekly",
+        "time": "01:00",
+        "timezone": "Asia/Tokyo"
+      }
+    },
+    {
+      "directory": "/api_v2",
+      "groups": {
+        "minor": {
+          "update-types": [
+            "minor"
+          ]
+        },
+        "patch": {
+          "update-types": [
+            "patch"
+          ]
+        }
+      },
+      "package-ecosystem": "cargo",
+      "schedule": {
+        "day": "saturday",
+        "interval": "weekly",
+        "time": "01:00",
+        "timezone": "Asia/Tokyo"
+      }
+    },
+    {
+      "directory": "/id_generator",
+      "groups": {
+        "minor": {
+          "update-types": [
+            "minor"
+          ]
+        },
+        "patch": {
+          "update-types": [
+            "patch"
+          ]
+        }
+      },
+      "package-ecosystem": "cargo",
+      "schedule": {
+        "day": "saturday",
+        "interval": "weekly",
+        "time": "01:00",
+        "timezone": "Asia/Tokyo"
+      }
+    },
+    {
+      "directory": "/",
+      "groups": {
+        "minor": {
+          "update-types": [
+            "minor"
+          ]
+        },
+        "patch": {
+          "update-types": [
+            "patch"
+          ]
+        }
+      },
+      "package-ecosystem": "github-actions",
+      "schedule": {
+        "day": "saturday",
+        "interval": "weekly",
+        "time": "01:00",
+        "timezone": "Asia/Tokyo"
+      }
+    },
+    {
+      "directory": "/go",
+      "groups": {
+        "minor": {
+          "update-types": [
+            "minor"
+          ]
+        },
+        "patch": {
+          "update-types": [
+            "patch"
+          ]
+        }
+      },
+      "package-ecosystem": "gomod",
+      "schedule": {
+        "day": "saturday",
+        "interval": "weekly",
+        "time": "01:00",
+        "timezone": "Asia/Tokyo"
+      }
+    },
+    {
+      "directory": "/",
+      "groups": {
+        "minor": {
+          "update-types": [
+            "minor"
+          ]
+        },
+        "patch": {
+          "update-types": [
+            "patch"
+          ]
+        }
+      },
+      "package-ecosystem": "npm",
+      "schedule": {
+        "day": "saturday",
+        "interval": "weekly",
+        "time": "01:00",
+        "timezone": "Asia/Tokyo"
+      }
+    },
+    {
+      "directory": "c",
+      "groups": {
+        "minor": {
+          "update-types": [
+            "minor"
+          ]
+        },
+        "patch": {
+          "update-types": [
+            "patch"
+          ]
+        }
+      },
+      "package-ecosystem": "npm",
+      "schedule": {
+        "day": "saturday",
+        "interval": "weekly",
+        "time": "01:00",
+        "timezone": "Asia/Tokyo"
+      }
+    },
+    {
+      "directory": "l",
+      "groups": {
+        "minor": {
+          "update-types": [
+            "minor"
+          ]
+        },
+        "patch": {
+          "update-types": [
+            "patch"
+          ]
+        }
+      },
+      "package-ecosystem": "npm",
+      "schedule": {
+        "day": "saturday",
+        "interval": "weekly",
+        "time": "01:00",
+        "timezone": "Asia/Tokyo"
+      }
+    },
+    {
+      "directory": "i",
+      "groups": {
+        "minor": {
+          "update-types": [
+            "minor"
+          ]
+        },
+        "patch": {
+          "update-types": [
+            "patch"
+          ]
+        }
+      },
+      "package-ecosystem": "npm",
+      "schedule": {
+        "day": "saturday",
+        "interval": "weekly",
+        "time": "01:00",
+        "timezone": "Asia/Tokyo"
+      }
+    },
+    {
+      "directory": "e",
+      "groups": {
+        "minor": {
+          "update-types": [
+            "minor"
+          ]
+        },
+        "patch": {
+          "update-types": [
+            "patch"
+          ]
+        }
+      },
+      "package-ecosystem": "npm",
+      "schedule": {
+        "day": "saturday",
+        "interval": "weekly",
+        "time": "01:00",
+        "timezone": "Asia/Tokyo"
+      }
+    },
+    {
+      "directory": "n",
+      "groups": {
+        "minor": {
+          "update-types": [
+            "minor"
+          ]
+        },
+        "patch": {
+          "update-types": [
+            "patch"
+          ]
+        }
+      },
+      "package-ecosystem": "npm",
+      "schedule": {
+        "day": "saturday",
+        "interval": "weekly",
+        "time": "01:00",
+        "timezone": "Asia/Tokyo"
+      }
+    },
+    {
+      "directory": "t",
+      "groups": {
+        "minor": {
+          "update-types": [
+            "minor"
+          ]
+        },
+        "patch": {
+          "update-types": [
+            "patch"
+          ]
+        }
+      },
+      "package-ecosystem": "npm",
+      "schedule": {
+        "day": "saturday",
+        "interval": "weekly",
+        "time": "01:00",
+        "timezone": "Asia/Tokyo"
+      }
+    },
+    {
+      "directory": "/",
+      "groups": {
+        "minor": {
+          "update-types": [
+            "minor"
+          ]
+        },
+        "patch": {
+          "update-types": [
+            "patch"
+          ]
+        }
+      },
+      "package-ecosystem": "pip",
+      "schedule": {
+        "day": "saturday",
+        "interval": "weekly",
+        "time": "01:00",
+        "timezone": "Asia/Tokyo"
+      }
+    },
+    {
+      "directory": "/grpc_py",
+      "groups": {
+        "minor": {
+          "update-types": [
+            "minor"
+          ]
+        },
+        "patch": {
+          "update-types": [
+            "patch"
+          ]
+        }
+      },
+      "package-ecosystem": "pip",
+      "schedule": {
+        "day": "saturday",
+        "interval": "weekly",
+        "time": "01:00",
+        "timezone": "Asia/Tokyo"
+      }
+    },
+    {
+      "directory": "/tests/e2e",
+      "groups": {
+        "minor": {
+          "update-types": [
+            "minor"
+          ]
+        },
+        "patch": {
+          "update-types": [
+            "patch"
+          ]
+        }
+      },
+      "package-ecosystem": "pip",
+      "schedule": {
+        "day": "saturday",
+        "interval": "weekly",
+        "time": "01:00",
+        "timezone": "Asia/Tokyo"
+      }
+    }
+  ],
+  "version": 2
+}

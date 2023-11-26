@@ -31,6 +31,17 @@ ENV RUSTUP_HOME "/usr/local/rustup"
 ENV CARGO_HOME "/usr/local/cargo"
 
 
+FROM ubuntu:22.04 AS rye_downloader
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+   --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+   apt-get update \
+   && DEBIAN_FRONTEND=noninteractive apt-get install -y curl
+RUN curl -sSf https://rye-up.com/get | RYE_VERSION="0.15.2" RYE_INSTALL_OPTION="--yes" bash
+RUN /root/.rye/shims/rye fetch cpython@3.12.0
+RUN cd /root/.rye/py/cpython@3.12.0/install/bin && ln -s python3 python
+RUN /root/.rye/py/cpython@3.12.0/install/bin/python3 -m pip install poetry==1.7.1
+
+
 FROM ubuntu:22.04 AS devcontainer
 RUN sed \
    -e 's|^path-exclude=/usr/share/man|# path-exclude=/usr/share/man|g' \
@@ -81,9 +92,11 @@ RUN apt-get update \
    git \
    jq \
    less \
+   libssl-dev \
+   mold \
    oathtool \
-   python3.11-full \
-   python3-pip \
+   pkg-config \
+   postgresql-client \
    sudo \
    tig \
    tree \
@@ -91,7 +104,8 @@ RUN apt-get update \
    unzip \
    wget \
    vim
-RUN python3.11 -m pip install poetry==1.7.0
+COPY --link --from=rye_downloader /root/.rye /root/.rye
+ENV PATH "/root/.rye/py/cpython@3.12.0/install/bin:${PATH}"
 
 COPY --link .devcontainer/skel /etc/skel
 
@@ -120,7 +134,14 @@ ENV RUSTUP_HOME "/usr/local/rustup"
 ENV CARGO_HOME "/home/${devcontainer_user:?}/.cargo"
 
 
-FROM python:3.11.5-slim-bullseye AS base_py
+FROM python:3.11.5-slim-bullseye AS base_py11
+ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE 1
+WORKDIR /app
+
+FROM ubuntu:22.04 AS base_poetry12
+COPY --link --from=rye_downloader /root/.rye /root/.rye
+ENV PATH "/root/.rye/py/cpython@3.12.0/install/bin:${PATH}"
 ENV PYTHONUNBUFFERED 1
 ENV PYTHONDONTWRITEBYTECODE 1
 WORKDIR /app
@@ -131,7 +152,7 @@ FROM envoyproxy/envoy:v1.28.0 AS base_envoy
 
 FROM postgres:16.1-bookworm AS base_postgres
 
-FROM base_py AS base_poetry
+FROM base_py11 AS base_poetry11
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
    apt-get update \
@@ -260,7 +281,7 @@ RUN cd proto \
    && buf lint \
    && buf generate --config buf.yaml --template buf.gen-go.yaml
 
-FROM base_poetry AS tests_e2e_grpc_builder
+FROM base_poetry11 AS tests_e2e_grpc_builder
 WORKDIR /grpc_py
 COPY --link grpc_py/poetry.toml grpc_py/pyproject.toml grpc_py/poetry.lock ./
 RUN python3 -m poetry install --only main
@@ -316,7 +337,7 @@ WORKDIR /app
 COPY --link --from=api_v1_builder /app/main .
 ENTRYPOINT ["./main"]
 
-FROM base_poetry AS tests_e2e
+FROM base_poetry11 AS tests_e2e
 COPY --link tests/e2e/poetry.toml tests/e2e/pyproject.toml tests/e2e/poetry.lock ./
 RUN python3 -m poetry install --only main
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -329,3 +350,22 @@ COPY --link --from=docker:24.0.2-cli-alpine3.18 /usr/local/libexec/docker/cli-pl
 COPY --link tests/e2e/src src
 COPY --link --from=tests_e2e_grpc_builder /app/gen src/gen
 RUN python3 -m poetry install --only main
+
+
+FROM base_poetry12 AS ruff_builder
+COPY --link poetry.toml pyproject.toml poetry.lock ./
+RUN python3 -m poetry install
+
+
+FROM base_poetry12 AS openapi_codegen_builder
+WORKDIR /app/openapi_codegen
+COPY --link openapi_codegen/poetry.toml openapi_codegen/pyproject.toml openapi_codegen/poetry.lock /
+RUN python3 -m poetry install
+COPY --link openapi_codegen/src src
+COPY --link --from=ruff_builder /app/poetry.toml /app/pyproject.toml /app/poetry.lock /app/
+COPY --link --from=ruff_builder /app/.venv /app/.venv
+WORKDIR /app
+RUN python3 -m poetry run python3 -m ruff check .
+RUN python3 -m poetry run python3 -m ruff format .
+WORKDIR /app/openapi_codegen
+RUN python3 -m poetry install
