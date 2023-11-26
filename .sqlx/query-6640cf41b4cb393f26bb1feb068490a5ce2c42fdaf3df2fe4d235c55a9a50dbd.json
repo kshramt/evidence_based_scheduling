@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nupdate\n    app.users\nset\n    head_client_id = $2,\n    head_session_id = $3,\n    head_patch_id = $4\nwhere\n    id = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6640cf41b4cb393f26bb1feb068490a5ce2c42fdaf3df2fe4d235c55a9a50dbd"
+}

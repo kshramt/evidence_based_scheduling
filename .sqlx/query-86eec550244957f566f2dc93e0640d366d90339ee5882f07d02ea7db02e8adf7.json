@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        with\n        new_client as (\n          insert into\n            app.clients (user_id, client_id, name)\n          values\n            ($1, $2, $3)\n          returning\n            user_id,\n            client_id\n        )\n      insert into\n        app.pending_patches (\n          user_id,\n          consumer_client_id,\n          producer_client_id,\n          producer_session_id,\n          producer_patch_id\n        )\n      select\n        new_client.user_id,\n        new_client.client_id,\n        app.patches.client_id,\n        app.patches.session_id,\n        app.patches.patch_id\n      from\n        new_client\n        inner join app.patches on new_client.user_id = app.patches.user_id\n        and new_client.client_id != 0\n        and new_client.client_id != app.patches.client_id\n;\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "86eec550244957f566f2dc93e0640d366d90339ee5882f07d02ea7db02e8adf7"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\ninsert into\n    app.fake_idp_users (id, name)\nvalues\n    ($1, $2)\n;\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ee40779baf412293e234d858bec65dd9d100fa8b2e2f0c870a4c047097fd4739"
+}

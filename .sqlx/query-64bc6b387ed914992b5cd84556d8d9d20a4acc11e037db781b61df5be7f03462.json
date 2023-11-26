@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\ndelete from\n    app.pending_patches\nwhere\n    user_id = $1\n    and consumer_client_id = $2\n    and producer_client_id = $3\n    and producer_session_id = $4\n    and producer_patch_id = $5\n;\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "64bc6b387ed914992b5cd84556d8d9d20a4acc11e037db781b61df5be7f03462"
+}

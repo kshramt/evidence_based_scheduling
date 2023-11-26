@@ -14,19 +14,22 @@ pub struct FakeIdpCreateUserResponse {
 }
 
 #[async_trait::async_trait]
-pub trait Api<TError: axum::response::IntoResponse, TState> {
+pub trait Api {
+    type TError: axum::response::IntoResponse;
+    type TState;
+
     async fn create_user(
-        axum::extract::State(state): axum::extract::State<std::sync::Arc<TState>>,
+        axum::extract::State(state): axum::extract::State<std::sync::Arc<Self::TState>>,
         axum::Json(body): axum::Json<FakeIdpCreateUserRequest>,
-    ) -> Result<axum::Json<FakeIdpCreateUserResponse>, TError>;
+    ) -> Result<axum::Json<FakeIdpCreateUserResponse>, Self::TError>;
 }
 
-pub fn register_app<
-    TApi: 'static + Api<TError, TState>,
-    TError: 'static + axum::response::IntoResponse,
-    TState: 'static + Send + Sync,
->(
-    app: axum::Router<std::sync::Arc<TState>>,
-) -> axum::Router<std::sync::Arc<TState>> {
+pub fn register_app<TApi>(
+    app: axum::Router<std::sync::Arc<TApi::TState>>,
+) -> axum::Router<std::sync::Arc<TApi::TState>>
+where
+    TApi: 'static + Api,
+    TApi::TState: Send + Sync,
+{
     app.route("/api/v2/users/", axum::routing::post(TApi::create_user))
 }

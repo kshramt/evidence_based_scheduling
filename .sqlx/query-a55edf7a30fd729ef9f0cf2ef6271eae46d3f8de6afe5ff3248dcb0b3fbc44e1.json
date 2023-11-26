@@ -1,0 +1,72 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nselect\n    patches.user_id,\n    patches.client_id,\n    patches.session_id,\n    patches.patch_id,\n    patches.parent_client_id,\n    patches.parent_session_id,\n    patches.parent_patch_id,\n    patches.patch,\n    patches.created_at\nfrom\n    app.pending_patches pending_patches\n    inner join app.patches patches on pending_patches.user_id = patches.user_id\n    and pending_patches.producer_client_id = patches.client_id\n    and pending_patches.producer_session_id = patches.session_id\n    and pending_patches.producer_patch_id = patches.patch_id\nwhere\n    pending_patches.user_id = $1\n    and pending_patches.consumer_client_id = $2\nlimit\n    $3\n;\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "client_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "session_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "patch_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "parent_client_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "parent_session_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "parent_patch_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "patch",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a55edf7a30fd729ef9f0cf2ef6271eae46d3f8de6afe5ff3248dcb0b3fbc44e1"
+}
