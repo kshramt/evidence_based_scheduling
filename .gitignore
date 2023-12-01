@@ -25,7 +25,10 @@ yarn-error.log*
 
 **/pgdata/
 **/pgdata_*/
+**/pgdata*/
 
 **/test_results/
 **/playwright-report/
 **/playwright/.cache/
+
+**/target/
