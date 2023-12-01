@@ -21,10 +21,10 @@ values
 }
 
 pub struct FakeIdpGetUserByNameRow {
-    id: String,
-    name: String,
-    created_at: chrono::DateTime<chrono::Utc>,
-    updated_at: chrono::DateTime<chrono::Utc>,
+    pub id: String,
+    pub name: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
 pub async fn fake_idp_get_user_by_name(
@@ -49,12 +49,12 @@ where
 }
 
 pub struct RawCreateUserRow {
-    id: String,
-    head_client_id: i64,
-    head_session_id: i64,
-    head_patch_id: i64,
-    created_at: chrono::DateTime<chrono::Utc>,
-    updated_at: chrono::DateTime<chrono::Utc>,
+    pub id: String,
+    pub head_client_id: i64,
+    pub head_session_id: i64,
+    pub head_patch_id: i64,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
 pub async fn raw_create_user(
@@ -90,8 +90,8 @@ returning
 }
 
 pub struct CreateSeqRow {
-    user_id: String,
-    last_value: i64,
+    pub user_id: String,
+    pub last_value: i64,
 }
 
 pub async fn create_seq(
@@ -116,7 +116,7 @@ returning
 }
 
 pub struct UpdateLastSeqValueRow {
-    last_value: i64,
+    pub last_value: i64,
 }
 
 pub async fn update_last_seq_value(
@@ -152,35 +152,35 @@ pub async fn create_client(
 ) -> sqlx::Result<PgQueryResult> {
     sqlx::query!(
         r#"
-        with
-        new_client as (
-          insert into
-            app.clients (user_id, client_id, name)
-          values
-            ($1, $2, $3)
-          returning
-            user_id,
-            client_id
-        )
-      insert into
-        app.pending_patches (
-          user_id,
-          consumer_client_id,
-          producer_client_id,
-          producer_session_id,
-          producer_patch_id
-        )
-      select
-        new_client.user_id,
-        new_client.client_id,
-        app.patches.client_id,
-        app.patches.session_id,
-        app.patches.patch_id
-      from
-        new_client
-        inner join app.patches on new_client.user_id = app.patches.user_id
-        and new_client.client_id != 0
-        and new_client.client_id != app.patches.client_id
+with
+    new_client as (
+        insert into
+        app.clients (user_id, client_id, name)
+        values
+        ($1, $2, $3)
+        returning
+        user_id,
+        client_id
+    )
+insert into
+    app.pending_patches (
+        user_id,
+        consumer_client_id,
+        producer_client_id,
+        producer_session_id,
+        producer_patch_id
+    )
+select
+    new_client.user_id,
+    new_client.client_id,
+    app.patches.client_id,
+    app.patches.session_id,
+    app.patches.patch_id
+from
+    new_client
+    inner join app.patches on new_client.user_id = app.patches.user_id
+    and new_client.client_id != 0
+    and new_client.client_id != app.patches.client_id
 ;
 "#,
         user_id,
@@ -192,18 +192,17 @@ pub async fn create_client(
 }
 
 pub struct Patch {
-    user_id: String,
-    client_id: i64,
-    session_id: i64,
-    patch_id: i64,
-    parent_client_id: i64,
-    parent_session_id: i64,
-    parent_patch_id: i64,
-    patch: serde_json::Value,
-    created_at: chrono::DateTime<chrono::Utc>,
+    pub client_id: i64,
+    pub session_id: i64,
+    pub patch_id: i64,
+    pub parent_client_id: i64,
+    pub parent_session_id: i64,
+    pub parent_patch_id: i64,
+    pub patch: serde_json::Value,
+    pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-pub async fn create_patches(
+pub async fn create_patches_for_user(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     user_id: &str,
     patches: &[Patch],
@@ -272,15 +271,15 @@ from
 }
 
 pub struct GetPendingPatchesRow {
-    user_id: String,
-    client_id: i64,
-    session_id: i64,
-    patch_id: i64,
-    parent_client_id: i64,
-    parent_session_id: i64,
-    parent_patch_id: i64,
-    patch: serde_json::Value,
-    created_at: chrono::DateTime<chrono::Utc>,
+    pub user_id: String,
+    pub client_id: i64,
+    pub session_id: i64,
+    pub patch_id: i64,
+    pub parent_client_id: i64,
+    pub parent_session_id: i64,
+    pub parent_patch_id: i64,
+    pub patch: serde_json::Value,
+    pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
 pub async fn get_pending_patches(
@@ -324,18 +323,18 @@ limit
 }
 
 pub struct PatchKey {
-    client_id: i64,
-    session_id: i64,
-    patch_id: i64,
+    pub client_id: i64,
+    pub session_id: i64,
+    pub patch_id: i64,
 }
 
 pub async fn delete_pending_patches(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     user_id: &str,
-    client_id: &i64,
-    patches: &[PatchKey],
+    client_id: i64,
+    patch_keys: &[PatchKey],
 ) -> sqlx::Result<()> {
-    for patch in patches.iter() {
+    for patch_key in patch_keys.iter() {
         sqlx::query!(
             r#"
 delete from
@@ -350,9 +349,9 @@ where
 "#,
             &user_id,
             &client_id,
-            &patch.client_id,
-            &patch.session_id,
-            &patch.patch_id,
+            &patch_key.client_id,
+            &patch_key.session_id,
+            &patch_key.patch_id,
         )
         .execute(&mut **tx)
         .await?;
@@ -361,11 +360,11 @@ where
 }
 
 pub struct GetHeadRow {
-    head_client_id: i64,
-    head_session_id: i64,
-    head_patch_id: i64,
-    created_at: chrono::DateTime<chrono::Utc>,
-    name: String,
+    pub head_client_id: i64,
+    pub head_session_id: i64,
+    pub head_patch_id: i64,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub name: String,
 }
 
 pub async fn get_head(
@@ -400,15 +399,16 @@ where
     .await
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn update_head_if_not_modified(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     user_id: &str,
-    client_id: &i64,
-    session_id: &i64,
-    patch_id: &i64,
-    prev_client_id: &i64,
-    prev_session_id: &i64,
-    prev_patch_id: &i64,
+    client_id: i64,
+    session_id: i64,
+    patch_id: i64,
+    prev_client_id: i64,
+    prev_session_id: i64,
+    prev_patch_id: i64,
 ) -> sqlx::Result<PgQueryResult> {
     sqlx::query!(
         r#"
@@ -440,9 +440,9 @@ where
 pub async fn update_head(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     user_id: &str,
-    client_id: &i64,
-    session_id: &i64,
-    patch_id: &i64,
+    client_id: i64,
+    session_id: i64,
+    patch_id: i64,
 ) -> sqlx::Result<PgQueryResult> {
     sqlx::query!(
         r#"

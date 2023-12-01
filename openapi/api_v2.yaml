@@ -1,0 +1,387 @@
+openapi: 3.0.0
+info:
+  title: API V2
+  version: 2.0.0
+security:
+  - bearerAuth: []
+paths:
+  /api/v2/sys/health:
+    get:
+      summary: Check the health of the system.
+      security: []
+      responses:
+        "200":
+          description: System is healthy.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SysHealthResponse"
+  /api/v2/fake_idp/users:
+    post:
+      summary: Create a user for the fake ID provider.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FakeIdpCreateUserRequest"
+      responses:
+        "201":
+          description: User created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FakeIdpCreateUserResponse"
+  /api/v2/fake_idp/login/id_token:
+    post:
+      summary: Create an id token for the fake ID provider.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FakeIdpCreateUserRequest"
+      responses:
+        "200":
+          description: ID token created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FakeIdpCreateIdTokenResponse"
+  /api/v2/users:
+    post:
+      summary: Create a user with the given ID token in the authorization Bearer header.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: User created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateUserResponse"
+  /api/v2/users/{user_id}/clients:
+    post:
+      summary: Create a client with the given ID token in the authorization Bearer header.
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClientRequest"
+      responses:
+        "201":
+          description: Client created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateClientResponse"
+  /api/v2/users/{user_id}/patches:
+    post:
+      summary: Push un-synched patches to the remote.
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePatchesRequest"
+      responses:
+        "201":
+          description: Patches pushed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatePatchesResponse"
+  /api/v2/users/{user_id}/clients/{client_id}/pending_patches:
+    get:
+      summary: Retrieve un-synched patches from the remote.
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: client_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: limit
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Patches retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetPendingPatchesResponse"
+  /api/v2/users/{user_id}/clients/{client_id}/pending_patches:batch:
+    delete:
+      summary: Delete remote patches that have been downloaded locally.
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: client_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeletePendingPatchesRequest"
+      responses:
+        "200":
+          description: Patches deleted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeletePendingPatchesResponse"
+  /api/v2/users/{user_id}/head:
+    get:
+      summary: Get the main branch.
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Head retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetHeadResponse"
+    put:
+      summary: Set the main branch.
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateHeadRequest"
+      responses:
+        "200":
+          description: Head has been set.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateHeadResponse"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Use the following value for the `Authorization` header:
+
+        ```
+        Bearer <id_token>
+        ```
+
+        where `<id_token>` is the Base64-encoded ID token.
+  schemas:
+    IdToken:
+      type: object
+      properties:
+        user_id:
+          type: string
+      required:
+        - user_id
+    Patch:
+      type: object
+      properties:
+        patch_key:
+          $ref: "#/components/schemas/PatchKey"
+        parent_patch_key:
+          $ref: "#/components/schemas/PatchKey"
+        created_at:
+          type: string
+          format: date-time
+        patch:
+          description: Any JSON value.
+      required:
+        - patch_key
+        - parent_patch_key
+        - created_at
+        - patch
+    PatchKey:
+      type: object
+      properties:
+        client_id:
+          type: integer
+          format: int64
+        session_id:
+          type: integer
+          format: int64
+        patch_id:
+          type: integer
+          format: int64
+      required:
+        - client_id
+        - session_id
+        - patch_id
+    SysHealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    FakeIdpCreateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+    FakeIdpCreateUserResponse:
+      type: object
+      properties:
+        token:
+          $ref: "#/components/schemas/IdToken"
+      required:
+        - token
+    FakeIdpCreateIdTokenRequest:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+    FakeIdpCreateIdTokenResponse:
+      type: object
+      properties:
+        token:
+          $ref: "#/components/schemas/IdToken"
+      required:
+        - token
+    CreateUserRequest:
+      type: object
+      properties: {}
+    CreateUserResponse:
+      type: object
+      properties: {}
+    CreateClientRequest:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+    CreateClientResponse:
+      type: object
+      properties:
+        client_id:
+          type: integer
+          format: int64
+      required:
+        - client_id
+    GetPendingPatchesResponse:
+      type: object
+      properties:
+        patches:
+          type: array
+          items:
+            $ref: "#/components/schemas/Patch"
+      required:
+        - patches
+    DeletePendingPatchesRequest:
+      type: object
+      properties:
+        patch_keys:
+          type: array
+          items:
+            $ref: "#/components/schemas/PatchKey"
+      required:
+        - patch_keys
+    DeletePendingPatchesResponse:
+      type: object
+      properties: {}
+    CreatePatchesRequest:
+      type: object
+      properties:
+        patches:
+          type: array
+          items:
+            $ref: "#/components/schemas/Patch"
+      required:
+        - patches
+    CreatePatchesResponse:
+      type: object
+      properties: {}
+    GetHeadResponse:
+      type: object
+      properties:
+        client_id:
+          type: integer
+          format: int64
+        session_id:
+          type: integer
+          format: int64
+        patch_id:
+          type: integer
+          format: int64
+        created_at:
+          type: string
+          format: date-time
+        name:
+          type: string
+      required:
+        - client_id
+        - session_id
+        - patch_id
+        - created_at
+        - name
+    UpdateHeadRequest:
+      type: object
+      properties:
+        patch_key:
+          $ref: "#/components/schemas/PatchKey"
+        header_if_match:
+          $ref: "#/components/schemas/PatchKey"
+      required:
+        - patch_key
+    UpdateHeadResponse:
+      type: object
+      properties:
+        updated:
+          type: boolean
+      required:
+        - updated

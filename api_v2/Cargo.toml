@@ -8,8 +8,9 @@ edition = "2021"
 [dependencies]
 anyhow = { version = "1.0.75", features = ["backtrace"] }
 async-trait = "0.1.74"
-axum = "0.6.20"
-chrono = "0.4.31"
+axum = { version = "0.6.20", features = ["headers", "macros", "tracing"] }
+base64 = "0.21.5"
+chrono = { version = "0.4.31", features = ["serde"] }
 hyper = { version = "1.0.1", features = ["full"] }
 id_generator = { path = "../id_generator" }
 serde = { version = "1.0.193", features = ["derive"] }

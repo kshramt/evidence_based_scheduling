@@ -1,9 +1,13 @@
 import abc
+import json
+import re
 import sys
-from typing import Literal, Self
+from typing import Final, Iterable, Literal, Self
 
 import pydantic
 import yaml
+
+SEP_PAT: Final = re.compile(r"[/_{}:]")
 
 
 class NoExtraModel(pydantic.BaseModel):
@@ -41,10 +45,17 @@ class BooleanSchema(AbstractSchema):
 
 class StringSchema(AbstractSchema):
     type: Literal["string"]
-    format: None | Literal["date-time"] = None
 
     def type_repr(self: Self) -> str:
         return "String"
+
+
+class DateTimeSchema(AbstractSchema):
+    type: Literal["string"]
+    format: Literal["date-time"]
+
+    def type_repr(self: Self) -> str:
+        return "chrono::DateTime<chrono::Utc>"
 
 
 class IntegerSchema(AbstractSchema):
@@ -72,7 +83,13 @@ class Ref(AbstractSchema):
 
 
 type NonObjectSchema = (
-    Ref | StringSchema | IntegerSchema | BooleanSchema | AnySchema | ArraySchema
+    Ref
+    | StringSchema
+    | DateTimeSchema
+    | IntegerSchema
+    | BooleanSchema
+    | AnySchema
+    | ArraySchema
 )
 
 type Schema = (
@@ -106,37 +123,32 @@ class Content(NoExtraModel):
     applicationJson: _Schema = pydantic.Field(..., alias="application/json")
 
 
+class Operation(NoExtraModel):
+    class Parameter(NoExtraModel):
+        name: str
+        in_: Literal["path", "query"] = pydantic.Field(..., alias="in")
+        required: bool
+        schema: NonObjectSchema
+
+    class RequestBody(NoExtraModel):
+        required: Literal[True]
+        content: Content
+
+    class Response(NoExtraModel):
+        description: str
+        content: Content
+
+    summary: str
+    parameters: None | list[Parameter] = None
+    requestBody: None | RequestBody = None
+    responses: dict[str, Response]
+    security: None | list[BearerAuth] = None
+
+
 class OpenApi(NoExtraModel):
     class Info(NoExtraModel):
         title: str
         version: str
-
-    class Path(NoExtraModel):
-        class Operation(NoExtraModel):
-            class Parameter(NoExtraModel):
-                name: str
-                in_: Literal["path", "query"] = pydantic.Field(..., alias="in")
-                required: bool
-                schema: NonObjectSchema
-
-            class RequestBody(NoExtraModel):
-                required: Literal[True]
-                content: Content
-
-            class Response(NoExtraModel):
-                description: str
-                content: Content
-
-            summary: str
-            parameters: None | list[Parameter] = None
-            requestBody: RequestBody
-            responses: dict[str, Response]
-            security: None | list[BearerAuth] = None
-
-        get: None | Operation = None
-        post: None | Operation = None
-        put: None | Operation = None
-        delete: None | Operation = None
 
     class Components(NoExtraModel):
         schemas: dict[str, ObjectSchema]
@@ -145,28 +157,246 @@ class OpenApi(NoExtraModel):
     openapi: str
     info: Info
     security: None | list[BearerAuth] = None
-    paths: dict[str, Path]
+    paths: dict[str, dict[str, Operation]]
     components: Components
 
+    def gen(self: Self) -> None:
+        self.gen_schemas()
+        self.gen_responses()
+        self.gen_api()
+        self.gen_register()
 
-def gen_schemas(spec: OpenApi) -> None:
-    for name, schema in spec.components.schemas.items():
-        required_fields = set(schema.required or [])
-        print("#[derive(Debug, serde::Deserialize, serde::Serialize)]")
-        print(f"pub struct {name} {{")
-        for field_name, field_schema in schema.properties.items():
-            type_repr = field_schema.type_repr()
-            if field_name not in required_fields:
-                type_repr = f"Option<{type_repr}>"
-            print(f"    pub {field_name}: {type_repr},")
-        print("}")
+    def gen_schemas(self: Self) -> None:
+        for name, schema in self.components.schemas.items():
+            required_fields = set(schema.required or [])
+            print("#[derive(Debug, serde::Deserialize, serde::Serialize)]")
+            print(f"pub struct {name} {{")
+            for field_name, field_schema in schema.properties.items():
+                type_repr = field_schema.type_repr()
+                if field_name not in required_fields:
+                    type_repr = f"Option<{type_repr}>"
+                print(f"    pub {field_name}: {type_repr},")
+            print("}")
+
+    def gen_responses(self: Self) -> None:
+        for path, op_name, op_def in self._get_ops():
+            type_name = _get_type_name_of_path_and_op(path, op_name)
+            path_params = _get_path_params(op_def)
+            if path_params:
+                print(
+                    f"""\
+#[derive(Debug, serde::Deserialize)]
+pub struct {type_name}Path {{"""
+                )
+                for param in path_params:
+                    typ = param.schema.type_repr()
+                    if not param.required:
+                        typ = f"Option<{typ}>"
+                    print(
+                        f"""\
+    pub {param.name}: {typ},"""
+                    )
+                print(
+                    """\
+}"""
+                )
+            query_params = _get_query_params(op_def)
+            if query_params:
+                print(
+                    f"""\
+#[derive(Debug, serde::Deserialize)]
+pub struct {type_name}Query {{"""
+                )
+                for param in query_params:
+                    typ = param.schema.type_repr()
+                    if not param.required:
+                        typ = f"Option<{typ}>"
+                    print(
+                        f"""\
+    pub {param.name}: {typ},"""
+                    )
+                print(
+                    """\
+}"""
+                )
+            print(
+                f"""\
+#[derive(Debug)]
+pub enum {type_name} {{"""
+            )
+            for resp_code, resp_def in op_def.responses.items():
+                print(
+                    f"""\
+    S{resp_code}({resp_def.content.applicationJson.schema.type_repr()}),"""
+                )
+            print(
+                """
+}"""
+            )
+            print(
+                f"""\
+impl axum::response::IntoResponse for {type_name} {{
+    fn into_response(self) -> axum::response::Response {{
+        match self  {{"""
+            )
+            for resp_code, _ in op_def.responses.items():
+                print(
+                    f"""\
+            {type_name}::S{resp_code}(body) => (axum::http::StatusCode::{_STATUS_CODE_DICT[resp_code]}, axum::Json(body)),"""
+                )
+            print(
+                """
+        }.into_response()
+    }
+}"""
+            )
+
+    def gen_api(self: Self) -> None:
+        print(
+            """\
+#[async_trait::async_trait]
+pub trait Api {
+    type TError: axum::response::IntoResponse;
+    type TState: Clone + Send + Sync;
+    type TToken: axum::extract::FromRequestParts<Self::TState, Rejection = Self::TError> + Send;
+
+"""
+        )
+        for path, op_name, op_def in self._get_ops():
+            security = self._get_security(path, op_name)
+            fn_name = _get_fn_name(path, op_name)
+            type_name = _get_type_name_of_path_and_op(path, op_name)
+            print(
+                f"""\
+    async fn {fn_name}(
+        axum::extract::State(state): axum::extract::State<Self::TState>,"""
+            )
+            if security is not None:
+                print(
+                    """\
+        token: Self::TToken,"""
+                )
+            path_params = _get_path_params(op_def)
+            if path_params:
+                print(
+                    f"""\
+        axum::extract::Path(path): axum::extract::Path<{type_name}Path>,"""
+                )
+            query_params = _get_query_params(op_def)
+            if query_params:
+                print(
+                    f"""\
+        axum::extract::Query(query): axum::extract::Query<{type_name}Query>,"""
+                )
+            if op_def.requestBody:
+                print(
+                    f"""\
+        axum::extract::Json(body): axum::extract::Json<{op_def.requestBody.content.applicationJson.schema.type_repr()}>,"""
+                )
+            print(
+                f"""\
+    ) -> Result<{type_name}, Self::TError>;"""
+            )
+        print(
+            """\
+}"""
+        )
+
+    def gen_register(self: Self) -> None:
+        def _get_app_route(path: str, op_name: str) -> str:
+            return f"""\
+    app.route({_get_axum_string(path)}, axum::routing::{op_name}(TApi::{_get_fn_name(path, op_name)}))"""
+
+        print(
+            """\
+pub fn register_app<TApi: Api + 'static>(
+    app: axum::Router<TApi::TState>,
+) -> axum::Router<TApi::TState> {"""
+        )
+        ops = list(self._get_ops())
+        if ops:
+            for path, op_name, _ in ops[:-1]:
+                print(
+                    f"""\
+    let app = {_get_app_route(path, op_name)};"""
+                )
+            path, op_name, _ = ops[-1]
+            print(
+                f"""\
+    {_get_app_route(path, op_name)}
+}}"""
+            )
+
+    def _get_security(self: Self, path: str, op_name: str) -> None | BearerAuth:
+        """Get the default security and check if it is modified at the operation level."""
+        security = self.security
+        if security is None:
+            security = []
+        op_security = self.paths[path][op_name].security
+        if op_security is not None:
+            security = op_security
+        if len(security) == 0:
+            return None
+        if len(security) == 1:
+            return security[0]
+        raise NotImplementedError("Multiple security is not supported.")
+
+    def _get_ops(self: Self) -> Iterable[tuple[str, str, Operation]]:
+        for path, path_ops in self.paths.items():
+            for op_name, op_def in path_ops.items():
+                yield path, op_name, op_def
 
 
-def gen(spec: OpenApi) -> None:
-    gen_schemas(spec)
+_STATUS_CODE_DICT: Final = {
+    "200": "OK",
+    "201": "CREATED",
+    "204": "NO_CONTENT",
+    "400": "BAD_REQUEST",
+    "401": "UNAUTHORIZED",
+    "403": "FORBIDDEN",
+    "404": "NOT_FOUND",
+    "409": "CONFLICT",
+}
+
+
+def _get_axum_string(s: str) -> str:
+    return json.dumps(s.replace("{", ":").replace("}", ""))
+
+
+def _get_path_params(op_def: Operation) -> list[Operation.Parameter]:
+    return [param for param in op_def.parameters or [] if param.in_ == "path"]
+
+
+def _get_query_params(op_def: Operation) -> list[Operation.Parameter]:
+    return [param for param in op_def.parameters or [] if param.in_ == "query"]
+
+
+def _get_fn_name(path: str, op_name: str) -> str:
+    """Returns function name for the operation.
+
+    # Examples
+    >>> _get_fn_name("/api/v2/users/{user_id}", "get")
+    "api_v2_users_user_id_get"
+    """
+    pat = SEP_PAT
+    parts = pat.split(path) + pat.split(op_name)
+    parts = [part.lower() for part in parts if part]
+    return "_".join(parts)
+
+
+def _get_type_name_of_path_and_op(path: str, op_name: str) -> str:
+    """Returns enum name for the operation.
+
+    # Examples
+    >>> _get_enum_name("/api/v2/users/{user_id}", "get")
+    "ApiV2UsersUserIdGet"
+    """
+    pat = SEP_PAT
+    parts = pat.split(path) + pat.split(op_name)
+    parts = [part.capitalize() for part in parts if part]
+    return "".join(parts)
 
 
 def main() -> None:
     spec = OpenApi.parse_obj(yaml.safe_load(sys.stdin))
-    gen(spec)
-
+    spec.gen()

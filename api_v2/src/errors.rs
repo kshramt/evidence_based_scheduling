@@ -1,22 +1,52 @@
-pub struct AppError(anyhow::Error);
-impl AppError {
-    pub fn new<E: Into<anyhow::Error>>(e: E) -> Self {
-        Self(e.into())
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
+use serde_json::json;
+
+#[derive(Debug)]
+pub enum ErrorStatus {
+    Status400,
+    Status500,
+}
+
+impl std::error::Error for ErrorStatus {}
+
+impl std::fmt::Display for ErrorStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorStatus::Status400 => write!(f, "Status400"),
+            ErrorStatus::Status500 => write!(f, "Status500"),
+        }
     }
 }
 
-impl<E: Into<anyhow::Error>> From<E> for AppError {
-    fn from(e: E) -> Self {
-        Self::new(e)
+impl<T> From<std::sync::PoisonError<std::sync::MutexGuard<'_, T>>> for ErrorStatus {
+    fn from(_: std::sync::PoisonError<std::sync::MutexGuard<'_, T>>) -> Self {
+        Self::Status500
     }
 }
 
-impl axum::response::IntoResponse for AppError {
-    fn into_response(self) -> axum::response::Response {
-        (
-            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Something went wrong: {}", self.0),
-        )
-            .into_response()
+impl From<sqlx::error::Error> for ErrorStatus {
+    fn from(_: sqlx::error::Error) -> Self {
+        Self::Status500
+    }
+}
+
+impl IntoResponse for ErrorStatus {
+    fn into_response(self) -> Response {
+        match self {
+            ErrorStatus::Status400 => (
+                StatusCode::BAD_REQUEST,
+                Json(json!({"error": "Bad request."})),
+            )
+                .into_response(),
+            ErrorStatus::Status500 => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": "Something went wrong."})),
+            )
+                .into_response(),
+        }
     }
 }

@@ -51,10 +51,12 @@
           "editor.defaultFormatter": "esbenp.prettier-vscode"
         },
         "[python]": {
-          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.formatOnSave": true,
           "editor.codeActionsOnSave": {
+            "source.fixAll": true,
             "source.organizeImports": true
-          }
+          },
+          "editor.defaultFormatter": "charliermarsh.ruff"
         },
         "[sql]": {
           "editor.defaultFormatter": "inferrinizzard.prettier-sql-vscode"
@@ -79,6 +81,11 @@
         "go.toolsManagement.autoUpdate": true,
         "insertDateString.format": "YYYY-MM-DDThh:mm:ssZZZZ",
         "javascript.preferGoToSourceDefinition": true,
+        "notebook.formatOnSave.enabled": true,
+        "notebook.codeActionsOnSave": {
+          "source.fixAll": true,
+          "source.organizeImports": true
+        },
         "rust-analyzer.check.command": "clippy",
         "typescript.preferGoToSourceDefinition": true
       }
