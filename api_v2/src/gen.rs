@@ -151,17 +151,17 @@ impl axum::response::IntoResponse for ApiV2UsersUserIdClientsPost {
     }
 }
 #[derive(Debug, serde::Deserialize)]
-pub struct ApiV2UsersUserIdPatchesPostPath {
+pub struct ApiV2UsersUserIdPatchesBatchPostPath {
     pub user_id: String,
 }
 #[derive(Debug)]
-pub enum ApiV2UsersUserIdPatchesPost {
+pub enum ApiV2UsersUserIdPatchesBatchPost {
     S201(CreatePatchesResponse),
 }
-impl axum::response::IntoResponse for ApiV2UsersUserIdPatchesPost {
+impl axum::response::IntoResponse for ApiV2UsersUserIdPatchesBatchPost {
     fn into_response(self) -> axum::response::Response {
         match self {
-            ApiV2UsersUserIdPatchesPost::S201(body) => {
+            ApiV2UsersUserIdPatchesBatchPost::S201(body) => {
                 (axum::http::StatusCode::CREATED, axum::Json(body))
             }
         }
@@ -270,12 +270,12 @@ pub trait Api {
         axum::extract::Path(path): axum::extract::Path<ApiV2UsersUserIdClientsPostPath>,
         axum::extract::Json(body): axum::extract::Json<CreateClientRequest>,
     ) -> Result<ApiV2UsersUserIdClientsPost, Self::TError>;
-    async fn api_v2_users_user_id_patches_post(
+    async fn api_v2_users_user_id_patches_batch_post(
         axum::extract::State(state): axum::extract::State<Self::TState>,
         token: Self::TToken,
-        axum::extract::Path(path): axum::extract::Path<ApiV2UsersUserIdPatchesPostPath>,
+        axum::extract::Path(path): axum::extract::Path<ApiV2UsersUserIdPatchesBatchPostPath>,
         axum::extract::Json(body): axum::extract::Json<CreatePatchesRequest>,
-    ) -> Result<ApiV2UsersUserIdPatchesPost, Self::TError>;
+    ) -> Result<ApiV2UsersUserIdPatchesBatchPost, Self::TError>;
     async fn api_v2_users_user_id_clients_client_id_pending_patches_get(
         axum::extract::State(state): axum::extract::State<Self::TState>,
         token: Self::TToken,
@@ -330,8 +330,8 @@ pub fn register_app<TApi: Api + 'static>(
         axum::routing::post(TApi::api_v2_users_user_id_clients_post),
     );
     let app = app.route(
-        "/api/v2/users/:user_id/patches",
-        axum::routing::post(TApi::api_v2_users_user_id_patches_post),
+        "/api/v2/users/:user_id/patches:batch",
+        axum::routing::post(TApi::api_v2_users_user_id_patches_batch_post),
     );
     let app = app.route(
         "/api/v2/users/:user_id/clients/:client_id/pending_patches",

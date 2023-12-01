@@ -154,12 +154,12 @@ impl gen::Api for ApiImpl {
         ))
     }
 
-    async fn api_v2_users_user_id_patches_post(
+    async fn api_v2_users_user_id_patches_batch_post(
         State(state): State<Arc<AppState>>,
         token: gen::IdToken,
-        Path(path): Path<gen::ApiV2UsersUserIdPatchesPostPath>,
+        Path(path): Path<gen::ApiV2UsersUserIdPatchesBatchPostPath>,
         Json(body): Json<gen::CreatePatchesRequest>,
-    ) -> Result<gen::ApiV2UsersUserIdPatchesPost, errors::ErrorStatus> {
+    ) -> Result<gen::ApiV2UsersUserIdPatchesBatchPost, errors::ErrorStatus> {
         let _ = &token.authorize(&path.user_id)?;
         let mut tx = state.pool.begin().await?;
         let patches: Vec<db::Patch> = body
@@ -178,7 +178,7 @@ impl gen::Api for ApiImpl {
             .collect();
         db::create_patches_for_user(&mut tx, &path.user_id, &patches).await?;
         tx.commit().await?;
-        Ok(gen::ApiV2UsersUserIdPatchesPost::S201(
+        Ok(gen::ApiV2UsersUserIdPatchesBatchPost::S201(
             gen::CreatePatchesResponse {},
         ))
     }
