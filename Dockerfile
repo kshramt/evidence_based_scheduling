@@ -328,6 +328,7 @@ COPY --link data/lib.rs id_generator/src/
 RUN cargo fetch
 COPY --link api_v2/src api_v2/src
 COPY --link id_generator/src id_generator/src
+COPY --link .sqlx  .sqlx
 RUN cargo fmt --check
 RUN cargo clippy --all-targets --all-features -- -D warnings
 RUN cargo test --all-targets --all-features
