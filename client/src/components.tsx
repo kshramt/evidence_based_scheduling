@@ -1030,8 +1030,8 @@ function queueItemContent(index: number, item: TNodeIdsWithPrefix[number]) {
     case "special/header": {
       return (
         <div className="min-h-[1px]">
-          <RunningNodes />
           <PredictedNextNodes />
+          <RunningNodes />
           <hr />
         </div>
       );
