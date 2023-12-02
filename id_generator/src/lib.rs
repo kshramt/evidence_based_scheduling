@@ -1,6 +1,7 @@
 use core::fmt;
 use rand::{Rng, RngCore};
 
+#[derive(Debug)]
 pub struct SortableIdGenerator {
     seq: u16,
     shard: u16,

@@ -13,6 +13,8 @@ use std::{
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
+use tracing::{info, instrument};
+use tracing_subscriber::EnvFilter;
 
 mod db;
 mod errors;
@@ -62,8 +64,9 @@ impl gen::Api for ApiImpl {
     type TState = Arc<AppState>;
     type TToken = gen::IdToken;
 
+    #[instrument(skip(state))]
     async fn api_v2_sys_health_get(
-        State(state): State<Arc<AppState>>,
+        state: State<Arc<AppState>>,
     ) -> Result<gen::ApiV2SysHealthGet, errors::ErrorStatus> {
         let mut tx = state.pool.begin().await?;
         // https://github.com/launchbadge/sqlx/issues/702
@@ -74,8 +77,9 @@ impl gen::Api for ApiImpl {
         }))
     }
 
+    #[instrument(skip(state))]
     async fn api_v2_fake_idp_users_post(
-        State(state): State<Arc<AppState>>,
+        state: State<Arc<AppState>>,
         Json(body): Json<gen::FakeIdpCreateUserRequest>,
     ) -> Result<gen::ApiV2FakeIdpUsersPost, errors::ErrorStatus> {
         let user_id = state.id_generator.lock()?.gen();
@@ -90,8 +94,9 @@ impl gen::Api for ApiImpl {
         ))
     }
 
+    #[instrument(skip(state))]
     async fn api_v2_fake_idp_login_id_token_post(
-        State(state): State<Arc<AppState>>,
+        state: State<Arc<AppState>>,
         Json(body): Json<gen::FakeIdpCreateUserRequest>,
     ) -> Result<gen::ApiV2FakeIdpLoginIdTokenPost, errors::ErrorStatus> {
         let mut tx = state.pool.begin().await?;
@@ -107,8 +112,9 @@ impl gen::Api for ApiImpl {
     /// 2. Create a new seq for the user.
     /// 3. Create the system clietn for the user.
     /// 4. Create the initial patch for the user.
+    #[instrument(skip(state))]
     async fn api_v2_users_post(
-        State(state): State<Arc<AppState>>,
+        state: State<Arc<AppState>>,
         token: gen::IdToken,
         Json(_): Json<gen::CreateUserRequest>,
     ) -> Result<gen::ApiV2UsersPost, errors::ErrorStatus> {
@@ -145,8 +151,9 @@ impl gen::Api for ApiImpl {
         Ok(gen::ApiV2UsersPost::S201(gen::CreateUserResponse {}))
     }
 
+    #[instrument(skip(state))]
     async fn api_v2_users_user_id_clients_post(
-        State(state): State<Arc<AppState>>,
+        state: State<Arc<AppState>>,
         token: gen::IdToken,
         Path(path): Path<gen::ApiV2UsersUserIdClientsPostPath>,
         Json(body): Json<gen::CreateClientRequest>,
@@ -160,8 +167,9 @@ impl gen::Api for ApiImpl {
         ))
     }
 
+    #[instrument(skip(state))]
     async fn api_v2_users_user_id_patches_batch_post(
-        State(state): State<Arc<AppState>>,
+        state: State<Arc<AppState>>,
         token: gen::IdToken,
         Path(path): Path<gen::ApiV2UsersUserIdPatchesBatchPostPath>,
         Json(body): Json<gen::CreatePatchesRequest>,
@@ -189,8 +197,9 @@ impl gen::Api for ApiImpl {
         ))
     }
 
+    #[instrument(skip(state))]
     async fn api_v2_users_user_id_clients_client_id_pending_patches_get(
-        State(state): State<Arc<AppState>>,
+        state: State<Arc<AppState>>,
         token: gen::IdToken,
         Path(path): Path<gen::ApiV2UsersUserIdClientsClientIdPendingPatchesGetPath>,
         Query(query): Query<gen::ApiV2UsersUserIdClientsClientIdPendingPatchesGetQuery>,
@@ -223,8 +232,9 @@ impl gen::Api for ApiImpl {
         ))
     }
 
+    #[instrument(skip(state))]
     async fn api_v2_users_user_id_clients_client_id_pending_patches_batch_delete(
-        State(state): State<Arc<AppState>>,
+        state: State<Arc<AppState>>,
         token: gen::IdToken,
         Path(path): Path<gen::ApiV2UsersUserIdClientsClientIdPendingPatchesBatchDeletePath>,
         Json(body): Json<gen::DeletePendingPatchesRequest>,
@@ -250,8 +260,9 @@ impl gen::Api for ApiImpl {
         )
     }
 
+    #[instrument(skip(state))]
     async fn api_v2_users_user_id_head_get(
-        State(state): State<Arc<AppState>>,
+        state: State<Arc<AppState>>,
         token: gen::IdToken,
         Path(path): Path<gen::ApiV2UsersUserIdHeadGetPath>,
     ) -> Result<gen::ApiV2UsersUserIdHeadGet, errors::ErrorStatus> {
@@ -268,8 +279,9 @@ impl gen::Api for ApiImpl {
         }))
     }
 
+    #[instrument(skip(state))]
     async fn api_v2_users_user_id_head_put(
-        State(state): State<Arc<AppState>>,
+        state: State<Arc<AppState>>,
         token: gen::IdToken,
         Path(path): Path<gen::ApiV2UsersUserIdHeadPutPath>,
         Json(body): Json<gen::UpdateHeadRequest>,
@@ -324,6 +336,7 @@ async fn create_client(
     Ok(client_id)
 }
 
+#[derive(Debug)]
 struct AppState {
     id_generator: Mutex<id_generator::SortableIdGenerator>,
     pool: sqlx::postgres::PgPool,
@@ -366,13 +379,18 @@ async fn get_pool() -> sqlx::postgres::PgPool {
 
 #[tokio::main]
 async fn main() {
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .json()
+        .init();
     let state = std::sync::Arc::new(AppState::new(get_shard(), get_pool().await));
     let app = axum::Router::new();
     let app = gen::register_app::<ApiImpl>(app);
     let app = app.with_state(state);
+    let app = app.layer(tower_http::trace::TraceLayer::new_for_http());
 
     let port = get_server_port();
-    dbg!(port);
+    info!(port = &port);
     let listener = tokio::net::TcpListener::bind(SocketAddr::from(([127, 0, 0, 1], port)))
         .await
         .unwrap();
