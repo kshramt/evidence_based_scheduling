@@ -235,13 +235,13 @@ export interface components {
       name: string;
     };
     FakeIdpCreateUserResponse: {
-      token: components["schemas"]["IdToken"];
+      id_token: components["schemas"]["IdToken"];
     };
     FakeIdpCreateIdTokenRequest: {
       name: string;
     };
     FakeIdpCreateIdTokenResponse: {
-      token: components["schemas"]["IdToken"];
+      id_token: components["schemas"]["IdToken"];
     };
     CreateUserRequest: Record<string, never>;
     CreateUserResponse: Record<string, never>;

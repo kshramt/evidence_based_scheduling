@@ -276,10 +276,10 @@ components:
     FakeIdpCreateUserResponse:
       type: object
       properties:
-        token:
+        id_token:
           $ref: "#/components/schemas/IdToken"
       required:
-        - token
+        - id_token
     FakeIdpCreateIdTokenRequest:
       type: object
       properties:
@@ -290,10 +290,10 @@ components:
     FakeIdpCreateIdTokenResponse:
       type: object
       properties:
-        token:
+        id_token:
           $ref: "#/components/schemas/IdToken"
       required:
-        - token
+        - id_token
     CreateUserRequest:
       type: object
       properties: {}

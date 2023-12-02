@@ -25,7 +25,7 @@ pub struct FakeIdpCreateUserRequest {
 }
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct FakeIdpCreateUserResponse {
-    pub token: IdToken,
+    pub id_token: IdToken,
 }
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct FakeIdpCreateIdTokenRequest {
@@ -33,7 +33,7 @@ pub struct FakeIdpCreateIdTokenRequest {
 }
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct FakeIdpCreateIdTokenResponse {
-    pub token: IdToken,
+    pub id_token: IdToken,
 }
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct CreateUserRequest {}
