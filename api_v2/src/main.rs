@@ -89,7 +89,7 @@ impl gen::Api for ApiImpl {
         tx.commit().await?;
         Ok(gen::FakeIdpUsersPost::S201(
             gen::FakeIdpCreateUserResponse {
-                token: gen::IdToken { user_id },
+                id_token: gen::IdToken { user_id },
             },
         ))
     }
@@ -103,7 +103,7 @@ impl gen::Api for ApiImpl {
         let user = db::fake_idp_get_user_by_name(&mut tx, &body.name).await?;
         Ok(gen::FakeIdpLoginIdTokenPost::S200(
             gen::FakeIdpCreateIdTokenResponse {
-                token: gen::IdToken { user_id: user.id },
+                id_token: gen::IdToken { user_id: user.id },
             },
         ))
     }
