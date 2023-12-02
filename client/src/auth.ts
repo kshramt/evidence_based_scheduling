@@ -1,7 +1,9 @@
 import * as Idb from "idb";
-import * as Connect from "@bufbuild/connect";
-import { createGrpcWebTransport } from "@bufbuild/connect-web";
-import * as C from "./gen/api/v1/api_connect";
+import createClient from "openapi-fetch";
+import * as v2 from "src/gen/api/v2";
+import * as utils from "src/utils";
+
+type TClientV2 = ReturnType<typeof createClient<v2.paths>>;
 
 const db = Idb.openDB<{ auth: { key: "id_token"; value: null | TIdToken } }>(
   "auth",
@@ -20,15 +22,12 @@ export type TIdToken = {
 export class Auth {
   id_token: null | TIdToken;
   loading: Promise<void>;
-  _client: Connect.PromiseClient<typeof C.ApiService>;
-  _on_change_hooks: Set<(id_token: null | TIdToken) => void>;
+  #client: TClientV2;
+  #on_change_hooks: Set<(id_token: null | TIdToken) => void>;
 
   constructor() {
-    this._on_change_hooks = new Set();
-    this._client = Connect.createPromiseClient(
-      C.ApiService,
-      createGrpcWebTransport({ baseUrl: window.location.origin }),
-    );
+    this.#on_change_hooks = new Set();
+    this.#client = createClient<v2.paths>({ baseUrl: window.location.origin });
     this.id_token = null;
     this.loading = db
       .then((db_) => {
@@ -44,41 +43,44 @@ export class Auth {
     if (this.id_token) {
       await this.logOut();
     }
-    const resp = await this._client.fakeIdpCreateUser({ name });
-    if (resp.token === undefined) {
-      throw new Error("`token` is not set");
+    const fake_idp_resp = await this.#client.POST("/fake_idp/users", {
+      body: { name },
+    });
+    if (fake_idp_resp.data === undefined) {
+      throw new Error(JSON.stringify(fake_idp_resp.error));
     }
-    if (resp.token.userId === undefined) {
-      throw new Error("`userId` is not set");
+    const resp = await this.#client.POST("/users", {
+      body: {},
+      headers: { authorization: utils.get_bearer(fake_idp_resp.data.id_token) },
+    });
+    if (resp.data === undefined) {
+      throw new Error(JSON.stringify(resp.error));
     }
-    const id_token = { user_id: resp.token.userId };
-    void this._set_id_token(id_token);
-    return id_token;
+    void this._set_id_token(fake_idp_resp.data.id_token);
+    return fake_idp_resp.data.id_token;
   };
   logIn = async (name: string) => {
     await this.loading;
     if (this.id_token) {
       return;
     }
-    const resp = await this._client.fakeIdpGetIdToken({ name });
-    if (resp.token === undefined) {
-      throw new Error("`token` is not set");
+    const resp = await this.#client.POST("/fake_idp/login/id_token", {
+      body: { name },
+    });
+    if (resp.data === undefined) {
+      throw new Error(JSON.stringify(resp.error));
     }
-    if (resp.token.userId === undefined) {
-      throw new Error("Failed to get an ID token");
-    }
-    const id_token = { user_id: resp.token.userId };
-    void this._set_id_token(id_token);
-    return id_token;
+    void this._set_id_token(resp.data.id_token);
+    return resp.data.id_token;
   };
   logOut = async () => {
     await this._set_id_token(null);
   };
   on_change = (hook: (id_token: null | TIdToken) => void) => {
-    this._on_change_hooks.add(hook);
+    this.#on_change_hooks.add(hook);
     _run_hook(hook, this.id_token);
     return () => {
-      this._on_change_hooks.delete(hook);
+      this.#on_change_hooks.delete(hook);
     };
   };
   waitForAuthentication = async () => {
@@ -113,7 +115,7 @@ export class Auth {
     this._invoke_hooks();
   };
   _invoke_hooks = () => {
-    this._on_change_hooks.forEach((hook) => {
+    this.#on_change_hooks.forEach((hook) => {
       _run_hook(hook, this.id_token);
     });
   };

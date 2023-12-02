@@ -618,3 +618,7 @@ export const assertV = <T>(x: undefined | T): T => {
   }
   return x;
 };
+
+export const get_bearer = (id_token: { user_id: string }) => {
+  return `Bearer ${btoa(JSON.stringify(id_token))}`;
+};
