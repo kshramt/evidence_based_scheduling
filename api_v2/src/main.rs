@@ -1,12 +1,18 @@
 use axum::{
     extract::{FromRequestParts, Path, Query, State},
-    headers::{authorization::Bearer, Authorization},
     http::request::Parts,
-    Json, RequestPartsExt, TypedHeader,
+    Json, RequestPartsExt,
+};
+use axum_extra::{
+    headers::{authorization::Bearer, Authorization},
+    TypedHeader,
 };
 use base64::Engine;
 use serde_json::json;
-use std::sync::{Arc, Mutex};
+use std::{
+    net::SocketAddr,
+    sync::{Arc, Mutex},
+};
 
 mod db;
 mod errors;
@@ -367,8 +373,10 @@ async fn main() {
 
     let port = get_server_port();
     dbg!(port);
-    axum::Server::bind(&format!("0.0.0.0:{}", port).parse().unwrap())
-        .serve(app.into_make_service())
+    let listener = tokio::net::TcpListener::bind(SocketAddr::from(([127, 0, 0, 1], port)))
+        .await
+        .unwrap();
+    axum::serve(listener, app.into_make_service())
         .await
         .unwrap();
 }
