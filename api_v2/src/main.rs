@@ -390,7 +390,7 @@ async fn main() {
 
     let port = get_server_port();
     info!(port = &port);
-    let listener = tokio::net::TcpListener::bind(SocketAddr::from(([127, 0, 0, 1], port)))
+    let listener = tokio::net::TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], port)))
         .await
         .unwrap();
     axum::serve(listener, app.into_make_service())
