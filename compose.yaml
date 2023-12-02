@@ -12,7 +12,7 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
     environment:
-      DATABASE_URI: user=app host=postgres dbname=postgres password=${_POSTGRES_APP_USER_PASSWORD?}
+      DATABASE_URL: user=app host=postgres dbname=postgres password=${_POSTGRES_APP_USER_PASSWORD?}
   nginx:
     restart: unless-stopped
   envoy:
