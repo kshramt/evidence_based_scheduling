@@ -4,6 +4,7 @@ use axum::{
     Json,
 };
 use serde_json::json;
+use tracing::error;
 
 #[derive(Debug)]
 pub enum ErrorStatus {
@@ -23,13 +24,15 @@ impl std::fmt::Display for ErrorStatus {
 }
 
 impl<T> From<std::sync::PoisonError<std::sync::MutexGuard<'_, T>>> for ErrorStatus {
-    fn from(_: std::sync::PoisonError<std::sync::MutexGuard<'_, T>>) -> Self {
+    fn from(err: std::sync::PoisonError<std::sync::MutexGuard<'_, T>>) -> Self {
+        error!(err = err.to_string());
         Self::Status500
     }
 }
 
 impl From<sqlx::error::Error> for ErrorStatus {
-    fn from(_: sqlx::error::Error) -> Self {
+    fn from(err: sqlx::error::Error) -> Self {
+        error!(err = err.to_string());
         Self::Status500
     }
 }
