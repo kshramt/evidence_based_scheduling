@@ -142,7 +142,7 @@ class Operation(NoExtraModel):
     parameters: None | list[Parameter] = None
     requestBody: None | RequestBody = None
     responses: dict[str, Response]
-    security: None | list[BearerAuth] = None
+    security: None | tuple[()] | tuple[BearerAuth] = None
 
 
 class OpenApi(NoExtraModel):
@@ -156,7 +156,7 @@ class OpenApi(NoExtraModel):
 
     openapi: str
     info: Info
-    security: None | list[BearerAuth] = None
+    security: None | tuple[()] | tuple[BearerAuth] = None
     paths: dict[str, dict[str, Operation]]
     components: Components
 
@@ -330,16 +330,18 @@ pub fn register_app<TApi: Api + 'static>(
     def _get_security(self: Self, path: str, op_name: str) -> None | BearerAuth:
         """Get the default security and check if it is modified at the operation level."""
         security = self.security
-        if security is None:
-            security = []
         op_security = self.paths[path][op_name].security
         if op_security is not None:
             security = op_security
-        if len(security) == 0:
-            return None
-        if len(security) == 1:
-            return security[0]
-        raise NotImplementedError("Multiple security is not supported.")
+        match security:
+            case None:
+                return None
+            case ():
+                return None
+            case (BearerAuth(),):
+                return security[0]
+            case _:
+                raise NotImplementedError("Multiple security is not supported.")
 
     def _get_ops(self: Self) -> Iterable[tuple[str, str, Operation]]:
         for path, path_ops in self.paths.items():
