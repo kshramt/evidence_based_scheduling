@@ -209,7 +209,7 @@ export const session_key_context = React.createContext({
 //    This head is used to provide `client_id`, `session_id`, and `patch_id` for `#save_patch`.
 //    The value is initialized with `client_id`, `session_id`, and `patch_id = 0`.
 export class PersistentStateManager {
-  grpc_client: Connect.PromiseClient<typeof C.ApiService>;
+  client_v2: Connect.PromiseClient<typeof C.ApiService>;
   db: Awaited<ReturnType<typeof storage.getDb>>;
   client_id: number;
   session_id: number;
@@ -227,7 +227,7 @@ export class PersistentStateManager {
   #rpc_queue: queues.Queue<null | (() => Promise<void>)> = new queues.Queue();
   #sync_store: ReturnType<typeof _get_store> = _get_store();
   constructor(
-    grpc_client: Connect.PromiseClient<typeof C.ApiService>,
+    client_v2: Connect.PromiseClient<typeof C.ApiService>,
     db: Awaited<ReturnType<typeof storage.getDb>>,
     client_id: number,
     session_id: number,
@@ -239,7 +239,7 @@ export class PersistentStateManager {
     },
     id_token: Auth.TIdToken,
   ) {
-    this.grpc_client = grpc_client;
+    this.client_v2 = client_v2;
     this.db = db;
     this.client_id = client_id;
     this.session_id = session_id;
@@ -381,7 +381,7 @@ export class PersistentStateManager {
         await tx.done;
         await this.#push_rpc(() =>
           retryer.with_retry(() => {
-            return this.grpc_client.createPatches(
+            return this.client_v2.createPatches(
               { patches },
               { headers: { authorization: bearer } },
             );
@@ -433,7 +433,7 @@ export class PersistentStateManager {
     }
     const resp = await this.#push_rpc(() =>
       retryer.with_retry(() =>
-        this.grpc_client.updateHeadIfNotModified(
+        this.client_v2.updateHeadIfNotModified(
           {
             clientId: BigInt(sync_head.client_id),
             sessionId: BigInt(sync_head.session_id),
@@ -455,7 +455,7 @@ export class PersistentStateManager {
       const resp = await this.#push_rpc(() =>
         get_remote_head_and_save_remote_pending_patches(
           this.client_id,
-          this.grpc_client,
+          this.client_v2,
           this.id_token,
           this.db,
           retryer.with_retry,
@@ -586,7 +586,7 @@ export class PersistentStateManager {
           ? { ...this.heads.remote }
           : { ...this.heads.sync };
       await this.#push_rpc(() =>
-        this.grpc_client.updateHead(
+        this.client_v2.updateHead(
           {
             clientId: BigInt(new_head.client_id),
             sessionId: BigInt(new_head.session_id),
@@ -659,7 +659,7 @@ export class PersistentStateManager {
     const resp = await this.#push_rpc(() =>
       get_remote_head_and_save_remote_pending_patches(
         this.client_id,
-        this.grpc_client,
+        this.client_v2,
         this.id_token,
         this.db,
       ),
@@ -690,13 +690,14 @@ export const getPersistentStateManager = async (
 ) => {
   // Open DB
   const db = await storage.getDb(`user-${id_token.user_id}`);
-  const grpc_client = Connect.createPromiseClient(
+  const client_v2 = Connect.createPromiseClient(
     C.ApiService,
     createGrpcWebTransport({ baseUrl: window.location.origin }),
   );
+  // const client_v2 = createClient<v2.paths>({baseUrl: window.location.origin});
 
   // Set client_id
-  const client_id = await get_client_id(grpc_client, db, id_token);
+  const client_id = await get_client_id(client_v2, db, id_token);
 
   // Set session_id
   const session_id = await (async () => {
@@ -718,7 +719,7 @@ export const getPersistentStateManager = async (
   if (local_head === undefined || remote_head === undefined) {
     const resp = await get_remote_head_and_save_remote_pending_patches(
       client_id,
-      grpc_client,
+      client_v2,
       id_token,
       db,
     );
@@ -743,7 +744,7 @@ export const getPersistentStateManager = async (
   }
 
   const res = new PersistentStateManager(
-    grpc_client,
+    client_v2,
     db,
     client_id,
     session_id,
@@ -822,7 +823,7 @@ export const getPersistentStateManager = async (
 
 const get_remote_head_and_save_remote_pending_patches = async (
   client_id: number,
-  grpc_client: Connect.PromiseClient<typeof C.ApiService>,
+  client_v2: Connect.PromiseClient<typeof C.ApiService>,
   id_token: Auth.TIdToken,
   db: Awaited<ReturnType<typeof storage.getDb>>,
   wrapper: typeof retryer.with_retry = (fn) => {
@@ -831,7 +832,7 @@ const get_remote_head_and_save_remote_pending_patches = async (
 ) => {
   const resp = pb2.decode_GetHeadResp(
     await wrapper(() =>
-      grpc_client.getHead(
+      client_v2.getHead(
         { clientId: BigInt(client_id) },
         { headers: { authorization: _get_bearer(id_token) } },
       ),
@@ -840,7 +841,7 @@ const get_remote_head_and_save_remote_pending_patches = async (
   await save_and_remove_remote_pending_patches(
     id_token,
     client_id,
-    grpc_client,
+    client_v2,
     db,
     wrapper,
   );
@@ -850,7 +851,7 @@ const get_remote_head_and_save_remote_pending_patches = async (
 const save_and_remove_remote_pending_patches = async (
   id_token: Auth.TIdToken,
   client_id: number,
-  grpc_client: Connect.PromiseClient<typeof C.ApiService>,
+  client_v2: Connect.PromiseClient<typeof C.ApiService>,
   db: Awaited<ReturnType<typeof storage.getDb>>,
   wrapper: typeof retryer.with_retry = (fn) => {
     return fn();
@@ -860,7 +861,7 @@ const save_and_remove_remote_pending_patches = async (
   const req = { clientId: BigInt(client_id), size: BigInt(2000) };
   const opts = { headers: { authorization: bearer } };
   while (true) {
-    const resp = await wrapper(() => grpc_client.getPendingPatches(req, opts));
+    const resp = await wrapper(() => client_v2.getPendingPatches(req, opts));
     if (resp.patches.length === 0) {
       return;
     }
@@ -937,7 +938,7 @@ const save_and_remove_remote_pending_patches = async (
       );
       const req = { clientId: BigInt(client_id), patches: ps };
       const opts = { headers: { authorization: bearer } };
-      await wrapper(() => grpc_client.deletePendingPatches(req, opts));
+      await wrapper(() => client_v2.deletePendingPatches(req, opts));
     }
   }
 };
