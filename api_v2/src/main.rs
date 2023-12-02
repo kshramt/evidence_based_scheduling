@@ -238,8 +238,7 @@ impl gen::Api for ApiImpl {
         token: gen::IdToken,
         Path(path): Path<gen::UsersUserIdClientsClientIdPendingPatchesBatchDeletePath>,
         Json(body): Json<gen::DeletePendingPatchesRequest>,
-    ) -> Result<gen::UsersUserIdClientsClientIdPendingPatchesBatchDelete, errors::ErrorStatus>
-    {
+    ) -> Result<gen::UsersUserIdClientsClientIdPendingPatchesBatchDelete, errors::ErrorStatus> {
         let _ = &token.authorize(&path.user_id)?;
         let mut tx = state.pool.begin().await?;
         let patch_keys: Vec<db::PatchKey> = body
@@ -316,9 +315,9 @@ impl gen::Api for ApiImpl {
             }
         };
         tx.commit().await?;
-        Ok(gen::UsersUserIdHeadPut::S200(
-            gen::UpdateHeadResponse { updated },
-        ))
+        Ok(gen::UsersUserIdHeadPut::S200(gen::UpdateHeadResponse {
+            updated,
+        }))
     }
 }
 
