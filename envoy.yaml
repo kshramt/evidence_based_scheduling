@@ -23,6 +23,8 @@ static_resources:
               routes:
               - match: { prefix: "/api.v1.ApiService/" }
                 route: { cluster: envoy_50052_service }
+              - match: { prefix: "/api/v2/" }
+                route: { cluster: api_v2_service }
               - match: { prefix: "/app/" }
                 route: { cluster: nginx_service, prefix_rewrite: "/" }
               - match: { prefix: "/app" }
@@ -135,6 +137,18 @@ static_resources:
               socket_address:
                 address: api_v1
                 port_value: 50051
+  - name: api_v2_service
+    type: LOGICAL_DNS
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: api_v2_service
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: api_v2
+                port_value: 8080
   - name: nginx_service
     type: LOGICAL_DNS
     lb_policy: ROUND_ROBIN

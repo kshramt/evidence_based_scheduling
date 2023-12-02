@@ -13,6 +13,7 @@ umask u=rwx,g=,o=
 
 export _DOCKER_API_TAG="${TAG:-latest}"
 export _DOCKER_API_V1_TAG="${TAG:-latest}"
+export _DOCKER_API_V2_TAG="${TAG:-latest}"
 export _DOCKER_NGINX_TAG="${TAG:-latest}"
 export _DOCKER_ENVOY_TAG="${TAG:-latest}"
 export _DOCKER_POSTGRES_TAG="${TAG:-latest}"
