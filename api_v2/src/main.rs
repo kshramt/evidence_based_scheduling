@@ -65,29 +65,29 @@ impl gen::Api for ApiImpl {
     type TToken = gen::IdToken;
 
     #[instrument(skip(state))]
-    async fn api_v2_sys_health_get(
+    async fn sys_health_get(
         state: State<Arc<AppState>>,
-    ) -> Result<gen::ApiV2SysHealthGet, errors::ErrorStatus> {
+    ) -> Result<gen::SysHealthGet, errors::ErrorStatus> {
         let mut tx = state.pool.begin().await?;
         // https://github.com/launchbadge/sqlx/issues/702
         let _ = sqlx::query!("select 1 as x").fetch_one(&mut *tx).await?;
         tx.commit().await?;
-        Ok(gen::ApiV2SysHealthGet::S200(gen::SysHealthResponse {
+        Ok(gen::SysHealthGet::S200(gen::SysHealthResponse {
             status: "ok".into(),
         }))
     }
 
     #[instrument(skip(state))]
-    async fn api_v2_fake_idp_users_post(
+    async fn fake_idp_users_post(
         state: State<Arc<AppState>>,
         Json(body): Json<gen::FakeIdpCreateUserRequest>,
-    ) -> Result<gen::ApiV2FakeIdpUsersPost, errors::ErrorStatus> {
+    ) -> Result<gen::FakeIdpUsersPost, errors::ErrorStatus> {
         let user_id = state.id_generator.lock()?.gen();
         let user_id = user_id.to_base62();
         let mut tx = state.pool.begin().await?;
         db::fake_idp_create_user(&mut tx, &user_id, &body.name).await?;
         tx.commit().await?;
-        Ok(gen::ApiV2FakeIdpUsersPost::S201(
+        Ok(gen::FakeIdpUsersPost::S201(
             gen::FakeIdpCreateUserResponse {
                 token: gen::IdToken { user_id },
             },
@@ -95,13 +95,13 @@ impl gen::Api for ApiImpl {
     }
 
     #[instrument(skip(state))]
-    async fn api_v2_fake_idp_login_id_token_post(
+    async fn fake_idp_login_id_token_post(
         state: State<Arc<AppState>>,
         Json(body): Json<gen::FakeIdpCreateUserRequest>,
-    ) -> Result<gen::ApiV2FakeIdpLoginIdTokenPost, errors::ErrorStatus> {
+    ) -> Result<gen::FakeIdpLoginIdTokenPost, errors::ErrorStatus> {
         let mut tx = state.pool.begin().await?;
         let user = db::fake_idp_get_user_by_name(&mut tx, &body.name).await?;
-        Ok(gen::ApiV2FakeIdpLoginIdTokenPost::S200(
+        Ok(gen::FakeIdpLoginIdTokenPost::S200(
             gen::FakeIdpCreateIdTokenResponse {
                 token: gen::IdToken { user_id: user.id },
             },
@@ -113,11 +113,11 @@ impl gen::Api for ApiImpl {
     /// 3. Create the system clietn for the user.
     /// 4. Create the initial patch for the user.
     #[instrument(skip(state))]
-    async fn api_v2_users_post(
+    async fn users_post(
         state: State<Arc<AppState>>,
         token: gen::IdToken,
         Json(_): Json<gen::CreateUserRequest>,
-    ) -> Result<gen::ApiV2UsersPost, errors::ErrorStatus> {
+    ) -> Result<gen::UsersPost, errors::ErrorStatus> {
         let root_client_id = 0;
         let root_session_id = 0;
         let root_patch_id = 0;
@@ -148,32 +148,32 @@ impl gen::Api for ApiImpl {
         )
         .await?;
         tx.commit().await?;
-        Ok(gen::ApiV2UsersPost::S201(gen::CreateUserResponse {}))
+        Ok(gen::UsersPost::S201(gen::CreateUserResponse {}))
     }
 
     #[instrument(skip(state))]
-    async fn api_v2_users_user_id_clients_post(
+    async fn users_user_id_clients_post(
         state: State<Arc<AppState>>,
         token: gen::IdToken,
-        Path(path): Path<gen::ApiV2UsersUserIdClientsPostPath>,
+        Path(path): Path<gen::UsersUserIdClientsPostPath>,
         Json(body): Json<gen::CreateClientRequest>,
-    ) -> Result<gen::ApiV2UsersUserIdClientsPost, errors::ErrorStatus> {
+    ) -> Result<gen::UsersUserIdClientsPost, errors::ErrorStatus> {
         let _ = &token.authorize(&path.user_id)?;
         let mut tx = state.pool.begin().await?;
         let client_id = create_client(&mut tx, &path.user_id, -1, &body.name).await?;
         tx.commit().await?;
-        Ok(gen::ApiV2UsersUserIdClientsPost::S201(
+        Ok(gen::UsersUserIdClientsPost::S201(
             gen::CreateClientResponse { client_id },
         ))
     }
 
     #[instrument(skip(state))]
-    async fn api_v2_users_user_id_patches_batch_post(
+    async fn users_user_id_patches_batch_post(
         state: State<Arc<AppState>>,
         token: gen::IdToken,
-        Path(path): Path<gen::ApiV2UsersUserIdPatchesBatchPostPath>,
+        Path(path): Path<gen::UsersUserIdPatchesBatchPostPath>,
         Json(body): Json<gen::CreatePatchesRequest>,
-    ) -> Result<gen::ApiV2UsersUserIdPatchesBatchPost, errors::ErrorStatus> {
+    ) -> Result<gen::UsersUserIdPatchesBatchPost, errors::ErrorStatus> {
         let _ = &token.authorize(&path.user_id)?;
         let mut tx = state.pool.begin().await?;
         let patches: Vec<db::Patch> = body
@@ -192,24 +192,24 @@ impl gen::Api for ApiImpl {
             .collect();
         db::create_patches_for_user(&mut tx, &path.user_id, &patches).await?;
         tx.commit().await?;
-        Ok(gen::ApiV2UsersUserIdPatchesBatchPost::S201(
+        Ok(gen::UsersUserIdPatchesBatchPost::S201(
             gen::CreatePatchesResponse {},
         ))
     }
 
     #[instrument(skip(state))]
-    async fn api_v2_users_user_id_clients_client_id_pending_patches_get(
+    async fn users_user_id_clients_client_id_pending_patches_get(
         state: State<Arc<AppState>>,
         token: gen::IdToken,
-        Path(path): Path<gen::ApiV2UsersUserIdClientsClientIdPendingPatchesGetPath>,
-        Query(query): Query<gen::ApiV2UsersUserIdClientsClientIdPendingPatchesGetQuery>,
-    ) -> Result<gen::ApiV2UsersUserIdClientsClientIdPendingPatchesGet, errors::ErrorStatus> {
+        Path(path): Path<gen::UsersUserIdClientsClientIdPendingPatchesGetPath>,
+        Query(query): Query<gen::UsersUserIdClientsClientIdPendingPatchesGetQuery>,
+    ) -> Result<gen::UsersUserIdClientsClientIdPendingPatchesGet, errors::ErrorStatus> {
         let _ = &token.authorize(&path.user_id)?;
         let mut tx = state.pool.begin().await?;
         let patches =
             db::get_pending_patches(&mut tx, &path.user_id, path.client_id, query.limit).await?;
         tx.commit().await?;
-        Ok(gen::ApiV2UsersUserIdClientsClientIdPendingPatchesGet::S200(
+        Ok(gen::UsersUserIdClientsClientIdPendingPatchesGet::S200(
             gen::GetPendingPatchesResponse {
                 patches: patches
                     .into_iter()
@@ -233,12 +233,12 @@ impl gen::Api for ApiImpl {
     }
 
     #[instrument(skip(state))]
-    async fn api_v2_users_user_id_clients_client_id_pending_patches_batch_delete(
+    async fn users_user_id_clients_client_id_pending_patches_batch_delete(
         state: State<Arc<AppState>>,
         token: gen::IdToken,
-        Path(path): Path<gen::ApiV2UsersUserIdClientsClientIdPendingPatchesBatchDeletePath>,
+        Path(path): Path<gen::UsersUserIdClientsClientIdPendingPatchesBatchDeletePath>,
         Json(body): Json<gen::DeletePendingPatchesRequest>,
-    ) -> Result<gen::ApiV2UsersUserIdClientsClientIdPendingPatchesBatchDelete, errors::ErrorStatus>
+    ) -> Result<gen::UsersUserIdClientsClientIdPendingPatchesBatchDelete, errors::ErrorStatus>
     {
         let _ = &token.authorize(&path.user_id)?;
         let mut tx = state.pool.begin().await?;
@@ -254,23 +254,23 @@ impl gen::Api for ApiImpl {
         db::delete_pending_patches(&mut tx, &path.user_id, path.client_id, &patch_keys).await?;
         tx.commit().await?;
         Ok(
-            gen::ApiV2UsersUserIdClientsClientIdPendingPatchesBatchDelete::S200(
+            gen::UsersUserIdClientsClientIdPendingPatchesBatchDelete::S200(
                 gen::DeletePendingPatchesResponse {},
             ),
         )
     }
 
     #[instrument(skip(state))]
-    async fn api_v2_users_user_id_head_get(
+    async fn users_user_id_head_get(
         state: State<Arc<AppState>>,
         token: gen::IdToken,
-        Path(path): Path<gen::ApiV2UsersUserIdHeadGetPath>,
-    ) -> Result<gen::ApiV2UsersUserIdHeadGet, errors::ErrorStatus> {
+        Path(path): Path<gen::UsersUserIdHeadGetPath>,
+    ) -> Result<gen::UsersUserIdHeadGet, errors::ErrorStatus> {
         let _ = &token.authorize(&path.user_id)?;
         let mut tx = state.pool.begin().await?;
         let head = db::get_head(&mut tx, &path.user_id).await?;
         tx.commit().await?;
-        Ok(gen::ApiV2UsersUserIdHeadGet::S200(gen::GetHeadResponse {
+        Ok(gen::UsersUserIdHeadGet::S200(gen::GetHeadResponse {
             client_id: head.head_client_id,
             session_id: head.head_session_id,
             patch_id: head.head_patch_id,
@@ -280,12 +280,12 @@ impl gen::Api for ApiImpl {
     }
 
     #[instrument(skip(state))]
-    async fn api_v2_users_user_id_head_put(
+    async fn users_user_id_head_put(
         state: State<Arc<AppState>>,
         token: gen::IdToken,
-        Path(path): Path<gen::ApiV2UsersUserIdHeadPutPath>,
+        Path(path): Path<gen::UsersUserIdHeadPutPath>,
         Json(body): Json<gen::UpdateHeadRequest>,
-    ) -> Result<gen::ApiV2UsersUserIdHeadPut, errors::ErrorStatus> {
+    ) -> Result<gen::UsersUserIdHeadPut, errors::ErrorStatus> {
         let _ = &token.authorize(&path.user_id)?;
         let mut tx = state.pool.begin().await?;
         let updated = match body.header_if_match {
@@ -316,7 +316,7 @@ impl gen::Api for ApiImpl {
             }
         };
         tx.commit().await?;
-        Ok(gen::ApiV2UsersUserIdHeadPut::S200(
+        Ok(gen::UsersUserIdHeadPut::S200(
             gen::UpdateHeadResponse { updated },
         ))
     }

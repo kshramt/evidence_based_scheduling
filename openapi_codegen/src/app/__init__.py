@@ -154,9 +154,13 @@ class OpenApi(NoExtraModel):
         schemas: dict[str, ObjectSchema]
         securitySchemes: dict[str, SecurityScheme]
 
+    class Server(NoExtraModel):
+        url: str
+
     openapi: str
     info: Info
     security: None | tuple[()] | tuple[BearerAuth] = None
+    servers: tuple[Server]
     paths: dict[str, dict[str, Operation]]
     components: Components
 
@@ -313,19 +317,16 @@ pub fn register_app<TApi: Api + 'static>(
     app: axum::Router<TApi::TState>,
 ) -> axum::Router<TApi::TState> {"""
         )
-        ops = list(self._get_ops())
-        if ops:
-            for path, op_name, _ in ops[:-1]:
-                print(
-                    f"""\
-    let app = {_get_app_route(path, op_name)};"""
-                )
-            path, op_name, _ = ops[-1]
+        for path, op_name, _ in self._get_ops():
             print(
                 f"""\
-    {_get_app_route(path, op_name)}
-}}"""
+    let app = app.route({_get_axum_string(path)}, axum::routing::{op_name}(TApi::{_get_fn_name(path, op_name)}));"""
             )
+        print(
+            f"""\
+    axum::Router::new().nest({_get_axum_string(self.servers[0].url)}, app)
+}}"""
+        )
 
     def _get_security(self: Self, path: str, op_name: str) -> None | BearerAuth:
         """Get the default security and check if it is modified at the operation level."""

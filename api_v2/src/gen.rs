@@ -81,69 +81,65 @@ pub struct UpdateHeadResponse {
     pub updated: bool,
 }
 #[derive(Debug)]
-pub enum ApiV2SysHealthGet {
+pub enum SysHealthGet {
     S200(SysHealthResponse),
 }
-impl axum::response::IntoResponse for ApiV2SysHealthGet {
+impl axum::response::IntoResponse for SysHealthGet {
     fn into_response(self) -> axum::response::Response {
         match self {
-            ApiV2SysHealthGet::S200(body) => (axum::http::StatusCode::OK, axum::Json(body)),
+            SysHealthGet::S200(body) => (axum::http::StatusCode::OK, axum::Json(body)),
         }
         .into_response()
     }
 }
 #[derive(Debug)]
-pub enum ApiV2FakeIdpUsersPost {
+pub enum FakeIdpUsersPost {
     S201(FakeIdpCreateUserResponse),
 }
-impl axum::response::IntoResponse for ApiV2FakeIdpUsersPost {
+impl axum::response::IntoResponse for FakeIdpUsersPost {
     fn into_response(self) -> axum::response::Response {
         match self {
-            ApiV2FakeIdpUsersPost::S201(body) => {
-                (axum::http::StatusCode::CREATED, axum::Json(body))
-            }
+            FakeIdpUsersPost::S201(body) => (axum::http::StatusCode::CREATED, axum::Json(body)),
         }
         .into_response()
     }
 }
 #[derive(Debug)]
-pub enum ApiV2FakeIdpLoginIdTokenPost {
+pub enum FakeIdpLoginIdTokenPost {
     S200(FakeIdpCreateIdTokenResponse),
 }
-impl axum::response::IntoResponse for ApiV2FakeIdpLoginIdTokenPost {
+impl axum::response::IntoResponse for FakeIdpLoginIdTokenPost {
     fn into_response(self) -> axum::response::Response {
         match self {
-            ApiV2FakeIdpLoginIdTokenPost::S200(body) => {
-                (axum::http::StatusCode::OK, axum::Json(body))
-            }
+            FakeIdpLoginIdTokenPost::S200(body) => (axum::http::StatusCode::OK, axum::Json(body)),
         }
         .into_response()
     }
 }
 #[derive(Debug)]
-pub enum ApiV2UsersPost {
+pub enum UsersPost {
     S201(CreateUserResponse),
 }
-impl axum::response::IntoResponse for ApiV2UsersPost {
+impl axum::response::IntoResponse for UsersPost {
     fn into_response(self) -> axum::response::Response {
         match self {
-            ApiV2UsersPost::S201(body) => (axum::http::StatusCode::CREATED, axum::Json(body)),
+            UsersPost::S201(body) => (axum::http::StatusCode::CREATED, axum::Json(body)),
         }
         .into_response()
     }
 }
 #[derive(Debug, serde::Deserialize)]
-pub struct ApiV2UsersUserIdClientsPostPath {
+pub struct UsersUserIdClientsPostPath {
     pub user_id: String,
 }
 #[derive(Debug)]
-pub enum ApiV2UsersUserIdClientsPost {
+pub enum UsersUserIdClientsPost {
     S201(CreateClientResponse),
 }
-impl axum::response::IntoResponse for ApiV2UsersUserIdClientsPost {
+impl axum::response::IntoResponse for UsersUserIdClientsPost {
     fn into_response(self) -> axum::response::Response {
         match self {
-            ApiV2UsersUserIdClientsPost::S201(body) => {
+            UsersUserIdClientsPost::S201(body) => {
                 (axum::http::StatusCode::CREATED, axum::Json(body))
             }
         }
@@ -151,17 +147,17 @@ impl axum::response::IntoResponse for ApiV2UsersUserIdClientsPost {
     }
 }
 #[derive(Debug, serde::Deserialize)]
-pub struct ApiV2UsersUserIdPatchesBatchPostPath {
+pub struct UsersUserIdPatchesBatchPostPath {
     pub user_id: String,
 }
 #[derive(Debug)]
-pub enum ApiV2UsersUserIdPatchesBatchPost {
+pub enum UsersUserIdPatchesBatchPost {
     S201(CreatePatchesResponse),
 }
-impl axum::response::IntoResponse for ApiV2UsersUserIdPatchesBatchPost {
+impl axum::response::IntoResponse for UsersUserIdPatchesBatchPost {
     fn into_response(self) -> axum::response::Response {
         match self {
-            ApiV2UsersUserIdPatchesBatchPost::S201(body) => {
+            UsersUserIdPatchesBatchPost::S201(body) => {
                 (axum::http::StatusCode::CREATED, axum::Json(body))
             }
         }
@@ -169,22 +165,22 @@ impl axum::response::IntoResponse for ApiV2UsersUserIdPatchesBatchPost {
     }
 }
 #[derive(Debug, serde::Deserialize)]
-pub struct ApiV2UsersUserIdClientsClientIdPendingPatchesGetPath {
+pub struct UsersUserIdClientsClientIdPendingPatchesGetPath {
     pub user_id: String,
     pub client_id: i64,
 }
 #[derive(Debug, serde::Deserialize)]
-pub struct ApiV2UsersUserIdClientsClientIdPendingPatchesGetQuery {
+pub struct UsersUserIdClientsClientIdPendingPatchesGetQuery {
     pub limit: i64,
 }
 #[derive(Debug)]
-pub enum ApiV2UsersUserIdClientsClientIdPendingPatchesGet {
+pub enum UsersUserIdClientsClientIdPendingPatchesGet {
     S200(GetPendingPatchesResponse),
 }
-impl axum::response::IntoResponse for ApiV2UsersUserIdClientsClientIdPendingPatchesGet {
+impl axum::response::IntoResponse for UsersUserIdClientsClientIdPendingPatchesGet {
     fn into_response(self) -> axum::response::Response {
         match self {
-            ApiV2UsersUserIdClientsClientIdPendingPatchesGet::S200(body) => {
+            UsersUserIdClientsClientIdPendingPatchesGet::S200(body) => {
                 (axum::http::StatusCode::OK, axum::Json(body))
             }
         }
@@ -192,18 +188,18 @@ impl axum::response::IntoResponse for ApiV2UsersUserIdClientsClientIdPendingPatc
     }
 }
 #[derive(Debug, serde::Deserialize)]
-pub struct ApiV2UsersUserIdClientsClientIdPendingPatchesBatchDeletePath {
+pub struct UsersUserIdClientsClientIdPendingPatchesBatchDeletePath {
     pub user_id: String,
     pub client_id: i64,
 }
 #[derive(Debug)]
-pub enum ApiV2UsersUserIdClientsClientIdPendingPatchesBatchDelete {
+pub enum UsersUserIdClientsClientIdPendingPatchesBatchDelete {
     S200(DeletePendingPatchesResponse),
 }
-impl axum::response::IntoResponse for ApiV2UsersUserIdClientsClientIdPendingPatchesBatchDelete {
+impl axum::response::IntoResponse for UsersUserIdClientsClientIdPendingPatchesBatchDelete {
     fn into_response(self) -> axum::response::Response {
         match self {
-            ApiV2UsersUserIdClientsClientIdPendingPatchesBatchDelete::S200(body) => {
+            UsersUserIdClientsClientIdPendingPatchesBatchDelete::S200(body) => {
                 (axum::http::StatusCode::OK, axum::Json(body))
             }
         }
@@ -211,33 +207,33 @@ impl axum::response::IntoResponse for ApiV2UsersUserIdClientsClientIdPendingPatc
     }
 }
 #[derive(Debug, serde::Deserialize)]
-pub struct ApiV2UsersUserIdHeadGetPath {
+pub struct UsersUserIdHeadGetPath {
     pub user_id: String,
 }
 #[derive(Debug)]
-pub enum ApiV2UsersUserIdHeadGet {
+pub enum UsersUserIdHeadGet {
     S200(GetHeadResponse),
 }
-impl axum::response::IntoResponse for ApiV2UsersUserIdHeadGet {
+impl axum::response::IntoResponse for UsersUserIdHeadGet {
     fn into_response(self) -> axum::response::Response {
         match self {
-            ApiV2UsersUserIdHeadGet::S200(body) => (axum::http::StatusCode::OK, axum::Json(body)),
+            UsersUserIdHeadGet::S200(body) => (axum::http::StatusCode::OK, axum::Json(body)),
         }
         .into_response()
     }
 }
 #[derive(Debug, serde::Deserialize)]
-pub struct ApiV2UsersUserIdHeadPutPath {
+pub struct UsersUserIdHeadPutPath {
     pub user_id: String,
 }
 #[derive(Debug)]
-pub enum ApiV2UsersUserIdHeadPut {
+pub enum UsersUserIdHeadPut {
     S200(UpdateHeadResponse),
 }
-impl axum::response::IntoResponse for ApiV2UsersUserIdHeadPut {
+impl axum::response::IntoResponse for UsersUserIdHeadPut {
     fn into_response(self) -> axum::response::Response {
         match self {
-            ApiV2UsersUserIdHeadPut::S200(body) => (axum::http::StatusCode::OK, axum::Json(body)),
+            UsersUserIdHeadPut::S200(body) => (axum::http::StatusCode::OK, axum::Json(body)),
         }
         .into_response()
     }
@@ -248,107 +244,100 @@ pub trait Api {
     type TState: Clone + Send + Sync;
     type TToken: axum::extract::FromRequestParts<Self::TState, Rejection = Self::TError> + Send;
 
-    async fn api_v2_sys_health_get(
+    async fn sys_health_get(
         axum::extract::State(state): axum::extract::State<Self::TState>,
-    ) -> Result<ApiV2SysHealthGet, Self::TError>;
-    async fn api_v2_fake_idp_users_post(
-        axum::extract::State(state): axum::extract::State<Self::TState>,
-        axum::extract::Json(body): axum::extract::Json<FakeIdpCreateUserRequest>,
-    ) -> Result<ApiV2FakeIdpUsersPost, Self::TError>;
-    async fn api_v2_fake_idp_login_id_token_post(
+    ) -> Result<SysHealthGet, Self::TError>;
+    async fn fake_idp_users_post(
         axum::extract::State(state): axum::extract::State<Self::TState>,
         axum::extract::Json(body): axum::extract::Json<FakeIdpCreateUserRequest>,
-    ) -> Result<ApiV2FakeIdpLoginIdTokenPost, Self::TError>;
-    async fn api_v2_users_post(
+    ) -> Result<FakeIdpUsersPost, Self::TError>;
+    async fn fake_idp_login_id_token_post(
+        axum::extract::State(state): axum::extract::State<Self::TState>,
+        axum::extract::Json(body): axum::extract::Json<FakeIdpCreateUserRequest>,
+    ) -> Result<FakeIdpLoginIdTokenPost, Self::TError>;
+    async fn users_post(
         axum::extract::State(state): axum::extract::State<Self::TState>,
         token: Self::TToken,
         axum::extract::Json(body): axum::extract::Json<CreateUserRequest>,
-    ) -> Result<ApiV2UsersPost, Self::TError>;
-    async fn api_v2_users_user_id_clients_post(
+    ) -> Result<UsersPost, Self::TError>;
+    async fn users_user_id_clients_post(
         axum::extract::State(state): axum::extract::State<Self::TState>,
         token: Self::TToken,
-        axum::extract::Path(path): axum::extract::Path<ApiV2UsersUserIdClientsPostPath>,
+        axum::extract::Path(path): axum::extract::Path<UsersUserIdClientsPostPath>,
         axum::extract::Json(body): axum::extract::Json<CreateClientRequest>,
-    ) -> Result<ApiV2UsersUserIdClientsPost, Self::TError>;
-    async fn api_v2_users_user_id_patches_batch_post(
+    ) -> Result<UsersUserIdClientsPost, Self::TError>;
+    async fn users_user_id_patches_batch_post(
         axum::extract::State(state): axum::extract::State<Self::TState>,
         token: Self::TToken,
-        axum::extract::Path(path): axum::extract::Path<ApiV2UsersUserIdPatchesBatchPostPath>,
+        axum::extract::Path(path): axum::extract::Path<UsersUserIdPatchesBatchPostPath>,
         axum::extract::Json(body): axum::extract::Json<CreatePatchesRequest>,
-    ) -> Result<ApiV2UsersUserIdPatchesBatchPost, Self::TError>;
-    async fn api_v2_users_user_id_clients_client_id_pending_patches_get(
+    ) -> Result<UsersUserIdPatchesBatchPost, Self::TError>;
+    async fn users_user_id_clients_client_id_pending_patches_get(
         axum::extract::State(state): axum::extract::State<Self::TState>,
         token: Self::TToken,
         axum::extract::Path(path): axum::extract::Path<
-            ApiV2UsersUserIdClientsClientIdPendingPatchesGetPath,
+            UsersUserIdClientsClientIdPendingPatchesGetPath,
         >,
         axum::extract::Query(query): axum::extract::Query<
-            ApiV2UsersUserIdClientsClientIdPendingPatchesGetQuery,
+            UsersUserIdClientsClientIdPendingPatchesGetQuery,
         >,
-    ) -> Result<ApiV2UsersUserIdClientsClientIdPendingPatchesGet, Self::TError>;
-    async fn api_v2_users_user_id_clients_client_id_pending_patches_batch_delete(
+    ) -> Result<UsersUserIdClientsClientIdPendingPatchesGet, Self::TError>;
+    async fn users_user_id_clients_client_id_pending_patches_batch_delete(
         axum::extract::State(state): axum::extract::State<Self::TState>,
         token: Self::TToken,
         axum::extract::Path(path): axum::extract::Path<
-            ApiV2UsersUserIdClientsClientIdPendingPatchesBatchDeletePath,
+            UsersUserIdClientsClientIdPendingPatchesBatchDeletePath,
         >,
         axum::extract::Json(body): axum::extract::Json<DeletePendingPatchesRequest>,
-    ) -> Result<ApiV2UsersUserIdClientsClientIdPendingPatchesBatchDelete, Self::TError>;
-    async fn api_v2_users_user_id_head_get(
+    ) -> Result<UsersUserIdClientsClientIdPendingPatchesBatchDelete, Self::TError>;
+    async fn users_user_id_head_get(
         axum::extract::State(state): axum::extract::State<Self::TState>,
         token: Self::TToken,
-        axum::extract::Path(path): axum::extract::Path<ApiV2UsersUserIdHeadGetPath>,
-    ) -> Result<ApiV2UsersUserIdHeadGet, Self::TError>;
-    async fn api_v2_users_user_id_head_put(
+        axum::extract::Path(path): axum::extract::Path<UsersUserIdHeadGetPath>,
+    ) -> Result<UsersUserIdHeadGet, Self::TError>;
+    async fn users_user_id_head_put(
         axum::extract::State(state): axum::extract::State<Self::TState>,
         token: Self::TToken,
-        axum::extract::Path(path): axum::extract::Path<ApiV2UsersUserIdHeadPutPath>,
+        axum::extract::Path(path): axum::extract::Path<UsersUserIdHeadPutPath>,
         axum::extract::Json(body): axum::extract::Json<UpdateHeadRequest>,
-    ) -> Result<ApiV2UsersUserIdHeadPut, Self::TError>;
+    ) -> Result<UsersUserIdHeadPut, Self::TError>;
 }
 pub fn register_app<TApi: Api + 'static>(
     app: axum::Router<TApi::TState>,
 ) -> axum::Router<TApi::TState> {
+    let app = app.route("/sys/health", axum::routing::get(TApi::sys_health_get));
     let app = app.route(
-        "/api/v2/sys/health",
-        axum::routing::get(TApi::api_v2_sys_health_get),
+        "/fake_idp/users",
+        axum::routing::post(TApi::fake_idp_users_post),
     );
     let app = app.route(
-        "/api/v2/fake_idp/users",
-        axum::routing::post(TApi::api_v2_fake_idp_users_post),
+        "/fake_idp/login/id_token",
+        axum::routing::post(TApi::fake_idp_login_id_token_post),
+    );
+    let app = app.route("/users", axum::routing::post(TApi::users_post));
+    let app = app.route(
+        "/users/:user_id/clients",
+        axum::routing::post(TApi::users_user_id_clients_post),
     );
     let app = app.route(
-        "/api/v2/fake_idp/login/id_token",
-        axum::routing::post(TApi::api_v2_fake_idp_login_id_token_post),
+        "/users/:user_id/patches:batch",
+        axum::routing::post(TApi::users_user_id_patches_batch_post),
     );
     let app = app.route(
-        "/api/v2/users",
-        axum::routing::post(TApi::api_v2_users_post),
+        "/users/:user_id/clients/:client_id/pending_patches",
+        axum::routing::get(TApi::users_user_id_clients_client_id_pending_patches_get),
     );
     let app = app.route(
-        "/api/v2/users/:user_id/clients",
-        axum::routing::post(TApi::api_v2_users_user_id_clients_post),
+        "/users/:user_id/clients/:client_id/pending_patches:batch",
+        axum::routing::delete(TApi::users_user_id_clients_client_id_pending_patches_batch_delete),
     );
     let app = app.route(
-        "/api/v2/users/:user_id/patches:batch",
-        axum::routing::post(TApi::api_v2_users_user_id_patches_batch_post),
+        "/users/:user_id/head",
+        axum::routing::get(TApi::users_user_id_head_get),
     );
     let app = app.route(
-        "/api/v2/users/:user_id/clients/:client_id/pending_patches",
-        axum::routing::get(TApi::api_v2_users_user_id_clients_client_id_pending_patches_get),
+        "/users/:user_id/head",
+        axum::routing::put(TApi::users_user_id_head_put),
     );
-    let app = app.route(
-        "/api/v2/users/:user_id/clients/:client_id/pending_patches:batch",
-        axum::routing::delete(
-            TApi::api_v2_users_user_id_clients_client_id_pending_patches_batch_delete,
-        ),
-    );
-    let app = app.route(
-        "/api/v2/users/:user_id/head",
-        axum::routing::get(TApi::api_v2_users_user_id_head_get),
-    );
-    app.route(
-        "/api/v2/users/:user_id/head",
-        axum::routing::put(TApi::api_v2_users_user_id_head_put),
-    )
+    axum::Router::new().nest("/api/v2", app)
 }

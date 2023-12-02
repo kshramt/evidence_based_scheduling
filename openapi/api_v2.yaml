@@ -4,8 +4,10 @@ info:
   version: 2.0.0
 security:
   - bearerAuth: []
+servers:
+  - url: /api/v2
 paths:
-  /api/v2/sys/health:
+  /sys/health:
     get:
       summary: Check the health of the system.
       security: []
@@ -16,7 +18,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SysHealthResponse"
-  /api/v2/fake_idp/users:
+  /fake_idp/users:
     post:
       summary: Create a user for the fake ID provider.
       security: []
@@ -33,7 +35,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FakeIdpCreateUserResponse"
-  /api/v2/fake_idp/login/id_token:
+  /fake_idp/login/id_token:
     post:
       summary: Create an id token for the fake ID provider.
       security: []
@@ -50,7 +52,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FakeIdpCreateIdTokenResponse"
-  /api/v2/users:
+  /users:
     post:
       summary: Create a user with the given ID token in the authorization Bearer header.
       requestBody:
@@ -66,7 +68,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CreateUserResponse"
-  /api/v2/users/{user_id}/clients:
+  /users/{user_id}/clients:
     post:
       summary: Create a client with the given ID token in the authorization Bearer header.
       parameters:
@@ -88,7 +90,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CreateClientResponse"
-  /api/v2/users/{user_id}/patches:batch:
+  /users/{user_id}/patches:batch:
     post:
       summary: Push un-synched patches to the remote.
       parameters:
@@ -110,7 +112,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CreatePatchesResponse"
-  /api/v2/users/{user_id}/clients/{client_id}/pending_patches:
+  /users/{user_id}/clients/{client_id}/pending_patches:
     get:
       summary: Retrieve un-synched patches from the remote.
       parameters:
@@ -138,7 +140,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GetPendingPatchesResponse"
-  /api/v2/users/{user_id}/clients/{client_id}/pending_patches:batch:
+  /users/{user_id}/clients/{client_id}/pending_patches:batch:
     delete:
       summary: Delete remote patches that have been downloaded locally.
       parameters:
@@ -166,7 +168,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DeletePendingPatchesResponse"
-  /api/v2/users/{user_id}/head:
+  /users/{user_id}/head:
     get:
       summary: Get the main branch.
       parameters:
