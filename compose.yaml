@@ -13,6 +13,7 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: user=app host=postgres dbname=postgres password=${_POSTGRES_APP_USER_PASSWORD?}
+      RUST_LOG: trace
   nginx:
     restart: unless-stopped
   envoy:
