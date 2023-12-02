@@ -28,7 +28,7 @@ host_os="${8}"
 readonly host_os
 readonly img_prefix=ghcr.io/kshramt/evidence_based_scheduling
 
-readonly services=( nginx envoy postgres api_v1 postgres_migration )
+readonly services=( nginx envoy postgres api_v1 api_v2 postgres_migration )
 
 python3 bake.py --sha="${github_sha}" --ref_b64="${ref_b64}" | tee bake.json
 if [[ "${os}" = "${host_os}" && "${arch}" = "${host_arch}" ]]; then
