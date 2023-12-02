@@ -700,7 +700,9 @@ export const getPersistentStateManager = async (
 ) => {
   // Open DB
   const db = await storage.getDb(`user-${id_token.user_id}`);
-  const client_v2 = createClient<v2.paths>({ baseUrl: window.location.origin });
+  const client_v2 = createClient<v2.paths>({
+    baseUrl: `${window.location.origin}/api/v2`,
+  });
 
   // Set client_id
   const client_id = await get_client_id(client_v2, db, id_token);

@@ -27,7 +27,7 @@ export class Auth {
 
   constructor() {
     this.#on_change_hooks = new Set();
-    this.#client = createClient<v2.paths>({ baseUrl: window.location.origin });
+    this.#client = createClient<v2.paths>({ baseUrl: `${window.location.origin}/api/v2` });
     this.id_token = null;
     this.loading = db
       .then((db_) => {
