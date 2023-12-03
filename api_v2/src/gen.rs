@@ -25,7 +25,7 @@ pub struct FakeIdpCreateUserRequest {
 }
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct FakeIdpCreateUserResponse {
-    pub token: IdToken,
+    pub id_token: IdToken,
 }
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct FakeIdpCreateIdTokenRequest {
@@ -33,7 +33,7 @@ pub struct FakeIdpCreateIdTokenRequest {
 }
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct FakeIdpCreateIdTokenResponse {
-    pub token: IdToken,
+    pub id_token: IdToken,
 }
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct CreateUserRequest {}
@@ -320,7 +320,7 @@ pub fn register_app<TApi: Api + 'static>(
         axum::routing::post(TApi::users_user_id_clients_post),
     );
     let app = app.route(
-        "/users/:user_id/patches:batch",
+        "/users/:user_id/patches~batch",
         axum::routing::post(TApi::users_user_id_patches_batch_post),
     );
     let app = app.route(
@@ -328,7 +328,7 @@ pub fn register_app<TApi: Api + 'static>(
         axum::routing::get(TApi::users_user_id_clients_client_id_pending_patches_get),
     );
     let app = app.route(
-        "/users/:user_id/clients/:client_id/pending_patches:batch",
+        "/users/:user_id/clients/:client_id/pending_patches~batch",
         axum::routing::delete(TApi::users_user_id_clients_client_id_pending_patches_batch_delete),
     );
     let app = app.route(

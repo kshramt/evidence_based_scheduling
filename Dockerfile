@@ -209,15 +209,8 @@ COPY --link client/package.json client/package-lock.json ./
 RUN npm ci
 RUN npx playwright install
 
-FROM client_npm_ci AS client_proto
-COPY --link proto ../proto
-RUN cd ../proto \
-   && PATH="${PWD}/../client/node_modules/.bin:${PATH}" buf generate --config buf.yaml --template buf.gen-client.yaml \
-   && sed -i -e 's/api_pb.js"/api_pb"/' ../client/src/gen/api/v1/api_connect.ts
-
 FROM client_npm_ci AS builder_client
 COPY --link client .
-COPY --link --from=client_proto /app/client/src/gen /app/client/src/gen
 
 FROM builder_client AS test_client
 RUN scripts/check.sh

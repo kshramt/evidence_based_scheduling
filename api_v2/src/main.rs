@@ -89,7 +89,7 @@ impl gen::Api for ApiImpl {
         tx.commit().await?;
         Ok(gen::FakeIdpUsersPost::S201(
             gen::FakeIdpCreateUserResponse {
-                token: gen::IdToken { user_id },
+                id_token: gen::IdToken { user_id },
             },
         ))
     }
@@ -103,7 +103,7 @@ impl gen::Api for ApiImpl {
         let user = db::fake_idp_get_user_by_name(&mut tx, &body.name).await?;
         Ok(gen::FakeIdpLoginIdTokenPost::S200(
             gen::FakeIdpCreateIdTokenResponse {
-                token: gen::IdToken { user_id: user.id },
+                id_token: gen::IdToken { user_id: user.id },
             },
         ))
     }
@@ -238,8 +238,7 @@ impl gen::Api for ApiImpl {
         token: gen::IdToken,
         Path(path): Path<gen::UsersUserIdClientsClientIdPendingPatchesBatchDeletePath>,
         Json(body): Json<gen::DeletePendingPatchesRequest>,
-    ) -> Result<gen::UsersUserIdClientsClientIdPendingPatchesBatchDelete, errors::ErrorStatus>
-    {
+    ) -> Result<gen::UsersUserIdClientsClientIdPendingPatchesBatchDelete, errors::ErrorStatus> {
         let _ = &token.authorize(&path.user_id)?;
         let mut tx = state.pool.begin().await?;
         let patch_keys: Vec<db::PatchKey> = body
@@ -316,9 +315,9 @@ impl gen::Api for ApiImpl {
             }
         };
         tx.commit().await?;
-        Ok(gen::UsersUserIdHeadPut::S200(
-            gen::UpdateHeadResponse { updated },
-        ))
+        Ok(gen::UsersUserIdHeadPut::S200(gen::UpdateHeadResponse {
+            updated,
+        }))
     }
 }
 
@@ -391,7 +390,7 @@ async fn main() {
 
     let port = get_server_port();
     info!(port = &port);
-    let listener = tokio::net::TcpListener::bind(SocketAddr::from(([127, 0, 0, 1], port)))
+    let listener = tokio::net::TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], port)))
         .await
         .unwrap();
     axum::serve(listener, app.into_make_service())

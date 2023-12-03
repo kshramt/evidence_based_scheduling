@@ -7,7 +7,7 @@ from typing import Final, Iterable, Literal, Self
 import pydantic
 import yaml
 
-SEP_PAT: Final = re.compile(r"[/_{}:]")
+SEP_PAT: Final = re.compile(r"[/_{}:~]")
 
 
 class NoExtraModel(pydantic.BaseModel):

@@ -4,7 +4,13 @@ services:
       context: .
       target: prod_api_v1
     ports:
-      - "${API_V1_PORT:-8585}:50051"
+      - "${API_V1_PORT:-8586}:50051"
+  api_v2:
+    build:
+      context: .
+      target: prod_api_v2
+    ports:
+      - "${API_V2_PORT:-8585}:8080"
   nginx:
     build:
       context: .

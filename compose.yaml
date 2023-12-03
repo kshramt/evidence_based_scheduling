@@ -6,12 +6,21 @@ services:
     restart: unless-stopped
     environment:
       MY_DB_URI: user=app host=postgres dbname=postgres password=${_POSTGRES_APP_USER_PASSWORD?}
+  api_v2:
+    depends_on:
+      postgres_migration:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://app:${_POSTGRES_APP_USER_PASSWORD?}@postgres/postgres
+      RUST_LOG: trace
   nginx:
     restart: unless-stopped
   envoy:
     restart: unless-stopped
     depends_on:
       - api_v1
+      - api_v2
       - nginx
     ports:
       - "${ENVOY_HTTP_PORT:-8080}:8080"
