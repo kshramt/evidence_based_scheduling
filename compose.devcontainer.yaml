@@ -23,6 +23,12 @@ services:
       - type: bind
         source: /
         target: /h
+      - type: bind
+        source: ${HOME:?}/.cache/bazel
+        target: /home/${USER:?}/.cache/bazel
+      - type: bind
+        source: ${HOME:?}/.cache/bazelisk
+        target: /home/${USER:?}/.cache/bazelisk
     command: sleep infinity
   docker_sock:
     image: alpine/socat:1.7.4.4

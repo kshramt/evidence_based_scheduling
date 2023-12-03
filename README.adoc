@@ -30,6 +30,13 @@ BROWSER=none npx vite dev --port 3122
 xdg-open http://localhost:3122
 ----
 
+=== Bazel
+
+[source,bash]
+----
+mkdir -p ~/.cache/bazel ~/.cache/bazelisk
+----
+
 === DevContainer for macOS
 
 Please share `/` to run the devcontainer on macOS ( https://docs.docker.com/desktop/settings/mac/#file-sharing ).

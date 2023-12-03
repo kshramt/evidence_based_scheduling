@@ -1,3 +1,12 @@
+FROM ubuntu:22.04 as bazelisk_downloader
+RUN apt-get update \
+   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+   build-essential \
+   ca-certificates \
+   curl
+RUN arch="$(dpkg --print-architecture)" && curl -L -o /usr/local/bin/bazelisk "https://github.com/bazelbuild/bazelisk/releases/download/v1.19.0/bazelisk-linux-${arch}" && chmod +x /usr/local/bin/bazelisk
+
+
 FROM node:21.2.0-bookworm-slim AS node_downloader
 RUN mkdir -p /usr/local/node \
    && cp -a /usr/local/bin /usr/local/node/bin && rm -f /usr/local/node/bin/docker-entrypoint.sh \
@@ -121,6 +130,7 @@ COPY --link --from=node_downloader /usr/local/node /usr/local/node
 COPY --link --from=base_go /usr/local/go /usr/local/go
 COPY --link --from=docker_downloader /usr/local/bin/docker /usr/local/bin/docker
 COPY --link --from=docker_downloader /usr/local/libexec/docker /usr/local/libexec/docker
+COPY --link --from=bazelisk_downloader /usr/local/bin/bazelisk /usr/local/bin/bazelisk
 
 ARG host_home
 
