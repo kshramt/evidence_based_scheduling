@@ -6,6 +6,7 @@ import "@fontsource/material-icons";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import * as Dnd from "react-dnd";
 import * as Mt from "@mantine/core";
+import { ErrorBoundary } from "react-error-boundary";
 
 import * as consts from "src/consts";
 import * as states from "./states";
@@ -181,29 +182,6 @@ const AuthComponent = ({
   );
 };
 
-class ErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error(error, errorInfo);
-  }
-  render() {
-    if (this.state.hasError) {
-      return error_element;
-    }
-    return this.props.children;
-  }
-}
-
 const AppComponentImpl = (props: {
   ctx: states.PersistentStateManager;
   store: Awaited<ReturnType<states.PersistentStateManager["get_redux_store"]>>;
@@ -232,7 +210,7 @@ const AppComponent = (props: {
 }) => {
   return (
     <Dnd.DndProvider backend={HTML5Backend}>
-      <ErrorBoundary>
+      <ErrorBoundary fallback={error_element}>
         <React.Suspense fallback={spinner}>
           <AppComponentImpl
             ctx={props.ctx}
