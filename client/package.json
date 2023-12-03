@@ -17,11 +17,11 @@
     "@mantine/hooks": "^7.2.2",
     "@mantine/notifications": "^7.2.2",
     "@types/react-window": "^1.8.8",
+    "@zodios/core": "^10.9.6",
     "dayjs": "^1.11.10",
     "idb": "^7.1.1",
     "immer": "^10.0.3",
     "jotai": "^2.5.1",
-    "openapi-fetch": "^0.8.2",
     "react": "^18.2.0",
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",
@@ -35,7 +35,8 @@
     "workbox-expiration": "^7.0.0",
     "workbox-precaching": "^7.0.0",
     "workbox-routing": "^7.0.0",
-    "workbox-strategies": "^7.0.0"
+    "workbox-strategies": "^7.0.0",
+    "zod": "^3.22.4"
   },
   "scripts": {
     "dev": "vite",
@@ -139,7 +140,7 @@
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-testing-library": "^6.1.2",
-    "openapi-typescript": "^6.7.2",
+    "openapi-zod-client": "^1.13.1",
     "playwright": "^1.39.0",
     "postcss": "^8.4.31",
     "prettier": "^3.0.3",

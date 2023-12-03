@@ -1,9 +1,8 @@
 import * as Idb from "idb";
-import createClient from "openapi-fetch";
 import * as v2 from "src/gen/api/v2";
 import * as utils from "src/utils";
 
-type TClientV2 = ReturnType<typeof createClient<v2.paths>>;
+type TClientV2 = ReturnType<typeof v2.createApiClient>;
 
 const db = Idb.openDB<{ auth: { key: "id_token"; value: null | TIdToken } }>(
   "auth",
@@ -27,9 +26,7 @@ export class Auth {
 
   constructor() {
     this.#on_change_hooks = new Set();
-    this.#client = createClient<v2.paths>({
-      baseUrl: `${window.location.origin}/api/v2`,
-    });
+    this.#client = v2.createApiClient(`${window.location.origin}/api/v2`);
     this.id_token = null;
     this.loading = db
       .then((db_) => {
@@ -45,35 +42,22 @@ export class Auth {
     if (this.id_token) {
       await this.logOut();
     }
-    const fake_idp_resp = await this.#client.POST("/fake_idp/users", {
-      body: { name },
-    });
-    if (fake_idp_resp.data === undefined) {
-      throw new Error(JSON.stringify(fake_idp_resp.error));
-    }
-    const resp = await this.#client.POST("/users", {
-      body: {},
-      headers: { authorization: utils.get_bearer(fake_idp_resp.data.id_token) },
-    });
-    if (resp.data === undefined) {
-      throw new Error(JSON.stringify(resp.error));
-    }
-    void this._set_id_token(fake_idp_resp.data.id_token);
-    return fake_idp_resp.data.id_token;
+    const fake_idp_resp = await this.#client.postFake_idpusers({ name });
+    await this.#client.postUsers(
+      {},
+      { headers: { authorization: utils.get_bearer(fake_idp_resp.id_token) } },
+    );
+    void this._set_id_token(fake_idp_resp.id_token);
+    return fake_idp_resp.id_token;
   };
   logIn = async (name: string) => {
     await this.loading;
     if (this.id_token) {
       return;
     }
-    const resp = await this.#client.POST("/fake_idp/login/id_token", {
-      body: { name },
-    });
-    if (resp.data === undefined) {
-      throw new Error(JSON.stringify(resp.error));
-    }
-    void this._set_id_token(resp.data.id_token);
-    return resp.data.id_token;
+    const resp = await this.#client.postFake_idploginid_token({ name });
+    void this._set_id_token(resp.id_token);
+    return resp.id_token;
   };
   logOut = async () => {
     await this._set_id_token(null);

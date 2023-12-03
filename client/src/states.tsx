@@ -18,10 +18,10 @@ import * as retryers from "./retryers";
 import * as storage from "./storage";
 import * as swapper from "./swapper";
 import * as utils from "./utils";
-import createClient from "openapi-fetch";
 import * as v2 from "src/gen/api/v2";
+import { z } from "zod";
 
-type TClientV2 = ReturnType<typeof createClient<v2.paths>>;
+type TClientV2 = ReturnType<typeof v2.createApiClient>;
 
 const retryer = new retryers.Retryer();
 
@@ -35,15 +35,14 @@ const get_client_id = async (
 ) => {
   let client_id = await db.get("numbers", "client_id");
   if (client_id === undefined) {
-    const resp = await client_v2.POST("/users/{user_id}/clients", {
-      params: { path: { user_id: id_token.user_id } },
-      body: { name: navigator.userAgent },
-      headers: { authorization: utils.get_bearer(id_token) },
-    });
-    if (resp.data === undefined) {
-      throw new Error("createClient returned no client_id");
-    }
-    client_id = resp.data.client_id;
+    const resp = await client_v2.postUsersUser_idclients(
+      { name: navigator.userAgent },
+      {
+        params: { user_id: id_token.user_id },
+        headers: { authorization: utils.get_bearer(id_token) },
+      },
+    );
+    client_id = resp.client_id;
     const tx = db.transaction("numbers", "readwrite");
     const store = tx.objectStore("numbers");
     const val = await store.get("client_id");
@@ -352,7 +351,7 @@ export class PersistentStateManager {
       {
         const tx = this.db.transaction("patches", "readonly");
         const store = tx.objectStore("patches");
-        const patches: v2.components["schemas"]["Patch"][] = [];
+        const patches: z.infer<typeof v2.schemas.Patch>[] = [];
         for (const head of heads) {
           const p = await store.get([
             head.client_id,
@@ -380,13 +379,15 @@ export class PersistentStateManager {
         await tx.done;
         await this.#push_rpc(() =>
           retryer.with_retry(async () => {
-            await this.client_v2.POST("/users/{user_id}/patches:batch", {
-              params: { path: { user_id: this.id_token.user_id } },
-              body: {
+            await this.client_v2.postUsersUser_idpatches_batch(
+              {
                 patches,
               },
-              headers: { authorization: bearer },
-            });
+              {
+                params: { user_id: this.id_token.user_id },
+                headers: { authorization: bearer },
+              },
+            );
           }),
         );
       }
@@ -435,10 +436,8 @@ export class PersistentStateManager {
     }
     const resp = await this.#push_rpc(() =>
       retryer.with_retry(async () => {
-        return await this.client_v2.PUT("/users/{user_id}/head", {
-          params: { path: { user_id: this.id_token.user_id } },
-          headers: { authorization: bearer },
-          body: {
+        return await this.client_v2.putUsersUser_idhead(
+          {
             patch_key: {
               client_id: sync_head.client_id,
               session_id: sync_head.session_id,
@@ -450,13 +449,14 @@ export class PersistentStateManager {
               patch_id: this.heads.remote.patch_id,
             },
           },
-        });
+          {
+            params: { user_id: this.id_token.user_id },
+            headers: { authorization: bearer },
+          },
+        );
       }),
     );
-    if (resp.data === undefined) {
-      throw new Error(JSON.stringify(resp.error));
-    }
-    if (resp.data.updated) {
+    if (resp.updated) {
       await this.#save_remote_head(sync_head);
     } else {
       const resp = await this.#push_rpc(() =>
@@ -592,18 +592,20 @@ export class PersistentStateManager {
         this.heads.sync === null
           ? { ...this.heads.remote }
           : { ...this.heads.sync };
-      await this.#push_rpc(() => {
-        return this.client_v2.PUT("/users/{user_id}/head", {
-          params: { path: { user_id: this.id_token.user_id } },
-          body: {
+      await this.#push_rpc(async () => {
+        return await this.client_v2.putUsersUser_idhead(
+          {
             patch_key: {
               client_id: new_head.client_id,
               session_id: new_head.session_id,
               patch_id: new_head.patch_id,
             },
           },
-          headers: { authorization: utils.get_bearer(this.id_token) },
-        });
+          {
+            params: { user_id: this.id_token.user_id },
+            headers: { authorization: utils.get_bearer(this.id_token) },
+          },
+        );
       });
       await this.#save_remote_head(new_head);
       this.#sync_store.set_state(() => null);
@@ -700,9 +702,7 @@ export const getPersistentStateManager = async (
 ) => {
   // Open DB
   const db = await storage.getDb(`user-${id_token.user_id}`);
-  const client_v2 = createClient<v2.paths>({
-    baseUrl: `${window.location.origin}/api/v2`,
-  });
+  const client_v2 = v2.createApiClient(`${window.location.origin}/api/v2`);
 
   // Set client_id
   const client_id = await get_client_id(client_v2, db, id_token);
@@ -838,15 +838,12 @@ const get_remote_head_and_save_remote_pending_patches = async (
     return fn();
   },
 ) => {
-  const resp = await wrapper(() => {
-    return client_v2.GET("/users/{user_id}/head", {
-      params: { path: { user_id: id_token.user_id } },
+  const resp = await wrapper(async () => {
+    return await client_v2.getUsersUser_idhead({
+      params: { user_id: id_token.user_id },
       headers: { authorization: utils.get_bearer(id_token) },
     });
   });
-  if (resp.data === undefined) {
-    throw new Error(JSON.stringify(resp.error));
-  }
   await save_and_remove_remote_pending_patches(
     id_token,
     client_id,
@@ -854,7 +851,7 @@ const get_remote_head_and_save_remote_pending_patches = async (
     db,
     wrapper,
   );
-  return resp.data;
+  return resp;
 };
 
 const save_and_remove_remote_pending_patches = async (
@@ -869,28 +866,22 @@ const save_and_remove_remote_pending_patches = async (
   const bearer = utils.get_bearer(id_token);
   while (true) {
     const resp = await wrapper(async () => {
-      return await client_v2.GET(
-        "/users/{user_id}/clients/{client_id}/pending_patches",
-        {
-          params: {
-            path: { user_id: id_token.user_id, client_id: client_id },
-            query: { limit: 2000 },
-          },
-          headers: { authorization: bearer },
+      return await client_v2.getUsersUser_idclientsClient_idpending_patches({
+        params: {
+          user_id: id_token.user_id,
+          client_id: client_id,
         },
-      );
-      // return client_v2.getPendingPatches(req, opts);
+        queries: { limit: 2000 },
+        headers: { authorization: bearer },
+      });
     });
-    if (resp.data === undefined) {
-      throw new Error(JSON.stringify(resp.error));
-    }
-    if (resp.data.patches.length === 0) {
+    if (resp.patches.length === 0) {
       return;
     }
-    const ks: v2.components["schemas"]["PatchKey"][] = [];
+    const ks: z.infer<typeof v2.schemas.PatchKey>[] = [];
     const tx = db.transaction("patches", "readwrite");
     const store = tx.objectStore("patches");
-    for (const patch of resp.data.patches) {
+    for (const patch of resp.patches) {
       await store.put({
         client_id: patch.patch_key.client_id,
         session_id: patch.patch_key.session_id,
@@ -910,18 +901,13 @@ const save_and_remove_remote_pending_patches = async (
     await tx.done;
     {
       await wrapper(async () => {
-        return await client_v2.DELETE(
-          "/users/{user_id}/clients/{client_id}/pending_patches:batch",
+        return await client_v2.deleteUsersUser_idclientsClient_idpending_patches_batch(
           {
-            params: {
-              path: { user_id: id_token.user_id, client_id: client_id },
-            },
-            headers: {
-              authorization: bearer,
-            },
-            body: {
-              patch_keys: ks,
-            },
+            patch_keys: ks,
+          },
+          {
+            params: { user_id: id_token.user_id, client_id: client_id },
+            headers: { authorization: bearer },
           },
         );
       });
