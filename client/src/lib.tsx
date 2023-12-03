@@ -267,13 +267,15 @@ export const main = async () => {
         renderWithStrictMode(
           <>
             <Center>
-              <span>Persistent storage is not available.</span>
+              <div className="text-center">
+                <div>Persistent storage is not available.</div>
+                <div>
+                  <button onClick={resolve} id="skip-persistent-storage-check">
+                    Force to continue
+                  </button>
+                </div>
+              </div>
             </Center>
-            <button
-              onClick={resolve}
-              className="hidden"
-              id="skip-persistent-storage-check"
-            />
           </>,
         );
       });
