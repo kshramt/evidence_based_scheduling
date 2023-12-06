@@ -5,19 +5,10 @@ bazel_dep(name = "rules_oci", version = "1.4.3")
 oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
 
 def _use_oci_repositories(oci):
-    name = "oci_envoy_orig_arm64"
+    name = "oci_envoy_orig"
     oci.pull(
         name = name,
-        digest = "sha256:fa7aa7da1dfe8159e2b80d0b01dad12c0244a1ed9a6af9e2ab7a6b41e64fb517",
-        # tag = "v1.28.0",
-        image = "index.docker.io/envoyproxy/envoy",
-    )
-    use_repo(oci, name)
-
-    name = "oci_envoy_orig_amd64"
-    oci.pull(
-        name = name,
-        digest = "sha256:1a7335610e70a7579f2fee9b8c0f3bb2c7f22b72e52381ff749e5b9df3692883",
+        digest = "sha256:8d93b24b167364f769ac9dac11ddc48631c7f9fb54213794acfdd5ebf5bbafdd",
         # tag = "v1.28.0",
         image = "index.docker.io/envoyproxy/envoy",
     )

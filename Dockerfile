@@ -166,7 +166,7 @@ WORKDIR /app
 
 FROM nginx:1.25.3-alpine AS base_nginx
 
-FROM envoyproxy/envoy:v1.28.0 AS base_envoy
+FROM envoyproxy/envoy:distroless-v1.28.0 AS base_envoy
 
 FROM postgres:16.1-bookworm AS base_postgres
 
