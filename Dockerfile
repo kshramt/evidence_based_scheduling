@@ -24,7 +24,7 @@ COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/bin/docker /usr/local
 COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/libexec/docker /usr/local/libexec/docker
 
 
-FROM rust:1.74.0-bookworm AS rust_downloader
+FROM rust:1.74.1-bookworm AS rust_downloader
 RUN rustup component add clippy rust-analyzer rustfmt
 
 FROM rust_downloader AS sqlx_cli_downloader
