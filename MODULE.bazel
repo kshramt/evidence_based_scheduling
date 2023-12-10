@@ -1,0 +1,19 @@
+bazel_dep(name = "aspect_bazel_lib", version = "1.39.0")
+bazel_dep(name = "bazel_skylib", version = "1.5.0")
+bazel_dep(name = "platforms", version = "0.0.8")
+bazel_dep(name = "rules_pkg", version = "0.9.1")
+
+bazel_dep(name = "rules_oci", version = "1.4.3")
+oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
+
+def _use_oci_repositories(oci):
+    name = "oci_envoy_orig"
+    oci.pull(
+        name = name,
+        digest = "sha256:8d93b24b167364f769ac9dac11ddc48631c7f9fb54213794acfdd5ebf5bbafdd",
+        # tag = "v1.28.0",
+        image = "index.docker.io/envoyproxy/envoy",
+    )
+    use_repo(oci, name)
+
+_use_oci_repositories(oci)

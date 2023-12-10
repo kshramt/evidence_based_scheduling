@@ -1,9 +1,10 @@
-FROM ubuntu:22.04 as bazelisk_downloader
+FROM ubuntu:22.04 as bazel_downloader
 RUN apt-get update \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
    build-essential \
    ca-certificates \
    curl
+RUN arch="$(dpkg --print-architecture)" && curl -L -o /usr/local/bin/buildifier "https://github.com/bazelbuild/buildtools/releases/download/v6.4.0/buildifier-linux-${arch}" && chmod +x /usr/local/bin/buildifier
 RUN arch="$(dpkg --print-architecture)" && curl -L -o /usr/local/bin/bazelisk "https://github.com/bazelbuild/bazelisk/releases/download/v1.19.0/bazelisk-linux-${arch}" && chmod +x /usr/local/bin/bazelisk
 
 
@@ -130,7 +131,8 @@ COPY --link --from=node_downloader /usr/local/node /usr/local/node
 COPY --link --from=base_go /usr/local/go /usr/local/go
 COPY --link --from=docker_downloader /usr/local/bin/docker /usr/local/bin/docker
 COPY --link --from=docker_downloader /usr/local/libexec/docker /usr/local/libexec/docker
-COPY --link --from=bazelisk_downloader /usr/local/bin/bazelisk /usr/local/bin/bazelisk
+COPY --link --from=bazel_downloader /usr/local/bin/buildifier /usr/local/bin/buildifier
+COPY --link --from=bazel_downloader /usr/local/bin/bazelisk /usr/local/bin/bazelisk
 
 ARG host_home
 
@@ -164,7 +166,7 @@ WORKDIR /app
 
 FROM nginx:1.25.3-alpine AS base_nginx
 
-FROM envoyproxy/envoy:v1.28.0 AS base_envoy
+FROM envoyproxy/envoy:distroless-v1.28.0 AS base_envoy
 
 FROM postgres:16.1-bookworm AS base_postgres
 

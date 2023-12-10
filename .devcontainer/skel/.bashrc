@@ -118,3 +118,5 @@ if ! shopt -oq posix; then
 fi
 
 f="${HOME}/dotfile/common.bash" && [[ -f "$f" ]] && source "$f"
+
+export DOCKER_DEFAULT_PLATFORM=linux/amd64
