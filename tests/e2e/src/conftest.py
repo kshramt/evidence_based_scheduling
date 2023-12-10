@@ -19,7 +19,7 @@ async def browser() -> collections.abc.Generator[
     playwright.async_api.Browser, Any, None
 ]:
     async with playwright.async_api.async_playwright() as pw:
-        yield await pw.firefox.launch()
+        yield await pw.chromium.launch()
 
 
 @pytest.fixture
