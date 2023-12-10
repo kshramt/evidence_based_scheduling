@@ -8,7 +8,7 @@ RUN arch="$(dpkg --print-architecture)" && curl -L -o /usr/local/bin/buildifier 
 RUN arch="$(dpkg --print-architecture)" && curl -L -o /usr/local/bin/bazelisk "https://github.com/bazelbuild/bazelisk/releases/download/v1.19.0/bazelisk-linux-${arch}" && chmod +x /usr/local/bin/bazelisk
 
 
-FROM node:21.2.0-bookworm-slim AS node_downloader
+FROM node:21.4.0-bookworm-slim AS node_downloader
 RUN mkdir -p /usr/local/node \
    && cp -a /usr/local/bin /usr/local/node/bin && rm -f /usr/local/node/bin/docker-entrypoint.sh \
    && cp -a /usr/local/include /usr/local/node/include \
