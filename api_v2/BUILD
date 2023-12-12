@@ -12,7 +12,7 @@ rust_binary(
         proc_macro = True,
     ),
     rustc_env = {
-        "SQLX_OFFLINE_DIR": ".",
+        "SQLX_OFFLINE_DIR": ".sqlx",
     },
     visibility = ["//visibility:public"],
     deps = all_crate_deps() + [

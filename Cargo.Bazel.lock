@@ -1,5 +1,5 @@
 {
-  "checksum": "e90f3f4371322a2264ba1b0cd161f2af5cff3abacdf528d6a683edd69a409d1c",
+  "checksum": "2d75d582df73bc969db4d7eee6589e85b2a8d354d39a517158ce2d9539ccb204",
   "crates": {
     "addr2line 0.21.0": {
       "name": "addr2line",
@@ -9034,9 +9034,11 @@
       "name": "sqlx",
       "version": "0.7.3",
       "repository": {
-        "Http": {
-          "url": "https://crates.io/api/v1/crates/sqlx/0.7.3/download",
-          "sha256": "dba03c279da73694ef99763320dea58b51095dfe87d001b1d4b5fe78ba8763cf"
+        "Git": {
+          "remote": "https://github.com/kshramt/sqlx.git",
+          "commitish": {
+            "Rev": "c8aa3d33520a60ffbc9b92f451125b7888dc8531"
+          }
         }
       },
       "targets": [
@@ -9105,9 +9107,12 @@
       "name": "sqlx-core",
       "version": "0.7.3",
       "repository": {
-        "Http": {
-          "url": "https://crates.io/api/v1/crates/sqlx-core/0.7.3/download",
-          "sha256": "d84b0a3c3739e220d94b3239fd69fb1f74bc36e16643423bd99de3b43c21bfbd"
+        "Git": {
+          "remote": "https://github.com/kshramt/sqlx.git",
+          "commitish": {
+            "Rev": "c8aa3d33520a60ffbc9b92f451125b7888dc8531"
+          },
+          "strip_prefix": "sqlx-core"
         }
       },
       "targets": [
@@ -9316,9 +9321,12 @@
       "name": "sqlx-macros",
       "version": "0.7.3",
       "repository": {
-        "Http": {
-          "url": "https://crates.io/api/v1/crates/sqlx-macros/0.7.3/download",
-          "sha256": "89961c00dc4d7dffb7aee214964b065072bff69e36ddb9e2c107541f75e4f2a5"
+        "Git": {
+          "remote": "https://github.com/kshramt/sqlx.git",
+          "commitish": {
+            "Rev": "c8aa3d33520a60ffbc9b92f451125b7888dc8531"
+          },
+          "strip_prefix": "sqlx-macros"
         }
       },
       "targets": [
@@ -9384,9 +9392,12 @@
       "name": "sqlx-macros-core",
       "version": "0.7.3",
       "repository": {
-        "Http": {
-          "url": "https://crates.io/api/v1/crates/sqlx-macros-core/0.7.3/download",
-          "sha256": "d0bd4519486723648186a08785143599760f7cc81c52334a55d6a83ea1e20841"
+        "Git": {
+          "remote": "https://github.com/kshramt/sqlx.git",
+          "commitish": {
+            "Rev": "c8aa3d33520a60ffbc9b92f451125b7888dc8531"
+          },
+          "strip_prefix": "sqlx-macros-core"
         }
       },
       "targets": [
@@ -9502,9 +9513,12 @@
       "name": "sqlx-mysql",
       "version": "0.7.3",
       "repository": {
-        "Http": {
-          "url": "https://crates.io/api/v1/crates/sqlx-mysql/0.7.3/download",
-          "sha256": "e37195395df71fd068f6e2082247891bc11e3289624bbc776a0cdfa1ca7f1ea4"
+        "Git": {
+          "remote": "https://github.com/kshramt/sqlx.git",
+          "commitish": {
+            "Rev": "c8aa3d33520a60ffbc9b92f451125b7888dc8531"
+          },
+          "strip_prefix": "sqlx-mysql"
         }
       },
       "targets": [
@@ -9681,9 +9695,12 @@
       "name": "sqlx-postgres",
       "version": "0.7.3",
       "repository": {
-        "Http": {
-          "url": "https://crates.io/api/v1/crates/sqlx-postgres/0.7.3/download",
-          "sha256": "d6ac0ac3b7ccd10cc96c7ab29791a7dd236bd94021f31eec7ba3d46a74aa1c24"
+        "Git": {
+          "remote": "https://github.com/kshramt/sqlx.git",
+          "commitish": {
+            "Rev": "c8aa3d33520a60ffbc9b92f451125b7888dc8531"
+          },
+          "strip_prefix": "sqlx-postgres"
         }
       },
       "targets": [
@@ -9862,9 +9879,12 @@
       "name": "sqlx-sqlite",
       "version": "0.7.3",
       "repository": {
-        "Http": {
-          "url": "https://crates.io/api/v1/crates/sqlx-sqlite/0.7.3/download",
-          "sha256": "210976b7d948c7ba9fced8ca835b11cbb2d677c59c79de41ac0d397e14547490"
+        "Git": {
+          "remote": "https://github.com/kshramt/sqlx.git",
+          "commitish": {
+            "Rev": "c8aa3d33520a60ffbc9b92f451125b7888dc8531"
+          },
+          "strip_prefix": "sqlx-sqlite"
         }
       },
       "targets": [
