@@ -103,6 +103,7 @@ RUN apt-get update \
    colordiff \
    curl \
    git \
+   graphviz \
    jq \
    less \
    libssl-dev \
