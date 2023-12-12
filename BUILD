@@ -80,17 +80,3 @@ filegroup(
     srcs = glob([".sqlx/*.json"]),
     visibility = ["//visibility:public"],
 )
-
-filegroup(
-    name = "build",
-    srcs = [
-        ":oci_prod_envoy_tar",
-    ],
-)
-
-filegroup(
-    name = "publish",
-    srcs = [
-        ":oci_prod_envoy_push",
-    ],
-)

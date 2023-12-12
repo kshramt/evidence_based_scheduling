@@ -30,7 +30,7 @@ trap finalize EXIT
 bazelisk test //...
 bazelisk build --stamp --embed_label "${EMBED_LABEL}" //...
 
-for target in //:oci_prod_envoy_push
+for target in //:oci_prod_envoy_push  //api_v2:oci_prod_api_v2_push
 do
    bazelisk run --stamp --embed_label "${EMBED_LABEL}" "${target}"
 done
