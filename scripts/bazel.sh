@@ -27,7 +27,8 @@ finalize(){
 
 trap finalize EXIT
 
-bazelisk build --stamp --embed_label "${EMBED_LABEL}"
+bazelisk test //...
+bazelisk build --stamp --embed_label "${EMBED_LABEL}" //...
 
 for target in //:oci_prod_envoy_push
 do

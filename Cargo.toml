@@ -1,3 +1,6 @@
 [workspace]
 members = ["api_v2", "id_generator"]
 resolver = "2"
+
+[patch.crates-io]
+sqlx = { git = "https://github.com/kshramt/sqlx.git", rev = "c8aa3d33520a60ffbc9b92f451125b7888dc8531" }

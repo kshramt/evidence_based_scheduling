@@ -33,12 +33,20 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/checkout@v4
+      - name: Set cache key
+        id: cache-key
+        run: |
+          {
+            echo "file_hashes=${{ hashFiles('.bazelversion', '.bazelrc', 'WORKSPACE', 'WORKSPACE.bazel', 'MODULE.bazel') }}"
+          } >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v3
         with:
           path: |
             ~/.cache/bazel
-          key: ${{ runner.os }}-bazel-${{ hashFiles('.bazelversion', '.bazelrc', 'WORKSPACE', 'WORKSPACE.bazel', 'MODULE.bazel') }}
+            ~/.cache/bezelisk
+          key: ${{ runner.os }}-bazel-${{ steps.cache-key.outputs.file_hashes }}-${{ github.sha }}
           restore-keys: |
+            ${{ runner.os }}-bazel-${{ steps.cache-key.outputs.file_hashes }}-
             ${{ runner.os }}-bazel-
       - run: EMBED_LABEL="git-${{ github.sha }}" scripts/bazel.sh
       - run: EMBED_LABEL="latest" scripts/bazel.sh
