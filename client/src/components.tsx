@@ -902,8 +902,8 @@ const TimeNodeEntry = React.memo(
               {time_node === undefined || time_node.show_children === "partial"
                 ? consts.IS_PARTIAL_MARK
                 : time_node.show_children === "full"
-                ? consts.IS_FULL_MARK
-                : consts.IS_NONE_MARK}
+                  ? consts.IS_FULL_MARK
+                  : consts.IS_NONE_MARK}
             </button>
           </div>
         )}
@@ -952,8 +952,8 @@ const PlannedNode = (props: {
           status === "done"
             ? "text-red-600 dark:text-red-400"
             : status === "dont"
-            ? "text-neutral-500"
-            : undefined,
+              ? "text-neutral-500"
+              : undefined,
         )}
         role="button"
         tabIndex={0}
@@ -1226,8 +1226,8 @@ const NonTodoQueueEntry = React.memo(
               status === "done"
                 ? "text-red-600 dark:text-red-400"
                 : status === "dont"
-                ? "text-neutral-500"
-                : null,
+                  ? "text-neutral-500"
+                  : null,
             )}
             onKeyDown={handleKeyDown}
             onClick={turnOn}
@@ -1485,8 +1485,8 @@ const TreeEntry = React.memo(
                 status === "done"
                   ? "text-red-600 dark:text-red-400"
                   : status === "dont"
-                  ? "text-neutral-500"
-                  : null,
+                    ? "text-neutral-500"
+                    : null,
               )}
               onKeyDown={handleKeyDown}
               onClick={turnOn}

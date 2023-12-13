@@ -182,7 +182,7 @@ FROM golang:1.21.4-bookworm AS base_go
 ENV CGO_ENABLED 0
 
 FROM base_js AS base_client
-WORKDIR /app/client
+WORKDIR /app
 
 FROM base_client AS client_npm_ci
 # sudo npx playwright install-deps
@@ -218,18 +218,19 @@ RUN apt-get update \
    libxrandr2\
    libxrender1\
    libxtst6
-COPY --link client/package.json client/package-lock.json ./
+COPY --link package.json package-lock.json ./
+COPY --link client/package.json client/
 RUN npm ci
 RUN npx playwright install
 
 FROM client_npm_ci AS builder_client
-COPY --link client .
+COPY --link client client
 
 FROM builder_client AS test_client
-RUN scripts/check.sh
+RUN client/scripts/check.sh
 
 FROM builder_client AS prod_client
-RUN npm run build
+RUN npm -w client run build
 
 FROM base_nginx AS prod_nginx
 COPY --link --from=prod_client /app/client/dist/static/ /usr/share/nginx/html/static/

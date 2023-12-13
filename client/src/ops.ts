@@ -625,8 +625,8 @@ export function move_before<K extends PropertyKey>(
     dst === 0
       ? getFrontIndex(kvs)
       : dst === n
-      ? _back_value_of(kvs)
-      : (kvs[ks[dst]] + kvs[ks[dst - 1]]) / 2,
+        ? _back_value_of(kvs)
+        : (kvs[ks[dst]] + kvs[ks[dst - 1]]) / 2,
   ] as const;
 }
 

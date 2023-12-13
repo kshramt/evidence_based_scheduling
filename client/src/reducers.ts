@@ -289,8 +289,8 @@ export const get_root_reducer_def = (
           time_node.show_children === "none"
             ? "full"
             : time_node.show_children === "full"
-            ? "partial"
-            : "none";
+              ? "partial"
+              : "none";
         state.data.timeline.time_nodes[action.payload] = time_node;
       },
     );

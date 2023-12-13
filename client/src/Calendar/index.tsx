@@ -139,8 +139,8 @@ const PlannedNode = (props: { node_id: types.TNodeId }) => {
           status === "done"
             ? "text-red-600 dark:text-red-400"
             : status === "dont"
-            ? "text-neutral-500"
-            : undefined,
+              ? "text-neutral-500"
+              : undefined,
         )}
       >
         {text.slice(0, 40)}

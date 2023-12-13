@@ -1,0 +1,8 @@
+{
+  "name": "evidence_based_scheduling",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "client"
+  ]
+}

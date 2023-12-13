@@ -76,8 +76,8 @@ const current_of_prev = (data_prev: {
         time_node.show_children === undefined
           ? "partial"
           : time_node.show_children
-          ? "full"
-          : "partial";
+            ? "full"
+            : "partial";
     }
   });
   const record_if_false = record_if_false_of();

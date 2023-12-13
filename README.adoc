@@ -24,9 +24,8 @@ MY_HOST_PGDATA=./pgdata1 _POSTGRES_PASSWORD=postgres_password _POSTGRES_APP_USER
 
 [source,bash]
 ----
-cd client
-BROWSER=none npx vite dev --port 3122
-# LOCALHOST=host.docker.internal BROWSER=none npx vite dev --port 3122
+BROWSER=none npx -w client vite dev --port 3122
+# LOCALHOST=host.docker.internal BROWSER=none npx -w client vite dev --port 3122
 xdg-open http://localhost:3122
 ----
 
