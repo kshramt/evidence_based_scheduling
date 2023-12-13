@@ -6,23 +6,18 @@ bazel_dep(name = "rules_pkg", version = "0.9.1")
 bazel_dep(name = "rules_oci", version = "1.4.3")
 oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
 
-def _use_oci_repositories(oci):
-    name = "oci_envoy_orig"
-    oci.pull(
-        name = name,
-        digest = "sha256:8d93b24b167364f769ac9dac11ddc48631c7f9fb54213794acfdd5ebf5bbafdd",
-        # tag = "v1.28.0",
-        image = "index.docker.io/envoyproxy/envoy",
-    )
-    use_repo(oci, name)
+oci.pull(
+    name = "oci_envoy_orig",
+    digest = "sha256:8d93b24b167364f769ac9dac11ddc48631c7f9fb54213794acfdd5ebf5bbafdd",
+    # tag = "v1.28.0",
+    image = "index.docker.io/envoyproxy/envoy",
+)
+use_repo(oci, "oci_envoy_orig")
 
-    name = "oci_distroless_cc_orig"
-    oci.pull(
-        name = name,
-        digest = "sha256:a9056d2232d16e3772bec3ef36b93a5ea9ef6ad4b4ed407631e534b85832cf40",
-        image = "gcr.io/distroless/cc-debian12",
-        platforms = ["linux/amd64"],
-    )
-    use_repo(oci, name)
-
-_use_oci_repositories(oci)
+oci.pull(
+    name = "oci_distroless_cc_orig",
+    digest = "sha256:a9056d2232d16e3772bec3ef36b93a5ea9ef6ad4b4ed407631e534b85832cf40",
+    image = "gcr.io/distroless/cc-debian12",
+    platforms = ["linux/amd64"],
+)
+use_repo(oci, "oci_distroless_cc_orig")
