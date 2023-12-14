@@ -13,10 +13,13 @@ RUN mkdir -p /usr/local/node \
    && cp -a /usr/local/bin /usr/local/node/bin && rm -f /usr/local/node/bin/docker-entrypoint.sh \
    && cp -a /usr/local/include /usr/local/node/include \
    && cp -a /usr/local/lib /usr/local/node/lib
+RUN npm install -g @pnpm/exe@8.12.1
 
 
 FROM ubuntu:22.04 as base_js
 COPY --link --from=node_downloader /usr/local/node /usr/local/node
+COPY --link --from=node_downloader /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --link --from=node_downloader /usr/local/bin/pnpm /usr/local/bin/
 ENV PATH "/usr/local/node/bin:${PATH}"
 
 
@@ -104,6 +107,7 @@ RUN apt-get update \
    curl \
    git \
    graphviz \
+   htop \
    jq \
    less \
    libssl-dev \
@@ -129,6 +133,8 @@ RUN useradd --no-log-init -m -s /bin/bash "${devcontainer_user:?}" \
    && echo '%sudo ALL=(ALL:ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 COPY --link --from=node_downloader /usr/local/node /usr/local/node
+COPY --link --from=node_downloader /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --link --from=node_downloader /usr/local/bin/pnpm /usr/local/bin/
 COPY --link --from=base_go /usr/local/go /usr/local/go
 COPY --link --from=docker_downloader /usr/local/bin/docker /usr/local/bin/docker
 COPY --link --from=docker_downloader /usr/local/libexec/docker /usr/local/libexec/docker
@@ -218,19 +224,19 @@ RUN apt-get update \
    libxrandr2\
    libxrender1\
    libxtst6
-COPY --link package.json package-lock.json ./
+COPY --link pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY --link client/package.json client/
-RUN npm ci
-RUN npx playwright install
+RUN pnpm install --frozen-lockfile
+RUN pnpm dlx playwright install
 
 FROM client_npm_ci AS builder_client
 COPY --link client client
 
 FROM builder_client AS test_client
-RUN client/scripts/check.sh
+RUN cd client && scripts/check.sh
 
 FROM builder_client AS prod_client
-RUN npm -w client run build
+RUN cd client && pnpm run build
 
 FROM base_nginx AS prod_nginx
 COPY --link --from=prod_client /app/client/dist/static/ /usr/share/nginx/html/static/
