@@ -5,3 +5,5 @@ build --output_groups=+clippy_checks
 
 build --aspects=@rules_rust//rust:defs.bzl%rustfmt_aspect
 build --output_groups=+rustfmt_checks
+
+test --test_output=errors
