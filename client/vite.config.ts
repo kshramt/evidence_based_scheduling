@@ -81,9 +81,7 @@ export default defineConfig({
     },
   },
   base: "./",
-  define: {
-    "import.meta.vitest": "undefined",
-  },
+  define: {},
   test: {
     includeSource: ["src/**/*.{js,ts,jsx,tsx}"],
     browser: {
