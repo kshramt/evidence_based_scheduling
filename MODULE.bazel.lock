@@ -1,6 +1,6 @@
 {
   "lockFileVersion": 3,
-  "moduleFileHash": "f51adc98b6b4796c2eb0a2b9289196a26660467ec7692187c8eaa8f51a433510",
+  "moduleFileHash": "8011c9807323fa0971c182a13555ab00c447d27929c6e06022c3f89ef586ef91",
   "flags": {
     "cmdRegistries": [
       "https://bcr.bazel.build/"
@@ -35,7 +35,8 @@
           },
           "imports": {
             "oci_envoy_orig": "oci_envoy_orig",
-            "oci_distroless_cc_orig": "oci_distroless_cc_orig"
+            "oci_distroless_cc_orig": "oci_distroless_cc_orig",
+            "oci_nginx_orig": "oci_nginx_orig"
           },
           "devImports": [],
           "tags": [
@@ -69,6 +70,20 @@
                 "line": 24,
                 "column": 9
               }
+            },
+            {
+              "tagName": "pull",
+              "attributeValues": {
+                "name": "oci_nginx_orig",
+                "digest": "sha256:d196915ddcdba9c28059bf111b2beeeb39d2cd0f8353a1ff4bfbf4b6189f3b0c",
+                "image": "nginx"
+              },
+              "devDependency": false,
+              "location": {
+                "file": "@@//:MODULE.bazel",
+                "line": 32,
+                "column": 9
+              }
             }
           ],
           "hasDevUseExtension": false,
@@ -80,7 +95,7 @@
           "usingModule": "<root>",
           "location": {
             "file": "@@//:MODULE.bazel",
-            "line": 39,
+            "line": 46,
             "column": 21
           },
           "imports": {},
@@ -94,7 +109,7 @@
               "devDependency": false,
               "location": {
                 "file": "@@//:MODULE.bazel",
-                "line": 40,
+                "line": 47,
                 "column": 15
               }
             }
@@ -108,7 +123,7 @@
           "usingModule": "<root>",
           "location": {
             "file": "@@//:MODULE.bazel",
-            "line": 48,
+            "line": 55,
             "column": 20
           },
           "imports": {
@@ -130,7 +145,7 @@
               "devDependency": true,
               "location": {
                 "file": "@@//:MODULE.bazel",
-                "line": 50,
+                "line": 57,
                 "column": 23
               }
             }
@@ -144,7 +159,7 @@
           "usingModule": "<root>",
           "location": {
             "file": "@@//:MODULE.bazel",
-            "line": 64,
+            "line": 71,
             "column": 21
           },
           "imports": {
@@ -87528,6 +87543,22 @@
               "platform": "darwin_arm64"
             }
           },
+          "oci_nginx_orig": {
+            "bzlFile": "@@rules_oci~1.4.3//oci/private:pull.bzl",
+            "ruleClassName": "oci_alias",
+            "attributes": {
+              "name": "rules_oci~1.4.3~oci~oci_nginx_orig",
+              "target_name": "oci_nginx_orig",
+              "scheme": "https",
+              "registry": "index.docker.io",
+              "repository": "library/nginx",
+              "identifier": "sha256:d196915ddcdba9c28059bf111b2beeeb39d2cd0f8353a1ff4bfbf4b6189f3b0c",
+              "platforms": {},
+              "platform": "@@rules_oci~1.4.3//oci:oci_nginx_orig_single",
+              "bzlmod_repository": "oci_nginx_orig",
+              "reproducible": true
+            }
+          },
           "oci_crane_linux_amd64": {
             "bzlFile": "@@rules_oci~1.4.3//oci:repositories.bzl",
             "ruleClassName": "crane_repositories",
@@ -87577,6 +87608,18 @@
             "ruleClassName": "yq_host_alias_repo",
             "attributes": {
               "name": "rules_oci~1.4.3~oci~yq"
+            }
+          },
+          "oci_nginx_orig_single": {
+            "bzlFile": "@@rules_oci~1.4.3//oci/private:pull.bzl",
+            "ruleClassName": "oci_pull",
+            "attributes": {
+              "name": "rules_oci~1.4.3~oci~oci_nginx_orig_single",
+              "scheme": "https",
+              "registry": "index.docker.io",
+              "repository": "library/nginx",
+              "identifier": "sha256:d196915ddcdba9c28059bf111b2beeeb39d2cd0f8353a1ff4bfbf4b6189f3b0c",
+              "target_name": "oci_nginx_orig_single"
             }
           },
           "oci_crane_darwin_arm64": {

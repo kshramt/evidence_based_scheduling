@@ -33,7 +33,7 @@ readonly MY_BAZEL_FLAGS="--lockfile_mode error"
 bazelisk test $MY_BAZEL_FLAGS //...
 bazelisk build $MY_BAZEL_FLAGS //...
 
-for target in //:oci_prod_envoy_push  //api_v2:oci_prod_api_v2_push
+for target in //:oci_prod_envoy_push //client:oci_prod_push //api_v2:oci_prod_api_v2_push
 do
    bazelisk run $MY_BAZEL_FLAGS --stamp --embed_label "${EMBED_LABEL}" "${target}"
 done

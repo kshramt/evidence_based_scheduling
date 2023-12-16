@@ -1,3 +1,4 @@
+load("@//:oci.bzl", "declare_oci")
 load("@aspect_bazel_lib//lib:expand_template.bzl", "expand_template")
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
 load("@npm//:defs.bzl", "npm_link_all_packages")
@@ -22,24 +23,19 @@ oci_image(
     workdir = "/app",
 )
 
+filegroup(
+    name = ".sqlx",
+    srcs = glob([".sqlx/*.json"]),
+    visibility = ["//:__subpackages__"],
+)
+
 write_file(
     name = "oci_tags_tmpl",
     out = "oci_tags.tmpl",
     content = [
         "{TAG}",
     ],
-)
-
-expand_template(
-    name = "oci_prod_envoy_tags_stamped",
-    out = "oci_prod_envoy_tags.txt",
-    stamp_substitutions = {
-        "{TAG}": "{{BUILD_EMBED_LABEL}}",
-    },
-    substitutions = {
-        "{TAG}": "recent",
-    },
-    template = ":oci_tags_tmpl",
+    visibility = ["//:__subpackages__"],
 )
 
 write_file(
@@ -48,38 +44,15 @@ write_file(
     content = [
         "{REPO}:{TAG}",
     ],
+    visibility = ["//:__subpackages__"],
 )
 
-expand_template(
-    name = "oci_prod_envoy_repo_tags_stamped",
-    out = "oci_prod_envoy_repo_tags.txt",
-    stamp_substitutions = {
-        "{REPO}": "ghcr.io/kshramt/evidence_based_scheduling/envoy2",
-        "{TAG}": "{{BUILD_EMBED_LABEL}}",
-    },
-    substitutions = {
-        "{REPO}": "ghcr.io/kshramt/evidence_based_scheduling/envoy2",
-        "{TAG}": "recent",
-    },
-    template = ":oci_repo_tags_tmpl",
+exports_files(
+    ["nginx.conf"],
+    visibility = ["//:__subpackages__"],
 )
 
-oci_push(
-    name = "oci_prod_envoy_push",
-    image = ":oci_prod_envoy",
-    remote_tags = ":oci_prod_envoy_tags_stamped",
-    # todo: Rename envoy2 to envoy.
-    repository = "ghcr.io/kshramt/evidence_based_scheduling/envoy2",
-)
-
-oci_tarball(
-    name = "oci_prod_envoy_tar",
-    image = ":oci_prod_envoy",
-    repo_tags = ":oci_prod_envoy_repo_tags_stamped",
-)
-
-filegroup(
-    name = ".sqlx",
-    srcs = glob([".sqlx/*.json"]),
-    visibility = ["//visibility:public"],
+declare_oci(
+    image = "oci_prod_envoy",
+    repo = "ghcr.io/kshramt/evidence_based_scheduling/envoy2",
 )
