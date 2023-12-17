@@ -1,0 +1,11 @@
+# GENERATED FILE - DO NOT EDIT!
+#
+# To update this file, run:
+#   bazel run //py:gazelle_python_manifest.update
+
+manifest:
+  modules_mapping:
+    ruff: ruff
+  pip_repository:
+    name: pip
+integrity: 67d36ab5acef5bccca0f0fdeabaec6dc0d4e2891cec5a408f13a10e37c9c5e1f

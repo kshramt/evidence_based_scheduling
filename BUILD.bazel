@@ -1,14 +1,8 @@
 load("@//:oci.bzl", "declare_oci")
-load("@bazel_gazelle//:def.bzl", "gazelle")
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
 load("@npm//:defs.bzl", "npm_link_all_packages")
-load("@pip//:requirements.bzl", "all_whl_requirements")
 load("@rules_oci//oci:defs.bzl", "oci_image")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
-load("@rules_python_gazelle_plugin//manifest:defs.bzl", "gazelle_python_manifest")
-load("@rules_python_gazelle_plugin//modules_mapping:def.bzl", "modules_mapping")
-load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
-load("@rules_python//python:pip.bzl", "compile_pip_requirements")
 
 npm_link_all_packages()
 
@@ -60,60 +54,4 @@ exports_files(
 declare_oci(
     image = "oci_prod_envoy",
     repo = "ghcr.io/kshramt/evidence_based_scheduling/envoy2",
-)
-
-#
-# python
-#
-
-compile_pip_requirements(
-    name = "requirements",
-    extra_args = ["--all-extras"],
-    requirements_in = "pyproject.toml",
-    # requirements_linux = "requirements_linux.txt",
-    requirements_txt = "requirements_linux.txt",
-)
-
-modules_mapping(
-    name = "modules_map",
-    exclude_patterns = [
-        "^_|(\\._)+",  # This is the default.
-        "(\\.tests)+",  # Add a custom one to get rid of the psutil tests.
-    ],
-    wheels = all_whl_requirements,
-)
-
-# Gazelle python extension needs a manifest file mapping from
-# an import to the installed package that provides it.
-# This macro produces two targets:
-# - //:gazelle_python_manifest.update can be used with `bazel run`
-#   to recalculate the manifest
-# - //:gazelle_python_manifest.test is a test target ensuring that
-#   the manifest doesn't need to be updated
-# This target updates a file called gazelle_python.yaml, and
-# requires that file exist before the target is run.
-# When you are using gazelle you need to run this target first.
-gazelle_python_manifest(
-    name = "gazelle_python_manifest",
-    modules_mapping = ":modules_map",
-    pip_repository_name = "pip",
-    requirements = [
-        "//:requirements_linux.txt",
-    ],
-    tags = ["exclusive"],
-)
-
-# Our gazelle target points to the python gazelle binary.
-# This is the simple case where we only need one language supported.
-# If you also had proto, go, or other gazelle-supported languages,
-# you would also need a gazelle_binary rule.
-# See https://github.com/bazelbuild/bazel-gazelle/blob/master/extend.rst#example
-# This is the primary gazelle target to run, so that you can update BUILD.bazel files.
-# You can execute:
-# - bazel run //:gazelle update
-# - bazel run //:gazelle fix
-# See: https://github.com/bazelbuild/bazel-gazelle#fix-and-update
-gazelle(
-    name = "gazelle",
-    gazelle = "@rules_python_gazelle_plugin//python:gazelle_binary",
 )
