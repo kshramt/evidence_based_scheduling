@@ -1,0 +1,4 @@
+.venv
+client/node_modules
+node_modules
+openapi_codegen/.venv

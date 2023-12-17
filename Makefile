@@ -20,6 +20,10 @@ bazel_update_lockfile:
 bazel_update_crate_index:
 	CARGO_BAZEL_REPIN=1 bazelisk sync --only=crate_index
 
+.PHONY: bazel_install_pnpm
+bazel_install_pnpm:
+	bazelisk run -- @pnpm//:pnpm --dir "${PWD}" install
+
 check: check_client
 check_client:
 	pushd client

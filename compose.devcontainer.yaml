@@ -20,15 +20,10 @@ services:
       HOST_HOME: ${HOME:?}
       DOCKER_HOST: tcp://docker_sock:2375
     volumes:
+      - cache:/home/${USER:?}/.cache
       - type: bind
         source: /
         target: /h
-      - type: bind
-        source: ${HOME:?}/.cache/bazel
-        target: /home/${USER:?}/.cache/bazel
-      - type: bind
-        source: ${HOME:?}/.cache/bazelisk
-        target: /home/${USER:?}/.cache/bazelisk
     command: sleep infinity
   docker_sock:
     image: alpine/socat:1.7.4.4
@@ -40,3 +35,5 @@ services:
         source: ${MY_DOCKER_HOST_PATH:-/var/run/docker.sock}
         target: /var/run/docker.sock
     command: tcp-listen:2375,fork,reuseaddr unix-connect:/var/run/docker.sock
+volumes:
+  cache:
