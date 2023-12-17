@@ -1,11 +1,10 @@
 load("@//:oci.bzl", "declare_oci")
-load("@aspect_bazel_lib//lib:expand_template.bzl", "expand_template")
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
 load("@npm//:defs.bzl", "npm_link_all_packages")
-load("@rules_oci//oci:defs.bzl", "oci_image", "oci_push", "oci_tarball")
+load("@rules_oci//oci:defs.bzl", "oci_image")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 
-npm_link_all_packages(name = "node_modules")
+npm_link_all_packages()
 
 pkg_tar(
     name = "oci_envoy_envoy_yaml_tar",
