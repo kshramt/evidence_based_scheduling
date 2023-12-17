@@ -2,7 +2,7 @@ import abc
 import json
 import re
 import sys
-from typing import Final, Iterable, Literal, Self
+from typing import Final, Iterable, Literal, Self, TypeAlias
 
 import pydantic
 import yaml
@@ -82,7 +82,7 @@ class Ref(AbstractSchema):
         return self.ref.split("/")[-1]
 
 
-type NonObjectSchema = (
+NonObjectSchema: TypeAlias = (
     Ref
     | StringSchema
     | DateTimeSchema
@@ -92,7 +92,7 @@ type NonObjectSchema = (
     | ArraySchema
 )
 
-type Schema = (
+Schema: TypeAlias = (
     Ref
     | StringSchema
     | IntegerSchema
