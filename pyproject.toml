@@ -19,7 +19,7 @@ classifiers = [
 dev = ["pytest~=7.4", "ruff"]
 
 [tool.setuptools]
-packages = ["py"]
+packages = []
 
 [tool.ruff]
 extend-exclude = ["**/gen"]
