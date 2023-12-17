@@ -1,5 +1,5 @@
 {
-  "checksum": "2d75d582df73bc969db4d7eee6589e85b2a8d354d39a517158ce2d9539ccb204",
+  "checksum": "9fd271144ebe8c727dbb98eab9ee7c4b9a8d8dd622eaf25e4540b6b832441633",
   "crates": {
     "addr2line 0.21.0": {
       "name": "addr2line",
@@ -128,7 +128,7 @@
               "target": "getrandom"
             },
             {
-              "id": "zerocopy 0.7.28",
+              "id": "zerocopy 0.7.31",
               "target": "zerocopy"
             }
           ],
@@ -13762,13 +13762,13 @@
       },
       "license": "MIT OR Apache-2.0"
     },
-    "zerocopy 0.7.28": {
+    "zerocopy 0.7.31": {
       "name": "zerocopy",
-      "version": "0.7.28",
+      "version": "0.7.31",
       "repository": {
         "Http": {
-          "url": "https://crates.io/api/v1/crates/zerocopy/0.7.28/download",
-          "sha256": "7d6f15f7ade05d2a4935e34a457b936c23dc70a05cc1d97133dc99e7a3fe0f0e"
+          "url": "https://crates.io/api/v1/crates/zerocopy/0.7.31/download",
+          "sha256": "1c4061bedbb353041c12f413700357bec76df2c7e2ca8e4df8bac24c6bf68e3d"
         }
       },
       "targets": [
@@ -13799,23 +13799,23 @@
           "selects": {
             "cfg(any())": [
               {
-                "id": "zerocopy-derive 0.7.28",
+                "id": "zerocopy-derive 0.7.31",
                 "target": "zerocopy_derive"
               }
             ]
           }
         },
-        "version": "0.7.28"
+        "version": "0.7.31"
       },
       "license": "BSD-2-Clause OR Apache-2.0 OR MIT"
     },
-    "zerocopy-derive 0.7.28": {
+    "zerocopy-derive 0.7.31": {
       "name": "zerocopy-derive",
-      "version": "0.7.28",
+      "version": "0.7.31",
       "repository": {
         "Http": {
-          "url": "https://crates.io/api/v1/crates/zerocopy-derive/0.7.28/download",
-          "sha256": "dbbad221e3f78500350ecbd7dfa4e63ef945c05f4c61cb7f4d3f84cd0bba649b"
+          "url": "https://crates.io/api/v1/crates/zerocopy-derive/0.7.31/download",
+          "sha256": "b3c129550b3e6de3fd0ba67ba5c81818f9805e58b8d7fee80a3a59d2c9fc601a"
         }
       },
       "targets": [
@@ -13852,7 +13852,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.7.28"
+        "version": "0.7.31"
       },
       "license": "BSD-2-Clause OR Apache-2.0 OR MIT"
     },

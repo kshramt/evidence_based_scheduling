@@ -18,7 +18,7 @@ bazel_update_lockfile:
 
 .PHONY: bazel_update_crate_index
 bazel_update_crate_index:
-	CARGO_BAZEL_REPIN=1 bazelisk sync --only=crate_index
+	CARGO_BAZEL_REPIN=1 bazelisk build //api_v2
 
 .PHONY: bazel_install_pnpm
 bazel_install_pnpm:
