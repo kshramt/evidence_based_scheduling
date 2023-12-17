@@ -1,42 +1,45 @@
-[tool.poetry.dependencies]
-python = ">=3.11,<3.13"
-
-[tool.poetry.group.dev.dependencies]
-ruff = "^0.1.8"
-
-[tool.poetry]
-name = "evidence_based_scheduling"
-version = "1.0.0"
-description = ""
-authors = ["Your Name <you@example.com>"]
-exclude = ["./**/conftext.py", "./**/*_test.py"]
-
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
 
+[project]
+name = "py"
+version = "1.0.0"
+dependencies = []
+requires-python = ">=3.11,<3.13"
+authors = [{ name = "kshramt", email = "kshramt@example.com" }]
+description = "Evidence Based Scheduling"
+license = { file = "LICENSE.txt" }
+classifiers = [
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Programming Language :: Python",
+]
+
+[project.optional-dependencies]
+dev = ["ruff"]
+
+[tool.setuptools]
+packages = []
 
 [tool.ruff]
-extend-exclude = [
-    "**/gen"
-]
+extend-exclude = ["**/gen"]
 ignore = [
     # TODO: Remove `D1`.
-    "D100", # https://beta.ruff.rs/docs/rules/undocumented-public-module/
+    "D100",   # https://beta.ruff.rs/docs/rules/undocumented-public-module/
     "D101",
     "D102",
     "D103",
     "D104",
     "D105",
     "D106",
-    "D107", # https://beta.ruff.rs/docs/rules/undocumented-public-init/
+    "D107",   # https://beta.ruff.rs/docs/rules/undocumented-public-init/
     "D4",
     "E501",
     "PTH206", # https://beta.ruff.rs/docs/rules/os-sep-split/
-    "S101", # https://beta.ruff.rs/docs/rules/assert/
-    "S110", # https://beta.ruff.rs/docs/rules/try-except-pass/
-    "S112", # https://beta.ruff.rs/docs/rules/try-except-continue/
-    "S602", # https://beta.ruff.rs/docs/rules/subprocess-popen-with-shell-equals-true/
+    "S101",   # https://beta.ruff.rs/docs/rules/assert/
+    "S110",   # https://beta.ruff.rs/docs/rules/try-except-pass/
+    "S112",   # https://beta.ruff.rs/docs/rules/try-except-continue/
+    "S602",   # https://beta.ruff.rs/docs/rules/subprocess-popen-with-shell-equals-true/
 ]
 select = [
     "ANN",
@@ -59,9 +62,7 @@ select = [
 ]
 
 [tool.ruff.format]
-exclude = [
-    "gen"
-]
+exclude = ["gen"]
 
 
 [tool.ruff.pydocstyle]
