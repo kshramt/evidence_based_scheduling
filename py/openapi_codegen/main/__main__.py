@@ -1,4 +1,4 @@
-import src.app
+import py.openapi_codegen.src.app
 
 
 if __name__ == "__main__":

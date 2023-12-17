@@ -1,1 +1,115 @@
-{}
+# GENERATED FILE - DO NOT EDIT!
+#
+# To update this file, run:
+#   bazel run //:gazelle_python_manifest.update
+
+manifest:
+  modules_mapping:
+    annotated_types: annotated_types
+    annotated_types.test_cases: annotated_types
+    iniconfig: iniconfig
+    iniconfig.exceptions: iniconfig
+    packaging: packaging
+    packaging.markers: packaging
+    packaging.metadata: packaging
+    packaging.requirements: packaging
+    packaging.specifiers: packaging
+    packaging.tags: packaging
+    packaging.utils: packaging
+    packaging.version: packaging
+    pluggy: pluggy
+    py: pytest
+    pydantic: pydantic
+    pydantic.alias_generators: pydantic
+    pydantic.annotated_handlers: pydantic
+    pydantic.class_validators: pydantic
+    pydantic.color: pydantic
+    pydantic.config: pydantic
+    pydantic.dataclasses: pydantic
+    pydantic.datetime_parse: pydantic
+    pydantic.decorator: pydantic
+    pydantic.deprecated: pydantic
+    pydantic.deprecated.class_validators: pydantic
+    pydantic.deprecated.config: pydantic
+    pydantic.deprecated.copy_internals: pydantic
+    pydantic.deprecated.decorator: pydantic
+    pydantic.deprecated.json: pydantic
+    pydantic.deprecated.parse: pydantic
+    pydantic.deprecated.tools: pydantic
+    pydantic.env_settings: pydantic
+    pydantic.error_wrappers: pydantic
+    pydantic.errors: pydantic
+    pydantic.fields: pydantic
+    pydantic.functional_serializers: pydantic
+    pydantic.functional_validators: pydantic
+    pydantic.generics: pydantic
+    pydantic.json: pydantic
+    pydantic.json_schema: pydantic
+    pydantic.main: pydantic
+    pydantic.mypy: pydantic
+    pydantic.networks: pydantic
+    pydantic.parse: pydantic
+    pydantic.plugin: pydantic
+    pydantic.root_model: pydantic
+    pydantic.schema: pydantic
+    pydantic.tools: pydantic
+    pydantic.type_adapter: pydantic
+    pydantic.types: pydantic
+    pydantic.typing: pydantic
+    pydantic.utils: pydantic
+    pydantic.v1: pydantic
+    pydantic.v1.annotated_types: pydantic
+    pydantic.v1.class_validators: pydantic
+    pydantic.v1.color: pydantic
+    pydantic.v1.config: pydantic
+    pydantic.v1.dataclasses: pydantic
+    pydantic.v1.datetime_parse: pydantic
+    pydantic.v1.decorator: pydantic
+    pydantic.v1.env_settings: pydantic
+    pydantic.v1.error_wrappers: pydantic
+    pydantic.v1.errors: pydantic
+    pydantic.v1.fields: pydantic
+    pydantic.v1.generics: pydantic
+    pydantic.v1.json: pydantic
+    pydantic.v1.main: pydantic
+    pydantic.v1.mypy: pydantic
+    pydantic.v1.networks: pydantic
+    pydantic.v1.parse: pydantic
+    pydantic.v1.schema: pydantic
+    pydantic.v1.tools: pydantic
+    pydantic.v1.types: pydantic
+    pydantic.v1.typing: pydantic
+    pydantic.v1.utils: pydantic
+    pydantic.v1.validators: pydantic
+    pydantic.v1.version: pydantic
+    pydantic.validate_call_decorator: pydantic
+    pydantic.validators: pydantic
+    pydantic.version: pydantic
+    pydantic.warnings: pydantic
+    pydantic_core: pydantic_core
+    pydantic_core.core_schema: pydantic_core
+    pytest: pytest
+    pytest_asyncio: pytest_asyncio
+    pytest_asyncio.plugin: pytest_asyncio
+    ruff: ruff
+    typing_extensions: typing_extensions
+    yaml: PyYAML
+    yaml.composer: PyYAML
+    yaml.constructor: PyYAML
+    yaml.cyaml: PyYAML
+    yaml.dumper: PyYAML
+    yaml.emitter: PyYAML
+    yaml.error: PyYAML
+    yaml.events: PyYAML
+    yaml.loader: PyYAML
+    yaml.nodes: PyYAML
+    yaml.parser: PyYAML
+    yaml.reader: PyYAML
+    yaml.representer: PyYAML
+    yaml.resolver: PyYAML
+    yaml.scanner: PyYAML
+    yaml.serializer: PyYAML
+    yaml.tokens: PyYAML
+  pip_repository:
+    name: pip
+integrity: c0a5486629e79ace65f53676db33524791098f3691bc46eb2d6b37e1c1696121
