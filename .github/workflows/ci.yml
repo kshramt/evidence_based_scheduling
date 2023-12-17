@@ -42,8 +42,7 @@ jobs:
       - uses: actions/cache@v3
         with:
           path: |
-            ~/.cache/bazel
-            ~/.cache/bezelisk
+            ~/.cache
           key: ${{ runner.os }}-bazel-${{ steps.cache-key.outputs.file_hashes }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-bazel-${{ steps.cache-key.outputs.file_hashes }}-
