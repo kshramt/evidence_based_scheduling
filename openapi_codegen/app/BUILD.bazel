@@ -1,0 +1,19 @@
+load("@rules_python//python:defs.bzl", "py_binary", "py_library")
+
+py_library(
+    name = "app",
+    srcs = ["__init__.py"],
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "@pip//pydantic",
+        "@pip//pyyaml",
+    ],
+)
+
+py_binary(
+    name = "app_bin",
+    srcs = ["__main__.py"],
+    main = "__main__.py",
+    visibility = ["//:__subpackages__"],
+    deps = [":app"],
+)

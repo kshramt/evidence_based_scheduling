@@ -7,7 +7,6 @@
     { "path": "go" },
     { "path": "grpc_py" },
     { "path": "proto" },
-    { "path": "py" },
     { "path": "tests/e2e" }
   ]
 }
