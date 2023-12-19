@@ -15,9 +15,9 @@ MY_HOST: Final = os.environ["MY_HOST"]
 
 
 @pytest.fixture
-async def browser() -> collections.abc.Generator[
-    playwright.async_api.Browser, Any, None
-]:
+async def browser() -> (
+    collections.abc.Generator[playwright.async_api.Browser, Any, None]
+):
     async with playwright.async_api.async_playwright() as pw:
         yield await pw.chromium.launch()
 

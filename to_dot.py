@@ -1,22 +1,17 @@
 #!/usr/bin/python3
 
 import argparse
-import datetime
-import logging
-import os
-import pickle
-import sys
-import urllib
 import json
-
+import logging
+import sys
 
 __version__ = "0.1.0"
 logger = logging.getLogger()
 
 
-def main(argv):
+def main(argv: list[str]) -> None:
     args = _parse_argv(argv[1:])
-    _add_handlers(logger, [], level_stderr=args.log_level)
+    _add_handlers(logger, level_stderr=args.log_level)
     logger.debug(dict(args=args))
     run(args)
 
@@ -24,7 +19,7 @@ def main(argv):
 color_of_status = dict(todo="darkblue", done="darkred", dont="darkgray")
 
 
-def run(args):
+def run(args: argparse.Namespace) -> None:
     data = json.load(sys.stdin)
     print("digraph G{")
     for k, v in data["nodes"].items():
@@ -44,7 +39,7 @@ def run(args):
     print("}")
 
 
-def _parse_argv(argv):
+def _parse_argv(argv: list[str]) -> argparse.Namespace:
     logger.debug(dict(argv=argv))
     doc = f"""
     {__file__}
@@ -68,7 +63,10 @@ def _parse_argv(argv):
     return args
 
 
-def _add_handlers(logger, paths, level_stderr=logging.INFO, level_path=logging.DEBUG):
+def _add_handlers(
+    logger: logging.Logger,
+    level_stderr: int = logging.INFO,
+) -> logging.Logger:
     fmt = logging.Formatter(
         "%(levelname)s\t%(process)d\t%(asctime)s\t%(pathname)s\t%(funcName)s\t%(lineno)d\t%(message)s"
     )
@@ -84,14 +82,6 @@ def _add_handlers(logger, paths, level_stderr=logging.INFO, level_path=logging.D
     logger.setLevel(logging.DEBUG)
     logger.addHandler(hdl)
 
-    for path in paths:
-        mkdir(dirname(path))
-        hdl_ = logging.FileHandler(path)
-        hdl_.setFormatter(fmt)
-        hdl_.setLevel(level_path)
-        logger.addHandler(hdl_)
-
-    logger.info(dict(log_files=paths))
     return logger
 
 

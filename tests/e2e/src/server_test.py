@@ -48,7 +48,10 @@ async def test_walkthrough(
         )
         assert fake_idp_create_user_resp2.HasField("token")
         assert fake_idp_create_user_resp2.token.HasField("user_id")
-        assert fake_idp_create_user_resp.token.user_id != fake_idp_create_user_resp2.token.user_id
+        assert (
+            fake_idp_create_user_resp.token.user_id
+            != fake_idp_create_user_resp2.token.user_id
+        )
 
         # FakeIdpGetIdToken
         fake_idp_get_id_token_resp: api_pb2.FakeIdpGetIdTokenResponse = (
@@ -60,7 +63,10 @@ async def test_walkthrough(
         )
         assert fake_idp_get_id_token_resp.HasField("token")
         assert fake_idp_get_id_token_resp.token.HasField("user_id")
-        assert fake_idp_create_user_resp.token.user_id == fake_idp_get_id_token_resp.token.user_id
+        assert (
+            fake_idp_create_user_resp.token.user_id
+            == fake_idp_get_id_token_resp.token.user_id
+        )
 
         # FakeIdpCreateUser calls CreateUser via a "distributed transaction".
         # # CreateUser
@@ -161,11 +167,9 @@ async def test_walkthrough(
             created_at=now,
         )
 
-        create_patches_resp: api_pb2.CreatePatchesResponse = (
-            await stub.CreatePatches(
-                request=api_pb2.CreatePatchesRequest(patches=[patch_1]),
-                metadata=(("authorization", f"Bearer {token}"),),
-            )
+        create_patches_resp: api_pb2.CreatePatchesResponse = await stub.CreatePatches(
+            request=api_pb2.CreatePatchesRequest(patches=[patch_1]),
+            metadata=(("authorization", f"Bearer {token}"),),
         )
         # GetPendingPatches from client_id_1
         get_pending_patches_resp: api_pb2.GetPendingPatchesResponse = (

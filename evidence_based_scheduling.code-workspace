@@ -7,7 +7,6 @@
     { "path": "go" },
     { "path": "grpc_py" },
     { "path": "proto" },
-    { "path": "openapi_codegen" },
     { "path": "tests/e2e" }
   ]
 }
