@@ -2,7 +2,8 @@ import abc
 import json
 import re
 import sys
-from typing import Final, Iterable, Literal, Self
+from collections.abc import Iterable
+from typing import Final, Literal, Self, TypeAlias
 
 import pydantic
 import yaml
@@ -82,7 +83,7 @@ class Ref(AbstractSchema):
         return self.ref.split("/")[-1]
 
 
-type NonObjectSchema = (
+NonObjectSchema: TypeAlias = (
     Ref
     | StringSchema
     | DateTimeSchema
@@ -92,7 +93,7 @@ type NonObjectSchema = (
     | ArraySchema
 )
 
-type Schema = (
+Schema: TypeAlias = (
     Ref
     | StringSchema
     | IntegerSchema
@@ -113,14 +114,14 @@ SecurityScheme = BearerSecurityScheme
 
 
 class BearerAuth(NoExtraModel):
-    bearerAuth: list[None]
+    bearerAuth: list[None]  # noqa: N815
 
 
 class Content(NoExtraModel):
     class _Schema(NoExtraModel):
         schema: Ref
 
-    applicationJson: _Schema = pydantic.Field(..., alias="application/json")
+    applicationJson: _Schema = pydantic.Field(..., alias="application/json")  # noqa: N815
 
 
 class Operation(NoExtraModel):
@@ -140,7 +141,7 @@ class Operation(NoExtraModel):
 
     summary: str
     parameters: None | list[Parameter] = None
-    requestBody: None | RequestBody = None
+    requestBody: None | RequestBody = None  # noqa: N815
     responses: dict[str, Response]
     security: None | tuple[()] | tuple[BearerAuth] = None
 
@@ -152,7 +153,7 @@ class OpenApi(NoExtraModel):
 
     class Components(NoExtraModel):
         schemas: dict[str, ObjectSchema]
-        securitySchemes: dict[str, SecurityScheme]
+        securitySchemes: dict[str, SecurityScheme]  # noqa: N815
 
     class Server(NoExtraModel):
         url: str

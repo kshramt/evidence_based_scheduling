@@ -115,6 +115,7 @@ RUN apt-get update \
    oathtool \
    pkg-config \
    postgresql-client \
+   python3 \
    sudo \
    tig \
    tree \
