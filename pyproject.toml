@@ -22,7 +22,8 @@ dev = ["pytest~=7.4", "ruff"]
 packages = []
 
 [tool.ruff]
-extend-exclude = ["**/gen"]
+extend-exclude = ["gen/", "external/"]
+force-exclude = true
 ignore = [
     # TODO: Remove `D1`.
     "D100",   # https://beta.ruff.rs/docs/rules/undocumented-public-module/

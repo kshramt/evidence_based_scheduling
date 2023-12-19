@@ -29,7 +29,13 @@ def get_updates() -> list[dict[str, Any]]:
         ("cargo", ("/api_v2", "/id_generator")),
         ("github-actions", ("/",)),
         ("gomod", ("/go",)),
-        ("npm", ("/", "/client",)),
+        (
+            "npm",
+            (
+                "/",
+                "/client",
+            ),
+        ),
         ("pip", ("/", "/grpc_py", "/tests/e2e")),
     ):
         for path in paths:

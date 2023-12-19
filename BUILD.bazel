@@ -7,9 +7,8 @@ load("@rules_oci//oci:defs.bzl", "oci_image")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 load("@rules_python_gazelle_plugin//manifest:defs.bzl", "gazelle_python_manifest")
 load("@rules_python_gazelle_plugin//modules_mapping:def.bzl", "modules_mapping")
-load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
+load("@rules_python//python:defs.bzl", "py_library")
 load("@rules_python//python:pip.bzl", "compile_pip_requirements")
-
 
 npm_link_all_packages()
 
@@ -54,7 +53,12 @@ write_file(
 )
 
 exports_files(
-    ["nginx.conf"],
+    [
+        ".eslintrc",
+        ".shellcheckrc",
+        "pyproject.toml",
+        "nginx.conf",
+    ],
     visibility = ["//:__subpackages__"],
 )
 
@@ -121,4 +125,22 @@ gazelle(
         "BUILD.bazel",
     ],
     gazelle = "@rules_python_gazelle_plugin//python:gazelle_binary",
+)
+
+py_library(
+    name = "evidence_based_scheduling",
+    srcs = [
+        "bake.py",
+        "codegen/root/.github/dependabot.yml.gen.py",
+        "to_dot.py",
+    ],
+    visibility = ["//:__subpackages__"],
+)
+
+#
+# Lint
+#
+alias(
+    name = "format",
+    actual = "//tools:format",
 )

@@ -17,14 +17,14 @@ class Platform:
     arch: str
 
 
-def main(argv):
+def main(argv: list[str]) -> None:
     args = _parse_argv(argv[1:])
     _add_handlers(logger, [], level_stderr=args.log_level)
     logger.debug(dict(args=args))
     run(args)
 
 
-def run(args):
+def run(args: argparse.Namespace) -> None:
     zstd = "compression=zstd,force-compression=true"
     spec = dict(group=dict(), target=dict())
     for platform in (
@@ -45,7 +45,7 @@ def run(args):
         ):
             k = f"{target}-{platform.os}-{platform.arch}"
             v = {
-                "dockerfile": f"Dockerfile",
+                "dockerfile": "Dockerfile",
                 "target": target,
                 "output": [
                     f"type=docker,{zstd}",
@@ -84,7 +84,7 @@ def run(args):
     )
 
 
-def _parse_argv(argv):
+def _parse_argv(argv: list[str]) -> argparse.Namespace:
     logger.debug(dict(argv=argv))
     doc = f"""
     {__file__}
@@ -111,7 +111,12 @@ def _parse_argv(argv):
     return args
 
 
-def _add_handlers(logger, paths, level_stderr=logging.INFO, level_path=logging.DEBUG):
+def _add_handlers(
+    logger: logging.Logger,
+    paths: list[str],
+    level_stderr: int = logging.INFO,
+    level_path: int = logging.DEBUG,
+) -> logging.Logger:
     fmt = logging.Formatter(
         "%(levelname)s\t%(process)d\t%(asctime)s\t%(name)s\t%(funcName)s\t%(lineno)d\t%(message)s"
     )

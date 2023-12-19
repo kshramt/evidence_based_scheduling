@@ -37,3 +37,34 @@ crates_repository(
 load("@crate_index//:defs.bzl", "crate_repositories")
 
 crate_repositories()
+
+#
+# shfmt
+#
+load("@aspect_rules_lint//format:repositories.bzl", "fetch_shfmt")
+
+fetch_shfmt()
+
+#
+# shellcheck
+#
+load("@aspect_rules_lint//lint:shellcheck.bzl", "fetch_shellcheck")
+
+fetch_shellcheck()
+
+#
+# terraform
+#
+load(
+    "@aspect_rules_lint//format:repositories.bzl",
+    "fetch_terraform",
+)
+
+fetch_terraform()
+
+#
+# ruff
+#
+load("@aspect_rules_lint//lint:ruff.bzl", "fetch_ruff")
+
+fetch_ruff()
