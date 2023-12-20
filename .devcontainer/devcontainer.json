@@ -89,7 +89,9 @@
         },
         "rust-analyzer.check.command": "clippy",
         "typescript.preferGoToSourceDefinition": true
-      }
+      },
+      "python.analysis.autoImportCompletions": true,
+      "python.analysis.typeCheckingMode": "strict"
     }
   }
 }
