@@ -119,7 +119,7 @@ class BearerAuth(NoExtraModel):
 
 class Content(NoExtraModel):
     class _Schema(NoExtraModel):
-        schema: Ref
+        schema_: Ref = pydantic.Field(..., alias="schema")
 
     applicationJson: _Schema = pydantic.Field(..., alias="application/json")  # noqa: N815
 
@@ -129,7 +129,7 @@ class Operation(NoExtraModel):
         name: str
         in_: Literal["path", "query"] = pydantic.Field(..., alias="in")
         required: bool
-        schema: NonObjectSchema
+        schema_: NonObjectSchema = pydantic.Field(..., alias="schema")
 
     class RequestBody(NoExtraModel):
         required: Literal[True]
@@ -174,6 +174,7 @@ class OpenApi(NoExtraModel):
     def gen_schemas(self: Self) -> None:
         for name, schema in self.components.schemas.items():
             required_fields = set(schema.required or [])
+            print("#[rustfmt::skip]")
             print("#[derive(Debug, serde::Deserialize, serde::Serialize)]")
             print(f"pub struct {name} {{")
             for field_name, field_schema in schema.properties.items():
@@ -190,11 +191,12 @@ class OpenApi(NoExtraModel):
             if path_params:
                 print(
                     f"""\
+#[rustfmt::skip]
 #[derive(Debug, serde::Deserialize)]
 pub struct {type_name}Path {{"""
                 )
                 for param in path_params:
-                    typ = param.schema.type_repr()
+                    typ = param.schema_.type_repr()
                     if not param.required:
                         typ = f"Option<{typ}>"
                     print(
@@ -209,11 +211,12 @@ pub struct {type_name}Path {{"""
             if query_params:
                 print(
                     f"""\
+#[rustfmt::skip]
 #[derive(Debug, serde::Deserialize)]
 pub struct {type_name}Query {{"""
                 )
                 for param in query_params:
-                    typ = param.schema.type_repr()
+                    typ = param.schema_.type_repr()
                     if not param.required:
                         typ = f"Option<{typ}>"
                     print(
@@ -226,13 +229,14 @@ pub struct {type_name}Query {{"""
                 )
             print(
                 f"""\
+#[rustfmt::skip]
 #[derive(Debug)]
 pub enum {type_name} {{"""
             )
             for resp_code, resp_def in op_def.responses.items():
                 print(
                     f"""\
-    S{resp_code}({resp_def.content.applicationJson.schema.type_repr()}),"""
+    S{resp_code}({resp_def.content.applicationJson.schema_.type_repr()}),"""
                 )
             print(
                 """
@@ -240,6 +244,7 @@ pub enum {type_name} {{"""
             )
             print(
                 f"""\
+#[rustfmt::skip]
 impl axum::response::IntoResponse for {type_name} {{
     fn into_response(self) -> axum::response::Response {{
         match self  {{"""
@@ -259,6 +264,7 @@ impl axum::response::IntoResponse for {type_name} {{
     def gen_api(self: Self) -> None:
         print(
             """\
+#[rustfmt::skip]
 #[async_trait::async_trait]
 pub trait Api {
     type TError: axum::response::IntoResponse;
@@ -296,7 +302,7 @@ pub trait Api {
             if op_def.requestBody:
                 print(
                     f"""\
-        axum::extract::Json(body): axum::extract::Json<{op_def.requestBody.content.applicationJson.schema.type_repr()}>,"""
+        axum::extract::Json(body): axum::extract::Json<{op_def.requestBody.content.applicationJson.schema_.type_repr()}>,"""
                 )
             print(
                 f"""\
@@ -314,6 +320,7 @@ pub trait Api {
 
         print(
             """\
+#[rustfmt::skip]
 pub fn register_app<TApi: Api + 'static>(
     app: axum::Router<TApi::TState>,
 ) -> axum::Router<TApi::TState> {"""

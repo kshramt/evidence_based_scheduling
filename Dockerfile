@@ -171,6 +171,7 @@ ENV PATH "/root/.rye/py/cpython@3.12.0/install/bin:${PATH}"
 ENV PYTHONUNBUFFERED 1
 ENV PYTHONDONTWRITEBYTECODE 1
 WORKDIR /app
+RUN python3 -m venv .venv
 
 FROM nginx:1.25.3-alpine AS base_nginx
 
@@ -332,6 +333,23 @@ RUN go test -v ./...
 FROM base_go_builder AS api_v1_builder
 RUN go build api_v1/main.go
 
+
+FROM base_poetry12 AS ruff_builder
+COPY --link pyproject.toml requirements_linux.txt ./
+RUN .venv/bin/python3 -m pip install -r requirements_linux.txt
+
+
+FROM base_poetry12 AS openapi_codegen_builder
+WORKDIR /app
+COPY --link --from=ruff_builder /app/pyproject.toml /app/
+COPY --link --from=ruff_builder /app/.venv /app/.venv
+RUN .venv/bin/python3 -m ruff check .
+RUN .venv/bin/python3 -m ruff format --check .
+COPY --link openapi/api_v2.yaml openapi/api_v2.yaml
+COPY --link openapi_codegen openapi_codegen
+RUN .venv/bin/python3 -m openapi_codegen.app < openapi/api_v2.yaml >| openapi_codegen/gen.rs
+
+
 FROM base_rust AS base_rust_builder
 WORKDIR /app
 COPY --link Cargo.toml Cargo.lock ./
@@ -342,7 +360,8 @@ COPY --link data/lib.rs id_generator/src/
 RUN cargo fetch
 COPY --link api_v2/src api_v2/src
 COPY --link id_generator/src id_generator/src
-COPY --link .sqlx  .sqlx
+COPY --link .sqlx .sqlx
+COPY --link --from=openapi_codegen_builder /app/openapi_codegen/gen.rs api_v2/src/gen.rs
 RUN cargo fmt --check
 RUN cargo clippy --all-targets --all-features -- -D warnings
 RUN cargo test --all-targets --all-features
@@ -371,22 +390,3 @@ COPY --link --from=docker:24.0.2-cli-alpine3.18 /usr/local/libexec/docker/cli-pl
 COPY --link tests/e2e/src src
 COPY --link --from=tests_e2e_grpc_builder /app/gen src/gen
 RUN python3 -m poetry install --only main
-
-
-FROM base_poetry12 AS ruff_builder
-COPY --link poetry.toml pyproject.toml poetry.lock ./
-RUN python3 -m poetry install
-
-
-FROM base_poetry12 AS openapi_codegen_builder
-WORKDIR /app/openapi_codegen
-COPY --link openapi_codegen/poetry.toml openapi_codegen/pyproject.toml openapi_codegen/poetry.lock /
-RUN python3 -m poetry install
-COPY --link openapi_codegen/src src
-COPY --link --from=ruff_builder /app/poetry.toml /app/pyproject.toml /app/poetry.lock /app/
-COPY --link --from=ruff_builder /app/.venv /app/.venv
-WORKDIR /app
-RUN python3 -m poetry run python3 -m ruff check .
-RUN python3 -m poetry run python3 -m ruff format .
-WORKDIR /app/openapi_codegen
-RUN python3 -m poetry install

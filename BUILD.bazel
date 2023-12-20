@@ -58,6 +58,7 @@ exports_files(
         ".shellcheckrc",
         "pyproject.toml",
         "nginx.conf",
+        "openapi/api_v2.yaml",
     ],
     visibility = ["//:__subpackages__"],
 )
