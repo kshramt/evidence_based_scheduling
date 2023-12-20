@@ -8,7 +8,7 @@ load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
 genrule(
     name = "gen.rs_bin",
     srcs = ["//:openapi/api_v2.yaml"],
-    outs = ["src/gen.rs"],
+    outs = ["src/gen.rs_"],
     cmd = "$(location //openapi_codegen/app:app_bin) < $< >| $@",
     tools = [
         "//openapi_codegen/app:app_bin",
@@ -27,7 +27,7 @@ write_source_files(
 write_source_files(
     name = "write_gen_rs",
     files = {
-        "src/gen.rs": ":src/gen.rs",
+        "src/gen.rs": ":src/gen.rs_",
     },
 )
 
