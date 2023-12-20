@@ -41,7 +41,11 @@ crate_repositories()
 #
 # shfmt
 #
-load("@aspect_rules_lint//format:repositories.bzl", "fetch_shfmt")
+load(
+    "@aspect_rules_lint//format:repositories.bzl",
+    "fetch_shfmt",
+    "fetch_terraform",
+)
 
 fetch_shfmt()
 
@@ -55,11 +59,6 @@ fetch_shellcheck()
 #
 # terraform
 #
-load(
-    "@aspect_rules_lint//format:repositories.bzl",
-    "fetch_terraform",
-)
-
 fetch_terraform()
 
 #

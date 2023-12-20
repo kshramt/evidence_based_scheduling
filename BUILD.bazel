@@ -1,4 +1,5 @@
 load("@//:oci.bzl", "declare_oci")
+load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@bazel_gazelle//:def.bzl", "gazelle")
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
 load("@npm//:defs.bzl", "npm_link_all_packages")
@@ -144,4 +145,14 @@ py_library(
 alias(
     name = "format",
     actual = "//tools:format",
+)
+
+#
+# Generated code
+#
+write_source_files(
+    name = "write_gen_all",
+    additional_update_targets = [
+        "//api_v2:write_gen_all",
+    ],
 )

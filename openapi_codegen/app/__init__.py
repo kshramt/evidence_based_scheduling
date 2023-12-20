@@ -13,7 +13,7 @@ SEP_PAT: Final = re.compile(r"[/_{}:~]")
 
 class NoExtraModel(pydantic.BaseModel):
     class Config:
-        extra = pydantic.Extra.forbid
+        extra = "forbid"
 
 
 class AbstractSchema(NoExtraModel, abc.ABC):
@@ -314,10 +314,6 @@ pub trait Api {
         )
 
     def gen_register(self: Self) -> None:
-        def _get_app_route(path: str, op_name: str) -> str:
-            return f"""\
-    app.route({_get_axum_string(path)}, axum::routing::{op_name}(TApi::{_get_fn_name(path, op_name)}))"""
-
         print(
             """\
 #[rustfmt::skip]
@@ -409,5 +405,5 @@ def _get_type_name_of_path_and_op(path: str, op_name: str) -> str:
 
 
 def main() -> None:
-    spec = OpenApi.parse_obj(yaml.safe_load(sys.stdin))
+    spec = OpenApi.model_validate(yaml.safe_load(sys.stdin))
     spec.gen()

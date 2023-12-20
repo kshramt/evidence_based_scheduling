@@ -11,7 +11,7 @@ export SHELLOPTS := pipefail:errexit:nounset:noclobber
 .DEFAULT_GOAL := all
 
 .PHONY: check
-.PHONY: update
+.PHONY: write
 
 # Specific to this project
 
@@ -40,17 +40,17 @@ check: check_lint
 check_lint:
 	bazelisk lint //...
 
-.PHONY: update_lockfile
-update: update_lockfile
-update_lockfile: update_crate_index
+.PHONY: write_lockfile
+write: write_lockfile
+write_lockfile: write_crate_index
 	: bazelisk mod deps --lockfile_mode=update
 
-.PHONY: update_crate_index
-update: update_crate_index
-update_crate_index:
+.PHONY: write_crate_index
+write: write_crate_index
+write_crate_index:
 	CARGO_BAZEL_REPIN=1 bazelisk build //api_v2
 
-.PHONY: update_api_v2_src_gen_rs
-update: update_api_v2_src_gen_rs
-update_api_v2_src_gen_rs:
-	bazelisk run //api_v2:write_gen_rs
+.PHONY: write_gen_all
+write: write_gen_all
+write_gen_all:
+	bazelisk run //:write_gen_all
