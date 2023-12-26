@@ -28,7 +28,6 @@ def get_updates() -> list[dict[str, Any]]:
     for package_ecosystem, paths in (
         ("cargo", ("/api_v2", "/id_generator")),
         ("github-actions", ("/",)),
-        ("gomod", ("/go",)),
         (
             "npm",
             (

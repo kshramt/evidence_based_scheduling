@@ -262,77 +262,6 @@ COPY --link db/scripts/migrate.sh /app/scripts/migrate.sh
 COPY --link db/migrations /app/db/migrations
 ENTRYPOINT ["/app/scripts/migrate.sh"]
 
-FROM base_go AS sqlc_builder
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-   --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-   apt-get update \
-   && DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
-RUN CGO_ENABLED=1 go install github.com/kyleconroy/sqlc/cmd/sqlc@v1.18.0
-
-FROM base_go AS go_db_builder
-WORKDIR /app
-COPY --link --from=sqlc_builder /go/bin/sqlc /usr/local/bin/sqlc
-COPY --link db db
-COPY --link sqlc.yaml ./
-RUN /usr/local/bin/sqlc --experimental generate
-
-FROM base_go AS buf_builder
-RUN go install github.com/bufbuild/buf/cmd/buf@v1.21.0
-
-FROM base_go AS protoc_gen_connect_go_builder
-RUN go install github.com/bufbuild/connect-go/cmd/protoc-gen-connect-go@v1.5.2
-
-FROM base_go AS protoc_gen_go_builder
-RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.30.0
-
-FROM base_go AS staticcheck_builder
-RUN go install honnef.co/go/tools/cmd/staticcheck@2023.1.3
-
-# Install gosec
-FROM base_go AS gosec_builder
-RUN go install github.com/securego/gosec/v2/cmd/gosec@v2.16.0
-
-FROM base_go AS go_api_v1_grpc_builder
-COPY --link --from=protoc_gen_go_builder /go/bin/protoc-gen-go /usr/local/bin/protoc-gen-go
-COPY --link --from=buf_builder /go/bin/buf /usr/local/bin/buf
-COPY --link --from=protoc_gen_connect_go_builder /go/bin/protoc-gen-connect-go /usr/local/bin/protoc-gen-connect-go
-WORKDIR /app
-COPY --link proto proto
-RUN cd proto \
-   && buf lint \
-   && buf generate --config buf.yaml --template buf.gen-go.yaml
-
-FROM base_poetry11 AS tests_e2e_grpc_builder
-WORKDIR /grpc_py
-COPY --link grpc_py/poetry.toml grpc_py/pyproject.toml grpc_py/poetry.lock ./
-RUN python3 -m poetry install --only main
-WORKDIR /app
-COPY --link proto proto
-RUN mkdir -p gen/api/v1 \
-   && touch gen/__init__.py gen/api/__init__.py gen/api/v1/__init__.py \
-   && /grpc_py/.venv/bin/python3 -m grpc_tools.protoc -Iproto api/v1/api.proto --python_out=gen --pyi_out=gen --grpc_python_out=gen \
-   && sed -i 's/^from api\.v.* import/from . import/' gen/api/v1/api_pb2_grpc.py
-
-FROM base_go AS base_go_builder
-WORKDIR /app
-COPY --link go/go.mod go/go.sum ./
-RUN go mod download
-COPY --link go .
-COPY --link --from=go_db_builder /app/go/db db
-COPY --link --from=go_api_v1_grpc_builder /app/go/gen gen
-COPY --link --from=staticcheck_builder /go/bin/staticcheck /usr/local/bin/staticcheck
-COPY --link --from=gosec_builder /go/bin/gosec /usr/local/bin/gosec
-RUN gofmt -s -d . | if grep ^ ; then exit 1 ; else : ; fi
-RUN go vet -v ./...
-RUN staticcheck ./...
-RUN gosec ./...
-RUN go test -v ./...
-RUN go test -v ./...
-# RUN CGO_ENABLED=1 go test -race -v ./...
-
-FROM base_go_builder AS api_v1_builder
-RUN go build api_v1/main.go
-
 
 FROM base_poetry12 AS ruff_builder
 COPY --link pyproject.toml requirements_linux.txt ./
@@ -372,11 +301,6 @@ WORKDIR /app
 COPY --link --from=base_rust_builder /app/target/release/api_v2 .
 ENTRYPOINT ["./api_v2"]
 
-FROM gcr.io/distroless/static-debian11:nonroot AS prod_api_v1
-WORKDIR /app
-COPY --link --from=api_v1_builder /app/main .
-ENTRYPOINT ["./main"]
-
 FROM base_poetry11 AS tests_e2e
 COPY --link tests/e2e/poetry.toml tests/e2e/pyproject.toml tests/e2e/poetry.lock ./
 RUN python3 -m poetry install --only main
@@ -388,5 +312,4 @@ COPY --link --from=docker:24.0.2-cli-alpine3.18 /usr/local/bin/docker /usr/local
 COPY --link --from=docker:24.0.2-cli-alpine3.18 /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
 COPY --link --from=docker:24.0.2-cli-alpine3.18 /usr/local/libexec/docker/cli-plugins/docker-buildx /usr/local/libexec/docker/cli-plugins/docker-buildx
 COPY --link tests/e2e/src src
-COPY --link --from=tests_e2e_grpc_builder /app/gen src/gen
 RUN python3 -m poetry install --only main

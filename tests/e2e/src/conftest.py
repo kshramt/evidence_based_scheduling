@@ -49,11 +49,6 @@ def adminer_port() -> str:
 
 
 @pytest.fixture
-def api_v1_port() -> str:
-    return _get_free_port()
-
-
-@pytest.fixture
 def api_v2_port() -> str:
     return _get_free_port()
 
@@ -144,7 +139,6 @@ def compose_common_envs() -> collections.abc.Generator[None, Any, None]:
 @pytest.fixture
 def compose_up_envs(
     uuid1: str,
-    api_v1_port: str,
     api_v2_port: str,
     compose_common_envs: None,
     envoy_http_port: str,
@@ -155,7 +149,6 @@ def compose_up_envs(
     with unittest.mock.patch.dict(
         os.environ,
         dict(
-            API_V1_PORT=api_v1_port,
             API_V2_PORT=api_v2_port,
             COMPOSE_PROJECT_NAME=uuid1,
             ENVOY_HTTP_PORT=envoy_http_port,

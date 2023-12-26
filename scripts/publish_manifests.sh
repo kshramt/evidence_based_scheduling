@@ -34,7 +34,7 @@ create_and_push(){
   fi
 }
 
-for service in nginx envoy postgres api_v1 postgres_migration
+for service in nginx envoy postgres api_v2 postgres_migration
 do
   create_and_push "ghcr.io/kshramt/evidence_based_scheduling/${service}" &
 done

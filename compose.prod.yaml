@@ -1,6 +1,4 @@
 services:
-  api_v1:
-    image: ghcr.io/kshramt/evidence_based_scheduling/api_v1:${_DOCKER_API_V1_TAG:-latest}
   api_v2:
     image: ghcr.io/kshramt/evidence_based_scheduling/api_v2:${_DOCKER_API_V2_TAG:-latest}
   nginx:

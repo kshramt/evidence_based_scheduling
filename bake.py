@@ -39,7 +39,6 @@ def run(args: argparse.Namespace) -> None:
             ("prod_nginx", "/nginx"),
             ("prod_postgres", "/postgres"),
             ("prod_postgres_migration", "/postgres_migration"),
-            ("prod_api_v1", "/api_v1"),
             ("prod_api_v2", "/api_v2"),
             ("tests_e2e", "/tests_e2e"),
         ):
