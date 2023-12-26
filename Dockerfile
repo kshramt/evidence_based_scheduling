@@ -186,7 +186,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
 RUN pip install poetry==1.7.0
 
-FROM golang:1.21.4-bookworm AS base_go
+FROM golang:1.21.5-bookworm AS base_go
 ENV CGO_ENABLED 0
 
 FROM base_js AS base_client
