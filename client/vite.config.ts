@@ -64,13 +64,6 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/api.v1.ApiService": {
-        target: `http://${process.env.LOCALHOST || "localhost"}:${
-          process.env.ENVOY_HTTP_PORT || 8080
-        }`,
-        changeOrigin: true,
-        secure: false,
-      },
       "/api/v2/": {
         target: `http://${process.env.LOCALHOST || "localhost"}:${
           process.env.ENVOY_HTTP_PORT || 8080

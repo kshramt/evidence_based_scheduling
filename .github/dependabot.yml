@@ -77,28 +77,6 @@
       }
     },
     {
-      "directory": "/go",
-      "groups": {
-        "minor": {
-          "update-types": [
-            "minor"
-          ]
-        },
-        "patch": {
-          "update-types": [
-            "patch"
-          ]
-        }
-      },
-      "package-ecosystem": "gomod",
-      "schedule": {
-        "day": "saturday",
-        "interval": "weekly",
-        "time": "01:00",
-        "timezone": "Asia/Tokyo"
-      }
-    },
-    {
       "directory": "/",
       "groups": {
         "minor": {
@@ -144,28 +122,6 @@
     },
     {
       "directory": "/",
-      "groups": {
-        "minor": {
-          "update-types": [
-            "minor"
-          ]
-        },
-        "patch": {
-          "update-types": [
-            "patch"
-          ]
-        }
-      },
-      "package-ecosystem": "pip",
-      "schedule": {
-        "day": "saturday",
-        "interval": "weekly",
-        "time": "01:00",
-        "timezone": "Asia/Tokyo"
-      }
-    },
-    {
-      "directory": "/grpc_py",
       "groups": {
         "minor": {
           "update-types": [

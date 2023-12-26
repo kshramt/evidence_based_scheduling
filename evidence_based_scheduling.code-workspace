@@ -4,9 +4,6 @@
     { "path": "api_v2" },
     { "path": "client" },
     { "path": "db" },
-    { "path": "go" },
-    { "path": "grpc_py" },
-    { "path": "proto" },
     { "path": "tests/e2e" }
   ]
 }

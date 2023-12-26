@@ -28,7 +28,6 @@ def get_updates() -> list[dict[str, Any]]:
     for package_ecosystem, paths in (
         ("cargo", ("/api_v2", "/id_generator")),
         ("github-actions", ("/",)),
-        ("gomod", ("/go",)),
         (
             "npm",
             (
@@ -36,7 +35,7 @@ def get_updates() -> list[dict[str, Any]]:
                 "/client",
             ),
         ),
-        ("pip", ("/", "/grpc_py", "/tests/e2e")),
+        ("pip", ("/", "/tests/e2e")),
     ):
         for path in paths:
             res.append(
