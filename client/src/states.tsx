@@ -677,10 +677,12 @@ export class PersistentStateManager {
       ),
     );
     if (
-      resp.client_id !== this.heads.remote.client_id ||
-      resp.session_id !== this.heads.remote.session_id ||
-      resp.patch_id !== this.heads.remote.patch_id
+      resp.client_id === this.heads.remote.client_id &&
+      resp.session_id === this.heads.remote.session_id &&
+      resp.patch_id === this.heads.remote.patch_id
     ) {
+      this.#sync_store.set_state(() => null);
+    } else {
       this.#sync_store.set_state(() => {
         return {
           updated_at: resp.created_at,
