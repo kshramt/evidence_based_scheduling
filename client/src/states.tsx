@@ -434,8 +434,8 @@ export class PersistentStateManager {
     ) {
       return;
     }
-    const resp = await this.#push_rpc(() =>
-      retryer.with_retry(async () => {
+    await this.#push_rpc(async () => {
+      const resp = await retryer.with_retry(async () => {
         return await this.client_v2.putUsersUser_idhead(
           {
             patch_key: {
@@ -454,32 +454,30 @@ export class PersistentStateManager {
             headers: { authorization: bearer },
           },
         );
-      }),
-    );
-    if (resp.updated) {
-      await this.#save_remote_head(sync_head);
-    } else {
-      const resp = await this.#push_rpc(() =>
-        get_remote_head_and_save_remote_pending_patches(
+      });
+      if (resp.updated) {
+        await this.#save_remote_head(sync_head);
+      } else {
+        const resp = await get_remote_head_and_save_remote_pending_patches(
           this.client_id,
           this.client_v2,
           this.id_token,
           this.db,
           retryer.with_retry,
-        ),
-      );
-      this.#sync_store.set_state(() => {
-        return {
-          updated_at: resp.created_at,
-          name: resp.name,
-          head: {
-            client_id: resp.client_id,
-            session_id: resp.session_id,
-            patch_id: resp.patch_id,
-          },
-        };
-      });
-    }
+        );
+        this.#sync_store.set_state(() => {
+          return {
+            updated_at: resp.created_at,
+            name: resp.name,
+            head: {
+              client_id: resp.client_id,
+              session_id: resp.session_id,
+              patch_id: resp.patch_id,
+            },
+          };
+        });
+      }
+    });
   };
 
   #push_rpc = <T,>(rpc: () => Promise<T>) => {
