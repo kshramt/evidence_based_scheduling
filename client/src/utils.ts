@@ -534,17 +534,11 @@ export const usePlannedNodeIds = (timeId: string) => {
         continue;
       }
       for (const event of events) {
-        if (timeId === "Y2022") {
-          console.debug(event);
-        }
         {
           const duration =
             times.ensureFloatingTime(event.interval_set.end).f -
             times.ensureFloatingTime(event.interval_set.start).f;
           if (duration < deltaLo || deltaHi <= duration) {
-            if (timeId === "Y2022") {
-              console.debug(duration, deltaLo, deltaHi);
-            }
             continue;
           }
         }
@@ -556,18 +550,12 @@ export const usePlannedNodeIds = (timeId: string) => {
           event.interval_set.delta,
           intervals.getFloatingTimeOfLimit(event.interval_set),
         );
-        if (timeId === "Y2022") {
-          console.debug(overlapState);
-        }
         if (overlapState === intervals.Overlap.NO_OVERLAP) {
           continue;
         }
         _res.push(nodeId);
         break;
       }
-    }
-    if (timeId === "Y2022") {
-      console.debug(_res);
     }
     return _res;
   }, [eventss, nonTodoNodeIds, timeId, todoNodeIds]);
