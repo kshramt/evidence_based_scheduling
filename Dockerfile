@@ -1,3 +1,5 @@
+FROM denoland/deno:distroless-1.39.1 as deno_base
+
 FROM ubuntu:22.04 as bazel_downloader
 RUN apt-get update \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -133,6 +135,7 @@ RUN useradd --no-log-init -m -s /bin/bash "${devcontainer_user:?}" \
    && usermod -aG sudo "${devcontainer_user:?}" \
    && echo '%sudo ALL=(ALL:ALL) NOPASSWD:ALL' >> /etc/sudoers
 
+COPY --link --from=deno_base /bin/deno /usr/local/bin/deno
 COPY --link --from=node_downloader /usr/local/node /usr/local/node
 COPY --link --from=node_downloader /usr/local/lib/node_modules /usr/local/lib/node_modules
 COPY --link --from=node_downloader /usr/local/bin/pnpm /usr/local/bin/
