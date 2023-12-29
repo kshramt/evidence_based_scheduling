@@ -221,6 +221,51 @@ export const get_root_reducer_def = (
       },
     );
     builder(
+      actions.addNodesToTimeNodeAction,
+      (state: types.TStateDraftWithReadonly, action) => {
+        const [t0, t1] = utils.getRangeOfTimeId(action.payload.timeId);
+        const start = { f: t0 };
+        const end = { f: t1 };
+        const created_at = Date.now();
+        nodeIdLoop: for (const nodeId of action.payload.nodeIds) {
+          const node = state.data.nodes[nodeId];
+          if (node === undefined) {
+            continue;
+          }
+          // Skip if the node is already assigned to the time node.
+          for (const event of node.events ?? []) {
+            if (
+              event.status === "created" &&
+              typeof event.interval_set.start === "object" &&
+              event.interval_set.start.f === start.f &&
+              typeof event.interval_set.end === "object" &&
+              event.interval_set.end.f === end.f
+            ) {
+              continue nodeIdLoop;
+            }
+          }
+          swapper.set(
+            state.data.nodes,
+            state.swapped_nodes,
+            nodeId,
+            "events",
+            immer.produce(node.events ?? [], (events) => {
+              events.push({
+                created_at,
+                status: "created",
+                interval_set: {
+                  start,
+                  end,
+                  limit: { c: 1 },
+                  delta: consts.DAY,
+                },
+              });
+            }),
+          );
+        }
+      },
+    );
+    builder(
       actions.assign_nodes_to_time_node_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const time_node =

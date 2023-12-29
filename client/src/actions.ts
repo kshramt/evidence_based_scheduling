@@ -34,6 +34,12 @@ export const add_action = register_history_type(
     "add_action",
   ),
 );
+export const addNodesToTimeNodeAction = register_history_type(
+  rtk.action_of_of<{
+    timeId: string;
+    nodeIds: types.TNodeId[];
+  }>("addNodesToTimeNodeAction"),
+);
 export const parseTocAction = register_history_type(
   rtk.action_of_of<{ nodeId: types.TNodeId; text: string }>("parseTocAction"),
 );

@@ -1,5 +1,6 @@
 import * as React from "react";
 
+import AddButton from "./AddButton";
 import CopyNodeIdButton from "src/CopyNodeIdButton";
 import StartButton from "src/StartButton";
 import StartConcurrentButton from "src/StartConcurrentButton";
@@ -57,32 +58,18 @@ const TimeNode = React.memo((props: { timeId: string }) => {
     }
     return null;
   }, [isOpen, props.timeId]);
-  const idEl = React.useMemo(() => {
-    const title = utils.getStringOfTimeId(props.timeId);
-    switch (props.timeId[0]) {
-      case "D":
-      case "H": {
-        return title;
-      }
-      default: {
-        return <button onClick={toggle}>{title}</button>;
-      }
-    }
-  }, [props.timeId, toggle]);
   const plannedNodeIds = utils.usePlannedNodeIds(props.timeId);
   const plannedNodes = React.useMemo(() => {
-    return isOpen || props.timeId[0] === "D" || props.timeId[0] === "H"
-      ? plannedNodeIds.map((nodeId) => {
-          return <PlannedNode node_id={nodeId} key={nodeId} />;
-        })
-      : null;
-  }, [isOpen, props.timeId, plannedNodeIds]);
+    return plannedNodeIds.map((nodeId) => {
+      return <PlannedNode node_id={nodeId} key={nodeId} />;
+    });
+  }, [plannedNodeIds]);
   switch (props.timeId[0]) {
     case "D": {
       return (
         <div className="grid gap-x-[0.125em pl-[0.5em]" style={auto2Style}>
           <div />
-          {idEl}
+          <Id timeId={props.timeId} toggle={toggle} />
           <div />
           <div>{plannedNodes}</div>
           {children}
@@ -92,7 +79,7 @@ const TimeNode = React.memo((props: { timeId: string }) => {
     case "H": {
       return (
         <>
-          {idEl}
+          <Id timeId={props.timeId} toggle={toggle} />
           <div>{plannedNodes}</div>
         </>
       );
@@ -101,7 +88,7 @@ const TimeNode = React.memo((props: { timeId: string }) => {
       return (
         <div className="pb-[0.0625em] pl-[0.5em] flex gap-x-[0.125em] items-start">
           <div>
-            {idEl}
+            <Id timeId={props.timeId} toggle={toggle} />
             {plannedNodes}
           </div>
           {children}
@@ -161,5 +148,29 @@ const PlannedNode = (props: { node_id: types.TNodeId }) => {
     </div>
   );
 };
+
+const Id = React.memo(
+  (props: { timeId: string; toggle: () => Promise<void> }) => {
+    const title = utils.getStringOfTimeId(props.timeId);
+    const { isOn, turnOn, turnOff } = utils.useOn();
+    return (
+      <div
+        onMouseOver={turnOn}
+        onMouseLeave={turnOff}
+        onFocus={turnOn}
+        onBlur={turnOff}
+      >
+        <div>
+          {props.timeId[0] === "D" || props.timeId[0] === "H" ? (
+            title
+          ) : (
+            <button onClick={props.toggle}>{title}</button>
+          )}
+        </div>
+        {isOn ? <AddButton timeId={props.timeId} /> : null}
+      </div>
+    );
+  },
+);
 
 export default Calendar;

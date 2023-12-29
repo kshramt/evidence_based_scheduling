@@ -1,5 +1,9 @@
 import * as React from "react";
 
+export const MINUTE = 60 * 1_000;
+export const HOUR = 60 * MINUTE;
+export const DAY = 24 * HOUR;
+
 export const DELETE_MARK = <span className="material-icons">close</span>;
 
 export const NO_ESTIMATION = 0;

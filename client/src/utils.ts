@@ -499,11 +499,11 @@ const getDateOfWeek = (w: number) => {
 
 // const deltaHour = 60 * 60 * 1_000;
 const deltaDay = 24 * 60 * 60 * 1_000;
-const deltaWeek = 7 * 24 * 60 * 60 * 1_000;
-const deltaMonth = 28 * 24 * 60 * 60 * 1_000;
-const deltaQuarter = 90 * 24 * 60 * 60 * 1_000;
-const deltaYear = 365 * 24 * 60 * 60 * 1_000;
-const deltaFourYears = 4 * 365 * 24 * 60 * 60 * 1_000;
+const deltaWeek = 7 * deltaDay;
+const deltaMonth = 4 * deltaWeek;
+const deltaQuarter = 90 * deltaDay;
+const deltaYear = 365 * deltaDay;
+const deltaFourYears = 4 * deltaYear;
 const deltaRanges: Record<string, [number, number]> = {
   H: [0, deltaDay],
   D: [deltaDay, deltaWeek],
@@ -534,11 +534,17 @@ export const usePlannedNodeIds = (timeId: string) => {
         continue;
       }
       for (const event of events) {
+        if (timeId === "Y2022") {
+          console.debug(event);
+        }
         {
           const duration =
             times.ensureFloatingTime(event.interval_set.end).f -
             times.ensureFloatingTime(event.interval_set.start).f;
           if (duration < deltaLo || deltaHi <= duration) {
+            if (timeId === "Y2022") {
+              console.debug(duration, deltaLo, deltaHi);
+            }
             continue;
           }
         }
@@ -550,6 +556,9 @@ export const usePlannedNodeIds = (timeId: string) => {
           event.interval_set.delta,
           intervals.getFloatingTimeOfLimit(event.interval_set),
         );
+        if (timeId === "Y2022") {
+          console.debug(overlapState);
+        }
         if (overlapState === intervals.Overlap.NO_OVERLAP) {
           continue;
         }
@@ -557,12 +566,15 @@ export const usePlannedNodeIds = (timeId: string) => {
         break;
       }
     }
+    if (timeId === "Y2022") {
+      console.debug(_res);
+    }
     return _res;
   }, [eventss, nonTodoNodeIds, timeId, todoNodeIds]);
   return res;
 };
 
-const getRangeOfTimeId = (timeId: string) => {
+export const getRangeOfTimeId = (timeId: string) => {
   switch (timeId[0]) {
     case "H": {
       const t0 = new Date(timeId.slice(1) + ":00:00Z").getTime();

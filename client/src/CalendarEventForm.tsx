@@ -1,13 +1,10 @@
 import * as immer from "immer";
 import * as React from "react";
 
+import { DAY, HOUR, MINUTE } from "src/consts";
 import * as intervals from "src/intervals";
 import * as times from "src/times";
 import * as types from "src/types";
-
-const MINUTE = 60 * 1_000;
-const HOUR = 60 * MINUTE;
-const DAY = 24 * HOUR;
 
 const getLimitType = (limit: intervals.TLimit) => {
   if (limit === null) {
