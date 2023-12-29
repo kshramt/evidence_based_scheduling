@@ -300,55 +300,55 @@ pub trait Api {
 
 
     async fn sys_health_get(
-        axum::extract::State(state): axum::extract::State<Self::TState>,
+        state: axum::extract::State<Self::TState>,
     ) -> Result<SysHealthGet, Self::TError>;
     async fn fake_idp_users_post(
-        axum::extract::State(state): axum::extract::State<Self::TState>,
-        axum::extract::Json(body): axum::extract::Json<FakeIdpCreateUserRequest>,
+        state: axum::extract::State<Self::TState>,
+        body: axum::extract::Json<FakeIdpCreateUserRequest>,
     ) -> Result<FakeIdpUsersPost, Self::TError>;
     async fn fake_idp_login_id_token_post(
-        axum::extract::State(state): axum::extract::State<Self::TState>,
-        axum::extract::Json(body): axum::extract::Json<FakeIdpCreateUserRequest>,
+        state: axum::extract::State<Self::TState>,
+        body: axum::extract::Json<FakeIdpCreateUserRequest>,
     ) -> Result<FakeIdpLoginIdTokenPost, Self::TError>;
     async fn users_post(
-        axum::extract::State(state): axum::extract::State<Self::TState>,
+        state: axum::extract::State<Self::TState>,
         token: Self::TToken,
-        axum::extract::Json(body): axum::extract::Json<CreateUserRequest>,
+        body: axum::extract::Json<CreateUserRequest>,
     ) -> Result<UsersPost, Self::TError>;
     async fn users_user_id_clients_post(
-        axum::extract::State(state): axum::extract::State<Self::TState>,
+        state: axum::extract::State<Self::TState>,
         token: Self::TToken,
-        axum::extract::Path(path): axum::extract::Path<UsersUserIdClientsPostPath>,
-        axum::extract::Json(body): axum::extract::Json<CreateClientRequest>,
+        path: axum::extract::Path<UsersUserIdClientsPostPath>,
+        body: axum::extract::Json<CreateClientRequest>,
     ) -> Result<UsersUserIdClientsPost, Self::TError>;
     async fn users_user_id_patches_batch_post(
-        axum::extract::State(state): axum::extract::State<Self::TState>,
+        state: axum::extract::State<Self::TState>,
         token: Self::TToken,
-        axum::extract::Path(path): axum::extract::Path<UsersUserIdPatchesBatchPostPath>,
-        axum::extract::Json(body): axum::extract::Json<CreatePatchesRequest>,
+        path: axum::extract::Path<UsersUserIdPatchesBatchPostPath>,
+        body: axum::extract::Json<CreatePatchesRequest>,
     ) -> Result<UsersUserIdPatchesBatchPost, Self::TError>;
     async fn users_user_id_clients_client_id_pending_patches_get(
-        axum::extract::State(state): axum::extract::State<Self::TState>,
+        state: axum::extract::State<Self::TState>,
         token: Self::TToken,
-        axum::extract::Path(path): axum::extract::Path<UsersUserIdClientsClientIdPendingPatchesGetPath>,
-        axum::extract::Query(query): axum::extract::Query<UsersUserIdClientsClientIdPendingPatchesGetQuery>,
+        path: axum::extract::Path<UsersUserIdClientsClientIdPendingPatchesGetPath>,
+        query: axum::extract::Query<UsersUserIdClientsClientIdPendingPatchesGetQuery>,
     ) -> Result<UsersUserIdClientsClientIdPendingPatchesGet, Self::TError>;
     async fn users_user_id_clients_client_id_pending_patches_batch_delete(
-        axum::extract::State(state): axum::extract::State<Self::TState>,
+        state: axum::extract::State<Self::TState>,
         token: Self::TToken,
-        axum::extract::Path(path): axum::extract::Path<UsersUserIdClientsClientIdPendingPatchesBatchDeletePath>,
-        axum::extract::Json(body): axum::extract::Json<DeletePendingPatchesRequest>,
+        path: axum::extract::Path<UsersUserIdClientsClientIdPendingPatchesBatchDeletePath>,
+        body: axum::extract::Json<DeletePendingPatchesRequest>,
     ) -> Result<UsersUserIdClientsClientIdPendingPatchesBatchDelete, Self::TError>;
     async fn users_user_id_head_get(
-        axum::extract::State(state): axum::extract::State<Self::TState>,
+        state: axum::extract::State<Self::TState>,
         token: Self::TToken,
-        axum::extract::Path(path): axum::extract::Path<UsersUserIdHeadGetPath>,
+        path: axum::extract::Path<UsersUserIdHeadGetPath>,
     ) -> Result<UsersUserIdHeadGet, Self::TError>;
     async fn users_user_id_head_put(
-        axum::extract::State(state): axum::extract::State<Self::TState>,
+        state: axum::extract::State<Self::TState>,
         token: Self::TToken,
-        axum::extract::Path(path): axum::extract::Path<UsersUserIdHeadPutPath>,
-        axum::extract::Json(body): axum::extract::Json<UpdateHeadRequest>,
+        path: axum::extract::Path<UsersUserIdHeadPutPath>,
+        body: axum::extract::Json<UpdateHeadRequest>,
     ) -> Result<UsersUserIdHeadPut, Self::TError>;
 }
 #[rustfmt::skip]

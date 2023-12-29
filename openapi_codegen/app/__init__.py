@@ -174,15 +174,19 @@ class OpenApi(NoExtraModel):
     def gen_schemas(self: Self) -> None:
         for name, schema in self.components.schemas.items():
             required_fields = set(schema.required or [])
-            print("#[rustfmt::skip]")
-            print("#[derive(Debug, serde::Deserialize, serde::Serialize)]")
-            print(f"pub struct {name} {{")
+            print(f"""\
+#[rustfmt::skip]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
+pub struct {name} {{""")
             for field_name, field_schema in schema.properties.items():
                 type_repr = field_schema.type_repr()
                 if field_name not in required_fields:
                     type_repr = f"Option<{type_repr}>"
                 print(f"    pub {field_name}: {type_repr},")
-            print("}")
+            print(
+                """\
+}"""
+            )
 
     def gen_responses(self: Self) -> None:
         for path, op_name, op_def in self._get_ops():
@@ -280,7 +284,7 @@ pub trait Api {
             print(
                 f"""\
     async fn {fn_name}(
-        axum::extract::State(state): axum::extract::State<Self::TState>,"""
+        state: axum::extract::State<Self::TState>,"""
             )
             if security is not None:
                 print(
@@ -291,18 +295,18 @@ pub trait Api {
             if path_params:
                 print(
                     f"""\
-        axum::extract::Path(path): axum::extract::Path<{type_name}Path>,"""
+        path: axum::extract::Path<{type_name}Path>,"""
                 )
             query_params = _get_query_params(op_def)
             if query_params:
                 print(
                     f"""\
-        axum::extract::Query(query): axum::extract::Query<{type_name}Query>,"""
+        query: axum::extract::Query<{type_name}Query>,"""
                 )
             if op_def.requestBody:
                 print(
                     f"""\
-        axum::extract::Json(body): axum::extract::Json<{op_def.requestBody.content.applicationJson.schema_.type_repr()}>,"""
+        body: axum::extract::Json<{op_def.requestBody.content.applicationJson.schema_.type_repr()}>,"""
                 )
             print(
                 f"""\

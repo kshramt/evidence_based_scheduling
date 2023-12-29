@@ -21,6 +21,7 @@ services:
       DOCKER_HOST: tcp://docker_sock:2375
     volumes:
       - cache:/home/${USER:?}/.cache
+      - cargo:/home/${USER:?}/.cargo
       - type: bind
         source: /
         target: /h
@@ -40,3 +41,4 @@ services:
     command: tcp-listen:2375,fork,reuseaddr unix-connect:/var/run/docker.sock
 volumes:
   cache:
+  cargo:
