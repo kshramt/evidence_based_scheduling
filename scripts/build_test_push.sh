@@ -30,7 +30,7 @@ readonly img_prefix=ghcr.io/kshramt/evidence_based_scheduling
 
 readonly services=( nginx envoy postgres api_v2 postgres_migration )
 
-python3 bake.py --sha="${github_sha}" --ref_b64="${ref_b64}" | tee bake.json
+docker run --rm -i denoland/deno:distroless-1.39.1 run --allow-all - < bake.ts "${github_sha}" "${ref_b64}" | tee bake.json
 if [[ "${os}" = "${host_os}" && "${arch}" = "${host_arch}" ]]; then
   docker buildx bake --file bake.json "${os}-${arch}-prod" "${os}-${arch}-test"
 else

@@ -132,7 +132,6 @@ gazelle(
 py_library(
     name = "evidence_based_scheduling",
     srcs = [
-        "bake.py",
         "codegen/root/.github/dependabot.yml.gen.py",
         "to_dot.py",
     ],

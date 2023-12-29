@@ -17,6 +17,7 @@
         "bradlc.vscode-tailwindcss",
         "charliermarsh.ruff",
         "dbaeumer.vscode-eslint",
+        "denoland.vscode-deno",
         "esbenp.prettier-vscode",
         "Github.copilot",
         "github.vscode-github-actions",
@@ -62,6 +63,9 @@
         "[typescript]": {
           "editor.defaultFormatter": "esbenp.prettier-vscode"
         },
+        "deno.enablePaths": [
+          "${workspaceFolder}/bake.ts"
+        ],
         "editor.codeActionsOnSave": {
           "source.fixAll": true
         },
