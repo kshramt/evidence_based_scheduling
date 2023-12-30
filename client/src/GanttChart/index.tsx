@@ -152,6 +152,9 @@ const Cell = React.memo(
       const end = { f: start.f + ganttDt };
       let hit = false;
       for (const event of events || []) {
+        if (utils.getEventStatus(event) !== "created") {
+          continue;
+        }
         const overlapState = intervals.getOverlapState(
           start,
           end,
@@ -284,6 +287,9 @@ const GanttChartImpl = React.memo((props: { indexColumnWidth: number }) => {
       } else {
         let hit = false;
         for (const event of events) {
+          if (utils.getEventStatus(event) !== "created") {
+            continue;
+          }
           const overlapState = intervals.getOverlapState(
             tStart,
             tEnd,

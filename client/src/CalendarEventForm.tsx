@@ -2,6 +2,7 @@ import * as immer from "immer";
 import * as React from "react";
 
 import { DAY, HOUR, MINUTE } from "src/consts";
+import * as consts from "src/consts";
 import * as intervals from "src/intervals";
 import * as times from "src/times";
 import * as types from "src/types";
@@ -74,6 +75,7 @@ const CalendarEventForm = React.memo(
   (props: {
     event?: types.TEvent;
     onSubmit: (event: types.TEvent) => void;
+    onDelete: () => void;
   }) => {
     const [open, setOpen] = React.useState(false);
     const handleSubmit = React.useMemo(() => {
@@ -96,9 +98,13 @@ const CalendarEventForm = React.memo(
     const duration = (end.f - start.f) / MINUTE;
     const delta = props.event.interval_set.delta / HOUR;
     return (
-      <button className="block" onClick={handleOpen}>
-        {times.getLocalStringOfFloatingTime(start)} + {duration} min / {delta} h
-      </button>
+      <div>
+        <button onClick={handleOpen}>
+          {times.getLocalStringOfFloatingTime(start)} + {duration} min / {delta}{" "}
+          h
+        </button>
+        <button onClick={props.onDelete}>{consts.DELETE_MARK}</button>
+      </div>
     );
   },
 );

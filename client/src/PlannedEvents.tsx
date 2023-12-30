@@ -1,8 +1,10 @@
+import * as Immer from "immer";
 import * as React from "react";
 
 import CalendarEventForm from "./CalendarEventForm";
 import * as actions from "src/actions";
 import * as types from "src/types";
+import * as utils from "src/utils";
 
 const PlannedEvents = (props: { nodeId: types.TNodeId }) => {
   const events = types.useSelector(
@@ -19,7 +21,7 @@ const PlannedEvents = (props: { nodeId: types.TNodeId }) => {
     if (!events) return null;
     const n = events.length;
     return events
-      .slice()
+      .filter((event) => utils.getEventStatus(event) === "created")
       .reverse()
       .map((event, _i) => {
         const i = n - 1 - _i;
@@ -36,16 +38,29 @@ const PlannedEvents = (props: { nodeId: types.TNodeId }) => {
                 }),
               );
             }}
+            onDelete={() => {
+              dispatch(
+                actions.updateEventAction({
+                  nodeId: props.nodeId,
+                  event: Immer.produce(event, (draft) => {
+                    draft.status.push(Date.now());
+                  }),
+                  i,
+                }),
+              );
+            }}
           />
         );
       });
   }, [events, props.nodeId, dispatch]);
   return (
     <>
-      <CalendarEventForm onSubmit={addNewEvent} />
+      <CalendarEventForm onSubmit={addNewEvent} onDelete={noOp} />
       {eventEls}
     </>
   );
 };
+
+const noOp = () => {};
 
 export default PlannedEvents;
