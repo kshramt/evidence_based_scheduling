@@ -10,6 +10,8 @@ export IFS=$' \t\n'
 export LANG=C.UTF-8
 umask u=rwx,g=,o=
 
+export SOURCE_DATE_EPOCH="0"
+
 github_sha="${1}"
 readonly github_sha
 ref="${2}"

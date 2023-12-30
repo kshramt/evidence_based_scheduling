@@ -3,24 +3,34 @@ services:
     build:
       context: .
       target: prod_api_v2
+      args:
+        SOURCE_DATE_EPOCH: ${SOURCE_DATE_EPOCH:-0}
     ports:
       - "${API_V2_PORT:-8585}:8080"
   nginx:
     build:
       context: .
       target: prod_nginx
+      args:
+        SOURCE_DATE_EPOCH: ${SOURCE_DATE_EPOCH:-0}
   envoy:
     build:
       context: .
       target: prod_envoy
+      args:
+        SOURCE_DATE_EPOCH: ${SOURCE_DATE_EPOCH:-0}
   postgres:
     build:
       context: .
       target: prod_postgres
+      args:
+        SOURCE_DATE_EPOCH: ${SOURCE_DATE_EPOCH:-0}
   postgres_migration:
     build:
       context: .
       target: prod_postgres_migration
+      args:
+        SOURCE_DATE_EPOCH: ${SOURCE_DATE_EPOCH:-0}
   adminer:
     image: adminer:4.8.1-standalone
     restart: unless-stopped

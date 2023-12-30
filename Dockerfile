@@ -1,26 +1,48 @@
+FROM ubuntu:22.04 AS ubuntu_base
+ARG SOURCE_DATE_EPOCH
+ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
+
+FROM ubuntu_base AS curl_base
+RUN apt-get update \
+   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+   ca-certificates \
+   curl \
+   && apt-get clean \
+   && rm -rf /var/lib/apt/lists/*
+
+FROM curl_base AS build_essential_base
+RUN apt-get update \
+   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+   build-essential \
+   && apt-get clean \
+   && rm -rf /var/lib/apt/lists/*
+
 FROM hadolint/hadolint:v2.12.0-alpine as hadolint_base
+ARG SOURCE_DATE_EPOCH
+ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
 FROM golang:1.21.5-bookworm AS base_go
+ARG SOURCE_DATE_EPOCH
+ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 ENV CGO_ENABLED 0
 
 FROM base_go AS dbmate_builder
 RUN go install github.com/amacneil/dbmate/v2@v2.4.0
 
 FROM denoland/deno:distroless-1.39.1 as deno_base
+ARG SOURCE_DATE_EPOCH
+ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
-FROM ubuntu:22.04 as bazel_downloader
-RUN apt-get update \
-   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-   build-essential \
-   ca-certificates \
-   curl \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+FROM curl_base as bazel_downloader
+ARG SOURCE_DATE_EPOCH
+ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 RUN arch="$(dpkg --print-architecture)" && curl -L -o /usr/local/bin/buildifier "https://github.com/bazelbuild/buildtools/releases/download/v6.4.0/buildifier-linux-${arch}" && chmod +x /usr/local/bin/buildifier
 RUN arch="$(dpkg --print-architecture)" && curl -L -o /usr/local/bin/bazelisk "https://github.com/bazelbuild/bazelisk/releases/download/v1.19.0/bazelisk-linux-${arch}" && chmod +x /usr/local/bin/bazelisk
 
 
 FROM node:21.4.0-bookworm-slim AS node_downloader
+ARG SOURCE_DATE_EPOCH
+ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 RUN mkdir -p /usr/local/node \
    && cp -a /usr/local/bin /usr/local/node/bin && rm -f /usr/local/node/bin/docker-entrypoint.sh \
    && cp -a /usr/local/include /usr/local/node/include \
@@ -28,7 +50,7 @@ RUN mkdir -p /usr/local/node \
 RUN npm install -g @pnpm/exe@8.13.1
 
 
-FROM ubuntu:22.04 as base_js
+FROM ubuntu_base as base_js
 COPY --link --from=node_downloader /usr/local/node /usr/local/node
 COPY --link --from=node_downloader /usr/local/lib/node_modules /usr/local/lib/node_modules
 COPY --link --from=node_downloader /usr/local/bin/pnpm /usr/local/bin/
@@ -36,24 +58,21 @@ ENV PATH "/usr/local/node/bin:${PATH}"
 
 
 FROM docker:24.0.7-cli-alpine3.18 AS docker_downloader
+ARG SOURCE_DATE_EPOCH
+ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/bin/docker /usr/local/bin/docker
 COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/libexec/docker /usr/local/libexec/docker
 
 
 FROM rust:1.75.0-bookworm AS rust_downloader
+ARG SOURCE_DATE_EPOCH
+ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 RUN rustup component add clippy rust-analyzer rustfmt
 
 FROM rust_downloader AS sqlx_cli_downloader
 RUN cargo install sqlx-cli@0.7.3
 
-FROM ubuntu:22.04 AS base_rust
-RUN apt-get update \
-   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-   build-essential \
-   ca-certificates \
-   curl \
-   && apt-get clean \
-   && rm -rf /var/lib/apt/lists/*
+FROM build_essential_base AS base_rust
 COPY --link --from=rust_downloader /usr/local/cargo /usr/local/cargo
 COPY --link --from=rust_downloader /usr/local/rustup /usr/local/rustup
 ENV PATH "/usr/local/cargo/bin:/usr/local/rustup/bin:${PATH}"
@@ -61,22 +80,16 @@ ENV RUSTUP_HOME "/usr/local/rustup"
 ENV CARGO_HOME "/usr/local/cargo"
 
 
-FROM ubuntu:22.04 AS rye_downloader
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-   --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-   apt-get update \
-   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-   ca-certificates \
-   curl \
-   && apt-get clean \
-   && rm -rf /var/lib/apt/lists/*
+FROM curl_base AS rye_downloader
+ARG SOURCE_DATE_EPOCH
+ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 RUN curl -sSf https://rye-up.com/get | RYE_VERSION="0.15.2" RYE_INSTALL_OPTION="--yes" bash
 RUN /root/.rye/shims/rye fetch cpython@3.12.0
 RUN cd /root/.rye/py/cpython@3.12.0/install/bin && ln -s python3 python
 RUN /root/.rye/py/cpython@3.12.0/install/bin/python3 -m pip install poetry==1.7.1
 
 
-FROM ubuntu:22.04 AS devcontainer
+FROM ubuntu_base AS devcontainer
 RUN sed \
    -e 's|^path-exclude=/usr/share/man|# path-exclude=/usr/share/man|g' \
    -e 's|^path-exclude=/usr/share/doc/|# path-exclude=/usr/share/doc/|g' \
@@ -181,11 +194,13 @@ ENV CARGO_HOME "/home/${devcontainer_user:?}/.cargo"
 
 
 FROM python:3.11.5-slim-bullseye AS base_py11
+ARG SOURCE_DATE_EPOCH
+ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 ENV PYTHONUNBUFFERED 1
 ENV PYTHONDONTWRITEBYTECODE 1
 WORKDIR /app
 
-FROM ubuntu:22.04 AS base_poetry12
+FROM ubuntu_base AS base_poetry12
 COPY --link --from=rye_downloader /root/.rye /root/.rye
 ENV PATH "/root/.rye/py/cpython@3.12.0/install/bin:${PATH}"
 ENV PYTHONUNBUFFERED 1
@@ -194,10 +209,16 @@ WORKDIR /app
 RUN python3 -m venv .venv
 
 FROM nginx:1.25.3-alpine AS base_nginx
+ARG SOURCE_DATE_EPOCH
+ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
 FROM envoyproxy/envoy:distroless-v1.28.0 AS base_envoy
+ARG SOURCE_DATE_EPOCH
+ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
 FROM postgres:16.1-bookworm AS base_postgres
+ARG SOURCE_DATE_EPOCH
+ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
 FROM base_py11 AS base_poetry11
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -277,6 +298,8 @@ COPY --link ./envoy.yaml /etc/envoy/envoy.yaml
 FROM base_postgres AS prod_postgres
 
 FROM debian:12.1-slim AS prod_postgres_migration
+ARG SOURCE_DATE_EPOCH
+ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 COPY --link --from=dbmate_builder /go/bin/dbmate /usr/local/bin/dbmate
 COPY --link db/scripts/migrate.sh /app/scripts/migrate.sh
 COPY --link db/migrations /app/db/migrations
@@ -317,6 +340,8 @@ RUN cargo test --all-targets --all-features
 RUN cargo build --release
 
 FROM gcr.io/distroless/cc-debian12:nonroot AS prod_api_v2
+ARG SOURCE_DATE_EPOCH
+ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 WORKDIR /app
 COPY --link --from=base_rust_builder /app/target/release/api_v2 .
 ENTRYPOINT ["./api_v2"]

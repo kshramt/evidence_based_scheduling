@@ -62,7 +62,10 @@ const run = (
         platforms: [`${platform.os}/${platform.arch}`],
         tags: [`${base}${image_name}:h-${sha}-${platform.os}-${platform.arch}`],
         target,
-        args: { arch: platform.arch },
+        args: {
+          arch: platform.arch,
+          SOURCE_DATE_EPOCH: Deno.env.get("SOURCE_DATE_EPOCH") || "0",
+        },
       };
       spec.target[k] = v;
       if (k.startsWith("prod_")) {
