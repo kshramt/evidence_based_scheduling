@@ -245,8 +245,8 @@ const current_of_prev = (data_prev: {
           a: rt.$infer<typeof tEdgeId>,
           b: rt.$infer<typeof tEdgeId>,
         ) =>
-          (draft.data.nodes[draft.data.edges[b].c].end_time ?? 0) -
-          (draft.data.nodes[draft.data.edges[a].c].end_time ?? 0);
+          (draft.data.nodes[draft.data.edges[a].c].end_time ?? 0) -
+          (draft.data.nodes[draft.data.edges[b].c].end_time ?? 0);
         dones.sort(sorter);
         donts.sort(sorter);
         let i = 0;
