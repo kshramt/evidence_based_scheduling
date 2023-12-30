@@ -1,7 +1,8 @@
+import * as Rtk from "@reduxjs/toolkit";
+
 import * as types from "./types";
 import { MultiSet } from "./multiset";
 import * as utils from "./utils";
-import * as rtk from "./rtk";
 
 export const updated_vids = new Map<types.TNodeId, number>();
 export const affected_vids = new Map<types.TNodeId, number>();
@@ -46,7 +47,7 @@ export const observe_of = utils.memoize1((dispatch: types.AppDispatch) => {
   };
 });
 
-export const set_total_time_action = rtk.action_of_of<{
+export const set_total_time_action = Rtk.createAction<{
   node_ids: types.TNodeId[];
   force?: true;
 }>("set_total_time_action");

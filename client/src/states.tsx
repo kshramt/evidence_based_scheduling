@@ -9,7 +9,6 @@ import * as types from "./types";
 import * as producer from "./producer";
 import * as ops from "./ops";
 import * as nap from "./next_action_predictor";
-import * as rtk from "./rtk";
 import * as reducers from "./reducers";
 import * as undoable from "./undoable";
 import * as queues from "./queues";
@@ -295,46 +294,32 @@ export class PersistentStateManager {
       );
     }
 
-    // Create the store
-    const root_reducer = rtk.reducer_with_patch_of<types.TState>(
+    const listenerMiddleware = Rtk.createListenerMiddleware<types.TState>();
+    listenerMiddleware.startListening({
+      predicate: () => true,
+      effect: (action, listenerApi) => {
+        // Get a patch.
+        const patch = producer.compare(
+          listenerApi.getOriginalState(),
+          listenerApi.getState(),
+        ).patch;
+        this.#save_patch({ patch });
+      },
+    });
+    const rootReducer = reducers.getRootReducer(
       state,
-      reducers.get_root_reducer_def(
-        next_action_predictor2,
-        next_action_predictor3,
-        n_predicted,
-      ),
+      next_action_predictor2,
+      next_action_predictor3,
+      n_predicted,
     );
     const store = Rtk.configureStore({
-      reducer: reducers.reducer_of_reducer_with_patch(
-        this.#with_save_patch(
-          undoable.undoable_of(root_reducer, undoable.history_type_set, state),
-        ),
-      ),
+      reducer: undoable.undoableOf(rootReducer, state),
+      preloadedState: state,
+      middleware: (getDefaultMiddleware) => {
+        return getDefaultMiddleware().prepend(listenerMiddleware.middleware);
+      },
     });
     return store;
-  };
-
-  #with_save_patch = (
-    reducer_with_patch: (
-      state: undefined | types.TState,
-      action: types.TAnyPayloadAction,
-    ) => {
-      state: types.TState;
-      patch: producer.TOperation[];
-    },
-  ) => {
-    const patch_saver = (
-      state: undefined | types.TState,
-      action: types.TAnyPayloadAction,
-    ) => {
-      if (state === undefined) {
-        return reducer_with_patch(state, action);
-      }
-      const reduced = reducer_with_patch(state, action);
-      this.#save_patch({ patch: reduced.patch });
-      return reduced;
-    };
-    return patch_saver;
   };
 
   #push_and_remove_local_pending_patches = async () => {

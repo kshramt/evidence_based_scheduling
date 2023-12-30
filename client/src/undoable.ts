@@ -1,5 +1,6 @@
+import * as Rtk from "@reduxjs/toolkit";
+
 import * as types from "./types";
-import * as producer from "./producer";
 
 export const UNDO_TYPE = "undoable/undo";
 export const REDO_TYPE = "undoable/redo";
@@ -39,40 +40,31 @@ class History<T> {
   };
 }
 
-export const undoable_of = (
-  reducer_with_patch: (
-    state: undefined | types.TState,
-    action: types.TAnyPayloadAction,
-  ) => {
-    state: types.TState;
-    patch: producer.TOperation[];
-  },
-  history_type_set: Set<string>,
-  initial_state: types.TState,
+export const undoableOf = (
+  reducer: (state: types.TState, action: Rtk.UnknownAction) => types.TState,
+  initialState: types.TState,
 ) => {
-  const history = new History<types.TState>(initial_state);
+  const history = new History(initialState);
   const undoable = (
     state: undefined | types.TState,
-    action: types.TAnyPayloadAction,
+    action: Rtk.UnknownAction,
   ) => {
     if (state === undefined) {
-      return reducer_with_patch(state, action);
+      return initialState;
     }
     switch (action.type) {
       case UNDO_TYPE: {
-        const next_state = history.undo();
-        return { state: next_state, ...producer.compare(state, next_state) };
+        return history.undo();
       }
       case REDO_TYPE: {
-        const next_state = history.redo();
-        return { state: next_state, ...producer.compare(state, next_state) };
+        return history.redo();
       }
       default: {
-        const reduced = reducer_with_patch(state, action);
+        const nextState = reducer(state, action);
         if (history_type_set.has(action.type)) {
-          history.push(reduced.state);
+          history.push(nextState);
         }
-        return reduced;
+        return nextState;
       }
     }
   };

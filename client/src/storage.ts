@@ -1,6 +1,7 @@
 import * as Idb from "idb";
 import * as Immer from "immer";
-import * as FastJsonPatch from "@kshramt/fast-json-patch";
+
+import * as Producer from "./producer";
 
 export type THead = {
   client_id: number;
@@ -32,7 +33,7 @@ export type _TPatchValueV2 = {
   client_id: number;
   session_id: number;
   patch_id: number;
-  patch: FastJsonPatch.Operation[];
+  patch: Producer.TOperation[];
   parent_client_id: number;
   parent_session_id: number;
   parent_patch_id: number;

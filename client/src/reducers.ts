@@ -1,5 +1,5 @@
+import * as Rtk from "@reduxjs/toolkit";
 import * as actions from "./actions";
-import * as rtk from "./rtk";
 import * as types from "./types";
 import * as utils from "./utils";
 import * as checks from "./checks";
@@ -8,22 +8,17 @@ import * as immer from "immer";
 import * as toast from "./toast";
 import * as nap from "./next_action_predictor";
 import * as consts from "./consts";
-import * as producer from "./producer";
 import * as swapper from "src/swapper";
 import * as total_time_utils from "./total_time_utils";
 
-export const get_root_reducer_def = (
+export const getRootReducer = (
+  initialState: types.TState,
   next_action_predictor2: nap.BiGramPredictor<types.TNodeId>,
   next_action_predictor3: nap.TriGramPredictor<types.TNodeId>,
   n_predicted: number,
 ) => {
-  return (
-    builder: <Payload>(
-      action_of: rtk.TActionOf<Payload>,
-      reduce: rtk.TReduce<types.TState, Payload>,
-    ) => void,
-  ) => {
-    builder(
+  return Rtk.createReducer(initialState, (builder) => {
+    builder.addCase(
       actions.addNewEventAction,
       (state: types.TStateDraftWithReadonly, action) => {
         const node = state.data.nodes[action.payload.nodeId];
@@ -39,7 +34,7 @@ export const get_root_reducer_def = (
         );
       },
     );
-    builder(
+    builder.addCase(
       actions.updateEventAction,
       (state: types.TStateDraftWithReadonly, action) => {
         const events = state.data.nodes[action.payload.nodeId].events;
@@ -60,7 +55,7 @@ export const get_root_reducer_def = (
         );
       },
     );
-    builder(
+    builder.addCase(
       actions.move_pinned_sub_tree_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const i_from = state.data.pinned_sub_trees.indexOf(action.payload.from);
@@ -71,7 +66,7 @@ export const get_root_reducer_def = (
         utils.dnd_move(state.data.pinned_sub_trees, i_from, i_to);
       },
     );
-    builder(
+    builder.addCase(
       actions.toggle_pin_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const node_id = action.payload.node_id;
@@ -82,11 +77,14 @@ export const get_root_reducer_def = (
         }
       },
     );
-    builder(actions.eval_, (state: types.TStateDraftWithReadonly, action) => {
-      const k = action.payload;
-      _eval_(state, k, utils.visit_counter_of());
-    });
-    builder(
+    builder.addCase(
+      actions.eval_,
+      (state: types.TStateDraftWithReadonly, action) => {
+        const k = action.payload;
+        _eval_(state, k, utils.visit_counter_of());
+      },
+    );
+    builder.addCase(
       actions.delete_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const node_id = action.payload;
@@ -156,13 +154,13 @@ export const get_root_reducer_def = (
         }
       },
     );
-    builder(
+    builder.addCase(
       actions.parseTocAction,
       (state: types.TStateDraftWithReadonly, action) => {
         ops.makeNodesOfToc(action.payload, state);
       },
     );
-    builder(
+    builder.addCase(
       actions.delete_edge_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const edge_id = action.payload;
@@ -214,13 +212,13 @@ export const get_root_reducer_def = (
         _set_total_time_of_ancestors(state, edge.p, vid);
       },
     );
-    builder(
+    builder.addCase(
       actions.add_action,
       (state: types.TStateDraftWithReadonly, action) => {
         ops.add_node(state, action.payload.node_id, action.payload.show_mobile);
       },
     );
-    builder(
+    builder.addCase(
       actions.addNodesToTimeNodeAction,
       (state: types.TStateDraftWithReadonly, action) => {
         const [t0, t1] = utils.getRangeOfTimeId(action.payload.timeId);
@@ -265,7 +263,7 @@ export const get_root_reducer_def = (
         }
       },
     );
-    builder(
+    builder.addCase(
       actions.assign_nodes_to_time_node_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const time_node =
@@ -283,7 +281,7 @@ export const get_root_reducer_def = (
         state.data.timeline.time_nodes[action.payload.time_node_id] = time_node;
       },
     );
-    builder(
+    builder.addCase(
       actions.unassign_nodes_of_time_node_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const time_node =
@@ -296,7 +294,7 @@ export const get_root_reducer_def = (
         });
       },
     );
-    builder(
+    builder.addCase(
       actions.assign_nodes_to_covey_quadrant_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const node_ids =
@@ -311,7 +309,7 @@ export const get_root_reducer_def = (
         });
       },
     );
-    builder(
+    builder.addCase(
       actions.unassign_nodes_of_covey_quadrant_action,
       (state: types.TStateDraftWithReadonly, action) => {
         action.payload.node_ids.forEach((node_id) => {
@@ -324,7 +322,7 @@ export const get_root_reducer_def = (
         });
       },
     );
-    builder(
+    builder.addCase(
       actions.toggle_show_time_node_children_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const time_node =
@@ -339,7 +337,7 @@ export const get_root_reducer_def = (
         state.data.timeline.time_nodes[action.payload] = time_node;
       },
     );
-    builder(
+    builder.addCase(
       actions.start_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const vid = utils.visit_counter_of();
@@ -383,13 +381,13 @@ export const get_root_reducer_def = (
         );
       },
     );
-    builder(
+    builder.addCase(
       actions.top_action,
       (state: types.TStateDraftWithReadonly, action) => {
         _top(state, action.payload);
       },
     );
-    builder(actions.smallestToTop, (state) => {
+    builder.addCase(actions.smallestToTop, (state) => {
       for (let dst = 0; dst < state.todo_node_ids.length - 1; ++dst) {
         let src_min = null;
         let estimate_min = Infinity;
@@ -429,7 +427,7 @@ export const get_root_reducer_def = (
         }
       }
     });
-    builder(actions.closestToTop, (state) => {
+    builder.addCase(actions.closestToTop, (state) => {
       let node_id_min = null;
       let due_min = ":due: 9999-12-31T23:59:59";
       for (let node_id of state.todo_node_ids) {
@@ -471,7 +469,7 @@ export const get_root_reducer_def = (
         _topQueue(state, node_id_min);
       }
     });
-    builder(actions.move_important_node_to_top_action, (state) => {
+    builder.addCase(actions.move_important_node_to_top_action, (state) => {
       let candidate = null;
       let n_parents_max = 0;
       const count_parents = (node_id: types.TNodeId, vid: number) => {
@@ -512,7 +510,7 @@ export const get_root_reducer_def = (
       }
       _top(state, candidate);
     });
-    builder(
+    builder.addCase(
       total_time_utils.set_total_time_action,
       (state: types.TStateDraftWithReadonly, action) => {
         for (const node_id of action.payload.node_ids) {
@@ -528,45 +526,48 @@ export const get_root_reducer_def = (
         }
       },
     );
-    builder(
+    builder.addCase(
       actions.stop_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const vid = utils.visit_counter_of();
         stop(state, action.payload, vid);
       },
     );
-    builder(actions.stop_all_action, (state) => {
+    builder.addCase(actions.stop_all_action, (state) => {
       const vid = utils.visit_counter_of();
       stop_all(state, vid);
     });
-    builder(actions.moveUp_, (state: types.TStateDraftWithReadonly, action) => {
-      if (state.data.nodes[action.payload].status === "todo") {
-        for (const edge_id of ops.keys_of(
-          state.data.nodes[action.payload].parents,
-        )) {
-          const node_id = state.data.edges[edge_id].p;
-          swapper.set(
-            state.data.nodes,
-            state.swapped_nodes,
-            node_id,
-            "children",
-            immer.produce(state.data.nodes[node_id].children, (children) => {
-              const index = ops.move_up(children, edge_id);
-              if (index !== null) {
-                children[edge_id] = index[1];
-              }
-            }),
+    builder.addCase(
+      actions.moveUp_,
+      (state: types.TStateDraftWithReadonly, action) => {
+        if (state.data.nodes[action.payload].status === "todo") {
+          for (const edge_id of ops.keys_of(
+            state.data.nodes[action.payload].parents,
+          )) {
+            const node_id = state.data.edges[edge_id].p;
+            swapper.set(
+              state.data.nodes,
+              state.swapped_nodes,
+              node_id,
+              "children",
+              immer.produce(state.data.nodes[node_id].children, (children) => {
+                const index = ops.move_up(children, edge_id);
+                if (index !== null) {
+                  children[edge_id] = index[1];
+                }
+              }),
+            );
+          }
+          ops.move_up_todo_queue(state, action.payload);
+        } else {
+          toast.add(
+            "error",
+            `Non-todo node ${action.payload} cannot be moved up.`,
           );
         }
-        ops.move_up_todo_queue(state, action.payload);
-      } else {
-        toast.add(
-          "error",
-          `Non-todo node ${action.payload} cannot be moved up.`,
-        );
-      }
-    });
-    builder(
+      },
+    );
+    builder.addCase(
       actions.moveDown_,
       (state: types.TStateDraftWithReadonly, action) => {
         if (state.data.nodes[action.payload].status === "todo") {
@@ -596,13 +597,13 @@ export const get_root_reducer_def = (
         }
       },
     );
-    builder(
+    builder.addCase(
       actions.set_estimate_action,
       (state: types.TStateDraftWithReadonly, action) => {
         ops.set_estimate(action.payload, state);
       },
     );
-    builder(
+    builder.addCase(
       actions.set_range_value_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const vid = utils.visit_counter_of();
@@ -652,7 +653,7 @@ export const get_root_reducer_def = (
         _set_total_time_of_ancestors(state, action.payload.node_id, vid);
       },
     );
-    builder(
+    builder.addCase(
       actions.delete_range_action,
       (state: types.TStateDraftWithReadonly, action) => {
         swapper.set(
@@ -669,7 +670,7 @@ export const get_root_reducer_def = (
         );
       },
     );
-    builder(
+    builder.addCase(
       actions.set_text_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const node_id = action.payload.k;
@@ -677,7 +678,7 @@ export const get_root_reducer_def = (
         ops.setText(state, node_id, text);
       },
     );
-    builder(
+    builder.addCase(
       actions.set_time_node_text_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const time_node =
@@ -687,7 +688,7 @@ export const get_root_reducer_def = (
         state.data.timeline.time_nodes[action.payload.time_node_id] = time_node;
       },
     );
-    builder(
+    builder.addCase(
       actions.todoToDone,
       (state: types.TStateDraftWithReadonly, action) => {
         const node_id = action.payload;
@@ -727,7 +728,7 @@ export const get_root_reducer_def = (
         }
       },
     );
-    builder(
+    builder.addCase(
       actions.todoToDont,
       (state: types.TStateDraftWithReadonly, action) => {
         const node_id = action.payload;
@@ -767,7 +768,7 @@ export const get_root_reducer_def = (
         }
       },
     );
-    builder(
+    builder.addCase(
       actions.done_or_dont_to_todo_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const node_id = action.payload;
@@ -804,7 +805,7 @@ export const get_root_reducer_def = (
         }
       },
     );
-    builder(
+    builder.addCase(
       actions.toggle_show_children,
       (state: types.TStateDraftWithReadonly, action) => {
         const node_id = action.payload;
@@ -855,13 +856,13 @@ export const get_root_reducer_def = (
         }
       },
     );
-    builder(
+    builder.addCase(
       actions.show_path_to_selected_node,
       (state: types.TStateDraftWithReadonly, action) => {
         _show_path_to_selected_node(state, action.payload);
       },
     );
-    builder(
+    builder.addCase(
       actions.set_edge_type_action,
       (state: types.TStateDraftWithReadonly, action) => {
         if (!checks.is_deletable_edge_of(action.payload.edge_id, state)) {
@@ -884,7 +885,7 @@ export const get_root_reducer_def = (
         );
       },
     );
-    builder(
+    builder.addCase(
       actions.toggle_edge_hide_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const edge = state.data.edges[action.payload];
@@ -920,7 +921,7 @@ export const get_root_reducer_def = (
         }
       },
     );
-    builder(
+    builder.addCase(
       actions.add_edges_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const vid = utils.visit_counter_of();
@@ -930,10 +931,10 @@ export const get_root_reducer_def = (
         }
       },
     );
-    builder(actions.increment_count_action, (state) => {
+    builder.addCase(actions.increment_count_action, (state) => {
       ++state.data.timeline.count;
     });
-  };
+  });
 };
 
 const stop = (
@@ -1333,18 +1334,4 @@ const assert = (fn: () => [boolean, string]) => {
       throw new Error(msg);
     }
   }
-};
-
-export const reducer_of_reducer_with_patch = (
-  reducer_with_patch: (
-    state: undefined | types.TState,
-    action: types.TAnyPayloadAction,
-  ) => {
-    state: types.TState;
-    patch: producer.TOperation[];
-  },
-) => {
-  return (state: undefined | types.TState, action: types.TAnyPayloadAction) => {
-    return reducer_with_patch(state, action).state;
-  };
 };
