@@ -386,7 +386,9 @@ async fn main() {
     let app = axum::Router::new();
     let app = gen::register_app::<ApiImpl>(app);
     let app = app.with_state(state);
-    let app = app.layer(tower_http::trace::TraceLayer::new_for_http());
+    let app = app
+        .layer(tower_http::trace::TraceLayer::new_for_http())
+        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
 
     let port = get_server_port();
     info!(port = &port);
