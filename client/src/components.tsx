@@ -1134,12 +1134,34 @@ const EdgeList = React.memo(
     const children = utils.assertV(
       useSelector((state) => state.swapped_nodes.children?.[props.node_id]),
     );
+    const statuses = utils.assertV(
+      useSelector((state) => state.swapped_nodes.status),
+    );
+    const cs = utils.assertV(useSelector((state) => state.swapped_edges.c));
+    const todos = Array<JSX.Element>();
+    const dones = Array<JSX.Element>();
+    const donts = Array<JSX.Element>();
+    for (const edgeId of ops.sorted_keys_of(children)) {
+      const c = cs[edgeId];
+      const status = statuses[c];
+      if (status === "todo") {
+        todos.push(
+          <Edge edge_id={edgeId} key={edgeId} prefix={props.prefix} />,
+        );
+      } else if (status === "done") {
+        dones.push(
+          <Edge edge_id={edgeId} key={edgeId} prefix={props.prefix} />,
+        );
+      } else if (status === "dont") {
+        donts.push(
+          <Edge edge_id={edgeId} key={edgeId} prefix={props.prefix} />,
+        );
+      }
+    }
     const edge_ids = ops.sorted_keys_of(children);
     return edge_ids.length ? (
       <ol className="list-outside pl-[4em] content-visibility-auto">
-        {edge_ids.map((edge_id) => (
-          <Edge edge_id={edge_id} key={edge_id} prefix={props.prefix} />
-        ))}
+        {todos.concat(dones, donts)}
       </ol>
     ) : null;
   },
