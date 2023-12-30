@@ -12,18 +12,7 @@ export const add = <K1 extends PropertyKey, Data extends object>(
   value: Data,
 ) => {
   x[k1] = value;
-  for (const k2 in value) {
-    if (!Object.prototype.hasOwnProperty.call(value, k2)) {
-      continue;
-    }
-    if (swapped[k2] === undefined) {
-      // @ts-expect-error Just ignore the error.
-      swapped[k2] = { [k1]: value[k2] };
-    } else {
-      // @ts-expect-error Just ignore the error.
-      swapped[k2][k1] = value[k2];
-    }
-  }
+  addToSwapped(k1, swapped, value);
 };
 
 export const del = <K1 extends PropertyKey, Data extends object>(
@@ -82,7 +71,27 @@ export const swapKeys = <K1 extends PropertyKey, Data extends object>(
     if (!Object.prototype.hasOwnProperty.call(x, k1)) {
       continue;
     }
-    add(x, swapped, k1, x[k1]);
+    addToSwapped(k1, swapped, x[k1]);
+  }
+  return swapped;
+};
+
+const addToSwapped = <K1 extends PropertyKey, Data extends object>(
+  k1: K1,
+  swapped: TSwapped<K1, Data>,
+  value: Data,
+) => {
+  for (const k2 in value) {
+    if (!Object.prototype.hasOwnProperty.call(value, k2)) {
+      continue;
+    }
+    if (swapped[k2] === undefined) {
+      // @ts-expect-error Just ignore the error.
+      swapped[k2] = { [k1]: value[k2] };
+    } else {
+      // @ts-expect-error Just ignore the error.
+      swapped[k2][k1] = value[k2];
+    }
   }
   return swapped;
 };

@@ -675,7 +675,7 @@ const Timeline = React.memo(() => {
     const res = [];
     for (let i_count = 0; i_count < count; ++i_count) {
       const time_node_id = `e${i_count}`;
-      if (types.is_TTimeNodeId(time_node_id)) {
+      if (types.tTimeNodeId(time_node_id)) {
         res.push(<TimeNode time_node_id={time_node_id} key={time_node_id} />);
       }
     }
@@ -2149,7 +2149,9 @@ const digits1 = (x: number) => {
   return Math.round(x * 10) / 10;
 };
 
-const last_range_of = (ranges: types.TRange[]): null | types.TRange => {
+const last_range_of = (
+  ranges: readonly types.TRange[],
+): null | types.TRange => {
   const n = ranges.length;
   if (n < 1) {
     return null;

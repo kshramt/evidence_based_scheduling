@@ -1,5 +1,6 @@
 import * as idb from "idb";
 import * as React from "react";
+import * as rt from "@kshramt/runtime-type-validator";
 
 import * as actions from "./actions";
 import * as consts from "./consts";
@@ -227,7 +228,7 @@ export const useToggle = (initialValue: boolean = false) => {
 export const node_ids_list_of_node_ids_string = (node_ids: string) => {
   const seen = new Set<types.TNodeId>();
   for (const node_id of node_ids.split(" ")) {
-    if (node_id && types.is_TNodeId(node_id) && !seen.has(node_id)) {
+    if (node_id && types.tNodeId(node_id) && !seen.has(node_id)) {
       seen.add(node_id);
     }
   }
@@ -621,4 +622,8 @@ export const assertV = <T>(x: undefined | T): T => {
 
 export const get_bearer = (id_token: { user_id: string }) => {
   return `Bearer ${btoa(JSON.stringify(id_token))}`;
+};
+
+export const getEventStatus = (event: rt.$infer<typeof types.tEvent>) => {
+  return event.status.length % 2 === 0 ? "deleted" : "created";
 };

@@ -64,7 +64,7 @@
           "editor.defaultFormatter": "esbenp.prettier-vscode"
         },
         "deno.enablePaths": [
-          "${workspaceFolder}/bake.ts"
+          "bake.ts"
         ],
         "editor.codeActionsOnSave": {
           "source.fixAll": true

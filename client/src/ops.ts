@@ -97,7 +97,7 @@ const new_node_value_of = (parent_edge_ids: types.TEdgeId[]): types.TNode => {
 const ACS = new sequenceComparisons.ApplyCompressedOpsForString([]);
 export const new_cache_of = (
   n_hidden_child_edges: number,
-  textPatches: types.TTextPatch[],
+  textPatches: readonly types.TTextPatch[],
 ) => {
   ACS.reset([]);
   for (const patch of textPatches) {
@@ -152,12 +152,12 @@ export const add_node = (
     parent_node_id,
     "children",
     immer.produce(state.data.nodes[parent_node_id].children, (children) => {
-      children[edge_id] = getFrontIndex(children);
+      children[edge_id] = getFrontIndex(children)[0];
     }),
   );
   state.data.queue[node_id] = (top_of_queue ? getFrontIndex : _back_value_of)(
     state.data.queue,
-  );
+  )[0];
   if (top_of_queue) {
     state.todo_node_ids.splice(0, 0, node_id);
   } else {
@@ -202,7 +202,7 @@ export const add_edges = (
       edge.c,
       "parents",
       immer.produce(state.data.nodes[edge.c].parents, (parents) => {
-        parents[edge_id] = getFrontIndex(parents);
+        parents[edge_id] = getFrontIndex(parents)[0];
       }),
     );
     swapper.set(
@@ -211,7 +211,7 @@ export const add_edges = (
       edge.p,
       "children",
       immer.produce(state.data.nodes[edge.p].children, (children) => {
-        children[edge_id] = getFrontIndex(children);
+        children[edge_id] = getFrontIndex(children)[0];
       }),
     );
     if (checks.has_cycle_of(edge_id, state)) {
@@ -247,11 +247,11 @@ export const add_edges = (
           break;
         }
         case "done": {
-          move_down_to_boundary(state, edge.c, (status) => status !== "todo");
+          moveToFrontOfChildren(state, edge.c);
           break;
         }
         case "dont": {
-          move_down_to_boundary(state, edge.c, (status) => status === "dont");
+          moveToFrontOfChildren(state, edge.c);
           break;
         }
         default: {
@@ -273,51 +273,26 @@ export const add_edges = (
   }
 };
 
-export const move_down_to_boundary = (
+export const moveToFrontOfChildren = (
   state: types.TStateDraftWithReadonly,
   node_id: types.TNodeId,
-  is_different: (status: types.TStatus) => boolean,
 ) => {
   for (const edge_id of keys_of(state.data.nodes[node_id].parents)) {
     const parentNodeId = state.data.edges[edge_id].p;
     const children = state.data.nodes[parentNodeId].children;
-    const edge_ids = sorted_keys_of(children);
-    const i_edge = edge_ids.indexOf(edge_id);
-    if (i_edge + 1 === edge_ids.length) {
+    const [newIndex, currentFront] = getFrontIndex(children);
+    if (children[edge_id] === currentFront) {
       continue;
     }
-    let i_seek = i_edge + 1;
-    for (; i_seek < edge_ids.length; ++i_seek) {
-      if (
-        is_different(
-          state.data.nodes[state.data.edges[edge_ids[i_seek]].c].status,
-        )
-      ) {
-        break;
-      }
-    }
-    if (
-      i_seek + 1 === edge_ids.length &&
-      !is_different(
-        state.data.nodes[state.data.edges[edge_ids[i_seek]].c].status,
-      )
-    ) {
-      ++i_seek;
-    }
-    if (i_seek <= edge_ids.length && i_edge + 1 < i_seek) {
-      const index = move_before(children, i_edge, i_seek, edge_ids);
-      if (index !== null) {
-        swapper.set(
-          state.data.nodes,
-          state.swapped_nodes,
-          parentNodeId,
-          "children",
-          immer.produce(children, (children) => {
-            children[edge_id] = index[1];
-          }),
-        );
-      }
-    }
+    swapper.set(
+      state.data.nodes,
+      state.swapped_nodes,
+      parentNodeId,
+      "children",
+      immer.produce(children, (children) => {
+        children[edge_id] = newIndex;
+      }),
+    );
   }
 };
 
@@ -514,11 +489,13 @@ export function keys_of<K extends PropertyKey, V>(kvs: Readonly<Record<K, V>>) {
   return Object.keys(kvs) as K[];
 }
 
+// Sort the keys of 'kvs' in descending order based on their values.
+// Since move-to-front operations are frequent, descending order is more space-efficient because it eliminates the need for minus signs.
 export function sorted_keys_of<K extends PropertyKey>(
   kvs: Readonly<Record<K, number>>,
 ) {
   const ks = keys_of(kvs);
-  ks.sort((a, b) => kvs[a] - kvs[b]);
+  ks.sort((a, b) => kvs[b] - kvs[a]);
   return ks;
 }
 
@@ -578,7 +555,7 @@ export function move_up_todo_queue(
   }
   move(state.todo_node_ids, i, i - 1);
   if (i === 1) {
-    state.data.queue[node_id] = getFrontIndex(state.data.queue);
+    state.data.queue[node_id] = getFrontIndex(state.data.queue)[0];
   } else {
     const ks = sorted_keys_of(state.data.queue);
     const i = ks.indexOf(node_id);
@@ -598,7 +575,7 @@ export function move_down_todo_queue(
   }
   move(state.todo_node_ids, i, i + 1);
   if (i === n - 2) {
-    state.data.queue[node_id] = _back_value_of(state.data.queue);
+    state.data.queue[node_id] = _back_value_of(state.data.queue)[0];
   } else {
     const ks = sorted_keys_of(state.data.queue);
     const i = ks.indexOf(node_id);
@@ -623,9 +600,9 @@ export function move_before<K extends PropertyKey>(
   return [
     ks[src],
     dst === 0
-      ? getFrontIndex(kvs)
+      ? getFrontIndex(kvs)[0]
       : dst === n
-        ? _back_value_of(kvs)
+        ? _back_value_of(kvs)[0]
         : (kvs[ks[dst]] + kvs[ks[dst - 1]]) / 2,
   ] as const;
 }
@@ -635,9 +612,10 @@ function _back_value_of<K extends PropertyKey>(
 ) {
   const vs = Object.values<number>(kvs);
   if (vs.length < 1) {
-    return 0;
+    return [0, 0];
   }
-  return Math.max(...vs) + 1;
+  const min = Math.min(...vs);
+  return [Math.floor(min - 1), min];
 }
 
 export function getFrontIndex<K extends PropertyKey>(
@@ -645,7 +623,8 @@ export function getFrontIndex<K extends PropertyKey>(
 ) {
   const vs = Object.values<number>(kvs);
   if (vs.length < 1) {
-    return 0;
+    return [0, 0];
   }
-  return Math.min(...vs) - 1;
+  const max = Math.max(...vs);
+  return [Math.ceil(max + 1), max];
 }

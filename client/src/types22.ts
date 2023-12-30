@@ -16,17 +16,17 @@ import * as swapper from "src/swapper";
 
 import type { TAnyPayloadAction } from "./common_types1";
 import { tEdgeId, tNodeId, tTimeNodeId } from "./common_types1";
-import * as types_prev from "./types22";
+import * as types_prev from "./types21";
 export type {
   TAnyPayloadAction,
   TActionWithPayload,
   TActionWithoutPayload,
   TVids,
 } from "./common_types1";
-export { tEdgeId, tNodeId, tTimeNodeId } from "./common_types1";
 export type { TNodeId, TEdgeId, TTimeNodeId } from "./common_types1";
+export { is_TNodeId, is_TEdgeId, is_TTimeNodeId } from "./common_types1";
 
-export const VERSION = 23 as const;
+export const VERSION = 22 as const;
 
 const tStatus = rt.$union(
   rt.$literal("done"),
@@ -56,9 +56,10 @@ const tEdge = rt.$object({
   t: rt.$readonly(tEdgeType),
   hide: rt.$readonly(rt.$optional(rt.$boolean())),
 });
-export const tEvent = rt.$object({
+const tEvent = rt.$object({
+  created_at: rt.$readonly(rt.$number()), // Timestamp in milliseconds.
   status: rt.$readonly(
-    rt.$tuple([rt.$number()], rt.$number()), // Timestamps in milliseconds.
+    rt.$union(rt.$literal("created"), rt.$literal("deleted")),
   ),
   interval_set: rt.$readonly(intervals.tIntervalSet),
 });
@@ -145,33 +146,6 @@ export type TState = {
 };
 export type TGanttZoom = "D" | "W" | "M" | "Q" | "Y";
 
-type TStateOmitted = Omit<TState, "caches" | "data"> & {
-  data: Omit<TState["data"], "edges" | "nodes">;
-};
-type TStateDraft = immer.Draft<TState>;
-export type TStateDraftWithReadonly = Omit<
-  TStateDraft,
-  "caches" | "data" | "swapped_caches" | "swapped_edges" | "swapped_nodes"
-> &
-  immer.Immutable<
-    Pick<
-      TStateDraft,
-      "caches" | "swapped_caches" | "swapped_edges" | "swapped_nodes"
-    >
-  > & {
-    readonly data: Omit<TStateDraft["data"], "nodes" | "edges"> &
-      immer.Immutable<Pick<TStateDraft["data"], "nodes" | "edges">>;
-  };
-
-export type AppDispatch = Rtk.ThunkDispatch<
-  TState,
-  Record<string, never>,
-  TAnyPayloadAction
->;
-
-export const useDispatch = () => _useDispatch<AppDispatch>();
-export const useSelector: TypedUseSelectorHook<TStateOmitted> = _useSelector;
-
 export const parse_data = (x: {
   data: unknown;
 }):
@@ -203,7 +177,7 @@ export const parse_data = (x: {
 };
 
 const current_of_prev = (data_prev: {
-  data: rt.$infer<typeof types_prev.tData>;
+  data: types_prev.TData;
 }):
   | { success: false }
   | {
@@ -211,79 +185,49 @@ const current_of_prev = (data_prev: {
       data: rt.$infer<typeof tData>;
       patch: producer.TOperation[];
     } => {
-  const fn = (
-    draft: immer.Draft<{
-      data: rt.$infer<typeof types_prev.tData>;
-    }>,
-  ) => {
-    // Reset the number part.
-    {
-      const resetIndexes = <K extends PropertyKey>(kvs: Record<K, number>) => {
-        let i = 0;
-        for (const k of ops.sorted_keys_of(kvs)) {
-          kvs[k] = i;
-          ++i;
-        }
+  const fn = (draft: {
+    data: types_prev.TData;
+  }): { data: rt.$infer<typeof tData> } => {
+    const dw = new sequenceComparisons.DiffWu();
+    const nodes: rt.$infer<typeof tNodes> = {};
+    for (const nodeId of ops.keys_of(draft.data.nodes)) {
+      const node = draft.data.nodes[nodeId];
+      const ys = Array.from(node.text);
+      nodes[nodeId] = {
+        children: node.children,
+        end_time: node.end_time,
+        estimate: node.estimate,
+        parents: node.parents,
+        ranges: node.ranges,
+        start_time: node.start_time,
+        status: node.status,
+        text_patches: [
+          {
+            created_at: node.start_time,
+            ops: sequenceComparisons.compressOpsForString(dw.call([], ys), ys),
+          },
+        ],
       };
-      const resetIndexesWithStatus = (
-        edgeIndexes: Record<rt.$infer<typeof tEdgeId>, number>,
-      ) => {
-        const todos: rt.$infer<typeof tEdgeId>[] = [];
-        const dones: rt.$infer<typeof tEdgeId>[] = [];
-        const donts: rt.$infer<typeof tEdgeId>[] = [];
-        for (const edgeId of ops.sorted_keys_of(edgeIndexes)) {
-          const status = draft.data.nodes[draft.data.edges[edgeId].c].status;
-          if (status === "todo") {
-            todos.push(edgeId);
-          } else if (status === "done") {
-            dones.push(edgeId);
-          } else if (status === "dont") {
-            donts.push(edgeId);
-          }
-        }
-        const sorter = (
-          a: rt.$infer<typeof tEdgeId>,
-          b: rt.$infer<typeof tEdgeId>,
-        ) =>
-          (draft.data.nodes[draft.data.edges[b].c].end_time ?? 0) -
-          (draft.data.nodes[draft.data.edges[a].c].end_time ?? 0);
-        dones.sort(sorter);
-        donts.sort(sorter);
-        let i = 0;
-        for (const edgeId of donts.concat(dones, todos)) {
-          edgeIndexes[edgeId] = i;
-          ++i;
-        }
-      };
-      resetIndexes(draft.data.queue);
-      for (const timeNode of Object.values(draft.data.timeline.time_nodes)) {
-        resetIndexes(timeNode.nodes);
-      }
-      for (const node of Object.values(draft.data.nodes)) {
-        resetIndexesWithStatus(node.children);
-        resetIndexesWithStatus(node.parents);
-      }
     }
-
-    // Change `data.nodes.events[].status`
-    {
-      for (const node of Object.values(draft.data.nodes)) {
-        if (node.events === undefined) {
-          continue;
-        }
-        for (const event of node.events) {
-          // @ts-expect-error current_of_prev
-          event.status = [event.created_at];
-          // @ts-expect-error current_of_prev
-          delete event.created_at;
-        }
-      }
-    }
-
-    // @ts-expect-error current_of_prev
-    draft.data.version = VERSION;
+    return {
+      data: {
+        covey_quadrants: draft.data.covey_quadrants,
+        edges: draft.data.edges,
+        id_seq: draft.data.id_seq,
+        nodes,
+        pinned_sub_trees: draft.data.pinned_sub_trees,
+        queue: draft.data.queue,
+        root: draft.data.root,
+        timeline: draft.data.timeline,
+        version: VERSION,
+      },
+    };
   };
-  const produced = producer.produce_with_patche(data_prev, fn);
+  const produced = producer.produce_with_patche(
+    data_prev,
+    // @ts-expect-error Just ignore the error.
+    fn,
+  );
   const data = produced.value.data;
   const parsed = rt.parse(tData, data);
   if (!parsed.success) {
@@ -297,3 +241,30 @@ const current_of_prev = (data_prev: {
     patch: produced.patch,
   };
 };
+
+type TStateOmitted = Omit<TState, "caches" | "data"> & {
+  data: Omit<TState["data"], "edges" | "nodes">;
+};
+type TStateDraft = immer.Draft<TState>;
+export type TStateDraftWithReadonly = Omit<
+  TStateDraft,
+  "caches" | "data" | "swapped_caches" | "swapped_edges" | "swapped_nodes"
+> &
+  immer.Immutable<
+    Pick<
+      TStateDraft,
+      "caches" | "swapped_caches" | "swapped_edges" | "swapped_nodes"
+    >
+  > & {
+    readonly data: Omit<TStateDraft["data"], "nodes" | "edges"> &
+      immer.Immutable<Pick<TStateDraft["data"], "nodes" | "edges">>;
+  };
+
+export type AppDispatch = Rtk.ThunkDispatch<
+  TState,
+  Record<string, never>,
+  TAnyPayloadAction
+>;
+
+export const useDispatch = () => _useDispatch<AppDispatch>();
+export const useSelector: TypedUseSelectorHook<TStateOmitted> = _useSelector;

@@ -193,8 +193,7 @@ const CalendarEventFormImpl = React.memo(
                   delta,
                   limit,
                 },
-                created_at: times.getTzNow(),
-                status: "created",
+                status: [times.getTzNow()],
               }
             : immer.produce(propsEvent, (draft) => {
                 draft.interval_set.start = start;

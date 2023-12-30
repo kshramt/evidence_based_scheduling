@@ -23,7 +23,7 @@ export const getRootReducer = (
       (state: types.TStateDraftWithReadonly, action) => {
         const node = state.data.nodes[action.payload.nodeId];
         const events = immer.produce(node.events || [], (events) => {
-          events.push(action.payload.event);
+          events.push(immer.castDraft(action.payload.event));
         });
         swapper.set(
           state.data.nodes,
@@ -50,7 +50,7 @@ export const getRootReducer = (
           action.payload.nodeId,
           "events",
           immer.produce(events, (events) => {
-            events[action.payload.i] = action.payload.event;
+            events[action.payload.i] = immer.castDraft(action.payload.event);
           }),
         );
       },
@@ -233,7 +233,7 @@ export const getRootReducer = (
           // Skip if the node is already assigned to the time node.
           for (const event of node.events ?? []) {
             if (
-              event.status === "created" &&
+              utils.getEventStatus(event) === "created" &&
               typeof event.interval_set.start === "object" &&
               event.interval_set.start.f === start.f &&
               typeof event.interval_set.end === "object" &&
@@ -249,8 +249,7 @@ export const getRootReducer = (
             "events",
             immer.produce(node.events ?? [], (events) => {
               events.push({
-                created_at,
-                status: "created",
+                status: [created_at],
                 interval_set: {
                   start,
                   end,
@@ -716,11 +715,7 @@ export const getRootReducer = (
           "end_time",
           Date.now(),
         );
-        ops.move_down_to_boundary(
-          state,
-          node_id,
-          (status) => status !== "todo",
-        );
+        ops.moveToFrontOfChildren(state, node_id);
         {
           const i = state.todo_node_ids.indexOf(node_id);
           state.todo_node_ids.splice(i, 1);
@@ -756,11 +751,7 @@ export const getRootReducer = (
           "end_time",
           Date.now(),
         );
-        ops.move_down_to_boundary(
-          state,
-          node_id,
-          (status) => status === "dont",
-        );
+        ops.moveToFrontOfChildren(state, node_id);
         {
           const i = state.todo_node_ids.indexOf(node_id);
           state.todo_node_ids.splice(i, 1);
@@ -798,7 +789,7 @@ export const getRootReducer = (
             immer.produce(
               state.data.nodes[parent_node_id].children,
               (children) => {
-                children[edge_id] = ops.getFrontIndex(children);
+                children[edge_id] = ops.getFrontIndex(children)[0];
               },
             ),
           );
@@ -1208,7 +1199,7 @@ const _topTree = (
         edge.p,
         "children",
         immer.produce(state.data.nodes[edge.p].children, (children) => {
-          children[edge_id] = ops.getFrontIndex(children);
+          children[edge_id] = ops.getFrontIndex(children)[0];
         }),
       );
       return;
@@ -1224,7 +1215,7 @@ const _topQueue = (
     toast.add("error", `Non-todo node ${node_id} cannot be moved.`);
     return;
   }
-  state.data.queue[node_id] = ops.getFrontIndex(state.data.queue);
+  state.data.queue[node_id] = ops.getFrontIndex(state.data.queue)[0];
   const node_ids =
     state.data.nodes[node_id].status === "todo"
       ? state.todo_node_ids

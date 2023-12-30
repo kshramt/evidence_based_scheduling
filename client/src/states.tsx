@@ -2,6 +2,7 @@ import * as Jotai from "jotai";
 import * as JotaiU from "jotai/utils";
 import * as React from "react";
 import * as Idb from "idb";
+import * as Immer from "immer";
 import * as Rtk from "@reduxjs/toolkit";
 
 import * as Auth from "./auth";
@@ -99,7 +100,7 @@ const get_state_and_patch = async (arg: {
     }
     const caches: types.TCaches = {};
     for (const node_id in parsed_data.data.nodes) {
-      if (types.is_TNodeId(node_id)) {
+      if (types.tNodeId(node_id)) {
         const node = parsed_data.data.nodes[node_id];
         let n_hidden_child_edges = 0;
         for (const edge_id of ops.keys_of(node.children)) {
@@ -257,10 +258,12 @@ export class PersistentStateManager {
   };
 
   get_redux_store = async (local_head: storage.THead) => {
-    const { state, patch } = await get_state_and_patch({
+    const stateAndPatch = await get_state_and_patch({
       head: local_head,
       db: this.db,
     });
+    let state = stateAndPatch.state;
+    const patch = stateAndPatch.patch;
 
     // Try to sync `local_head` to the remote.
     this.#head_queue.push(local_head);
@@ -286,12 +289,14 @@ export class PersistentStateManager {
         next_action_predictor3.fit(node_id);
         next_action_predictor2.fit(node_id);
       }
-      reducers.set_predicted_next_nodes(
-        state,
-        n_predicted,
-        next_action_predictor2,
-        next_action_predictor3,
-      );
+      state = Immer.produce(state, (draft) => {
+        reducers.set_predicted_next_nodes(
+          draft,
+          n_predicted,
+          next_action_predictor2,
+          next_action_predictor3,
+        );
+      });
     }
 
     const listenerMiddleware = Rtk.createListenerMiddleware<types.TState>();
