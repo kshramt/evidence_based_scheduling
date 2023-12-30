@@ -2,19 +2,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
-import { ThunkDispatch } from "redux-thunk";
-import {
-  TypedUseSelectorHook,
-  useDispatch as _useDispatch,
-  useSelector as _useSelector,
-} from "react-redux";
 
 import * as toast from "./toast";
 
 import * as producer from "./producer";
 
 import type {
-  TAnyPayloadAction,
   TCaches,
   TCoveyQuadrants,
   TEdges,
@@ -158,12 +151,3 @@ export const is_TData = (
   record_if_false(is_TTimeline(data.timeline, record_if_false), "timeline") &&
   record_if_false.check_array(data.pinned_sub_trees, is_TNodeId) &&
   record_if_false(data.version === VERSION, "version");
-
-export type AppDispatch = ThunkDispatch<
-  IState,
-  Record<string, never>,
-  TAnyPayloadAction
->;
-
-export const useDispatch = () => _useDispatch<AppDispatch>();
-export const useSelector: TypedUseSelectorHook<IState> = _useSelector;

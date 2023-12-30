@@ -1,4 +1,4 @@
-import * as Idb from "idb/with-async-ittr";
+import * as Idb from "idb";
 import * as Immer from "immer";
 import * as FastJsonPatch from "@kshramt/fast-json-patch";
 

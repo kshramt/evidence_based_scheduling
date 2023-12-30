@@ -1,5 +1,5 @@
+import * as Rtk from "@reduxjs/toolkit";
 import * as immer from "immer";
-import { ThunkDispatch } from "redux-thunk";
 import {
   TypedUseSelectorHook,
   useDispatch as _useDispatch,
@@ -260,7 +260,7 @@ export type TStateDraftWithReadonly = Omit<
       immer.Immutable<Pick<TStateDraft["data"], "nodes" | "edges">>;
   };
 
-export type AppDispatch = ThunkDispatch<
+export type AppDispatch = Rtk.ThunkDispatch<
   TState,
   Record<string, never>,
   TAnyPayloadAction

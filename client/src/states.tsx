@@ -2,8 +2,7 @@ import * as Jotai from "jotai";
 import * as JotaiU from "jotai/utils";
 import * as React from "react";
 import * as Idb from "idb";
-import { createStore, applyMiddleware } from "redux";
-import thunk from "redux-thunk";
+import * as Rtk from "@reduxjs/toolkit";
 
 import * as Auth from "./auth";
 import * as types from "./types";
@@ -305,14 +304,13 @@ export class PersistentStateManager {
         n_predicted,
       ),
     );
-    const store = createStore(
-      reducers.reducer_of_reducer_with_patch(
+    const store = Rtk.configureStore({
+      reducer: reducers.reducer_of_reducer_with_patch(
         this.#with_save_patch(
           undoable.undoable_of(root_reducer, undoable.history_type_set, state),
         ),
       ),
-      applyMiddleware(thunk),
-    );
+    });
     return store;
   };
 
