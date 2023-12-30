@@ -471,10 +471,10 @@ const Body = () => {
           <SBTTB onClick={handleTreeSBTTBClick} />
           <TreeNode node_id={root} />
         </div>
-        <GanttChart indexColumnWidth={320} />
         <div className="content-visibility-auto overflow-y-auto flex-none">
           <Calendar />
         </div>
+        <GanttChart indexColumnWidth={320} />
         <div className={`content-visibility-auto overflow-y-auto flex-none`}>
           <Timeline />
         </div>
