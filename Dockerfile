@@ -1,3 +1,5 @@
+FROM hadolint/hadolint:v2.12.0-alpine as hadolint_base
+
 FROM golang:1.21.5-bookworm AS base_go
 ENV CGO_ENABLED 0
 
@@ -11,7 +13,9 @@ RUN apt-get update \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
    build-essential \
    ca-certificates \
-   curl
+   curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 RUN arch="$(dpkg --print-architecture)" && curl -L -o /usr/local/bin/buildifier "https://github.com/bazelbuild/buildtools/releases/download/v6.4.0/buildifier-linux-${arch}" && chmod +x /usr/local/bin/buildifier
 RUN arch="$(dpkg --print-architecture)" && curl -L -o /usr/local/bin/bazelisk "https://github.com/bazelbuild/bazelisk/releases/download/v1.19.0/bazelisk-linux-${arch}" && chmod +x /usr/local/bin/bazelisk
 
@@ -47,7 +51,9 @@ RUN apt-get update \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
    build-essential \
    ca-certificates \
-   curl
+   curl \
+   && apt-get clean \
+   && rm -rf /var/lib/apt/lists/*
 COPY --link --from=rust_downloader /usr/local/cargo /usr/local/cargo
 COPY --link --from=rust_downloader /usr/local/rustup /usr/local/rustup
 ENV PATH "/usr/local/cargo/bin:/usr/local/rustup/bin:${PATH}"
@@ -59,7 +65,11 @@ FROM ubuntu:22.04 AS rye_downloader
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
    apt-get update \
-   && DEBIAN_FRONTEND=noninteractive apt-get install -y curl
+   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+   ca-certificates \
+   curl \
+   && apt-get clean \
+   && rm -rf /var/lib/apt/lists/*
 RUN curl -sSf https://rye-up.com/get | RYE_VERSION="0.15.2" RYE_INSTALL_OPTION="--yes" bash
 RUN /root/.rye/shims/rye fetch cpython@3.12.0
 RUN cd /root/.rye/py/cpython@3.12.0/install/bin && ln -s python3 python
@@ -150,6 +160,7 @@ COPY --link --from=docker_downloader /usr/local/bin/docker /usr/local/bin/docker
 COPY --link --from=docker_downloader /usr/local/libexec/docker /usr/local/libexec/docker
 COPY --link --from=bazel_downloader /usr/local/bin/buildifier /usr/local/bin/buildifier
 COPY --link --from=bazel_downloader /usr/local/bin/bazelisk /usr/local/bin/bazelisk
+COPY --link --from=hadolint_base /bin/hadolint /usr/local/bin/hadolint
 
 ARG host_home
 
@@ -192,8 +203,12 @@ FROM base_py11 AS base_poetry11
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
    apt-get update \
-   && DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
-RUN pip install poetry==1.7.0
+   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+   build-essential \
+   ca-certificates \
+   && apt-get clean \
+   && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir poetry==1.7.0
 
 FROM base_js AS base_client
 WORKDIR /app
@@ -231,7 +246,9 @@ RUN apt-get update \
    libxi6\
    libxrandr2\
    libxrender1\
-   libxtst6
+   libxtst6 \
+   && apt-get clean \
+   && rm -rf /var/lib/apt/lists/*
 COPY --link pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY --link client/package.json client/
 RUN pnpm install --frozen-lockfile
