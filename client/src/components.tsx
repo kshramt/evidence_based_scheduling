@@ -1137,7 +1137,9 @@ const EdgeList = React.memo(
     const statuses = utils.assertV(
       useSelector((state) => state.swapped_nodes.status),
     );
-    const cs = utils.assertV(useSelector((state) => state.swapped_edges.c));
+    const cs = utils.assertV(
+      useSelector((state) => state.swapped_edges.c ?? {}),
+    );
     const todos = Array<JSX.Element>();
     const dones = Array<JSX.Element>();
     const donts = Array<JSX.Element>();
