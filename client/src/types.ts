@@ -183,7 +183,51 @@ export const parse_data = (x: {
   | { success: false } => {
   const parsed = rt.parse(tData, x.data);
   if (parsed.success) {
-    return { success: true, data: parsed.value, patch: [] };
+    const fn = (
+      draft: immer.Draft<{
+        data: rt.$infer<typeof tData>;
+      }>,
+    ) => {
+      // Temporary fix.
+      const resetIndexesWithStatus = (
+        edgeIndexes: Record<rt.$infer<typeof tEdgeId>, number>,
+      ) => {
+        const todos: rt.$infer<typeof tEdgeId>[] = [];
+        const dones: rt.$infer<typeof tEdgeId>[] = [];
+        const donts: rt.$infer<typeof tEdgeId>[] = [];
+        for (const edgeId of ops.sorted_keys_of(edgeIndexes)) {
+          const status = draft.data.nodes[draft.data.edges[edgeId].c].status;
+          if (status === "todo") {
+            todos.push(edgeId);
+          } else if (status === "done") {
+            dones.push(edgeId);
+          } else if (status === "dont") {
+            donts.push(edgeId);
+          }
+        }
+        const sorter = (
+          a: rt.$infer<typeof tEdgeId>,
+          b: rt.$infer<typeof tEdgeId>,
+        ) =>
+          (draft.data.nodes[draft.data.edges[b].c].end_time ?? 0) -
+          (draft.data.nodes[draft.data.edges[a].c].end_time ?? 0);
+        dones.sort(sorter);
+        donts.sort(sorter);
+        let i = todos.length + dones.length + donts.length - 1;
+        for (const edgeId of todos.concat(dones, donts)) {
+          edgeIndexes[edgeId] = i;
+          --i;
+        }
+      };
+      for (const node of Object.values(draft.data.nodes)) {
+        resetIndexesWithStatus(node.children);
+        resetIndexesWithStatus(node.parents);
+      }
+    };
+    const produced = producer.produce_with_patche({ data: parsed.value }, fn);
+    const data = produced.value.data;
+
+    return { success: true, data, patch: produced.patch };
   }
   const parsed_prev = types_prev.parse_data(x);
   if (!parsed_prev.success) {
