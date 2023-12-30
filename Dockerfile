@@ -1,3 +1,9 @@
+FROM golang:1.21.5-bookworm AS base_go
+ENV CGO_ENABLED 0
+
+FROM base_go AS dbmate_builder
+RUN go install github.com/amacneil/dbmate/v2@v2.4.0
+
 FROM denoland/deno:distroless-1.39.1 as deno_base
 
 FROM ubuntu:22.04 as bazel_downloader
@@ -135,11 +141,11 @@ RUN useradd --no-log-init -m -s /bin/bash "${devcontainer_user:?}" \
    && usermod -aG sudo "${devcontainer_user:?}" \
    && echo '%sudo ALL=(ALL:ALL) NOPASSWD:ALL' >> /etc/sudoers
 
+COPY --link --from=dbmate_builder /go/bin/dbmate /usr/local/bin/dbmate
 COPY --link --from=deno_base /bin/deno /usr/local/bin/deno
 COPY --link --from=node_downloader /usr/local/node /usr/local/node
 COPY --link --from=node_downloader /usr/local/lib/node_modules /usr/local/lib/node_modules
 COPY --link --from=node_downloader /usr/local/bin/pnpm /usr/local/bin/
-COPY --link --from=base_go /usr/local/go /usr/local/go
 COPY --link --from=docker_downloader /usr/local/bin/docker /usr/local/bin/docker
 COPY --link --from=docker_downloader /usr/local/libexec/docker /usr/local/libexec/docker
 COPY --link --from=bazel_downloader /usr/local/bin/buildifier /usr/local/bin/buildifier
@@ -188,9 +194,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
    apt-get update \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
 RUN pip install poetry==1.7.0
-
-FROM golang:1.21.4-bookworm AS base_go
-ENV CGO_ENABLED 0
 
 FROM base_js AS base_client
 WORKDIR /app
@@ -253,9 +256,6 @@ FROM base_envoy AS prod_envoy
 EXPOSE 8080
 WORKDIR /app
 COPY --link ./envoy.yaml /etc/envoy/envoy.yaml
-
-FROM base_go AS dbmate_builder
-RUN go install github.com/amacneil/dbmate/v2@v2.4.0
 
 FROM base_postgres AS prod_postgres
 
