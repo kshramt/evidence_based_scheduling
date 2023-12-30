@@ -1136,7 +1136,7 @@ const EdgeList = React.memo(
     );
     const edge_ids = ops.sorted_keys_of(children);
     return edge_ids.length ? (
-      <ol className="list-outside pl-[4em]">
+      <ol className="list-outside pl-[4em] content-visibility-auto">
         {edge_ids.map((edge_id) => (
           <Edge edge_id={edge_id} key={edge_id} prefix={props.prefix} />
         ))}
@@ -1473,7 +1473,7 @@ const TreeEntry = React.memo(
 
     return (
       <EntryWrapper node_id={props.node_id} onMouseLeave={turnOff}>
-        <div className="flex items-end w-fit">
+        <div className="flex items-end w-fit content-visibility-auto">
           {is_root ? null : <button onClick={to_queue}>→</button>}
           <CopyNodeIdButton node_id={props.node_id} />
           {is_root ? null : (
