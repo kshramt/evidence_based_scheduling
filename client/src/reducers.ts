@@ -1,5 +1,7 @@
 import * as Rtk from "@reduxjs/toolkit";
+
 import * as actions from "./actions";
+import * as distribution_predictor from "src/distribution_predictor";
 import * as types from "./types";
 import * as utils from "./utils";
 import * as checks from "./checks";
@@ -81,7 +83,7 @@ export const getRootReducer = (
       actions.eval_,
       (state: types.TStateDraftWithReadonly, action) => {
         const k = action.payload;
-        _eval_(state, k, utils.visit_counter_of());
+        distribution_predictor.predict(state, k, utils.visit_counter_of());
       },
     );
     builder.addCase(
@@ -150,7 +152,7 @@ export const getRootReducer = (
         swapper.del(state.caches, state.swapped_caches, node_id);
         ops.delete_at_val(state.data.pinned_sub_trees, node_id);
         for (const parent_node_id of affected_parent_node_ids) {
-          _set_total_time_of_ancestors(state, parent_node_id, vid);
+          total_time_utils.setTotalTimeOfAncestors(state, parent_node_id, vid);
         }
       },
     );
@@ -209,7 +211,7 @@ export const getRootReducer = (
           );
         }
         swapper.del(state.data.edges, state.swapped_edges, edge_id);
-        _set_total_time_of_ancestors(state, edge.p, vid);
+        total_time_utils.setTotalTimeOfAncestors(state, edge.p, vid);
       },
     );
     builder.addCase(
@@ -516,7 +518,7 @@ export const getRootReducer = (
           if (state.data.nodes[node_id] === undefined) {
             continue;
           }
-          _set_total_time(
+          total_time_utils.setTotalTime(
             state,
             node_id,
             utils.visit_counter_of(),
@@ -649,7 +651,11 @@ export const getRootReducer = (
             ranges[action.payload.i_range] = range;
           }),
         );
-        _set_total_time_of_ancestors(state, action.payload.node_id, vid);
+        total_time_utils.setTotalTimeOfAncestors(
+          state,
+          action.payload.node_id,
+          vid,
+        );
       },
     );
     builder.addCase(
@@ -918,7 +924,7 @@ export const getRootReducer = (
         const vid = utils.visit_counter_of();
         ops.add_edges(action.payload, state);
         for (const edge of action.payload) {
-          _set_total_time_of_ancestors(state, edge.p, vid);
+          total_time_utils.setTotalTimeOfAncestors(state, edge.p, vid);
         }
       },
     );
@@ -949,7 +955,7 @@ const stop = (
         }
       }),
     );
-    _set_total_time_of_ancestors(state, node_id, vid);
+    total_time_utils.setTotalTimeOfAncestors(state, node_id, vid);
   }
 };
 
@@ -986,187 +992,6 @@ export const set_predicted_next_nodes = (
     );
   }
   state.predicted_next_nodes = predicted.slice(0, n_predicted);
-};
-
-const _eval_ = (
-  state: types.TStateDraftWithReadonly,
-  k: types.TNodeId,
-  vid: number,
-) => {
-  _set_total_time(state, k, vid);
-  const candidates = state.non_todo_node_ids.filter((node_id) => {
-    const v = state.data.nodes[node_id];
-    return v.estimate !== consts.NO_ESTIMATION;
-  });
-  const ratios = candidates.length
-    ? candidates.map((node_id) => {
-        const node = state.data.nodes[node_id];
-        return (
-          _set_total_time(state, node_id, vid) / (1000 * 3600) / node.estimate
-        );
-        // return draft.caches[v.start_time].total_time / 3600 / v.estimate;
-      })
-    : [1];
-  const now = Date.now();
-  // todo: Use distance to tweak weights.
-  // todo: The sampling weight should be a function of both the leaves and the candidates.
-  const weights = candidates.length
-    ? candidates.map((node_id) => {
-        const node = state.data.nodes[node_id];
-        if (!node.end_time) {
-          return 0; // Must not happen.
-        }
-        // 1/e per year
-        const w_t = Math.exp(-(now - node.end_time) / (1000 * 86400 * 365.25));
-        return w_t;
-      })
-    : [1];
-  const leaf_estimates = Array.from(
-    todo_leafs_of(k, state, (edge) => edge.t === "strong"),
-  )
-    .map(([_, v]) => v)
-    .filter((v) => {
-      return v.estimate !== consts.NO_ESTIMATION;
-    })
-    .map((v) => {
-      return v.estimate;
-    });
-  const n_mc = 2000;
-  const ts = _estimate(leaf_estimates, ratios, weights, n_mc);
-  swapper.set(
-    state.caches,
-    state.swapped_caches,
-    k,
-    "leaf_estimates_sum",
-    utils.sum(leaf_estimates),
-  );
-  swapper.set(state.caches, state.swapped_caches, k, "percentiles", [
-    ts[0],
-    ts[Math.round(n_mc / 10)],
-    ts[Math.round(n_mc / 3)],
-    ts[Math.round(n_mc / 2)],
-    ts[Math.round((n_mc * 2) / 3)],
-    ts[Math.round((n_mc * 9) / 10)],
-    ts[n_mc - 1],
-  ]);
-};
-
-const _set_total_time_of_ancestors = (
-  state: types.TStateDraftWithReadonly,
-  node_id: types.TNodeId,
-  vid: number,
-) => {
-  if (total_time_utils.affected_vids.get(node_id) === vid) {
-    return;
-  }
-  total_time_utils.affected_vids.set(node_id, vid);
-  if (total_time_utils.visible_node_ids.has(node_id)) {
-    _set_total_time(state, node_id, vid);
-  }
-  for (const parent_edge_id of ops.keys_of(state.data.nodes[node_id].parents)) {
-    _set_total_time_of_ancestors(
-      state,
-      state.data.edges[parent_edge_id].p,
-      vid,
-    );
-  }
-};
-
-const _set_total_time = (
-  state: types.TStateDraftWithReadonly,
-  node_id: types.TNodeId,
-  vid: number,
-  force: boolean = false,
-) => {
-  if (force || total_time_utils.should_update(node_id)) {
-    total_time_utils.updated_vids.set(node_id, vid);
-    swapper.set(
-      state.caches,
-      state.swapped_caches,
-      node_id,
-      "total_time",
-      total_time_of(state, node_id),
-    );
-  }
-  return state.caches[node_id].total_time;
-};
-
-const total_time_of = (
-  state: immer.Immutable<types.TState>,
-  node_id: types.TNodeId,
-) => {
-  const ranges_list: types.TRange[][] = [];
-  collect_ranges_from_strong_descendants(
-    node_id,
-    state,
-    utils.visit_counter_of(),
-    ranges_list,
-  );
-  let n = 0;
-  for (const ranges of ranges_list) {
-    n += ranges.length;
-    if (ranges[ranges.length - 1].end === null) {
-      --n;
-    }
-  }
-  n *= 2;
-  const events = Array<[number, -1 | 1]>(n);
-  let i = 0;
-  for (const ranges of ranges_list) {
-    for (const range of ranges) {
-      if (range.end !== null) {
-        events[i] = [range.start, 1];
-        events[i + 1] = [range.end, -1];
-        i += 2;
-      }
-    }
-  }
-  events.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
-  let res = 0;
-  let count = 0;
-  let t_prev = -1;
-  for (const [t, inc] of events) {
-    if (count === 0) {
-      count += inc;
-      t_prev = t;
-    } else {
-      count += inc;
-      if (count === 0) {
-        res += t - t_prev;
-      }
-    }
-    if (count < 0) {
-      throw new Error(`count = ${count} < 0`);
-    }
-  }
-  return res;
-};
-
-const collect_ranges_from_strong_descendants = (
-  node_id: types.TNodeId,
-  state: immer.Immutable<types.TState>,
-  vid: number,
-  ranges_list: (readonly types.TRange[])[],
-) => {
-  if (utils.vids[node_id] === vid) {
-    return;
-  }
-  utils.vids[node_id] = vid;
-  const node = state.data.nodes[node_id];
-  if (node.ranges.length) {
-    ranges_list.push(node.ranges);
-  }
-  for (const edge_id of ops.keys_of(node.children)) {
-    if (state.data.edges[edge_id].t !== "strong") {
-      continue;
-    }
-    collect_ranges_from_strong_descendants(
-      state.data.edges[edge_id].c,
-      state,
-      vid,
-      ranges_list,
-    );
-  }
 };
 
 const _top = (state: types.TStateDraftWithReadonly, node_id: types.TNodeId) => {
@@ -1263,60 +1088,6 @@ const _show_path_to_selected_node = (
     }
   }
 };
-
-const _estimate = (
-  estimates: number[],
-  ratios: number[],
-  weights: number[],
-  n_mc: number,
-) => {
-  const ts = Array<number>(n_mc);
-  const rng = new utils.Multinomial(weights);
-  for (let i = 0; i < n_mc; i++) {
-    let t = 0;
-    for (const estimate of estimates) {
-      t += ratios[rng.sample()] * estimate;
-    }
-    ts[i] = t;
-  }
-  ts.sort((a, b) => a - b);
-  return ts;
-};
-
-const todo_leafs_of = (
-  node_id: types.TNodeId,
-  state: immer.Immutable<types.TState>,
-  edge_filter: (edge: types.TEdge) => boolean,
-) => {
-  return _todo_leafs_of(node_id, state, edge_filter, utils.visit_counter_of());
-};
-function* _todo_leafs_of(
-  node_id: types.TNodeId,
-  state: immer.Immutable<types.TState>,
-  edge_filter: (edge: types.TEdge) => boolean,
-  vid: number,
-): Iterable<[types.TNodeId, immer.Immutable<types.TNode>]> {
-  if (utils.vids[node_id] === vid) {
-    return;
-  }
-  utils.vids[node_id] = vid;
-  const node = state.data.nodes[node_id];
-  if (node.status !== "todo") {
-    return;
-  }
-  let had_strong_todo_child = false;
-  for (const edge_id of ops.keys_of(node.children)) {
-    const edge = state.data.edges[edge_id];
-    if (!edge_filter(edge)) {
-      continue;
-    }
-    yield* _todo_leafs_of(edge.c, state, edge_filter, vid);
-    had_strong_todo_child = true;
-  }
-  if (!had_strong_todo_child) {
-    yield [node_id, node];
-  }
-}
 
 const assert = (fn: () => [boolean, string]) => {
   if ("production" !== process.env.NODE_ENV) {
