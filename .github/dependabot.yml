@@ -4,10 +4,7 @@
       "directory": "/",
       "package-ecosystem": "docker",
       "schedule": {
-        "day": "saturday",
-        "interval": "weekly",
-        "time": "01:00",
-        "timezone": "Asia/Tokyo"
+        "interval": "daily"
       }
     },
     {
@@ -26,10 +23,7 @@
       },
       "package-ecosystem": "cargo",
       "schedule": {
-        "day": "saturday",
-        "interval": "weekly",
-        "time": "01:00",
-        "timezone": "Asia/Tokyo"
+        "interval": "daily"
       }
     },
     {
@@ -48,10 +42,7 @@
       },
       "package-ecosystem": "cargo",
       "schedule": {
-        "day": "saturday",
-        "interval": "weekly",
-        "time": "01:00",
-        "timezone": "Asia/Tokyo"
+        "interval": "daily"
       }
     },
     {
@@ -70,10 +61,7 @@
       },
       "package-ecosystem": "github-actions",
       "schedule": {
-        "day": "saturday",
-        "interval": "weekly",
-        "time": "01:00",
-        "timezone": "Asia/Tokyo"
+        "interval": "daily"
       }
     },
     {
@@ -92,10 +80,7 @@
       },
       "package-ecosystem": "npm",
       "schedule": {
-        "day": "saturday",
-        "interval": "weekly",
-        "time": "01:00",
-        "timezone": "Asia/Tokyo"
+        "interval": "daily"
       }
     },
     {
@@ -114,10 +99,7 @@
       },
       "package-ecosystem": "npm",
       "schedule": {
-        "day": "saturday",
-        "interval": "weekly",
-        "time": "01:00",
-        "timezone": "Asia/Tokyo"
+        "interval": "daily"
       }
     },
     {
@@ -136,10 +118,7 @@
       },
       "package-ecosystem": "pip",
       "schedule": {
-        "day": "saturday",
-        "interval": "weekly",
-        "time": "01:00",
-        "timezone": "Asia/Tokyo"
+        "interval": "daily"
       }
     },
     {
@@ -158,10 +137,7 @@
       },
       "package-ecosystem": "pip",
       "schedule": {
-        "day": "saturday",
-        "interval": "weekly",
-        "time": "01:00",
-        "timezone": "Asia/Tokyo"
+        "interval": "daily"
       }
     }
   ],

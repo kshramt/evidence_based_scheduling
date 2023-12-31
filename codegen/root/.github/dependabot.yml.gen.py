@@ -6,10 +6,7 @@ from typing import Any
 
 def get_schedule() -> dict[str, Any]:
     return {
-        "interval": "weekly",
-        "day": "saturday",
-        "time": "01:00",
-        "timezone": "Asia/Tokyo",
+        "interval": "daily",
     }
 
 
