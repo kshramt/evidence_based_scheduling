@@ -7,61 +7,89 @@ import * as total_time_utils from "src/total_time_utils";
 import * as types from "src/types";
 import * as utils from "src/utils";
 
+// For each leaf node, we sample `n_mc` ratios (actually ratio × the leaf estimate) from the historical data.
+// Time complexity: Θ(n_leaves × n_history × (n_mc × time_per_sample + time_per_weight_computation))
+// Space complexity: Θ(n_leaves × n_mc + n_history)
+// When n_mc === 2000 and n_leaves === 10000 (the number of to-do tasks will grow slowly), space requirement is about 80 MB.
 export const predict = (
   state: types.TStateDraftWithReadonly,
   k: types.TNodeId,
-  vid: number,
 ) => {
-  total_time_utils.setTotalTime(state, k, vid);
-  const candidates = state.non_todo_node_ids.filter((node_id) => {
-    const v = state.data.nodes[node_id];
-    return v.estimate !== consts.NO_ESTIMATION;
-  });
-  const ratios = candidates.length
-    ? candidates.map((node_id) => {
-        const node = state.data.nodes[node_id];
-        return (
-          total_time_utils.setTotalTime(state, node_id, vid) /
-          (1000 * 3600) /
-          node.estimate
-        );
-        // return draft.caches[v.start_time].total_time / 3600 / v.estimate;
-      })
-    : [1];
-  const now = Date.now();
-  // todo: Use distance to tweak weights.
-  // todo: The sampling weight should be a function of both the leaves and the candidates.
-  const weights = candidates.length
-    ? candidates.map((node_id) => {
-        const node = state.data.nodes[node_id];
-        if (!node.end_time) {
-          return 0; // Must not happen.
-        }
-        // 1/e per year
-        const w_t = Math.exp(-(now - node.end_time) / (1000 * 86400 * 365.25));
-        return w_t;
-      })
-    : [1];
-  const leaf_estimates = Array.from(
+  const leafNodeIds = Array.from(
     todo_leafs_of(k, state, (edge) => edge.t === "strong"),
   )
-    .map(([_, v]) => v)
-    .filter((v) => {
-      return v.estimate !== consts.NO_ESTIMATION;
-    })
-    .map((v) => {
-      return v.estimate;
-    });
+    .filter(([_, node]) => node.estimate !== consts.NO_ESTIMATION)
+    .map(([nodeId, _]) => nodeId);
+  const leafEstimates = leafNodeIds.map((nodeId) => {
+    return state.data.nodes[nodeId].estimate;
+  });
+  const vid = utils.visit_counter_of();
+  total_time_utils.setTotalTime(state, k, vid);
+
+  const candidateNodeIds = state.non_todo_node_ids.filter((node_id) => {
+    return state.data.nodes[node_id].estimate !== consts.NO_ESTIMATION;
+  });
+  const candidateRatios = candidateNodeIds.map((node_id) => {
+    const node = state.data.nodes[node_id];
+    return (
+      total_time_utils.setTotalTime(state, node_id, vid) /
+      (1000 * 3600 * node.estimate)
+    );
+  });
+  // Early return if there is no candidate (historical data).
+  if (candidateNodeIds.length < 1) {
+    const leafEstimateSum = utils.sum(leafEstimates);
+    setPrediction(state, k, leafEstimateSum, [
+      leafEstimateSum,
+      leafEstimateSum,
+      leafEstimateSum,
+      leafEstimateSum,
+      leafEstimateSum,
+      leafEstimateSum,
+      leafEstimateSum,
+    ]);
+    return;
+  }
   const n_mc = 2000;
-  const ts = _estimate(leaf_estimates, ratios, weights, n_mc);
-  swapper.set(
-    state.caches,
-    state.swapped_caches,
-    k,
-    "leaf_estimates_sum",
-    utils.sum(leaf_estimates),
-  );
-  swapper.set(state.caches, state.swapped_caches, k, "percentiles", [
+
+  const leafFeatures = leafNodeIds.map((nodeId) => {
+    return getFeature(state, nodeId);
+  });
+  const candidateFeatures = candidateNodeIds.map((nodeId) => {
+    return getFeature(state, nodeId);
+  });
+
+  const weights = new Float32Array(candidateFeatures.length);
+  const samples = new Float32Array(n_mc * leafFeatures.length);
+
+  for (let iLeaf = 0; iLeaf < leafFeatures.length; ++iLeaf) {
+    const leafFeature = leafFeatures[iLeaf];
+    for (
+      let iCandidate = 0;
+      iCandidate < candidateFeatures.length;
+      ++iCandidate
+    ) {
+      const candidateFeature = candidateFeatures[iCandidate];
+      weights[iCandidate] = getLogWeight(leafFeature, candidateFeature);
+    }
+    toExp(weights);
+    const rng = new utils.Multinomial(weights);
+    const leafEstimate = leafEstimates[iLeaf];
+    for (let iMc = 0; iMc < n_mc; iMc++) {
+      samples[leafFeatures.length * iMc + iLeaf] =
+        candidateRatios[rng.sample()] * leafEstimate;
+    }
+  }
+  const ts = new Float32Array(n_mc);
+  for (let iMc = 0; iMc < n_mc; iMc++) {
+    let t = 0;
+    for (let iLeaf = 0; iLeaf < leafFeatures.length; ++iLeaf) {
+      t += samples[leafFeatures.length * iMc + iLeaf];
+    }
+    ts[iMc] = t;
+  }
+  ts.sort();
+  setPrediction(state, k, utils.sum(leafEstimates), [
     ts[0],
     ts[Math.round(n_mc / 10)],
     ts[Math.round(n_mc / 3)],
@@ -72,23 +100,89 @@ export const predict = (
   ]);
 };
 
-const _estimate = (
-  estimates: number[],
-  ratios: number[],
-  weights: number[],
-  n_mc: number,
-) => {
-  const ts = Array<number>(n_mc);
-  const rng = new utils.Multinomial(weights);
-  for (let i = 0; i < n_mc; i++) {
-    let t = 0;
-    for (const estimate of estimates) {
-      t += ratios[rng.sample()] * estimate;
-    }
-    ts[i] = t;
+const toExp = (weights: Float32Array) => {
+  let max = -Infinity;
+  for (let i = 0; i < weights.length; ++i) {
+    max = Math.max(max, weights[i]);
   }
-  ts.sort((a, b) => a - b);
-  return ts;
+  for (let i = 0; i < weights.length; ++i) {
+    weights[i] = Math.exp(weights[i] - max);
+  }
+};
+
+const LOG2 = Math.log(2);
+
+const getLogWeight = (
+  leafFeature: ReturnType<typeof getFeature>,
+  candidateFeature: ReturnType<typeof getFeature>,
+) => {
+  const wT =
+    (LOG2 * Math.abs(leafFeature.start_time - candidateFeature.start_time)) /
+    (1000 * 86400 * 365.25);
+  const wAncestors =
+    LOG2 * countIntersection(leafFeature.ancestors, candidateFeature.ancestors);
+  return wT + wAncestors;
+};
+
+const countIntersection = <T>(a: Set<T>, b: Set<T>) => {
+  let res = 0;
+  for (const x of a) {
+    if (b.has(x)) {
+      ++res;
+    }
+  }
+  return res;
+};
+
+const setPrediction = (
+  state: types.TStateDraftWithReadonly,
+  nodeId: types.TNodeId,
+  leafEstimateSum: number,
+  percentiles: [number, number, number, number, number, number, number],
+) => {
+  swapper.set(
+    state.caches,
+    state.swapped_caches,
+    nodeId,
+    "leaf_estimates_sum",
+    leafEstimateSum,
+  );
+  swapper.set(
+    state.caches,
+    state.swapped_caches,
+    nodeId,
+    "percentiles",
+    percentiles,
+  );
+};
+
+const getFeature = (
+  state: types.TStateDraftWithReadonly,
+  nodeId: types.TNodeId,
+) => {
+  const node = state.data.nodes[nodeId];
+  const feature = {
+    start_time: node.start_time,
+    ancestors: getAncestors(state, nodeId, new Set()),
+  };
+  return feature;
+};
+
+const getAncestors = (
+  state: types.TStateDraftWithReadonly,
+  nodeId: types.TNodeId,
+  res: Set<types.TNodeId>,
+) => {
+  if (res.has(nodeId)) {
+    return res;
+  }
+  res.add(nodeId);
+  const node = state.data.nodes[nodeId];
+  for (const edgeId of ops.keys_of(node.parents)) {
+    const edge = state.data.edges[edgeId];
+    getAncestors(state, edge.p, res);
+  }
+  return res;
 };
 
 const todo_leafs_of = (

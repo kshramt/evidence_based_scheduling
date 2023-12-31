@@ -100,7 +100,20 @@ const tCoveyQuadrants = rt.$object({
 });
 const tCache = rt.$object({
   total_time: rt.$number(),
-  percentiles: rt.$readonly(rt.$array(rt.$number())), // 0, 10, 33, 50, 67, 90, 100
+  percentiles: rt.$readonly(
+    rt.$union(
+      rt.$tuple([]),
+      rt.$tuple([
+        rt.$number(),
+        rt.$number(),
+        rt.$number(),
+        rt.$number(),
+        rt.$number(),
+        rt.$number(),
+        rt.$number(),
+      ]),
+    ),
+  ), // 0, 10, 33, 50, 67, 90, 100
   leaf_estimates_sum: rt.$readonly(rt.$number()),
   n_hidden_child_edges: rt.$readonly(rt.$number()),
   text: rt.$readonly(rt.$string()),

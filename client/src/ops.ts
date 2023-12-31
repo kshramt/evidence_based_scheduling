@@ -98,7 +98,7 @@ const ACS = new sequenceComparisons.ApplyCompressedOpsForString([]);
 export const new_cache_of = (
   n_hidden_child_edges: number,
   textPatches: readonly types.TTextPatch[],
-) => {
+): types.TCaches[types.TNodeId] => {
   ACS.reset([]);
   for (const patch of textPatches) {
     ACS.apply(patch.ops);

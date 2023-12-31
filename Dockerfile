@@ -81,8 +81,6 @@ ENV CARGO_HOME "/usr/local/cargo"
 
 
 FROM curl_base AS rye_downloader
-ARG SOURCE_DATE_EPOCH
-ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 RUN curl -sSf https://rye-up.com/get | RYE_VERSION="0.15.2" RYE_INSTALL_OPTION="--yes" bash
 RUN /root/.rye/shims/rye fetch cpython@3.12.0
 RUN cd /root/.rye/py/cpython@3.12.0/install/bin && ln -s python3 python
@@ -221,9 +219,7 @@ ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
 FROM base_py11 AS base_poetry11
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-   --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-   apt-get update \
+RUN apt-get update \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
    build-essential \
    ca-certificates \
@@ -349,9 +345,7 @@ ENTRYPOINT ["./api_v2"]
 FROM base_poetry11 AS tests_e2e
 COPY --link tests/e2e/poetry.toml tests/e2e/pyproject.toml tests/e2e/poetry.lock ./
 RUN python3 -m poetry install --only main
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-   --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-   python3 -m poetry run python3 -m playwright install-deps
+RUN python3 -m poetry run python3 -m playwright install-deps
 RUN python3 -m poetry run python3 -m playwright install
 COPY --link --from=docker:24.0.2-cli-alpine3.18 /usr/local/bin/docker /usr/local/bin/docker
 COPY --link --from=docker:24.0.2-cli-alpine3.18 /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose

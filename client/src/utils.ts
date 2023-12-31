@@ -13,7 +13,7 @@ import * as types from "./types";
 export class Multinomial {
   i_large_of: number[];
   thresholds: number[];
-  constructor(ws: number[]) {
+  constructor(ws: number[] | Float32Array) {
     const n = ws.length;
     const total = sum(ws);
     const thresholds = Array<number>(n);
@@ -123,10 +123,12 @@ export const memoize1 = <A, R>(fn: (a: A) => R) => {
   };
 };
 
-export const sum = (xs: number[]) => {
-  return xs.reduce((total, current) => {
-    return total + current;
-  }, 0);
+export const sum = (xs: number[] | Float32Array) => {
+  let res = 0;
+  for (const x of xs) {
+    res += x;
+  }
+  return res;
 };
 
 export const cumsum = (xs: number[]) => {

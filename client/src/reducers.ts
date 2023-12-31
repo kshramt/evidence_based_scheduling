@@ -83,7 +83,7 @@ export const getRootReducer = (
       actions.eval_,
       (state: types.TStateDraftWithReadonly, action) => {
         const k = action.payload;
-        distribution_predictor.predict(state, k, utils.visit_counter_of());
+        distribution_predictor.predict(state, k);
       },
     );
     builder.addCase(
