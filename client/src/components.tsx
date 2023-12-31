@@ -1285,10 +1285,16 @@ const TodoQueueEntry = React.memo(
     );
     const toTree = utils.useToTree(props.node_id);
     const [opened, handlers] = Mth.useDisclosure(false);
+    const isRunning = utils.useIsRunning(props.node_id);
 
     return (
       <>
-        <div className="flex items-baseline gap-x-[0.25em] pb-[0.125em]">
+        <div
+          className={utils.join(
+            "flex items-baseline gap-x-[0.25em] pb-[0.125em]",
+            isRunning && "running",
+          )}
+        >
           {props.index}
           <EvalButton node_id={props.node_id} />
           <TodoToDoneButton node_id={props.node_id} />
