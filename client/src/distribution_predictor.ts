@@ -62,6 +62,7 @@ export const predict = (
   const weights = new Float32Array(candidateFeatures.length);
   const samples = new Float32Array(n_mc * leafFeatures.length);
 
+  console.warn(candidateRatios);
   for (let iLeaf = 0; iLeaf < leafFeatures.length; ++iLeaf) {
     const leafFeature = leafFeatures[iLeaf];
     for (
@@ -73,6 +74,7 @@ export const predict = (
       weights[iCandidate] = getLogWeight(leafFeature, candidateFeature);
     }
     toExp(weights);
+    console.warn(weights);
     const rng = new utils.Multinomial(weights);
     const leafEstimate = leafEstimates[iLeaf];
     for (let iMc = 0; iMc < n_mc; iMc++) {
