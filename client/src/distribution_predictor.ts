@@ -120,7 +120,7 @@ const getLogWeight = (
     -(LOG2 * Math.abs(leafFeature.start_time - candidateFeature.start_time)) /
     (1000 * 86400 * 365.25);
   const wAncestors =
-    (LOG2 / 2) *
+    (LOG2 / 4) *
     countIntersection(leafFeature.ancestors, candidateFeature.ancestors);
   return wT + wAncestors;
 };
