@@ -576,7 +576,7 @@ export const getRangeOfTimeId = (timeId: string) => {
       return [t0, t0 + 3_600_000];
     }
     case "D": {
-      const t0 = new Date(timeId.slice(1)).getTime();
+      const t0 = new Date(timeId.slice(1) + "T00:00:00Z").getTime();
       return [t0, t0 + 86_400_000];
     }
     case "W": {
@@ -588,27 +588,27 @@ export const getRangeOfTimeId = (timeId: string) => {
     case "M": {
       const yyyy = parseInt(timeId.slice(1, 5));
       const mm = parseInt(timeId.slice(6, 8));
-      const t0 = new Date(yyyy, mm - 1).getTime();
-      const t1 = new Date(yyyy, mm).getTime();
+      const t0 = Date.UTC(yyyy, mm - 1);
+      const t1 = Date.UTC(yyyy, mm);
       return [t0, t1];
     }
     case "Q": {
       const yyyy = parseInt(timeId.slice(1, 5));
       const mm = parseInt(timeId.slice(6, 8));
-      const t0 = new Date(yyyy, mm - 1).getTime();
-      const t1 = new Date(yyyy, mm + 2).getTime();
+      const t0 = Date.UTC(yyyy, mm - 1);
+      const t1 = Date.UTC(yyyy, mm + 2);
       return [t0, t1];
     }
     case "Y": {
       const yyyy = parseInt(timeId.slice(1, 5));
-      const t0 = new Date(yyyy, 0).getTime();
-      const t1 = new Date(yyyy + 1, 0).getTime();
+      const t0 = Date.UTC(yyyy, 0);
+      const t1 = Date.UTC(yyyy + 1, 0);
       return [t0, t1];
     }
     case "F": {
       const yyyy = parseInt(timeId.slice(1, 5));
-      const t0 = new Date(yyyy, 0).getTime();
-      const t1 = new Date(yyyy + 4, 0).getTime();
+      const t0 = Date.UTC(yyyy, 0);
+      const t1 = Date.UTC(yyyy + 4, 0);
       return [t0, t1];
     }
     default: {
