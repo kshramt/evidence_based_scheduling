@@ -21,7 +21,7 @@ jobs:
           echo "host-os=$(docker version --format '{{ (index .Server.Components 0).Details.Os }}')"
           } >> "$GITHUB_OUTPUT"
   bazel:
-    if: false && github.actor == 'dependabot[bot]' || github.actor == github.repository_owner
+    if: false && (github.actor == 'dependabot[bot]' || github.actor == github.repository_owner)
     permissions:
       contents: read
       packages: write
