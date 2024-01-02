@@ -7,6 +7,7 @@ import * as consts from "./consts";
 import * as intervals from "./intervals";
 import * as times from "./times";
 import * as types from "./types";
+import * as utils from "src/utils";
 
 // Vose (1991)'s linear version of Walker (1974)'s alias method.
 // A Pactical Version of Vose's Algorithm: https://www.keithschwarz.com/darts-dice-coins/
@@ -537,6 +538,9 @@ export const usePlannedNodeIds = (timeId: string) => {
         continue;
       }
       for (const event of events) {
+        if (utils.getEventStatus(event) !== "created") {
+          continue;
+        }
         {
           const duration =
             times.ensureFloatingTime(event.interval_set.end).f -
