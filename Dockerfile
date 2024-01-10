@@ -21,7 +21,7 @@ FROM hadolint/hadolint:v2.12.0-alpine as hadolint_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
-FROM golang:1.21.5-bookworm AS base_go
+FROM golang:1.21.6-bookworm AS base_go
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 ENV CGO_ENABLED 0
