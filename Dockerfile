@@ -29,7 +29,7 @@ ENV CGO_ENABLED 0
 FROM base_go AS dbmate_builder
 RUN go install github.com/amacneil/dbmate/v2@v2.4.0
 
-FROM denoland/deno:distroless-1.39.2 as deno_base
+FROM denoland/deno:distroless-1.39.3 as deno_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
