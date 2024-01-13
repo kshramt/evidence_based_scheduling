@@ -29,7 +29,7 @@ ENV CGO_ENABLED 0
 FROM base_go AS dbmate_builder
 RUN go install github.com/amacneil/dbmate/v2@v2.4.0
 
-FROM denoland/deno:distroless-1.39.1 as deno_base
+FROM denoland/deno:distroless-1.39.3 as deno_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
@@ -40,7 +40,7 @@ RUN arch="$(dpkg --print-architecture)" && curl -L -o /usr/local/bin/buildifier 
 RUN arch="$(dpkg --print-architecture)" && curl -L -o /usr/local/bin/bazelisk "https://github.com/bazelbuild/bazelisk/releases/download/v1.19.0/bazelisk-linux-${arch}" && chmod +x /usr/local/bin/bazelisk
 
 
-FROM node:21.4.0-bookworm-slim AS node_downloader
+FROM node:21.5.0-bookworm-slim AS node_downloader
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 RUN mkdir -p /usr/local/node \
