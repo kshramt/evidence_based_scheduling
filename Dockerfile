@@ -21,13 +21,9 @@ FROM hadolint/hadolint:v2.12.0-alpine as hadolint_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
-FROM golang:1.21.5-bookworm AS base_go
+FROM ghcr.io/amacneil/dbmate:2.10.0 AS base_dbmate
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
-ENV CGO_ENABLED 0
-
-FROM base_go AS dbmate_builder
-RUN go install github.com/amacneil/dbmate/v2@v2.4.0
 
 FROM denoland/deno:distroless-1.39.3 as deno_base
 ARG SOURCE_DATE_EPOCH
@@ -162,7 +158,7 @@ RUN useradd --no-log-init -m -s /bin/bash "${devcontainer_user:?}" \
    && usermod -aG sudo "${devcontainer_user:?}" \
    && echo '%sudo ALL=(ALL:ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-COPY --link --from=dbmate_builder /go/bin/dbmate /usr/local/bin/dbmate
+COPY --link --from=base_dbmate /usr/local/bin/dbmate /usr/local/bin/dbmate
 COPY --link --from=deno_base /bin/deno /usr/local/bin/deno
 COPY --link --from=node_downloader /usr/local/node /usr/local/node
 COPY --link --from=node_downloader /usr/local/lib/node_modules /usr/local/lib/node_modules
@@ -296,7 +292,7 @@ FROM base_postgres AS prod_postgres
 FROM debian:12.4-slim AS prod_postgres_migration
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
-COPY --link --from=dbmate_builder /go/bin/dbmate /usr/local/bin/dbmate
+COPY --link --from=base_dbmate /usr/local/bin/dbmate /usr/local/bin/dbmate
 COPY --link db/scripts/migrate.sh /app/scripts/migrate.sh
 COPY --link db/migrations /app/db/migrations
 ENTRYPOINT ["/app/scripts/migrate.sh"]
