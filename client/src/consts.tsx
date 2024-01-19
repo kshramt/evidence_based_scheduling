@@ -1,5 +1,3 @@
-import * as React from "react";
-
 export const MINUTE = 60 * 1_000;
 export const HOUR = 60 * MINUTE;
 export const DAY = 24 * HOUR;
