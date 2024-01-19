@@ -24,7 +24,7 @@ async def test_e2e(
         except Exception:
             if 10 < i:
                 raise
-            asyncio.sleep(0.1)
+            await asyncio.sleep(0.1)
     await page.locator("#sign-up-name").fill("user1")
     await page.get_by_role("button", name="Sign up").click()
     await page.get_by_role("button", name="Continue").click()
