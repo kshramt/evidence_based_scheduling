@@ -25,7 +25,7 @@ FROM ghcr.io/amacneil/dbmate:2.10.0 AS base_dbmate
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
-FROM denoland/deno:distroless-1.39.3 as deno_base
+FROM denoland/deno:distroless-1.39.4 as deno_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
@@ -206,7 +206,7 @@ FROM nginx:1.25.3-alpine AS base_nginx
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
-FROM envoyproxy/envoy:distroless-v1.28.0 AS base_envoy
+FROM envoyproxy/envoy:distroless-v1.29.0 AS base_envoy
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
