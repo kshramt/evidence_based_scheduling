@@ -1090,7 +1090,7 @@ const _show_path_to_selected_node = (
 };
 
 const assert = (fn: () => [boolean, string]) => {
-  if ("production" !== process.env.NODE_ENV) {
+  if ("production" !== import.meta.env.MODE) {
     const [v, msg] = fn();
     if (!v) {
       throw new Error(msg);
