@@ -265,7 +265,7 @@ RUN apt-get update \
 COPY --link pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY --link client/package.json client/
 RUN pnpm install --frozen-lockfile
-RUN pnpm dlx playwright install
+RUN pnpm exec playwright install
 
 FROM client_npm_ci AS builder_client
 COPY --link client client
