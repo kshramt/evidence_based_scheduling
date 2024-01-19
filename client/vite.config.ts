@@ -73,7 +73,6 @@ export default defineConfig({
       },
     },
   },
-  base: "./",
   define: {},
   test: {
     includeSource: ["src/**/*.{js,ts,jsx,tsx}"],
