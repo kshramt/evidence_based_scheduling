@@ -40,7 +40,6 @@ import * as actions from "./actions";
 import * as consts from "./consts";
 import * as hooks from "./hooks";
 import * as states from "./states";
-import * as total_time_utils from "./total_time_utils";
 import * as utils from "./utils";
 import { prevent_propagation } from "./utils";
 import * as ops from "./ops";
@@ -474,7 +473,7 @@ const Body = () => {
   }, [treeNodesRef]);
   return (
     <div className="flex flex-1 gap-x-[1em] overflow-y-hidden">
-      <div className="overflow-y-auto flex-none w-[46em] pl-[2em]">
+      <div className="overflow-y-auto flex-none w-[52em] pl-[2em]">
         <SBTTB onClick={handleTodoQueueSBTTBClick} />
         <TodoQueueNodes virtuosoRef={todoQueueNodesRef} />
       </div>

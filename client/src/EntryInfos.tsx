@@ -1,4 +1,4 @@
-import React from "react";
+import * as React from "react";
 
 import { EstimationInput } from "./EstimationInput";
 import { LastRange } from "./LastRange";

@@ -108,21 +108,23 @@ const TodoQueueEntry = React.memo(
       <>
         <div
           className={utils.join(
-            "flex items-baseline gap-x-[0.25em] pb-[0.125em]",
+            "flex items-baseline gap-x-[0.25em] pb-[0.125em] w-[51em]",
             isRunning && "running",
           )}
         >
-          {props.index}
-          <EvalButton node_id={props.node_id} />
-          <TodoToDoneButton node_id={props.node_id} />
-          <TodoToDontButton node_id={props.node_id} />
-          <ShowDetailsButton
-            node_id={props.node_id}
-            opened={opened}
-            handlers={handlers}
-          />
-          <CopyNodeIdButton node_id={props.node_id} />
-          <StartOrStopButtons node_id={props.node_id} />
+          <div className="flex items-baseline gap-x-[0.25em] w-[22em]">
+            <span className="w-[5em] text-right">{props.index}</span>
+            <EvalButton node_id={props.node_id} />
+            <TodoToDoneButton node_id={props.node_id} />
+            <TodoToDontButton node_id={props.node_id} />
+            <ShowDetailsButton
+              node_id={props.node_id}
+              opened={opened}
+              handlers={handlers}
+            />
+            <CopyNodeIdButton node_id={props.node_id} />
+            <StartOrStopButtons node_id={props.node_id} />
+          </div>
           <span
             className="w-[16em] inline-block whitespace-nowrap overflow-hidden cursor-pointer"
             title={text}
