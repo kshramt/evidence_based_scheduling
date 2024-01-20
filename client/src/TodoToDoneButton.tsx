@@ -19,7 +19,7 @@ export const TodoToDoneButton = (props: { node_id: types.TNodeId }) => {
       onClick={on_click}
       onDoubleClick={utils.prevent_propagation}
     >
-      {consts.DONT_MARK}
+      {consts.DONE_MARK}
     </button>
   );
 };
