@@ -8,24 +8,38 @@ import * as Mt from "@mantine/core";
 import * as Mth from "@mantine/hooks";
 import * as Rv from "react-virtuoso";
 
+import { AddButton } from "./AddButton";
 import AutoHeightTextArea from "src/AutoHeightTextArea";
 import Calendar from "./Calendar";
 import CopyNodeIdButton from "./CopyNodeIdButton";
+import { DoneOrDontToTodoButton } from "./DoneOrDontToTodoButton";
+import { EntryButtons } from "./EntryButtons";
+import { EntryInfos } from "./EntryInfos";
+import { EntryWrapper } from "./EntryWrapper";
+import { EstimationInput } from "./EstimationInput";
+import { EvalButton } from "./EvalButton";
 import GanttChart from "./GanttChart";
+import { LastRange } from "./LastRange";
+import { QueueEntry } from "./QueueEntry";
 import MenuButton from "./Header/MenuButton";
 import ShowDetailsButton from "./ShowDetailsButton";
 import ShowGanttToggle from "./ShowGanttToggle";
 import StartButton from "./StartButton";
 import StartConcurrentButton from "./StartConcurrentButton";
+import { StartOrStopButtons } from "./StartOrStopButtons";
 import StopButton from "./StopButton";
+import { TextArea } from "./TextArea";
+import { TodoToDoneButton } from "./TodoToDoneButton";
+import { TodoToDontButton } from "./TodoToDontButton";
 import ToggleButton from "./ToggleButton";
 import TopButton from "./TopButton";
+import { TotalTime } from "./TotalTime";
 import * as types from "./types";
 import { useDispatch, useSelector } from "./types";
 import * as actions from "./actions";
 import * as consts from "./consts";
+import * as hooks from "./hooks";
 import * as states from "./states";
-import * as total_time_utils from "./total_time_utils";
 import * as utils from "./utils";
 import { prevent_propagation } from "./utils";
 import * as ops from "./ops";
@@ -34,8 +48,6 @@ import * as undoable from "./undoable";
 const SCROLL_BACK_TO_TOP_MARK = (
   <span className="material-icons">vertical_align_top</span>
 );
-
-const TREE_PREFIX = "t-";
 
 const nonTodoQueueNodesRef = React.createRef<Rv.VirtuosoHandle>();
 const todoQueueNodesRef = React.createRef<Rv.VirtuosoHandle>();
@@ -114,7 +126,10 @@ const NodeFilterQueryInput = () => {
   const ref = useMetaK();
   const queue = useQueue("todo_node_ids", nodeFilterQuery);
   const node_id = queue[0] || null;
-  const taskShortcutKeys = useTaskShortcutKeys(node_id, TREE_PREFIX);
+  const taskShortcutKeys = hooks.useTaskShortcutKeys(
+    node_id,
+    consts.TREE_PREFIX,
+  );
   const onKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLElement>) => {
       if (taskShortcutKeys(event)) {
@@ -124,7 +139,10 @@ const NodeFilterQueryInput = () => {
           }
           event.preventDefault();
           dispatch(actions.show_path_to_selected_node(node_id));
-          setTimeout(() => doFocusTextArea(`${TREE_PREFIX}${node_id}`), 100);
+          setTimeout(
+            () => utils.doFocusTextArea(`${consts.TREE_PREFIX}${node_id}`),
+            100,
+          );
         }
       }
     },
@@ -455,7 +473,7 @@ const Body = () => {
   }, [treeNodesRef]);
   return (
     <div className="flex flex-1 gap-x-[1em] overflow-y-hidden">
-      <div className="overflow-y-auto flex-none w-[46em] pl-[2em]">
+      <div className="overflow-y-auto flex-none w-[52em] pl-[2em]">
         <SBTTB onClick={handleTodoQueueSBTTBClick} />
         <TodoQueueNodes virtuosoRef={todoQueueNodesRef} />
       </div>
@@ -510,52 +528,6 @@ const PinnedSubTrees = React.memo(() => {
         return <DndTreeNode key={node_id} node_id={node_id} />;
       })}
     </>
-  );
-});
-
-const DoneOrDontToTodoButton = (props: { node_id: types.TNodeId }) => {
-  const dispatch = useDispatch();
-  const on_click = React.useCallback(() => {
-    dispatch(actions.done_or_dont_to_todo_action(props.node_id));
-  }, [props.node_id, dispatch]);
-  return (
-    <button
-      className="btn-icon"
-      onClick={on_click}
-      onDoubleClick={prevent_propagation}
-    >
-      {consts.UNDO_MARK}
-    </button>
-  );
-};
-
-const EstimationInput = React.memo((props: { node_id: types.TNodeId }) => {
-  const estimate = utils.assertV(
-    useSelector((state) => state.swapped_nodes.estimate?.[props.node_id]),
-  );
-  const dispatch = useDispatch();
-  const on_change = React.useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      dispatch(
-        actions.set_estimate_action({
-          node_id: props.node_id,
-          estimate: Number(e.target.value),
-        }),
-      );
-    },
-    [props.node_id, dispatch],
-  );
-
-  return (
-    <input
-      type="number"
-      step="any"
-      min={0}
-      value={estimate}
-      onChange={on_change}
-      onFocus={move_cursor_to_the_end}
-      className="w-[3em]"
-    />
   );
 });
 
@@ -1205,127 +1177,6 @@ const Edge = React.memo(
   },
 );
 
-const QueueEntry = React.memo(
-  (props: { node_id: types.TNodeId; index: number }) => {
-    const isTodo =
-      utils.assertV(
-        useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
-      ) === "todo";
-
-    return isTodo ? (
-      <TodoQueueEntry node_id={props.node_id} index={props.index} />
-    ) : (
-      <NonTodoQueueEntry node_id={props.node_id} index={props.index} />
-    );
-  },
-);
-
-const NonTodoQueueEntry = React.memo(
-  (props: { node_id: types.TNodeId; index: number }) => {
-    const { isOn, turnOn, turnOff } = utils.useOn(0);
-    const status = utils.assertV(
-      useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
-    );
-    const is_running = utils.useIsRunning(props.node_id);
-    const to_tree = utils.useToTree(props.node_id);
-    const handleKeyDown = useTaskShortcutKeys(props.node_id, TREE_PREFIX);
-    const [opened, handlers] = Mth.useDisclosure(false);
-    const id = utils.queue_textarea_id_of(props.node_id);
-
-    return (
-      <EntryWrapper
-        node_id={props.node_id}
-        onMouseLeave={turnOff}
-        component="div"
-      >
-        <div className="flex items-end w-fit">
-          {props.index}
-          <button onClick={to_tree}>←</button>
-          <CopyNodeIdButton node_id={props.node_id} />
-          <TextArea
-            node_id={props.node_id}
-            id={id}
-            className={utils.join(
-              "w-[29em] px-[0.75em] py-[0.5em]",
-              status === "done"
-                ? "text-red-600 dark:text-red-400"
-                : status === "dont"
-                  ? "text-neutral-500"
-                  : null,
-            )}
-            onKeyDown={handleKeyDown}
-            onClick={turnOn}
-          />
-          <EntryInfos node_id={props.node_id} />
-        </div>
-        {(isOn || is_running || opened) && (
-          <EntryButtons
-            node_id={props.node_id}
-            opened={opened}
-            handlers={handlers}
-          />
-        )}
-      </EntryWrapper>
-    );
-  },
-);
-
-const TodoQueueEntry = React.memo(
-  (props: { node_id: types.TNodeId; index: number }) => {
-    const leaf_estimates_sum = utils.assertV(
-      useSelector(
-        (state) => state.swapped_caches.leaf_estimates_sum?.[props.node_id],
-      ),
-    );
-    const percentiles = utils.assertV(
-      useSelector((state) => state.swapped_caches.percentiles?.[props.node_id]),
-    );
-    const text = utils.assertV(
-      useSelector((state) => state.swapped_caches.text?.[props.node_id]),
-    );
-    const toTree = utils.useToTree(props.node_id);
-    const [opened, handlers] = Mth.useDisclosure(false);
-    const isRunning = utils.useIsRunning(props.node_id);
-
-    return (
-      <>
-        <div
-          className={utils.join(
-            "flex items-baseline gap-x-[0.25em] pb-[0.125em]",
-            isRunning && "running",
-          )}
-        >
-          {props.index}
-          <EvalButton node_id={props.node_id} />
-          <TodoToDoneButton node_id={props.node_id} />
-          <TodoToDontButton node_id={props.node_id} />
-          <ShowDetailsButton
-            node_id={props.node_id}
-            opened={opened}
-            handlers={handlers}
-          />
-          <CopyNodeIdButton node_id={props.node_id} />
-          <StartOrStopButtons node_id={props.node_id} />
-          <span
-            className="w-[16em] inline-block whitespace-nowrap overflow-hidden cursor-pointer"
-            title={text}
-            onClick={toTree}
-            role="button"
-            tabIndex={0}
-          >
-            {text}
-          </span>
-          <EntryInfos node_id={props.node_id} />
-        </div>
-        <div>
-          {0 <= leaf_estimates_sum && digits1(leaf_estimates_sum) + " | "}
-          {percentiles.map(digits1).join(", ")}
-        </div>
-      </>
-    );
-  },
-);
-
 const MobileMenu = (props: {
   ctx: states.PersistentStateManager;
   logOut: () => void;
@@ -1497,8 +1348,8 @@ const TreeEntry = React.memo(
     const to_queue = useToQueue(props.node_id);
     const root = useSelector((state) => state.data.root);
     const is_root = props.node_id === root;
-    const prefix = props.prefix || TREE_PREFIX;
-    const handleKeyDown = useTaskShortcutKeys(props.node_id, prefix);
+    const prefix = props.prefix || consts.TREE_PREFIX;
+    const handleKeyDown = hooks.useTaskShortcutKeys(props.node_id, prefix);
     const [opened, handlers] = Mth.useDisclosure(false);
 
     return (
@@ -1526,8 +1377,8 @@ const TreeEntry = React.memo(
         </div>
         {status === "todo" &&
           0 <= leaf_estimates_sum &&
-          digits1(leaf_estimates_sum) + " | "}
-        {status === "todo" && percentiles.map(digits1).join(", ")}
+          utils.digits1(leaf_estimates_sum) + " | "}
+        {status === "todo" && percentiles.map(utils.digits1).join(", ")}
         {(isOn || is_running || opened) && (
           <EntryButtons
             node_id={props.node_id}
@@ -1540,83 +1391,6 @@ const TreeEntry = React.memo(
     );
   },
 );
-
-const useTaskShortcutKeys = (node_id: null | types.TNodeId, prefix: string) => {
-  const dispatch = useDispatch();
-  const session = React.useContext(states.session_key_context);
-  const show_mobile = Jotai.useAtomValue(
-    states.show_mobile_atom_map.get(session),
-  );
-  const is_running = utils.useIsRunning(node_id);
-  return React.useCallback(
-    (event: React.KeyboardEvent<HTMLElement>) => {
-      if (node_id === null) {
-        return;
-      }
-      if (event.ctrlKey || event.metaKey) {
-        if (event.key === "Enter" && !event.nativeEvent.isComposing) {
-          event.preventDefault();
-          dispatch(actions.add_action({ node_id, show_mobile }));
-          dispatch(focusFirstChildTextAreaActionOf(node_id, prefix));
-          return;
-        } else if (event.key === ".") {
-          event.preventDefault();
-          if (is_running) {
-            if (event.shiftKey) {
-              dispatch(actions.stop_action(node_id));
-            } else {
-              dispatch(actions.stop_all_action());
-            }
-          } else {
-            dispatch(
-              actions.start_action({ node_id, is_concurrent: event.shiftKey }),
-            );
-          }
-          return;
-        }
-      }
-      return true;
-    },
-    [node_id, is_running, show_mobile, dispatch, prefix],
-  );
-};
-
-const EntryWrapper = (props: {
-  node_id: types.TNodeId;
-  children: React.ReactNode;
-  onMouseOver?: () => void;
-  onMouseLeave?: () => void;
-  component?: keyof JSX.IntrinsicElements;
-}) => {
-  const is_running = utils.useIsRunning(props.node_id);
-  const n_hidden_child_edges = utils.assertV(
-    useSelector(
-      (state) => state.swapped_caches.n_hidden_child_edges?.[props.node_id],
-    ),
-  );
-  const has_hidden_leaf = 0 < n_hidden_child_edges;
-
-  const dispatch = useDispatch();
-  const handle_toggle_show_children = useCallback(() => {
-    dispatch(actions.toggle_show_children(props.node_id));
-  }, [props.node_id, dispatch]);
-
-  const Component = props.component || "div";
-  return (
-    <Component
-      className={
-        utils.join(
-          is_running ? "running" : has_hidden_leaf ? "hidden-leafs" : undefined,
-        ) || undefined
-      }
-      onDoubleClick={handle_toggle_show_children}
-      onMouseOver={props.onMouseOver}
-      onMouseLeave={props.onMouseLeave}
-    >
-      {props.children}
-    </Component>
-  );
-};
 
 const MobileEntryButtons = (props: {
   node_id: types.TNodeId;
@@ -1669,205 +1443,10 @@ const MobileEntryButtons = (props: {
       <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
         {status === "todo" &&
           0 <= leaf_estimates_sum &&
-          digits1(leaf_estimates_sum) + " | "}
-        {status === "todo" && percentiles.map(digits1).join(", ")}
+          utils.digits1(leaf_estimates_sum) + " | "}
+        {status === "todo" && percentiles.map(utils.digits1).join(", ")}
       </div>
     </div>
-  );
-};
-
-const EntryButtons = React.memo(
-  (props: {
-    node_id: types.TNodeId;
-    prefix?: string;
-    opened: boolean;
-    handlers: { toggle: () => void; close: () => void };
-  }) => {
-    const status = utils.assertV(
-      useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
-    );
-
-    const root = useSelector((state) => state.data.root);
-    const is_root = props.node_id === root;
-    const is_todo = status === "todo";
-
-    return (
-      <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
-        {is_root || !is_todo || <StartOrStopButtons node_id={props.node_id} />}
-        {is_root || !is_todo || <TodoToDoneButton node_id={props.node_id} />}
-        {is_root || !is_todo || <TodoToDontButton node_id={props.node_id} />}
-        {is_root || is_todo || (
-          <DoneOrDontToTodoButton node_id={props.node_id} />
-        )}
-        {is_todo && <EvalButton node_id={props.node_id} />}
-        {is_root || !is_todo || <TopButton node_id={props.node_id} />}
-        {is_root || !is_todo || <MoveUpButton node_id={props.node_id} />}
-        {is_root || !is_todo || <MoveDownButton node_id={props.node_id} />}
-        {/* <DeleteButton node_id={props.node_id} /> */}
-        {is_todo && <AddButton node_id={props.node_id} prefix={props.prefix} />}
-        <ShowDetailsButton
-          node_id={props.node_id}
-          opened={props.opened}
-          handlers={props.handlers}
-        />
-      </div>
-    );
-  },
-);
-
-const EntryInfos = React.memo((props: { node_id: types.TNodeId }) => {
-  const root = useSelector((state) => state.data.root);
-  const is_root = props.node_id === root;
-
-  return (
-    <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
-      {is_root || <EstimationInput node_id={props.node_id} />}
-      <TotalTime node_id={props.node_id} />
-      {is_root || <LastRange node_id={props.node_id} />}
-    </div>
-  );
-});
-
-const TotalTime = (props: { node_id: types.TNodeId }) => {
-  const total_time = utils.assertV(
-    useSelector((state) => state.swapped_caches.total_time?.[props.node_id]),
-  );
-  const dispatch = useDispatch();
-  const observe = total_time_utils.observe_of(dispatch);
-  const ref_cb = React.useCallback(
-    (el: null | HTMLSpanElement) => {
-      if (el === null) {
-        return;
-      }
-      observe(el, props.node_id);
-    },
-    [observe, props.node_id],
-  );
-
-  return (
-    <span ref={ref_cb}>
-      {total_time < 0 ? "-" : digits1(total_time / (1000 * 3600))}
-    </span>
-  );
-};
-
-const StartOrStopButtons = (props: { node_id: types.TNodeId }) => {
-  const ranges = utils.assertV(
-    useSelector((state) => state.swapped_nodes.ranges?.[props.node_id]),
-  );
-  const last_range = ranges.at(-1);
-  const running = last_range && last_range.end === null;
-
-  return running ? (
-    <StopButton node_id={props.node_id} ref={stopButtonRefOf(props.node_id)} />
-  ) : (
-    <>
-      <StartButton node_id={props.node_id} />
-      <StartConcurrentButton node_id={props.node_id} />
-    </>
-  );
-};
-
-const AddButton = (props: {
-  node_id: types.TNodeId;
-  prefix?: undefined | string;
-  id?: string;
-}) => {
-  const dispatch = useDispatch();
-  const session = React.useContext(states.session_key_context);
-  const show_mobile = Jotai.useAtomValue(
-    states.show_mobile_atom_map.get(session),
-  );
-  const prefix = props.prefix || TREE_PREFIX;
-  const handle_click = React.useCallback(() => {
-    dispatch(
-      actions.add_action({ node_id: props.node_id, show_mobile: show_mobile }),
-    );
-    dispatch(focusFirstChildTextAreaActionOf(props.node_id, prefix));
-  }, [props.node_id, dispatch, show_mobile, prefix]);
-  return (
-    <button
-      className="btn-icon"
-      id={props.id}
-      onClick={handle_click}
-      onDoubleClick={prevent_propagation}
-    >
-      {consts.ADD_MARK}
-    </button>
-  );
-};
-
-const MoveUpButton = (props: { node_id: types.TNodeId }) => {
-  const dispatch = useDispatch();
-  const on_click = useCallback(() => {
-    dispatch(actions.moveUp_(props.node_id));
-    doFocusMoveUpButton(props.node_id);
-  }, [props.node_id, dispatch]);
-
-  return (
-    <button
-      className="btn-icon"
-      onClick={on_click}
-      ref={moveUpButtonRefOf(props.node_id)}
-      onDoubleClick={prevent_propagation}
-    >
-      {consts.MOVE_UP_MARK}
-    </button>
-  );
-};
-
-const MoveDownButton = (props: { node_id: types.TNodeId }) => {
-  const dispatch = useDispatch();
-  const on_click = useCallback(() => {
-    dispatch(actions.moveDown_(props.node_id));
-    doFocusMoveDownButton(props.node_id);
-  }, [props.node_id, dispatch]);
-
-  return (
-    <button
-      className="btn-icon"
-      onClick={on_click}
-      ref={moveDownButtonRefOf(props.node_id)}
-      onDoubleClick={prevent_propagation}
-    >
-      {consts.MOVE_DOWN_MARK}
-    </button>
-  );
-};
-
-const TodoToDoneButton = (props: { node_id: types.TNodeId }) => {
-  const dispatch = useDispatch();
-  const on_click = useCallback(
-    () => dispatch(actions.todoToDone(props.node_id)),
-    [props.node_id, dispatch],
-  );
-
-  return (
-    <button
-      className="btn-icon"
-      onClick={on_click}
-      onDoubleClick={prevent_propagation}
-    >
-      {consts.DONE_MARK}
-    </button>
-  );
-};
-
-const TodoToDontButton = (props: { node_id: types.TNodeId }) => {
-  const dispatch = useDispatch();
-  const on_click = useCallback(
-    () => dispatch(actions.todoToDont(props.node_id)),
-    [props.node_id, dispatch],
-  );
-
-  return (
-    <button
-      className="btn-icon"
-      onClick={on_click}
-      onDoubleClick={prevent_propagation}
-    >
-      {consts.DONT_MARK}
-    </button>
   );
 };
 
@@ -1887,23 +1466,6 @@ const TodoToDontButton = (props: { node_id: types.TNodeId }) => {
 //     </button>
 //   );
 // };
-
-const EvalButton = (props: { node_id: types.TNodeId }) => {
-  const dispatch = useDispatch();
-  const on_click = React.useCallback(() => {
-    dispatch(actions.eval_(props.node_id));
-  }, [props.node_id, dispatch]);
-
-  return (
-    <button
-      className="btn-icon"
-      onClick={on_click}
-      onDoubleClick={prevent_propagation}
-    >
-      {consts.EVAL_MARK}
-    </button>
-  );
-};
 
 const MobilePredictedNextNodes = () => {
   const predicted_next_nodes = useSelector(
@@ -1974,47 +1536,6 @@ const PredictedNextNode = React.memo((props: { node_id: types.TNodeId }) => {
   );
 });
 
-const TextArea = (props: {
-  node_id: types.TNodeId;
-  className: string;
-  onBlur?: (e: React.FocusEvent<HTMLTextAreaElement>) => void;
-  onClick?: (e: React.MouseEvent<HTMLTextAreaElement>) => void;
-  id?: string;
-  onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-}) => {
-  const text = utils.assertV(
-    useSelector((state) => state.swapped_caches.text?.[props.node_id]),
-  );
-  const dispatch = useDispatch();
-  const onBlur = React.useMemo(() => {
-    const _onBlur = props.onBlur;
-    return (e: React.FocusEvent<HTMLTextAreaElement>) => {
-      if (_onBlur !== undefined) {
-        _onBlur(e);
-      }
-
-      // Set text.
-      const el = e.target;
-      dispatch(
-        actions.set_text_action({
-          k: props.node_id,
-          text: el.value,
-        }),
-      );
-    };
-  }, [dispatch, props.node_id, props.onBlur]);
-
-  return (
-    <AutoHeightTextArea
-      text={text}
-      className={props.className}
-      onBlur={onBlur}
-      onClick={props.onClick}
-      id={props.id}
-      onKeyDown={props.onKeyDown}
-    />
-  );
-};
 const CopyDescendantTimeNodesPlannedNodeIdsButton = (props: {
   time_node_id: types.TTimeNodeId;
 }) => {
@@ -2047,57 +1568,6 @@ const CopyDescendantTimeNodesPlannedNodeIdsButton = (props: {
     </button>
   );
 };
-
-const doFocusMoveUpButton = (node_id: types.TNodeId) => {
-  setTimeout(() => utils.focus(moveUpButtonRefOf(node_id).current), 100);
-};
-
-const doFocusMoveDownButton = (node_id: types.TNodeId) => {
-  setTimeout(() => utils.focus(moveDownButtonRefOf(node_id).current), 100);
-};
-
-const doFocusTextArea = (id: string) => {
-  setTimeout(() => utils.focus(document.getElementById(id)), 100);
-};
-
-const stopButtonRefOf = utils.memoize1((_: types.TNodeId) =>
-  React.createRef<HTMLButtonElement>(),
-);
-
-const moveUpButtonRefOf = utils.memoize1((_: types.TNodeId) =>
-  React.createRef<HTMLButtonElement>(),
-);
-
-const moveDownButtonRefOf = utils.memoize1((_: types.TNodeId) =>
-  React.createRef<HTMLButtonElement>(),
-);
-
-const LastRange = (props: { node_id: types.TNodeId }) => {
-  const ranges = utils.assertV(
-    useSelector((state) => state.swapped_nodes.ranges?.[props.node_id]),
-  );
-  const last_range = last_range_of(ranges);
-  return (
-    <>
-      {last_range &&
-        last_range.end &&
-        digits2((last_range.end - last_range.start) / (1000 * 3600))}
-    </>
-  );
-};
-
-const focusFirstChildTextAreaActionOf =
-  (node_id: types.TNodeId, prefix: string) =>
-  (dispatch: types.AppDispatch, getState: () => types.TState) => {
-    const state = getState();
-    doFocusTextArea(
-      `${prefix}${
-        state.data.edges[
-          ops.sorted_keys_of(state.data.nodes[node_id].children)[0]
-        ].c
-      }`,
-    );
-  };
 
 const useToQueue = (node_id: types.TNodeId) => {
   const store = Rr.useStore<types.TState>();
@@ -2171,34 +1641,6 @@ const getIsMatch = (
   return true;
 };
 
-const digits2 = (x: number) => {
-  return Math.round(x * 100) / 100;
-};
-
-const digits1 = (x: number) => {
-  return Math.round(x * 10) / 10;
-};
-
-const last_range_of = (
-  ranges: readonly types.TRange[],
-): null | types.TRange => {
-  const n = ranges.length;
-  if (n < 1) {
-    return null;
-  } else {
-    const last = ranges[n - 1];
-    if (last.end === null) {
-      if (n - 2 < 0) {
-        return null;
-      } else {
-        return ranges[n - 2];
-      }
-    } else {
-      return last;
-    }
-  }
-};
-
 const copy_descendant_time_nodes_planned_node_ids_action = (
   time_node_id: types.TTimeNodeId,
   multi: boolean,
@@ -2253,11 +1695,6 @@ const collect_descendant_time_nodes_planned_node_ids = (
     );
   }
   return res;
-};
-
-const move_cursor_to_the_end = (e: React.FocusEvent<HTMLInputElement>) => {
-  const el = e.target;
-  el.select();
 };
 
 const get_toggle = utils.memoize1(
