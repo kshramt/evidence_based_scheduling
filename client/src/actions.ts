@@ -1,7 +1,9 @@
 import * as Rtk from "@reduxjs/toolkit";
 
+import * as ops from "./ops";
 import { register_history_type } from "./undoable";
 import * as types from "./types";
+import * as utils from "./utils";
 
 export const addNewEventAction = register_history_type(
   Rtk.createAction<{ nodeId: types.TNodeId; event: types.TEvent }>(
@@ -174,3 +176,16 @@ export const add_edges_action = register_history_type(
 export const increment_count_action = register_history_type(
   Rtk.createAction("increment_count_action"),
 );
+
+export const focusFirstChildTextAreaActionOf =
+  (node_id: types.TNodeId, prefix: string) =>
+  (dispatch: types.AppDispatch, getState: () => types.TState) => {
+    const state = getState();
+    utils.doFocusTextArea(
+      `${prefix}${
+        state.data.edges[
+          ops.sorted_keys_of(state.data.nodes[node_id].children)[0]
+        ].c
+      }`,
+    );
+  };

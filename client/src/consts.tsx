@@ -1,3 +1,5 @@
+export const TREE_PREFIX = "t-";
+
 export const MINUTE = 60 * 1_000;
 export const HOUR = 60 * MINUTE;
 export const DAY = 24 * HOUR;

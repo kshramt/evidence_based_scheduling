@@ -633,3 +633,11 @@ export const get_bearer = (id_token: { user_id: string }) => {
 export const getEventStatus = (event: rt.$infer<typeof types.tEvent>) => {
   return event.status.length % 2 === 0 ? "deleted" : "created";
 };
+
+export const doFocusTextArea = (id: string) => {
+  setTimeout(() => focus(document.getElementById(id)), 100);
+};
+
+export const digits1 = (x: number) => {
+  return Math.round(x * 10) / 10;
+};
