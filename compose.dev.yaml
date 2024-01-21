@@ -25,6 +25,8 @@ services:
       target: prod_postgres
       args:
         SOURCE_DATE_EPOCH: ${SOURCE_DATE_EPOCH:-0}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
   postgres_migration:
     build:
       context: .
