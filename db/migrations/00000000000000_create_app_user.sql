@@ -1,6 +1,4 @@
 -- migrate:up
-grant all on schema public to postgres;
-
 revoke all on schema public
 from
   public;
