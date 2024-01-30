@@ -13,6 +13,71 @@ import * as consts from "./consts";
 import * as swapper from "src/swapper";
 import * as total_time_utils from "./total_time_utils";
 
+const todoToDoneOrDont = (
+  state: types.TStateDraftWithReadonly,
+  nodeId: types.TNodeId,
+  status: "done" | "dont",
+) => {
+  const vid = utils.visit_counter_of();
+  if (!checks.is_completable_node_of(nodeId, state)) {
+    toast.add(
+      "error",
+      `The status of node ${nodeId} cannot be set to ${status}.`,
+    );
+    return;
+  }
+  _topQueue(state, nodeId);
+  stop(state, nodeId, vid);
+  // Set parent edges' `hide` as `true`.
+  for (const edgeId of ops.keys_of(state.data.nodes[nodeId].parents)) {
+    setEdgeHidden(state, edgeId, true);
+  }
+  swapper.set(state.data.nodes, state.swapped_nodes, nodeId, "status", status);
+  swapper.set(
+    state.data.nodes,
+    state.swapped_nodes,
+    nodeId,
+    "end_time",
+    Date.now(),
+  );
+  ops.moveToFrontOfChildren(state, nodeId);
+  {
+    const i = state.todo_node_ids.indexOf(nodeId);
+    state.todo_node_ids.splice(i, 1);
+    state.non_todo_node_ids.splice(0, 0, nodeId);
+  }
+};
+
+const setEdgeHidden = (
+  state: types.TState,
+  edgeId: types.TEdgeId,
+  hide: boolean,
+) => {
+  const edge = state.data.edges[edgeId];
+  if (edge.hide === hide) {
+    return;
+  }
+  if (hide) {
+    swapper.set(state.data.edges, state.swapped_edges, edgeId, "hide", true);
+    swapper.set(
+      state.caches,
+      state.swapped_caches,
+      edge.p,
+      "n_hidden_child_edges",
+      state.caches[edge.p].n_hidden_child_edges + 1,
+    );
+  } else {
+    swapper.del2(state.data.edges, state.swapped_edges, edgeId, "hide");
+    swapper.set(
+      state.caches,
+      state.swapped_caches,
+      edge.p,
+      "n_hidden_child_edges",
+      state.caches[edge.p].n_hidden_child_edges - 1,
+    );
+  }
+};
+
 export const getRootReducer = (
   initialState: types.TState,
   next_action_predictor2: nap.BiGramPredictor<types.TNodeId>,
@@ -696,73 +761,13 @@ export const getRootReducer = (
     builder.addCase(
       actions.todoToDone,
       (state: types.TStateDraftWithReadonly, action) => {
-        const node_id = action.payload;
-        const vid = utils.visit_counter_of();
-        if (!checks.is_completable_node_of(node_id, state)) {
-          toast.add(
-            "error",
-            `The status of node ${node_id} cannot be set to done.`,
-          );
-          return;
-        }
-        _topQueue(state, node_id);
-        stop(state, node_id, vid);
-        swapper.set(
-          state.data.nodes,
-          state.swapped_nodes,
-          node_id,
-          "status",
-          "done",
-        );
-        swapper.set(
-          state.data.nodes,
-          state.swapped_nodes,
-          node_id,
-          "end_time",
-          Date.now(),
-        );
-        ops.moveToFrontOfChildren(state, node_id);
-        {
-          const i = state.todo_node_ids.indexOf(node_id);
-          state.todo_node_ids.splice(i, 1);
-          state.non_todo_node_ids.splice(0, 0, node_id);
-        }
+        todoToDoneOrDont(state, action.payload, "done");
       },
     );
     builder.addCase(
       actions.todoToDont,
       (state: types.TStateDraftWithReadonly, action) => {
-        const node_id = action.payload;
-        const vid = utils.visit_counter_of();
-        if (!checks.is_completable_node_of(node_id, state)) {
-          toast.add(
-            "error",
-            `The status of node ${node_id} cannot be set to dont.`,
-          );
-          return;
-        }
-        _topQueue(state, node_id);
-        stop(state, node_id, vid);
-        swapper.set(
-          state.data.nodes,
-          state.swapped_nodes,
-          node_id,
-          "status",
-          "dont",
-        );
-        swapper.set(
-          state.data.nodes,
-          state.swapped_nodes,
-          node_id,
-          "end_time",
-          Date.now(),
-        );
-        ops.moveToFrontOfChildren(state, node_id);
-        {
-          const i = state.todo_node_ids.indexOf(node_id);
-          state.todo_node_ids.splice(i, 1);
-          state.non_todo_node_ids.splice(0, 0, node_id);
-        }
+        todoToDoneOrDont(state, action.payload, "dont");
       },
     );
     builder.addCase(
@@ -815,40 +820,13 @@ export const getRootReducer = (
             state.data.nodes[node_id].children,
           );
           for (const edge_id of child_edge_ids) {
-            swapper.set(
-              state.data.edges,
-              state.swapped_edges,
-              edge_id,
-              "hide",
-              true,
-            );
+            setEdgeHidden(state, edge_id, true);
           }
-          swapper.set(
-            state.caches,
-            state.swapped_caches,
-            node_id,
-            "n_hidden_child_edges",
-            child_edge_ids.length,
-          );
         } else {
           for (const edge_id of ops.keys_of(
             state.data.nodes[node_id].children,
           )) {
-            if (state.data.edges[edge_id].hide) {
-              swapper.del2(
-                state.data.edges,
-                state.swapped_edges,
-                edge_id,
-                "hide",
-              );
-              swapper.set(
-                state.caches,
-                state.swapped_caches,
-                node_id,
-                "n_hidden_child_edges",
-                state.caches[node_id].n_hidden_child_edges - 1,
-              );
-            }
+            setEdgeHidden(state, edge_id, false);
           }
         }
       },
@@ -886,36 +864,7 @@ export const getRootReducer = (
       actions.toggle_edge_hide_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const edge = state.data.edges[action.payload];
-        if (edge.hide) {
-          swapper.del2(
-            state.data.edges,
-            state.swapped_edges,
-            action.payload,
-            "hide",
-          );
-          swapper.set(
-            state.caches,
-            state.swapped_caches,
-            edge.p,
-            "n_hidden_child_edges",
-            state.caches[edge.p].n_hidden_child_edges - 1,
-          );
-        } else {
-          swapper.set(
-            state.data.edges,
-            state.swapped_edges,
-            action.payload,
-            "hide",
-            true,
-          );
-          swapper.set(
-            state.caches,
-            state.swapped_caches,
-            edge.p,
-            "n_hidden_child_edges",
-            state.caches[edge.p].n_hidden_child_edges + 1,
-          );
-        }
+        setEdgeHidden(state, action.payload, !edge.hide);
       },
     );
     builder.addCase(
@@ -1070,22 +1019,7 @@ const _show_path_to_selected_node = (
       return;
     }
     node_id = state.data.edges[parent_edge_id].p;
-    const edge = state.data.edges[parent_edge_id];
-    if (edge.hide) {
-      swapper.del2(
-        state.data.edges,
-        state.swapped_edges,
-        parent_edge_id,
-        "hide",
-      );
-      swapper.set(
-        state.caches,
-        state.swapped_caches,
-        edge.p,
-        "n_hidden_child_edges",
-        state.caches[edge.p].n_hidden_child_edges - 1,
-      );
-    }
+    setEdgeHidden(state, parent_edge_id, false);
   }
 };
 
