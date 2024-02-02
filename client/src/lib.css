@@ -67,7 +67,7 @@
 
 .content-visibility-auto {
   content-visibility: auto;
-  contain-intrinsic-size: 1em;
+  contain-intrinsic-size: 5em;
 }
 
 .material-icons {
