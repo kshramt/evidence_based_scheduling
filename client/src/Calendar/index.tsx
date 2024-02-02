@@ -122,7 +122,7 @@ const PlannedNode = (props: { node_id: types.TNodeId }) => {
         title={text}
         onClick={to_tree}
         className={utils.join(
-          "w-[15em] block whitespace-nowrap overflow-hidden cursor-pointer text-left",
+          "w-[13em] block whitespace-nowrap overflow-hidden cursor-pointer text-left",
           status === "done"
             ? "text-red-600 dark:text-red-400"
             : status === "dont"
