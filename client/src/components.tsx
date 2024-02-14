@@ -49,6 +49,10 @@ const SCROLL_BACK_TO_TOP_MARK = (
   <span className="material-icons">vertical_align_top</span>
 );
 
+const SCROLL_BACK_TO_BOTTOM_MARK = (
+  <span className="material-icons">vertical_align_bottom</span>
+);
+
 const nonTodoQueueNodesRef = React.createRef<Rv.VirtuosoHandle>();
 const todoQueueNodesRef = React.createRef<Rv.VirtuosoHandle>();
 
@@ -314,6 +318,19 @@ const SBTTB: React.FC<{
   );
 };
 
+const SBTBB: React.FC<{
+  onClick: () => void;
+}> = (props) => {
+  return (
+    <button
+      onClick={props.onClick}
+      className="sticky top-[calc(60%+4rem)] left-[50%] -translate-x-1/2 -translate-y-1/2 px-[0.15rem] dark:bg-neutral-300 bg-neutral-600 dark:hover:bg-neutral-400 hover:bg-neutral-500 text-center min-w-[3rem] h-[3rem] text-[2rem] border-none shadow-none opacity-70 hover:opacity-100 float-left mt-[-3rem] z-40"
+    >
+      {SCROLL_BACK_TO_BOTTOM_MARK}
+    </button>
+  );
+};
+
 export const ToggleShowMobileButton = () => {
   const session = React.useContext(states.session_key_context);
   const [show_mobile, set_show_mobile] = Jotai.useAtom(
@@ -467,6 +484,9 @@ const Body = () => {
   const handleTodoQueueSBTTBClick = useCallback(() => {
     todoQueueNodesRef.current?.scrollTo({ top: 0 });
   }, []);
+  const handleTodoQueueSBTBBClick = useCallback(() => {
+    todoQueueNodesRef.current?.scrollTo({ top: Number.MAX_SAFE_INTEGER });
+  }, []);
   const treeNodesRef = React.useRef<HTMLDivElement>(null);
   const handleTreeSBTTBClick = useCallback(() => {
     treeNodesRef.current?.scrollTo({ top: 0 });
@@ -475,6 +495,7 @@ const Body = () => {
     <div className="flex flex-1 gap-x-[1em] overflow-y-hidden">
       <div className="overflow-y-auto flex-none w-[52em] pl-[2em]">
         <SBTTB onClick={handleTodoQueueSBTTBClick} />
+        <SBTBB onClick={handleTodoQueueSBTBBClick} />
         <TodoQueueNodes virtuosoRef={todoQueueNodesRef} />
       </div>
       <div className={utils.join("flex", pin && "w-full overflow-x-auto")}>
