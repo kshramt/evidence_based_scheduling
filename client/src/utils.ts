@@ -256,9 +256,9 @@ export const useToTree = (node_id: types.TNodeId) => {
   return React.useCallback(async () => {
     dispatch(actions.show_path_to_selected_node(node_id));
     const id = `t-${node_id}`;
-    const el = await waitForIdExists(id, 200);
-    if (el) {
-      for (let i = 0; i < 20; ++i) {
+    for (let i = 0; i < 20; ++i) {
+      const el = document.getElementById(id);
+      if (el) {
         el.focus();
         if (isElementInViewport(el)) {
           return;
