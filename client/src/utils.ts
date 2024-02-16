@@ -256,6 +256,7 @@ export const useToTree = (node_id: types.TNodeId) => {
   return React.useCallback(async () => {
     dispatch(actions.show_path_to_selected_node(node_id));
     const id = `t-${node_id}`;
+    await waitForIdExists(id, 200);
     for (let i = 0; i < 20; ++i) {
       const el = document.getElementById(id);
       if (el) {
