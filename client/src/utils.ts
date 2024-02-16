@@ -255,7 +255,8 @@ export const useToTree = (node_id: types.TNodeId) => {
         if (isElementInViewport(el)) {
           return;
         }
-        await sleep(10);
+        el.blur();
+        await sleep(25);
       }
     }
   }, [node_id, dispatch]);
