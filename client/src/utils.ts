@@ -214,11 +214,50 @@ export async function getAllFromIndexedDb<T>(db: idb.IDBPDatabase<T>) {
   return res;
 }
 
+export const sleep = (msec: number) =>
+  new Promise((resolve) => setTimeout(resolve, msec));
+
+const waitForIdExists = async (
+  id: string,
+  timeout: number,
+  dt: number = 10,
+) => {
+  const t0 = performance.now();
+  while (performance.now() < t0 + timeout) {
+    const el = document.getElementById(id);
+    if (el) {
+      return el;
+    }
+    await sleep(dt);
+  }
+  return document.getElementById(id);
+};
+
+const isElementInViewport = (el: HTMLElement) => {
+  const rect = el.getBoundingClientRect();
+  return !(
+    rect.bottom < 0 ||
+    window.innerHeight < rect.top ||
+    rect.right < 0 ||
+    window.innerWidth < rect.left
+  );
+};
+
 export const useToTree = (node_id: types.TNodeId) => {
   const dispatch = types.useDispatch();
-  return React.useCallback(() => {
+  return React.useCallback(async () => {
     dispatch(actions.show_path_to_selected_node(node_id));
-    setTimeout(() => focus(document.getElementById(`t-${node_id}`)), 100);
+    const id = `t-${node_id}`;
+    const el = await waitForIdExists(id, 200);
+    if (el) {
+      for (let i = 0; i < 20; ++i) {
+        el.focus();
+        if (isElementInViewport(el)) {
+          return;
+        }
+        await sleep(10);
+      }
+    }
   }, [node_id, dispatch]);
 };
 

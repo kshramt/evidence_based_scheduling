@@ -1,3 +1,5 @@
+import * as utils from "./utils";
+
 export class Retryer {
   min_interval_msec: number;
   max_interval_msec: number;
@@ -40,7 +42,7 @@ export class Retryer {
         return await fn();
       } catch (e: unknown) {
         console.warn(e);
-        await sleep(
+        await utils.sleep(
           interval_msec *
             (1 + this.interval_jitter_ratio * (2 * Math.random() - 1)),
         );
@@ -66,6 +68,3 @@ export const get_online_promise = () => {
     window.addEventListener("online", fn);
   });
 };
-
-const sleep = (msec: number) =>
-  new Promise((resolve) => setTimeout(resolve, msec));

@@ -1,5 +1,4 @@
-const sleep = (msec: number) =>
-  new Promise((resolve) => setTimeout(resolve, msec));
+import * as utils from "./utils";
 
 export const rate_limit_of = (
   interval_msec: number = 1_000,
@@ -72,7 +71,7 @@ export const rate_limit_of = (
       if (await fn()) {
         break;
       }
-      await sleep(
+      await utils.sleep(
         retry_interval_msec *
           (1 + retry_interval_jitter_ratio * (2 * Math.random() - 1)),
       );
