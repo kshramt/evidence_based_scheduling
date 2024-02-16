@@ -261,8 +261,11 @@ export const useToTree = (node_id: types.TNodeId) => {
       const el = document.getElementById(id);
       if (el) {
         el.focus();
-        if (isElementInViewport(el)) {
-          return;
+        {
+          const el = document.getElementById(id);
+          if (el && isElementInViewport(el)) {
+            return;
+          }
         }
         el.blur();
         await sleep(25);
