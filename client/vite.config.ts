@@ -65,9 +65,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api/v2/": {
-        target: `http://${process.env.LOCALHOST || "localhost"}:${
-          process.env.ENVOY_HTTP_PORT || 8080
-        }`,
+        target: `${process.env.PROXY_TARGET || "http://localhost:8080"}`,
         changeOrigin: true,
         secure: false,
       },
