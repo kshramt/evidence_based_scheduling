@@ -232,18 +232,18 @@ impl gen::Api for ApiImpl {
         ))
     }
 
-    #[instrument(skip(state))]
+    #[instrument(skip(state, body), fields(body.len = body.patch_keys.len()))]
     async fn users_user_id_clients_client_id_pending_patches_batch_delete(
         state: State<Arc<AppState>>,
         token: gen::IdToken,
         Path(path): Path<gen::UsersUserIdClientsClientIdPendingPatchesBatchDeletePath>,
-        Json(body): Json<gen::DeletePendingPatchesRequest>,
+        body: Json<gen::DeletePendingPatchesRequest>,
     ) -> Result<gen::UsersUserIdClientsClientIdPendingPatchesBatchDelete, errors::ErrorStatus> {
         let _ = &token.authorize(&path.user_id)?;
         let mut tx = state.pool.begin().await?;
         let patch_keys: Vec<db::PatchKey> = body
             .patch_keys
-            .into_iter()
+            .iter()
             .map(|patch_key| db::PatchKey {
                 client_id: patch_key.client_id,
                 session_id: patch_key.session_id,
