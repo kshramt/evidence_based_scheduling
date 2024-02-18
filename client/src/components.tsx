@@ -134,23 +134,17 @@ const NodeFilterQueryInput = () => {
     node_id,
     consts.TREE_PREFIX,
   );
+  const toTree = utils.useToTree(node_id);
   const onKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLElement>) => {
       if (taskShortcutKeys(event)) {
         if (event.key === "Enter" && !event.nativeEvent.isComposing) {
-          if (node_id === null) {
-            return;
-          }
           event.preventDefault();
-          dispatch(actions.show_path_to_selected_node(node_id));
-          setTimeout(
-            () => utils.doFocusTextArea(`${consts.TREE_PREFIX}${node_id}`),
-            100,
-          );
+          void toTree();
         }
       }
     },
-    [taskShortcutKeys, node_id, dispatch],
+    [taskShortcutKeys, node_id, toTree, dispatch],
   );
 
   return (

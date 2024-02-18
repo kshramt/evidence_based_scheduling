@@ -243,9 +243,12 @@ const isElementInViewport = (el: HTMLElement) => {
   );
 };
 
-export const useToTree = (node_id: types.TNodeId) => {
+export const useToTree = (node_id: null | types.TNodeId) => {
   const dispatch = types.useDispatch();
   return React.useCallback(async () => {
+    if (node_id === null) {
+      return;
+    }
     dispatch(actions.show_path_to_selected_node(node_id));
     const id = `t-${node_id}`;
     const el = await waitForIdExists(id, 200);
