@@ -224,7 +224,16 @@ const GanttChartImpl = React.memo((props: { indexColumnWidth: number }) => {
   const childrens = types.useSelector((state) => state.swapped_nodes.children);
   const root = types.useSelector((state) => state.data.root);
   const edgeCs = types.useSelector((state) => state.swapped_edges.c);
+  const queue = types.useSelector((state) => state.data.queue);
+  const startTimes = types.useSelector(
+    (state) => state.swapped_nodes.start_time,
+  );
+  const session = React.useContext(states.session_key_context);
+  const sortByCtime = Jotai.useAtomValue(states.sortByCtimeMap.get(session));
   const todoNodeIds = React.useMemo(() => {
+    if (sortByCtime) {
+      return utils.getQueues(queue, statuses, startTimes).todoQueueCtime;
+    }
     const res: types.TNodeId[] = [];
     const seen = new Set();
     const rec = (nodeId: types.TNodeId) => {
@@ -247,7 +256,7 @@ const GanttChartImpl = React.memo((props: { indexColumnWidth: number }) => {
     };
     rec(root);
     return res;
-  }, [childrens, edgeCs, root, statuses]);
+  }, [childrens, edgeCs, root, statuses, queue, startTimes, sortByCtime]);
   const headerRef = React.useRef<RWindow.FixedSizeGrid>(null);
   const indexColumnRef = React.useRef<RWindow.FixedSizeGrid>(null);
   const ganttRef = React.useRef<RWindow.FixedSizeGrid>(null);
