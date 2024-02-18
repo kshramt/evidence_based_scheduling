@@ -569,16 +569,12 @@ const deltaRanges: Record<string, [number, number]> = {
   F: [deltaFourYears, Infinity],
 };
 
-export const usePlannedNodeIds = (timeId: string) => {
-  const queue = types.useSelector((state) => state.data.queue);
-  const statuses = types.useSelector((state) => state.swapped_nodes.status);
-  const startTimes = types.useSelector(
-    (state) => state.swapped_nodes.start_time,
-  );
-  const queues = utils.getQueues(queue, statuses, startTimes);
-  const todoNodeIds = queues.todoQueue;
+export const usePlannedNodeIds = (
+  timeId: string,
+  todoNodeIds: types.TNodeId[],
+  nonTodoNodeIds: types.TNodeId[],
+) => {
   const eventss = types.useSelector((state) => state.swapped_nodes.events);
-  const nonTodoNodeIds = queues.nonTodoQueue;
   const res = React.useMemo(() => {
     const _res: types.TNodeId[] = [];
     const prefix = timeId[0];

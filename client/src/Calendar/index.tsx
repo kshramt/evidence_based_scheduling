@@ -5,98 +5,124 @@ import CopyNodeIdButton from "src/CopyNodeIdButton";
 import StartButton from "src/StartButton";
 import StartConcurrentButton from "src/StartConcurrentButton";
 import StopButton from "src/StopButton";
+import * as hooks from "src/hooks";
 import * as states from "src/states";
 import * as types from "src/types";
 import * as utils from "src/utils";
 
 const Calendar = React.memo(() => {
+  const queues = hooks.useQueues();
+  const tn = (timeId: string) => (
+    <TimeNode
+      timeId={timeId}
+      todoNodeIds={queues.todoQueue}
+      nonTodoNodeIds={queues.nonTodoQueue}
+    />
+  );
   return (
     <>
-      <TimeNode timeId="F2020" />
-      <TimeNode timeId="F2024" />
-      <TimeNode timeId="F2028" />
-      <TimeNode timeId="F2032" />
-      <TimeNode timeId="F2036" />
-      <TimeNode timeId="F2040" />
-      <TimeNode timeId="F2044" />
-      <TimeNode timeId="F2048" />
-      <TimeNode timeId="F2052" />
-      <TimeNode timeId="F2056" />
-      <TimeNode timeId="F2060" />
-      <TimeNode timeId="F2064" />
-      <TimeNode timeId="F2068" />
-      <TimeNode timeId="F2072" />
-      <TimeNode timeId="F2076" />
-      <TimeNode timeId="F2080" />
-      <TimeNode timeId="F2084" />
-      <TimeNode timeId="F2088" />
-      <TimeNode timeId="F2092" />
-      <TimeNode timeId="F2096" />
+      {tn("F2020")}
+      {tn("F2024")}
+      {tn("F2028")}
+      {tn("F2032")}
+      {tn("F2036")}
+      {tn("F2040")}
+      {tn("F2044")}
+      {tn("F2048")}
+      {tn("F2052")}
+      {tn("F2056")}
+      {tn("F2060")}
+      {tn("F2064")}
+      {tn("F2068")}
+      {tn("F2072")}
+      {tn("F2076")}
+      {tn("F2080")}
+      {tn("F2084")}
+      {tn("F2088")}
+      {tn("F2092")}
+      {tn("F2096")}
     </>
   );
 });
 
 const auto2Style = { gridTemplateColumns: "auto auto" };
 
-const TimeNode = React.memo((props: { timeId: string }) => {
-  const [isOpen, toggle] = states.useUiCalendarOpenSet(props.timeId);
-  const children = React.useMemo(() => {
-    if (props.timeId[0] === "D" || isOpen) {
-      const childIds = utils.getChildTimeIds(props.timeId);
-      const children = childIds.map((timeId) => {
-        return <TimeNode timeId={timeId} key={timeId} />;
-      });
-      switch (props.timeId[0]) {
-        case "W":
-        case "D": {
-          return children;
-        }
-        default: {
-          return <div>{children}</div>;
+const TimeNode = React.memo(
+  (props: {
+    timeId: string;
+    todoNodeIds: types.TNodeId[];
+    nonTodoNodeIds: types.TNodeId[];
+  }) => {
+    const [isOpen, toggle] = states.useUiCalendarOpenSet(props.timeId);
+    const children = React.useMemo(() => {
+      if (props.timeId[0] === "D" || isOpen) {
+        const childIds = utils.getChildTimeIds(props.timeId);
+        const children = childIds.map((timeId) => {
+          return (
+            <TimeNode
+              timeId={timeId}
+              key={timeId}
+              todoNodeIds={props.todoNodeIds}
+              nonTodoNodeIds={props.nonTodoNodeIds}
+            />
+          );
+        });
+        switch (props.timeId[0]) {
+          case "W":
+          case "D": {
+            return children;
+          }
+          default: {
+            return <div>{children}</div>;
+          }
         }
       }
-    }
-    return null;
-  }, [isOpen, props.timeId]);
-  const plannedNodeIds = utils.usePlannedNodeIds(props.timeId);
-  const plannedNodes = React.useMemo(() => {
-    return plannedNodeIds.map((nodeId) => {
-      return <PlannedNode node_id={nodeId} key={nodeId} />;
-    });
-  }, [plannedNodeIds]);
-  switch (props.timeId[0]) {
-    case "D": {
-      return (
-        <div className="grid gap-x-[0.125em pl-[0.5em]" style={auto2Style}>
-          <div />
-          <Id timeId={props.timeId} toggle={toggle} />
-          <div />
-          <div>{plannedNodes}</div>
-          {children}
-        </div>
-      );
-    }
-    case "H": {
-      return (
-        <>
-          <Id timeId={props.timeId} toggle={toggle} />
-          <div>{plannedNodes}</div>
-        </>
-      );
-    }
-    default: {
-      return (
-        <div className="pb-[0.0625em] pl-[0.5em] flex gap-x-[0.125em] items-start">
-          <div>
+      return null;
+    }, [isOpen, props.timeId, props.todoNodeIds, props.nonTodoNodeIds]);
+    const plannedNodeIds = utils.usePlannedNodeIds(
+      props.timeId,
+      props.todoNodeIds,
+      props.nonTodoNodeIds,
+    );
+    const plannedNodes = React.useMemo(() => {
+      return plannedNodeIds.map((nodeId) => {
+        return <PlannedNode node_id={nodeId} key={nodeId} />;
+      });
+    }, [plannedNodeIds]);
+    switch (props.timeId[0]) {
+      case "D": {
+        return (
+          <div className="grid gap-x-[0.125em pl-[0.5em]" style={auto2Style}>
+            <div />
             <Id timeId={props.timeId} toggle={toggle} />
-            {plannedNodes}
+            <div />
+            <div>{plannedNodes}</div>
+            {children}
           </div>
-          {children}
-        </div>
-      );
+        );
+      }
+      case "H": {
+        return (
+          <>
+            <Id timeId={props.timeId} toggle={toggle} />
+            <div>{plannedNodes}</div>
+          </>
+        );
+      }
+      default: {
+        return (
+          <div className="pb-[0.0625em] pl-[0.5em] flex gap-x-[0.125em] items-start">
+            <div>
+              <Id timeId={props.timeId} toggle={toggle} />
+              {plannedNodes}
+            </div>
+            {children}
+          </div>
+        );
+      }
     }
-  }
-});
+  },
+);
 
 const PlannedNode = (props: { node_id: types.TNodeId }) => {
   const text = utils.assertV(
