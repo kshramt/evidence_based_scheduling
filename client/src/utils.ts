@@ -256,21 +256,20 @@ export const useToTree = (node_id: types.TNodeId) => {
   return React.useCallback(async () => {
     dispatch(actions.show_path_to_selected_node(node_id));
     const id = `t-${node_id}`;
-    await waitForIdExists(id, 200);
-    for (let i = 0; i < 20; ++i) {
-      const el = document.getElementById(id);
-      if (el) {
-        el.focus();
-        {
-          const el = document.getElementById(id);
-          if (el && isElementInViewport(el)) {
-            return;
-          }
-        }
-        el.blur();
-        await sleep(25);
-      }
+    const el = await waitForIdExists(id, 200);
+    if (!el) {
+      return;
     }
+    for (let i = 0; i < 50; ++i) {
+      if (isElementInViewport(el)) {
+        break;
+      }
+      el.scrollIntoView({ block: "center" });
+      await sleep(20); // This sleep is required to give the browser the time to correct `el`'s location information.
+    }
+    el.scrollIntoView({ block: "center" }); // One more `scrollIntoView` to improve the robustness.
+    await sleep(20);
+    el.focus();
   }, [node_id, dispatch]);
 };
 
