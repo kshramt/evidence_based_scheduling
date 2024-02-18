@@ -26,9 +26,15 @@ export const predict = (
   const vid = utils.visit_counter_of();
   total_time_utils.setTotalTime(state, k, vid);
 
-  const candidateNodeIds = state.non_todo_node_ids.filter((node_id) => {
-    return state.data.nodes[node_id].estimate !== consts.NO_ESTIMATION;
-  });
+  const candidateNodeIds = utils
+    .getQueues(
+      state.data.queue,
+      state.swapped_nodes.status,
+      state.swapped_nodes.start_time,
+    )
+    .nonTodoQueue.filter((node_id) => {
+      return state.data.nodes[node_id].estimate !== consts.NO_ESTIMATION;
+    });
   const candidateRatios = candidateNodeIds.map((node_id) => {
     const node = state.data.nodes[node_id];
     return (
