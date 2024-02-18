@@ -359,6 +359,9 @@ const Menu = (props: {
     [dispatch],
   );
   const session = React.useContext(states.session_key_context);
+  const [sortByCtime, setSortByCtime] = Jotai.useAtom(
+    states.sortByCtimeMap.get(session),
+  );
   const [show_todo_only, set_show_todo_only] = Jotai.useAtom(
     states.show_todo_only_atom_map.get(session),
   );
@@ -421,6 +424,11 @@ const Menu = (props: {
       >
         <span className="material-icons">redo</span>
       </button>
+      <Mt.Switch
+        checked={sortByCtime}
+        onChange={get_toggle(setSortByCtime)}
+        label="Ctime"
+      />
       <Mt.Switch
         checked={show_todo_only}
         onChange={get_toggle(set_show_todo_only)}
@@ -1584,62 +1592,33 @@ const CopyDescendantTimeNodesPlannedNodeIdsButton = (props: {
   );
 };
 
-const useToQueue = (node_id: types.TNodeId) => {
+const useToQueue = (nodeId: types.TNodeId) => {
   const store = Rr.useStore<types.TState>();
-  return JotaiU.useAtomCallback(
-    React.useCallback(
-      (get) => {
-        const nodeFilterQuery = get(states.nodeFilterQueryState);
-        const texts = store.getState().swapped_caches.text;
-        const handle = (
-          queue: types.TNodeId[],
-          ref: typeof todoQueueNodesRef,
-          offset: number,
-        ) => {
-          const index = queue.indexOf(node_id);
-          if (index !== -1) {
-            ref.current?.scrollToIndex(index + offset);
-            setTimeout(
-              () =>
-                utils.focus(
-                  document.getElementById(utils.queue_textarea_id_of(node_id)),
-                ),
-              100,
-            );
-            return true;
-          }
-          return false;
-        };
-        if (
-          handle(
-            getTodoQueueNodeIds(
-              store.getState().todo_node_ids,
-              texts,
-              nodeFilterQuery,
-            ),
-            todoQueueNodesRef,
-            3,
-          )
-        ) {
-          return;
-        }
-        if (
-          handle(
-            getNonTodoQueueNodeIds(
-              store.getState().non_todo_node_ids,
-              texts,
-              nodeFilterQuery,
-            ),
-            nonTodoQueueNodesRef,
-            0,
-          )
-        ) {
-          return;
-        }
-      },
-      [store, node_id],
-    ),
-  );
+  const session = React.useContext(states.session_key_context);
+  const sortByCtime = Jotai.useAtomValue(states.sortByCtimeMap.get(session));
+  return React.useCallback(async () => {
+    const state = store.getState();
+    const queues = utils.getQueues(
+      state.data.queue,
+      state.swapped_nodes.status,
+      state.swapped_nodes.start_time,
+    );
+    const isTodo = state.data.nodes[nodeId].status === "todo";
+    const queue = sortByCtime
+      ? isTodo
+        ? queues.todoQueueCtime
+        : queues.nonTodoQueueCtime
+      : isTodo
+        ? queues.todoQueue
+        : queues.nonTodoQueue;
+    const index = queue.indexOf(nodeId);
+    if (index === -1) {
+      return;
+    }
+    const ref = isTodo ? todoQueueNodesRef : nonTodoQueueNodesRef;
+    const offset = isTodo ? 1 : 0;
+    ref.current?.scrollToIndex(index + offset);
+  }, [store, sortByCtime, nodeId]);
 };
 
 const getIsMatch = (

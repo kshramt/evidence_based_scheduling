@@ -5,6 +5,7 @@ import * as rt from "@kshramt/runtime-type-validator";
 import * as actions from "./actions";
 import * as consts from "./consts";
 import * as intervals from "./intervals";
+import * as ops from "./ops";
 import * as times from "./times";
 import * as types from "./types";
 import * as utils from "src/utils";
@@ -217,7 +218,7 @@ export async function getAllFromIndexedDb<T>(db: idb.IDBPDatabase<T>) {
 export const sleep = (msec: number) =>
   new Promise((resolve) => setTimeout(resolve, msec));
 
-const waitForIdExists = async (
+export const waitForIdExists = async (
   id: string,
   timeout: number,
   dt: number = 10,
@@ -686,4 +687,32 @@ export const getEventStatus = (event: rt.$infer<typeof types.tEvent>) => {
 
 export const digits1 = (x: number) => {
   return Math.round(x * 10) / 10;
+};
+
+export const getQueues = (
+  queue: types.TState["data"]["queue"],
+  statuses: types.TState["swapped_nodes"]["status"],
+  startTimes: types.TState["swapped_nodes"]["start_time"],
+) => {
+  const todoQueue = Array<types.TNodeId>();
+  const nonTodoQueue = Array<types.TNodeId>();
+  if (statuses) {
+    for (const nodeId of ops.sorted_keys_of(queue)) {
+      if (statuses[nodeId] === "todo") {
+        todoQueue.push(nodeId);
+      } else {
+        nonTodoQueue.push(nodeId);
+      }
+    }
+  }
+  return {
+    todoQueue,
+    nonTodoQueue,
+    todoQueueCtime: startTimes
+      ? [...todoQueue].sort((a, b) => startTimes[b] - startTimes[a])
+      : [],
+    nonTodoQueueCtime: startTimes
+      ? [...nonTodoQueue].sort((a, b) => startTimes[b] - startTimes[a])
+      : [],
+  };
 };

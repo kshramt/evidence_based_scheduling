@@ -149,6 +149,10 @@ class WeakMapV<K extends object, V> extends WeakMap<K, V> {
   };
 }
 
+export const sortByCtimeMap = new WeakMapV<
+  { user_id: string; session_id: number },
+  ReturnType<typeof JotaiU.atomWithStorage<boolean>>
+>();
 export const show_mobile_atom_map = new WeakMapV<
   { user_id: string; session_id: number },
   ReturnType<typeof JotaiU.atomWithStorage<boolean>>
@@ -759,6 +763,12 @@ export const getPersistentStateManager = async (
   });
 
   // Create atoms
+  if (!sortByCtimeMap.has(res.session_key)) {
+    sortByCtimeMap.set(
+      res.session_key,
+      JotaiU.atomWithStorage(`${id_token.user_id}/sortByCtime`, false),
+    );
+  }
   if (!show_mobile_atom_map.has(res.session_key)) {
     show_mobile_atom_map.set(
       res.session_key,

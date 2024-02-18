@@ -3,7 +3,6 @@ import * as React from "react";
 
 import * as actions from "./actions";
 import * as states from "./states";
-import { useDispatch } from "./types";
 import * as types from "./types";
 import * as utils from "./utils";
 
@@ -11,7 +10,7 @@ export const useTaskShortcutKeys = (
   node_id: null | types.TNodeId,
   prefix: string,
 ) => {
-  const dispatch = useDispatch();
+  const dispatch = types.useDispatch();
   const session = React.useContext(states.session_key_context);
   const show_mobile = Jotai.useAtomValue(
     states.show_mobile_atom_map.get(session),
@@ -48,4 +47,15 @@ export const useTaskShortcutKeys = (
     },
     [node_id, is_running, show_mobile, dispatch, prefix],
   );
+};
+
+export const useQueues = () => {
+  const queue = types.useSelector((state) => state.data.queue);
+  const statuses = types.useSelector((state) => state.swapped_nodes.status);
+  const startTimes = types.useSelector(
+    (state) => state.swapped_nodes.start_time,
+  );
+  return React.useMemo(() => {
+    return utils.getQueues(queue, statuses, startTimes);
+  }, [queue, statuses, startTimes]);
 };
