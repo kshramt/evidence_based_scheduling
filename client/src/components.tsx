@@ -171,7 +171,8 @@ const NodeFilterQueryInput = () => {
 };
 
 const RunningNodes = () => {
-  const queue = useSelector((state) => state.todo_node_ids);
+  const queues = hooks.useQueues();
+  const queue = queues.todoQueue;
   const ranges = useSelector((state) => state.swapped_nodes.ranges);
   const nodeIds = React.useMemo(() => {
     return queue.filter((nodeId) => {
