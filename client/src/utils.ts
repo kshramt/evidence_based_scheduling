@@ -243,6 +243,23 @@ const isElementInViewport = (el: HTMLElement) => {
   );
 };
 
+export const focusRobustly = async (id: string) => {
+  const el = await waitForIdExists(id, 200);
+  if (!el) {
+    return;
+  }
+  for (let i = 0; i < 50; ++i) {
+    if (isElementInViewport(el)) {
+      break;
+    }
+    el.scrollIntoView({ block: "center" });
+    await sleep(20); // This sleep is required to give the browser the time to correct `el`'s location information.
+  }
+  el.scrollIntoView({ block: "center" }); // One more `scrollIntoView` to improve the robustness.
+  await sleep(20);
+  el.focus();
+};
+
 export const useToTree = (node_id: null | types.TNodeId) => {
   const dispatch = types.useDispatch();
   return React.useCallback(async () => {
@@ -251,20 +268,7 @@ export const useToTree = (node_id: null | types.TNodeId) => {
     }
     dispatch(actions.show_path_to_selected_node(node_id));
     const id = `t-${node_id}`;
-    const el = await waitForIdExists(id, 200);
-    if (!el) {
-      return;
-    }
-    for (let i = 0; i < 50; ++i) {
-      if (isElementInViewport(el)) {
-        break;
-      }
-      el.scrollIntoView({ block: "center" });
-      await sleep(20); // This sleep is required to give the browser the time to correct `el`'s location information.
-    }
-    el.scrollIntoView({ block: "center" }); // One more `scrollIntoView` to improve the robustness.
-    await sleep(20);
-    el.focus();
+    await focusRobustly(id);
   }, [node_id, dispatch]);
 };
 
@@ -678,10 +682,6 @@ export const get_bearer = (id_token: { user_id: string }) => {
 
 export const getEventStatus = (event: rt.$infer<typeof types.tEvent>) => {
   return event.status.length % 2 === 0 ? "deleted" : "created";
-};
-
-export const doFocusTextArea = (id: string) => {
-  setTimeout(() => focus(document.getElementById(id)), 100);
 };
 
 export const digits1 = (x: number) => {
