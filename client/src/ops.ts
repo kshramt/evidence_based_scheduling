@@ -517,16 +517,6 @@ export function delete_at_val<T>(xs: T[], x: T) {
   }
 }
 
-export function move<T>(xs: T[], src: number, dst: number) {
-  if (src === dst) {
-    return xs;
-  }
-  const x = xs[src];
-  xs.splice(src, 1);
-  xs.splice(dst, 0, x);
-  return xs;
-}
-
 export function move_down<K extends PropertyKey>(
   kvs: Readonly<Record<K, number>>,
   k: K,
