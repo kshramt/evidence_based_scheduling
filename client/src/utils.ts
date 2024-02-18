@@ -249,15 +249,17 @@ export const focusRobustly = async (id: string) => {
   if (!el) {
     return;
   }
-  for (let i = 0; i < 40; ++i) {
-    if (isElementInViewport(el)) {
-      break;
+  if (!isElementInViewport(el)) {
+    for (let i = 0; i < 30; ++i) {
+      el.scrollIntoView({ block: "center" });
+      await sleep(40); // This sleep is required to give the browser the time to correct `el`'s location information.
+      if (isElementInViewport(el)) {
+        break;
+      }
     }
-    el.scrollIntoView({ block: "center" });
-    await sleep(30); // This sleep is required to give the browser the time to correct `el`'s location information.
   }
   el.scrollIntoView({ block: "center" }); // One more `scrollIntoView` to improve the robustness.
-  await sleep(30);
+  await sleep(40);
   el.focus();
 };
 
