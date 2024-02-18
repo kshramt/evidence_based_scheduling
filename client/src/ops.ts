@@ -6,6 +6,7 @@ import * as consts from "./consts";
 import * as swapper from "./swapper";
 import * as types from "./types";
 import * as toast from "./toast";
+import * as utils from "./utils";
 
 export interface ITocNode {
   text: string;
@@ -60,8 +61,6 @@ export const emptyStateOf = (): types.TState => {
     swapped_caches: swapper.swapKeys(caches),
     swapped_edges: swapper.swapKeys(data.edges),
     swapped_nodes: swapper.swapKeys(data.nodes),
-    todo_node_ids: [],
-    non_todo_node_ids: [],
   };
 };
 
@@ -158,11 +157,6 @@ export const add_node = (
   state.data.queue[node_id] = (top_of_queue ? getFrontIndex : _back_value_of)(
     state.data.queue,
   )[0];
-  if (top_of_queue) {
-    state.todo_node_ids.splice(0, 0, node_id);
-  } else {
-    state.todo_node_ids.push(node_id);
-  }
   swapper.add(
     state.caches,
     state.swapped_caches,
@@ -549,11 +543,15 @@ export function move_up_todo_queue(
   state: types.TStateDraftWithReadonly,
   node_id: types.TNodeId,
 ) {
-  const i = state.todo_node_ids.indexOf(node_id);
+  const todoNodeIds = utils.getQueues(
+    state.data.queue,
+    state.swapped_nodes.status,
+    state.swapped_nodes.start_time,
+  ).todoQueue;
+  const i = todoNodeIds.indexOf(node_id);
   if (i < 1) {
     return;
   }
-  move(state.todo_node_ids, i, i - 1);
   if (i === 1) {
     state.data.queue[node_id] = getFrontIndex(state.data.queue)[0];
   } else {
@@ -568,12 +566,16 @@ export function move_down_todo_queue(
   state: types.TStateDraftWithReadonly,
   node_id: types.TNodeId,
 ) {
-  const i = state.todo_node_ids.indexOf(node_id);
-  const n = state.todo_node_ids.length;
+  const todoNodeIds = utils.getQueues(
+    state.data.queue,
+    state.swapped_nodes.status,
+    state.swapped_nodes.start_time,
+  ).todoQueue;
+  const i = todoNodeIds.indexOf(node_id);
+  const n = todoNodeIds.length;
   if (i < 0 || n - 1 <= i) {
     return;
   }
-  move(state.todo_node_ids, i, i + 1);
   if (i === n - 2) {
     state.data.queue[node_id] = _back_value_of(state.data.queue)[0];
   } else {

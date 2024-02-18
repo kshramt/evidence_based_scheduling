@@ -41,11 +41,6 @@ const todoToDoneOrDont = (
     Date.now(),
   );
   ops.moveToFrontOfChildren(state, nodeId);
-  {
-    const i = state.todo_node_ids.indexOf(nodeId);
-    state.todo_node_ids.splice(i, 1);
-    state.non_todo_node_ids.splice(0, 0, nodeId);
-  }
 };
 
 const setEdgeHidden = (
@@ -206,11 +201,6 @@ export const getRootReducer = (
           if (i !== -1) {
             quadrant.nodes.splice(i, 1);
           }
-        }
-        if (state.data.nodes[node_id].status === "todo") {
-          ops.delete_at_val(state.todo_node_ids, node_id);
-        } else {
-          ops.delete_at_val(state.non_todo_node_ids, node_id);
         }
         delete state.data.queue[node_id];
         swapper.del(state.data.nodes, state.swapped_nodes, node_id);
@@ -454,11 +444,16 @@ export const getRootReducer = (
       },
     );
     builder.addCase(actions.smallestToTop, (state) => {
-      for (let dst = 0; dst < state.todo_node_ids.length - 1; ++dst) {
+      const todoNodeIds = utils.getQueues(
+        state.data.queue,
+        state.swapped_nodes.status,
+        state.swapped_nodes.start_time,
+      ).todoQueue;
+      for (let dst = 0; dst < todoNodeIds.length - 1; ++dst) {
         let src_min = null;
         let estimate_min = Infinity;
-        for (let src = dst; src < state.todo_node_ids.length; ++src) {
-          const node_id = state.todo_node_ids[src];
+        for (let src = dst; src < todoNodeIds.length; ++src) {
+          const node_id = todoNodeIds[src];
           const node = state.data.nodes[node_id];
           if (
             node.status === "todo" &&
@@ -482,13 +477,12 @@ export const getRootReducer = (
               state.data.queue,
               src_min,
               dst,
-              state.todo_node_ids,
+              todoNodeIds,
             );
             if (index !== null) {
               state.data.queue[index[0]] = index[1];
             }
           }
-          ops.move(state.todo_node_ids, src_min, dst);
           return;
         }
       }
@@ -496,7 +490,12 @@ export const getRootReducer = (
     builder.addCase(actions.closestToTop, (state) => {
       let node_id_min = null;
       let due_min = ":due: 9999-12-31T23:59:59";
-      for (let node_id of state.todo_node_ids) {
+      const todoNodeIds = utils.getQueues(
+        state.data.queue,
+        state.swapped_nodes.status,
+        state.swapped_nodes.start_time,
+      ).todoQueue;
+      for (let node_id of todoNodeIds) {
         let node = state.data.nodes[node_id];
         let cache = state.caches[node_id];
         if (
@@ -553,7 +552,7 @@ export const getRootReducer = (
         }
         return res;
       };
-      for (const node_id of state.todo_node_ids) {
+      for (const node_id of ops.keys_of(state.data.queue)) {
         if (
           state.data.nodes[node_id].status !== "todo" ||
           ops.keys_of(state.data.nodes[node_id].children).some((edge_id) => {
@@ -785,11 +784,6 @@ export const getRootReducer = (
           "status",
           "todo",
         );
-        {
-          const i = state.non_todo_node_ids.indexOf(node_id);
-          state.non_todo_node_ids.splice(i, 1);
-          state.todo_node_ids.splice(0, 0, node_id);
-        }
         for (const edge_id of ops.keys_of(state.data.nodes[node_id].parents)) {
           const parent_node_id = state.data.edges[edge_id].p;
           swapper.set(
@@ -910,8 +904,10 @@ const stop = (
 
 const stop_all = (state: types.TStateDraftWithReadonly, vid: number) => {
   const t = Date.now();
-  for (const node_id of state.todo_node_ids) {
-    stop(state, node_id, vid, t);
+  for (const nodeId of ops.keys_of(state.data.queue)) {
+    if (state.data.nodes[nodeId].status === "todo") {
+      stop(state, nodeId, vid, t);
+    }
   }
 };
 
@@ -990,15 +986,6 @@ const _topQueue = (
     return;
   }
   state.data.queue[node_id] = ops.getFrontIndex(state.data.queue)[0];
-  const node_ids =
-    state.data.nodes[node_id].status === "todo"
-      ? state.todo_node_ids
-      : state.non_todo_node_ids;
-  const i = node_ids.indexOf(node_id);
-  if (i < 0) {
-    return;
-  }
-  ops.move(node_ids, i, 0);
 };
 
 const _show_path_to_selected_node = (

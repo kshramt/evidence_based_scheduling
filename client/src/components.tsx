@@ -1,5 +1,4 @@
 import * as Jotai from "jotai";
-import * as JotaiU from "jotai/utils";
 import * as React from "react";
 import { useCallback } from "react";
 import * as Rr from "react-redux";
@@ -112,7 +111,6 @@ const MobileNodeFilterQueryInput = () => {
 };
 
 const NodeFilterQueryInput = () => {
-  const dispatch = types.useDispatch();
   const [nodeFilterQuery, setNodeFilterQuery] = Jotai.useAtom(
     states.nodeFilterQueryState,
   );
@@ -144,7 +142,7 @@ const NodeFilterQueryInput = () => {
         }
       }
     },
-    [taskShortcutKeys, node_id, toTree, dispatch],
+    [taskShortcutKeys, toTree],
   );
 
   return (
@@ -1610,7 +1608,7 @@ const useToQueue = (nodeId: types.TNodeId) => {
   const store = Rr.useStore<types.TState>();
   const session = React.useContext(states.session_key_context);
   const sortByCtime = Jotai.useAtomValue(states.sortByCtimeMap.get(session));
-  return React.useCallback(async () => {
+  return React.useCallback(() => {
     const state = store.getState();
     const queues = utils.getQueues(
       state.data.queue,

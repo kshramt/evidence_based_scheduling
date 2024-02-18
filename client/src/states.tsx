@@ -131,8 +131,6 @@ const get_state_and_patch = async (arg: {
       swapped_caches: swapper.swapKeys(caches),
       swapped_edges: swapper.swapKeys(parsed_data.data.edges),
       swapped_nodes: swapper.swapKeys(parsed_data.data.nodes),
-      todo_node_ids,
-      non_todo_node_ids,
     };
     patch = parsed_data.patch;
   }
@@ -282,7 +280,12 @@ export class PersistentStateManager {
     const n_predicted = 10;
     {
       const start_time_and_node_id_list: [number, types.TNodeId][] = [];
-      for (const node_id of state.todo_node_ids) {
+      const todoNodeIds = utils.getQueues(
+        state.data.queue,
+        state.swapped_nodes.status,
+        state.swapped_nodes.start_time,
+      ).todoQueue;
+      for (const node_id of todoNodeIds) {
         const node = state.data.nodes[node_id];
         for (const range of node.ranges) {
           start_time_and_node_id_list.push([range.start, node_id]);

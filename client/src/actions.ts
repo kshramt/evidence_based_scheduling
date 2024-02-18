@@ -181,7 +181,7 @@ export const focusFirstChildTextAreaActionOf =
   (node_id: types.TNodeId, prefix: string) =>
   (dispatch: types.AppDispatch, getState: () => types.TState) => {
     const state = getState();
-    utils.focusRobustly(
+    void utils.focusRobustly(
       `${prefix}${
         state.data.edges[
           ops.sorted_keys_of(state.data.nodes[node_id].children)[0]
