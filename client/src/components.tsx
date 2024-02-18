@@ -128,7 +128,7 @@ const NodeFilterQueryInput = () => {
     setNodeFilterQuery(v);
   }, [setNodeFilterQuery]);
   const ref = useMetaK();
-  const queue = useQueue("todo_node_ids", nodeFilterQuery);
+  const queue = useQueue(true, nodeFilterQuery);
   const node_id = queue[0] || null;
   const taskShortcutKeys = hooks.useTaskShortcutKeys(
     node_id,
@@ -204,7 +204,7 @@ function memo1_3<A, B, C, R>(
 }
 
 const getQueueNodeIds = (
-  queue: types.TState["todo_node_ids"],
+  queue: types.TNodeId[],
   texts: types.TState["swapped_caches"]["text"],
   nodeFilterQuery: string,
 ) => {
@@ -233,16 +233,29 @@ const getQueueNodeIds = (
 
 const getTodoQueueNodeIds = memo1_3(getQueueNodeIds);
 const getNonTodoQueueNodeIds = memo1_3(getQueueNodeIds);
+const getTodoQueueNodeIdsSortByCtime = memo1_3(getQueueNodeIds);
+const getNonTodoQueueNodeIdsSortByCtime = memo1_3(getQueueNodeIds);
 
-const useQueue = (
-  column: "todo_node_ids" | "non_todo_node_ids",
-  nodeFilterQuery: string,
-) => {
-  const queue = useSelector((state) => state[column]);
+const useQueue = (isTodo: boolean, nodeFilterQuery: string) => {
+  const queues = hooks.useQueues();
+  const session = React.useContext(states.session_key_context);
+  const sortByCtime = Jotai.useAtomValue(states.sortByCtimeMap.get(session));
   const texts = useSelector((state) => state.swapped_caches.text);
-  return column === "todo_node_ids"
-    ? getTodoQueueNodeIds(queue, texts, nodeFilterQuery)
-    : getNonTodoQueueNodeIds(queue, texts, nodeFilterQuery);
+  return sortByCtime
+    ? isTodo
+      ? getTodoQueueNodeIdsSortByCtime(
+          queues.todoQueueCtime,
+          texts,
+          nodeFilterQuery,
+        )
+      : getNonTodoQueueNodeIdsSortByCtime(
+          queues.nonTodoQueueCtime,
+          texts,
+          nodeFilterQuery,
+        )
+    : isTodo
+      ? getTodoQueueNodeIds(queues.todoQueue, texts, nodeFilterQuery)
+      : getNonTodoQueueNodeIds(queues.nonTodoQueue, texts, nodeFilterQuery);
 };
 
 const useMetaK = () => {
@@ -983,7 +996,7 @@ const TodoQueueNodes: React.FC<{
   const nodeFilterQuery = React.useDeferredValue(
     Jotai.useAtomValue(states.nodeFilterQueryState),
   );
-  const queue = useQueue("todo_node_ids", nodeFilterQuery);
+  const queue = useQueue(true, nodeFilterQuery);
   const queueWithPrefix = React.useMemo(() => {
     return ["special/header"].concat(queue) as unknown as TNodeIdsWithPrefix;
   }, [queue]);
@@ -1115,7 +1128,7 @@ const NonTodoQueueNodes: React.FC<{
   const nodeFilterQuery = React.useDeferredValue(
     Jotai.useAtomValue(states.nodeFilterQueryState),
   );
-  const node_ids = useQueue("non_todo_node_ids", nodeFilterQuery);
+  const node_ids = useQueue(false, nodeFilterQuery);
   return (
     <VirtualizedQueueNodes
       node_ids={node_ids}
