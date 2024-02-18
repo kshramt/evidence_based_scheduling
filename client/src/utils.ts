@@ -235,14 +235,6 @@ const waitForIdExists = async (
 
 const isElementInViewport = (el: HTMLElement) => {
   const rect = el.getBoundingClientRect();
-  console.debug(
-    rect.top,
-    rect.bottom,
-    rect.left,
-    rect.right,
-    window.innerHeight,
-    window.innerWidth,
-  );
   return !(
     rect.bottom < 0 ||
     window.innerHeight < rect.top ||
