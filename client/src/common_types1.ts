@@ -227,15 +227,3 @@ const is_TCoveyQuadrant = (
     )
   );
 };
-
-export type TCaches = {
-  [node_id: TNodeId]: TCache;
-};
-
-type TCache = {
-  total_time: number;
-  percentiles: number[]; // 0, 10, 33, 50, 67, 90, 100
-  leaf_estimates_sum: number;
-  show_detail: boolean;
-  n_hidden_child_edges: number;
-};

@@ -87,13 +87,6 @@ const current_of_prev = (data_prev: {
   };
 };
 
-export interface IState {
-  readonly data: IData;
-  readonly caches: ICaches;
-  readonly predicted_next_nodes: TNodeId[];
-  readonly n_unsaved_patches: number;
-}
-
 export interface IData {
   readonly edges: TEdges;
   readonly root: TNodeId;
@@ -120,18 +113,3 @@ export const is_IData = (
     "show_strong_edge_only",
   ) &&
   record_if_false(data.version === VERSION, "version");
-
-export interface ICaches {
-  [k: TNodeId]: ICache;
-}
-
-interface ICache {
-  total_time: number;
-  percentiles: number[]; // 0, 10, 33, 50, 67, 90, 100
-  leaf_estimates_sum: number;
-  show_detail: boolean;
-  parent_edges: TEdges;
-  parent_nodes: TNodes;
-  child_edges: TEdges;
-  child_nodes: TNodes;
-}

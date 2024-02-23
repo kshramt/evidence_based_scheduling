@@ -11,7 +11,6 @@ import type {
   TOrderedTNodeIds,
   TNodes,
   TTimeline,
-  TCaches,
   TCoveyQuadrants,
 } from "./common_types1";
 import {
@@ -105,15 +104,6 @@ const current_of_prev = (data_prev: {
     patch: produced.patch,
   };
 };
-
-export interface IState {
-  readonly data: IData;
-  readonly caches: TCaches;
-  readonly predicted_next_nodes: TNodeId[];
-  readonly n_unsaved_patches: number;
-  readonly todo_node_ids: TNodeId[];
-  readonly non_todo_node_ids: TNodeId[];
-}
 
 export interface IData {
   readonly covey_quadrants: TCoveyQuadrants;

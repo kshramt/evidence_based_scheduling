@@ -22,9 +22,6 @@ import {
   is_TTimeline,
 } from "./common_types1";
 import * as types_prev from "./types18";
-import type { TCaches } from "./types18";
-
-export type { TCaches } from "./types18";
 
 export const VERSION = 19 as const;
 
@@ -93,13 +90,6 @@ const current_of_prev = (data_prev: {
     patch: produced.patch,
   };
 };
-
-export interface IState {
-  readonly data: IData;
-  readonly caches: TCaches;
-  readonly predicted_next_nodes: TNodeId[];
-  readonly n_unsaved_patches: number;
-}
 
 export interface IData {
   readonly edges: TEdges;

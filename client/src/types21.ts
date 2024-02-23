@@ -8,7 +8,6 @@ import * as toast from "./toast";
 import * as producer from "./producer";
 
 import type {
-  TCaches,
   TCoveyQuadrants,
   TEdges,
   TNodeId,
@@ -30,7 +29,6 @@ import * as types_prev from "./types20";
 
 export type {
   TAnyPayloadAction,
-  TCaches,
   TEdges,
   TNodeId,
   TNodes,
@@ -113,15 +111,6 @@ const current_of_prev = (data_prev: {
     patch: produced.patch,
   };
 };
-
-export interface IState {
-  readonly data: TData;
-  readonly caches: TCaches;
-  readonly predicted_next_nodes: TNodeId[];
-  readonly n_unsaved_patches: number;
-  readonly todo_node_ids: TNodeId[];
-  readonly non_todo_node_ids: TNodeId[];
-}
 
 export interface TData {
   readonly covey_quadrants: TCoveyQuadrants;

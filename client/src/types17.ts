@@ -20,9 +20,6 @@ import {
   is_TNodes,
 } from "./common_types1";
 import * as types_prev from "./types16";
-import type { ICaches } from "./types16";
-
-export type { ICaches } from "./types16";
 
 export const VERSION = 17 as const;
 
@@ -87,13 +84,6 @@ const current_of_prev = (data_prev: {
     patch: produced.patch,
   };
 };
-
-export interface IState {
-  readonly data: IData;
-  readonly caches: ICaches;
-  readonly predicted_next_nodes: TNodeId[];
-  readonly n_unsaved_patches: number;
-}
 
 export interface IData {
   readonly edges: TEdges;

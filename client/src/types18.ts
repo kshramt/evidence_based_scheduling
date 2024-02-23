@@ -86,26 +86,6 @@ const current_of_prev = (data_prev: {
   };
 };
 
-type TCache = {
-  total_time: number;
-  percentiles: number[]; // 0, 10, 33, 50, 67, 90, 100
-  leaf_estimates_sum: number;
-  show_detail: boolean;
-  child_edges: TEdges;
-  child_nodes: TNodes;
-};
-
-export type TCaches = {
-  [k: TNodeId]: TCache;
-};
-
-export interface IState {
-  readonly data: IData;
-  readonly caches: TCaches;
-  readonly predicted_next_nodes: TNodeId[];
-  readonly n_unsaved_patches: number;
-}
-
 export interface IData {
   readonly edges: TEdges;
   readonly root: TNodeId;

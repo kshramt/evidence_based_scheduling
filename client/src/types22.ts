@@ -1,10 +1,3 @@
-import * as Rtk from "@reduxjs/toolkit";
-import * as immer from "immer";
-import {
-  TypedUseSelectorHook,
-  useDispatch as _useDispatch,
-  useSelector as _useSelector,
-} from "react-redux";
 import * as sequenceComparisons from "@kshramt/sequence-comparisons";
 import * as rt from "@kshramt/runtime-type-validator";
 
@@ -12,9 +5,7 @@ import * as ops from "./ops";
 import * as toast from "./toast";
 import * as producer from "./producer";
 import * as intervals from "src/intervals";
-import * as swapper from "src/swapper";
 
-import type { TAnyPayloadAction } from "./common_types1";
 import { tEdgeId, tNodeId, tTimeNodeId } from "./common_types1";
 import * as types_prev from "./types21";
 export type {
@@ -99,14 +90,6 @@ const tCoveyQuadrants = rt.$object({
   important_not_urgent: rt.$readonly(tCoveyQuadrant),
   not_important_not_urgent: rt.$readonly(tCoveyQuadrant),
 });
-const tCache = rt.$object({
-  total_time: rt.$number(),
-  percentiles: rt.$readonly(rt.$array(rt.$number())), // 0, 10, 33, 50, 67, 90, 100
-  leaf_estimates_sum: rt.$readonly(rt.$number()),
-  n_hidden_child_edges: rt.$readonly(rt.$number()),
-  text: rt.$readonly(rt.$string()),
-});
-const tCaches = rt.$record(tNodeId, tCache);
 export const tData = rt.$object({
   covey_quadrants: rt.$readonly(tCoveyQuadrants),
   edges: rt.$readonly(tEdges),
@@ -118,33 +101,6 @@ export const tData = rt.$object({
   timeline: rt.$readonly(tTimeline),
   version: rt.$readonly(rt.$literal(VERSION)),
 });
-const ref = {};
-export const is_TEdgeType = (x: unknown): x is TEdgeType => tEdgeType(x, ref);
-export type TEvent = rt.$infer<typeof tEvent>;
-export type TCaches = rt.$infer<typeof tCaches>;
-export type TOrderedTEdgeIds = rt.$infer<typeof tOrderedTEdgeIds>;
-export type TEdgeType = rt.$infer<typeof tEdgeType>;
-export type TTimeNode = rt.$infer<typeof tTimeNode>;
-export type TTextPatch = rt.$infer<typeof tTextPatch>;
-export type TStatus = rt.$infer<typeof tStatus>;
-export type TRange = rt.$infer<typeof tRange>;
-export type TEdges = rt.$infer<typeof tEdges>;
-export type TNodes = rt.$infer<typeof tNodes>;
-export type TEdge = rt.$infer<typeof tEdge>;
-export type TNode = rt.$infer<typeof tNode>;
-type TData = rt.$infer<typeof tData>;
-type TNodeId = rt.$infer<typeof tNodeId>;
-export type TState = {
-  readonly data: TData;
-  readonly caches: TCaches;
-  readonly predicted_next_nodes: TNodeId[];
-  readonly swapped_caches: swapper.TSwapped1<TCaches>;
-  readonly swapped_edges: swapper.TSwapped1<TData["edges"]>;
-  readonly swapped_nodes: swapper.TSwapped1<TData["nodes"]>;
-  readonly todo_node_ids: TNodeId[];
-  readonly non_todo_node_ids: TNodeId[];
-};
-export type TGanttZoom = "D" | "W" | "M" | "Q" | "Y";
 
 export const parse_data = (x: {
   data: unknown;
@@ -241,30 +197,3 @@ const current_of_prev = (data_prev: {
     patch: produced.patch,
   };
 };
-
-type TStateOmitted = Omit<TState, "caches" | "data"> & {
-  data: Omit<TState["data"], "edges" | "nodes">;
-};
-type TStateDraft = immer.Draft<TState>;
-export type TStateDraftWithReadonly = Omit<
-  TStateDraft,
-  "caches" | "data" | "swapped_caches" | "swapped_edges" | "swapped_nodes"
-> &
-  immer.Immutable<
-    Pick<
-      TStateDraft,
-      "caches" | "swapped_caches" | "swapped_edges" | "swapped_nodes"
-    >
-  > & {
-    readonly data: Omit<TStateDraft["data"], "nodes" | "edges"> &
-      immer.Immutable<Pick<TStateDraft["data"], "nodes" | "edges">>;
-  };
-
-export type AppDispatch = Rtk.ThunkDispatch<
-  TState,
-  Record<string, never>,
-  TAnyPayloadAction
->;
-
-export const useDispatch = () => _useDispatch<AppDispatch>();
-export const useSelector: TypedUseSelectorHook<TStateOmitted> = _useSelector;
