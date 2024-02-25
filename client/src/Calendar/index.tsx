@@ -189,7 +189,7 @@ const Id = React.memo(
         onBlur={turnOff}
       >
         {props.timeId[0] === "D" || props.timeId[0] === "H" ? (
-          title
+          <div>{title}</div>
         ) : (
           <div
             role="button"
