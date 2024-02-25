@@ -227,6 +227,11 @@ const getQueueNodeIds = (
   if (head.length === 0) {
     return queue;
   }
+  head.sort((a, b) => {
+    const aText = utils.assertV(texts?.[a]);
+    const bText = utils.assertV(texts?.[b]);
+    return aText.length - bText.length;
+  });
   return head.concat(tail);
 };
 
