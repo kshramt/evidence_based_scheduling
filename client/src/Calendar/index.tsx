@@ -144,7 +144,9 @@ const PlannedNode = (props: { node_id: types.TNodeId }) => {
       onMouseLeave={turnOff}
       onFocus={turnOn}
     >
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         title={text}
         onClick={to_tree}
         className={utils.join(
@@ -157,7 +159,7 @@ const PlannedNode = (props: { node_id: types.TNodeId }) => {
         )}
       >
         {text.slice(0, 40)}
-      </button>
+      </div>
       {(isOn || is_running) && (
         <div className="flex w-fit gap-x-[0.25em]">
           {is_running ? (
@@ -186,13 +188,18 @@ const Id = React.memo(
         onFocus={turnOn}
         onBlur={turnOff}
       >
-        <div>
-          {props.timeId[0] === "D" || props.timeId[0] === "H" ? (
-            title
-          ) : (
-            <button onClick={props.toggle}>{title}</button>
-          )}
-        </div>
+        {props.timeId[0] === "D" || props.timeId[0] === "H" ? (
+          title
+        ) : (
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={props.toggle}
+            className="font-bold"
+          >
+            {title}
+          </div>
+        )}
         {isOn ? <AddButton timeId={props.timeId} /> : null}
       </div>
     );
