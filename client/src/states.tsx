@@ -661,33 +661,33 @@ export class PersistentStateManager {
     }, []);
   };
   check_remote_head = async () => {
-    const resp = await this.#push_rpc(() =>
-      get_remote_head_and_save_remote_pending_patches(
+    await this.#push_rpc(async () => {
+      const resp = await get_remote_head_and_save_remote_pending_patches(
         this.client_id,
         this.client_v2,
         this.id_token,
         this.db,
-      ),
-    );
-    if (
-      resp.client_id === this.heads.remote.client_id &&
-      resp.session_id === this.heads.remote.session_id &&
-      resp.patch_id === this.heads.remote.patch_id
-    ) {
-      this.#sync_store.set_state(() => null);
-    } else {
-      this.#sync_store.set_state(() => {
-        return {
-          updated_at: resp.created_at,
-          name: resp.name,
-          head: {
-            client_id: resp.client_id,
-            session_id: resp.session_id,
-            patch_id: resp.patch_id,
-          },
-        };
-      });
-    }
+      );
+      if (
+        resp.client_id === this.heads.remote.client_id &&
+        resp.session_id === this.heads.remote.session_id &&
+        resp.patch_id === this.heads.remote.patch_id
+      ) {
+        this.#sync_store.set_state(() => null);
+      } else {
+        this.#sync_store.set_state(() => {
+          return {
+            updated_at: resp.created_at,
+            name: resp.name,
+            head: {
+              client_id: resp.client_id,
+              session_id: resp.session_id,
+              patch_id: resp.patch_id,
+            },
+          };
+        });
+      }
+    });
   };
 }
 
