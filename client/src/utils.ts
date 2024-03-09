@@ -257,9 +257,9 @@ export const focusRobustly = async (id: string) => {
         break;
       }
     }
+    el.scrollIntoView({ block: "center" }); // One more `scrollIntoView` to improve the robustness.
+    await sleep(40);
   }
-  el.scrollIntoView({ block: "center" }); // One more `scrollIntoView` to improve the robustness.
-  await sleep(40);
   el.focus();
 };
 
