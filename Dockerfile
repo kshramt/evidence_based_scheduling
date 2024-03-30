@@ -21,11 +21,11 @@ FROM hadolint/hadolint:v2.12.0-alpine as hadolint_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
-FROM ghcr.io/amacneil/dbmate:2.11.0 AS base_dbmate
+FROM ghcr.io/amacneil/dbmate:2.13.0 AS base_dbmate
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
-FROM denoland/deno:distroless-1.39.4 as deno_base
+FROM denoland/deno:distroless-1.41.3 as deno_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
@@ -36,7 +36,7 @@ RUN arch="$(dpkg --print-architecture)" && curl -L -o /usr/local/bin/buildifier 
 RUN arch="$(dpkg --print-architecture)" && curl -L -o /usr/local/bin/bazelisk "https://github.com/bazelbuild/bazelisk/releases/download/v1.19.0/bazelisk-linux-${arch}" && chmod +x /usr/local/bin/bazelisk
 
 
-FROM node:21.6.0-bookworm-slim AS node_downloader
+FROM node:21.7.1-bookworm-slim AS node_downloader
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 RUN mkdir -p /usr/local/node \
@@ -202,15 +202,15 @@ ENV PYTHONDONTWRITEBYTECODE 1
 WORKDIR /app
 RUN python3 -m venv .venv
 
-FROM nginx:1.25.3-alpine AS base_nginx
+FROM nginx:1.25.4-alpine AS base_nginx
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
-FROM envoyproxy/envoy:distroless-v1.29.0 AS base_envoy
+FROM envoyproxy/envoy:distroless-v1.29.2 AS base_envoy
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
-FROM postgres:16.1-bookworm AS base_postgres
+FROM postgres:16.2-bookworm AS base_postgres
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
@@ -289,7 +289,7 @@ COPY --link ./envoy.yaml /etc/envoy/envoy.yaml
 
 FROM base_postgres AS prod_postgres
 
-FROM debian:12.4-slim AS prod_postgres_migration
+FROM debian:12.5-slim AS prod_postgres_migration
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 COPY --link --from=base_dbmate /usr/local/bin/dbmate /usr/local/bin/dbmate
