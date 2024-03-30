@@ -186,41 +186,40 @@ export const session_key_context = React.createContext({
   session_id: -1,
 });
 
-// The following code involves 7 distinct heads. These are:
+// The following code involves 4 distinct heads. These are:
 //
+// 1. The remote head that is stored persistently on the API server.
+// 2. The parent head for the current session taken from IndexedDB.
+// 3. The current patch's head.
+//    This is based on `client_id`, `session_id`, and `patch_id`.
+//    `patch_id` is incremented.
+//    The loaded (from IndexedDB) state's head corresponds to the item 2.
+// 4. Last-pushed remote head.
+//    This head is also stored in IndexedDB.
 // 1. A remote head that is stored persistently on the API server.
-// 2. A per-session remote head that is stored in memory.
+// 2. A per-session remote (last-push) head that is stored in memory.
 //    This head is used to detect changes to the remote head and is written to IndexedDB upon change.
-// 3. A per-session last-push head that is stored in memory.
-//    This head is used to memoize the last synced patch, and should be used by the `UpdateHead` function.
 // 4. A remote head that is persisted on IndexedDB.
 //    This head is used as the initial value for head 2.
 //    In the case of multiple sessions (tabs), the most recently written value wins.
 // 5. A local head that is persisted on IndexedDB.
-//    This head is used as the initial value for head 6.
+//    This head is used as the initial parent head.
 //    In the case of multiple sessions (tabs), the most recently written value wins.
-// 6. A per-session parent head that is stored in memory.
-//    This head is used to provide `parent_client_id`, `parent_session_id`, and `parent_patch_id` for `#save_patch`.
-//    The value is initialized from head 5.
-// 7. A per-session next-patch head that is stored in memory.
-//    This head is used to provide `client_id`, `session_id`, and `patch_id` for `#save_patch`.
-//    The value is initialized with `client_id`, `session_id`, and `patch_id = 0`.
 export class PersistentStateManager {
   client_v2: TClientV2;
   db: Awaited<ReturnType<typeof storage.getDb>>;
   client_id: number;
   session_id: number;
+  patch_id: number;
   heads: {
     remote: storage.THead;
-    sync: null | storage.THead;
     parent: storage.THead;
-    child: storage.THead;
   };
   id_token: Auth.TIdToken;
   session_key: { user_id: string; client_id: number; session_id: number };
   reduxStore: ReturnType<typeof this.get_redux_store>;
   #patch_queue: queues.Queue<null | storage.TPatchValue> = new queues.Queue();
-  #head_queue: queues.Queue<null | storage.THead> = new queues.Queue();
+  #headQueue: queues.Queue<null | storage.THead> = new queues.Queue();
   #rpc_queue: queues.Queue<null | (() => Promise<void>)> = new queues.Queue();
   #sync_store: ReturnType<typeof _get_store> = _get_store();
   constructor(
@@ -230,9 +229,7 @@ export class PersistentStateManager {
     session_id: number,
     heads: {
       remote: storage.THead;
-      sync: null;
       parent: storage.THead;
-      child: storage.THead;
     },
     id_token: Auth.TIdToken,
   ) {
@@ -240,6 +237,7 @@ export class PersistentStateManager {
     this.db = db;
     this.client_id = client_id;
     this.session_id = session_id;
+    this.patch_id = -1;
     this.heads = heads;
     this.id_token = id_token;
     this.session_key = {
@@ -247,28 +245,42 @@ export class PersistentStateManager {
       client_id,
       session_id,
     };
-    this.reduxStore = this.get_redux_store({ ...heads.parent });
+    this.reduxStore = this.get_redux_store(heads.parent);
     void this.#run_rpc_loop();
-    void this.#run_push_local_patches_loop();
+    void this.#runPushLocalPatchesLoop();
     void this.#run_patch_saving_loop();
   }
 
+  #currentHead = () => {
+    if (this.patch_id === -1) {
+      return this.heads.parent;
+    }
+    return {
+      client_id: this.client_id,
+      session_id: this.session_id,
+      patch_id: this.patch_id,
+    };
+  };
+
+  #incrementHead = () => {
+    this.patch_id += 1;
+    return this.#currentHead();
+  };
+
   stop = () => {
     this.#patch_queue.push(null);
-    this.#head_queue.push(null);
+    this.#headQueue.push(null);
     this.#rpc_queue.push(null);
   };
 
-  get_redux_store = async (local_head: storage.THead) => {
+  get_redux_store = async (head: storage.THead) => {
     const stateAndPatch = await get_state_and_patch({
-      head: local_head,
+      head,
       db: this.db,
     });
     let state = stateAndPatch.state;
     const patch = stateAndPatch.patch;
 
-    // Try to sync `local_head` to the remote.
-    this.#head_queue.push(local_head);
     // Save `patch`.
     this.#save_patch({
       patch,
@@ -416,38 +428,27 @@ export class PersistentStateManager {
       store = tx.objectStore("heads");
     }
     await store.put(head, "remote");
-    this.heads.remote.client_id = head.client_id;
-    this.heads.remote.session_id = head.session_id;
-    this.heads.remote.patch_id = head.patch_id;
+    this.heads.remote = head;
   };
 
-  #update_remote_head_if_not_modified = async () => {
+  #update_remote_head_if_not_modified = async (
+    newRemoteHead: storage.THead,
+  ) => {
     const bearer = utils.get_bearer(this.id_token);
-    if (this.heads.sync === null) {
-      return;
-    }
-    const sync_head = { ...this.heads.sync };
     if (
-      sync_head.client_id === this.heads.remote.client_id &&
-      sync_head.session_id === this.heads.remote.session_id &&
-      sync_head.patch_id === this.heads.remote.patch_id
+      newRemoteHead.client_id === this.heads.remote.client_id &&
+      newRemoteHead.session_id === this.heads.remote.session_id &&
+      newRemoteHead.patch_id === this.heads.remote.patch_id
     ) {
+      // This branch will not happen.
       return;
     }
     await this.#push_rpc(async () => {
       const resp = await retryer.with_retry(async () => {
         return await this.client_v2.putUsersUser_idhead(
           {
-            patch_key: {
-              client_id: sync_head.client_id,
-              session_id: sync_head.session_id,
-              patch_id: sync_head.patch_id,
-            },
-            header_if_match: {
-              client_id: this.heads.remote.client_id,
-              session_id: this.heads.remote.session_id,
-              patch_id: this.heads.remote.patch_id,
-            },
+            patch_key: newRemoteHead,
+            header_if_match: this.heads.remote,
           },
           {
             params: { user_id: this.id_token.user_id },
@@ -456,7 +457,7 @@ export class PersistentStateManager {
         );
       });
       if (resp.updated) {
-        await this.#save_remote_head(sync_head);
+        await this.#save_remote_head(newRemoteHead);
       } else {
         const resp = await get_remote_head_and_save_remote_pending_patches(
           this.client_id,
@@ -500,21 +501,14 @@ export class PersistentStateManager {
     }
   };
 
-  #run_push_local_patches_loop = async () => {
+  #runPushLocalPatchesLoop = async () => {
     while (true) {
-      const head = await this.#head_queue.pop();
+      const head = await this.#headQueue.pop();
       if (head === null) {
         return;
       }
       await this.#push_and_remove_local_pending_patches();
-      if (this.heads.sync === null) {
-        this.heads.sync = { ...head };
-      } else {
-        this.heads.sync.client_id = head.client_id;
-        this.heads.sync.session_id = head.session_id;
-        this.heads.sync.patch_id = head.patch_id;
-      }
-      await this.#update_remote_head_if_not_modified();
+      await this.#update_remote_head_if_not_modified(head);
     }
   };
 
@@ -541,7 +535,9 @@ export class PersistentStateManager {
       await pending_patches_store.put(head);
       await heads_store.put(head, "local");
       await tx.done;
-      this.#head_queue.push(head);
+
+      // This separation is necessary to save patches while the network is down.
+      this.#headQueue.push(head);
     }
   };
 
@@ -550,20 +546,18 @@ export class PersistentStateManager {
     if (patch.length < 1) {
       return;
     }
+    const parentHead = this.#currentHead();
+    const currentHead = this.#incrementHead();
     this.#patch_queue.push({
       patch: patch,
       created_at: new Date(),
-      parent_client_id: this.heads.parent.client_id,
-      parent_session_id: this.heads.parent.session_id,
-      parent_patch_id: this.heads.parent.patch_id,
-      client_id: this.heads.child.client_id,
-      session_id: this.heads.child.session_id,
-      patch_id: this.heads.child.patch_id,
+      parent_client_id: parentHead.client_id,
+      parent_session_id: parentHead.session_id,
+      parent_patch_id: parentHead.patch_id,
+      client_id: currentHead.client_id,
+      session_id: currentHead.session_id,
+      patch_id: currentHead.patch_id,
     });
-    this.heads.parent.client_id = this.heads.child.client_id;
-    this.heads.parent.session_id = this.heads.child.session_id;
-    this.heads.parent.patch_id = this.heads.child.patch_id;
-    ++this.heads.child.patch_id;
   };
 
   Component = () => {
@@ -586,18 +580,11 @@ export class PersistentStateManager {
     }, []);
     const use_local = React.useCallback(async () => {
       await this.#push_and_remove_local_pending_patches();
-      const new_head =
-        this.heads.sync === null
-          ? { ...this.heads.remote }
-          : { ...this.heads.sync };
+      const remoteHead = this.heads.remote;
       await this.#push_rpc(async () => {
         return await this.client_v2.putUsersUser_idhead(
           {
-            patch_key: {
-              client_id: new_head.client_id,
-              session_id: new_head.session_id,
-              patch_id: new_head.patch_id,
-            },
+            patch_key: remoteHead,
           },
           {
             params: { user_id: this.id_token.user_id },
@@ -605,7 +592,7 @@ export class PersistentStateManager {
           },
         );
       });
-      await this.#save_remote_head(new_head);
+      await this.#save_remote_head(remoteHead); // Protect from other local clients (tabs).
       this.#sync_store.set_state(() => null);
     }, []);
     if (state === null) {
@@ -757,10 +744,8 @@ export const getPersistentStateManager = async (
     client_id,
     session_id,
     {
-      sync: null,
-      remote: { ...remote_head },
-      parent: { ...local_head },
-      child: { client_id, session_id, patch_id: 0 },
+      remote: remote_head,
+      parent: local_head,
     },
     id_token,
   );
