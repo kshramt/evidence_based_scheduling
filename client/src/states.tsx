@@ -406,6 +406,11 @@ export class PersistentStateManager {
       "readwrite"
     >,
   ) => {
+    console.log(
+      "#save_remote_head: head, this.heads.remote",
+      head,
+      this.heads.remote,
+    );
     if (store === undefined) {
       const tx = this.db.transaction("heads", "readwrite");
       store = tx.objectStore("heads");
