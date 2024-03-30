@@ -196,15 +196,6 @@ export const session_key_context = React.createContext({
 //    The loaded (from IndexedDB) state's head corresponds to the item 2.
 // 4. Last-pushed remote head.
 //    This head is also stored in IndexedDB.
-// 1. A remote head that is stored persistently on the API server.
-// 2. A per-session remote (last-push) head that is stored in memory.
-//    This head is used to detect changes to the remote head and is written to IndexedDB upon change.
-// 4. A remote head that is persisted on IndexedDB.
-//    This head is used as the initial value for head 2.
-//    In the case of multiple sessions (tabs), the most recently written value wins.
-// 5. A local head that is persisted on IndexedDB.
-//    This head is used as the initial parent head.
-//    In the case of multiple sessions (tabs), the most recently written value wins.
 export class PersistentStateManager {
   client_v2: TClientV2;
   db: Awaited<ReturnType<typeof storage.getDb>>;
