@@ -31,7 +31,7 @@ export const EntryButtons = React.memo(
     const is_todo = status === "todo";
 
     return (
-      <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em]">
+      <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em] content-visibility-auto">
         {is_root || !is_todo || <StartOrStopButtons node_id={props.node_id} />}
         {is_root || !is_todo || <TodoToDoneButton node_id={props.node_id} />}
         {is_root || !is_todo || <TodoToDontButton node_id={props.node_id} />}

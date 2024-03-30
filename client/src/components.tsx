@@ -1371,8 +1371,6 @@ const MobileQueueNode = React.memo((props: { nodeId: types.TNodeId }) => {
 
 const TreeEntry = React.memo(
   (props: { node_id: types.TNodeId; prefix?: undefined | string }) => {
-    const { isOn, turnOn, turnOff } = utils.useOn(0);
-    const is_running = utils.useIsRunning(props.node_id);
     const leaf_estimates_sum = utils.assertV(
       useSelector(
         (state) => state.swapped_caches.leaf_estimates_sum?.[props.node_id],
@@ -1393,7 +1391,7 @@ const TreeEntry = React.memo(
     const [opened, handlers] = Mth.useDisclosure(false);
 
     return (
-      <EntryWrapper node_id={props.node_id} onMouseLeave={turnOff}>
+      <EntryWrapper node_id={props.node_id}>
         <div className="flex items-end w-fit content-visibility-auto">
           {is_root ? null : <button onClick={to_queue}>→</button>}
           <CopyNodeIdButton node_id={props.node_id} />
@@ -1410,7 +1408,6 @@ const TreeEntry = React.memo(
                     : null,
               )}
               onKeyDown={handleKeyDown}
-              onClick={turnOn}
             />
           )}
           <EntryInfos node_id={props.node_id} />
@@ -1419,7 +1416,7 @@ const TreeEntry = React.memo(
           0 <= leaf_estimates_sum &&
           utils.digits1(leaf_estimates_sum) + " | "}
         {status === "todo" && percentiles.map(utils.digits1).join(", ")}
-        {(isOn || is_running || opened) && (
+        {is_root ? null : (
           <EntryButtons
             node_id={props.node_id}
             prefix={prefix}
