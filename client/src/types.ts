@@ -182,6 +182,7 @@ export type AppDispatch = Rtk.ThunkDispatch<
 
 export const useDispatch = () => _useDispatch<AppDispatch>();
 export const useSelector: TypedUseSelectorHook<TStateOmitted> = _useSelector;
+export const useRawSelector: TypedUseSelectorHook<TState> = _useSelector;
 
 export const parse_data = (x: {
   data: unknown;

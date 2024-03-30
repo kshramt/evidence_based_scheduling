@@ -15,11 +15,24 @@ import { TodoToDontButton } from "./TodoToDontButton";
 
 import * as consts from "./consts";
 import * as hooks from "./hooks";
-import { useSelector } from "./types";
+import { useSelector, useRawSelector } from "./types";
 import * as types from "./types";
 import * as utils from "./utils";
 
 export const QueueEntry = React.memo(
+  (props: { node_id: types.TNodeId; index: number }) => {
+    const exists = useRawSelector((state) =>
+      Object.hasOwn(state.data.nodes, props.node_id),
+    );
+    return exists ? (
+      <_QueueEntry node_id={props.node_id} index={props.index} />
+    ) : (
+      <div className="w-[1px] h-[1px]" /> // `null` is not allowed as Virtuoso does not allow 0-height elements.
+    );
+  },
+);
+
+const _QueueEntry = React.memo(
   (props: { node_id: types.TNodeId; index: number }) => {
     const isTodo =
       utils.assertV(
