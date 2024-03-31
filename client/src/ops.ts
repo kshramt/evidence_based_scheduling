@@ -61,6 +61,7 @@ export const emptyStateOf = (): types.TState => {
     swapped_caches: swapper.swapKeys(caches),
     swapped_edges: swapper.swapKeys(data.edges),
     swapped_nodes: swapper.swapKeys(data.nodes),
+    drawerStack: [],
   };
 };
 

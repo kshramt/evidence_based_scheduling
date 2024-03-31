@@ -189,3 +189,8 @@ export const focusFirstChildTextAreaActionOf =
       }`,
     );
   };
+
+export const toggleDrawerAction = Rtk.createAction<types.TNodeId>(
+  "registerDrawerAction",
+);
+export const closeDrawerAction = Rtk.createAction("closeDrawerAction");

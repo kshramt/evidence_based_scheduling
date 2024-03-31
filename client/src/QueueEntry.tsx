@@ -1,13 +1,11 @@
 import * as React from "react";
 
-import * as Mth from "@mantine/hooks";
-
 import CopyNodeIdButton from "./CopyNodeIdButton";
 import { EntryButtons } from "./EntryButtons";
 import { EntryInfos } from "./EntryInfos";
 import { EvalButton } from "./EvalButton";
 import { EntryWrapper } from "./EntryWrapper";
-import ShowDetailsButton from "./ShowDetailsButton";
+import { ShowDetailsButton } from "./ShowDetailsButton";
 import { StartOrStopButtons } from "./StartOrStopButtons";
 import { TextArea } from "./TextArea";
 import { TodoToDoneButton } from "./TodoToDoneButton";
@@ -49,25 +47,18 @@ const _QueueEntry = React.memo(
 
 const NonTodoQueueEntry = React.memo(
   (props: { node_id: types.TNodeId; index: number }) => {
-    const { isOn, turnOn, turnOff } = utils.useOn(0);
     const status = utils.assertV(
       useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
     );
-    const is_running = utils.useIsRunning(props.node_id);
     const to_tree = utils.useToTree(props.node_id);
     const handleKeyDown = hooks.useTaskShortcutKeys(
       props.node_id,
       consts.TREE_PREFIX,
     );
-    const [opened, handlers] = Mth.useDisclosure(false);
     const id = utils.queue_textarea_id_of(props.node_id);
 
     return (
-      <EntryWrapper
-        node_id={props.node_id}
-        onMouseLeave={turnOff}
-        component="div"
-      >
+      <EntryWrapper node_id={props.node_id} component="div">
         <div className="flex items-end w-fit">
           {props.index}
           <button onClick={to_tree}>←</button>
@@ -84,17 +75,10 @@ const NonTodoQueueEntry = React.memo(
                   : null,
             )}
             onKeyDown={handleKeyDown}
-            onClick={turnOn}
           />
           <EntryInfos node_id={props.node_id} />
         </div>
-        {(isOn || is_running || opened) && (
-          <EntryButtons
-            node_id={props.node_id}
-            opened={opened}
-            handlers={handlers}
-          />
-        )}
+        <EntryButtons node_id={props.node_id} />
       </EntryWrapper>
     );
   },
@@ -114,7 +98,6 @@ const TodoQueueEntry = React.memo(
       useSelector((state) => state.swapped_caches.text?.[props.node_id]),
     );
     const toTree = utils.useToTree(props.node_id);
-    const [opened, handlers] = Mth.useDisclosure(false);
     const isRunning = utils.useIsRunning(props.node_id);
 
     return (
@@ -130,11 +113,7 @@ const TodoQueueEntry = React.memo(
             <EvalButton node_id={props.node_id} />
             <TodoToDoneButton node_id={props.node_id} />
             <TodoToDontButton node_id={props.node_id} />
-            <ShowDetailsButton
-              node_id={props.node_id}
-              opened={opened}
-              handlers={handlers}
-            />
+            <ShowDetailsButton node_id={props.node_id} />
             <CopyNodeIdButton node_id={props.node_id} />
             <StartOrStopButtons node_id={props.node_id} />
           </div>

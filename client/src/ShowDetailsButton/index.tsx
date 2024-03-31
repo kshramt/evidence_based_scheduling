@@ -101,40 +101,57 @@ const Details = React.memo((props: { node_id: types.TNodeId }) => {
   );
 });
 
-const ShowDetailsButton = (props: {
-  node_id: types.TNodeId;
-  opened: boolean;
-  handlers: { close: () => void; toggle: () => void };
-}) => {
+export const ShowDetailsButton = (props: { node_id: types.TNodeId }) => {
+  const dispatch = types.useDispatch();
+  const handleClick = React.useCallback(() => {
+    dispatch(actions.toggleDrawerAction(props.node_id));
+  }, [dispatch, props.node_id]);
+  return (
+    <button
+      className="btn-icon"
+      onClick={handleClick}
+      onDoubleClick={utils.prevent_propagation}
+    >
+      {consts.DETAIL_MARK}
+    </button>
+  );
+};
+
+const Component = () => {
+  const nodeId = types.useSelector((state) => state.drawerStack.at(-1));
+  if (nodeId === undefined) {
+    return null;
+  }
+  return <_Component nodeId={nodeId} />;
+};
+
+const _Component = (props: { nodeId: types.TNodeId }) => {
+  const dispatch = types.useDispatch();
+  const handleClose = React.useCallback(() => {
+    dispatch(actions.closeDrawerAction());
+  }, [dispatch]);
   const text = utils.assertV(
-    types.useSelector((state) => state.swapped_caches.text?.[props.node_id]),
+    types.useSelector((state) => state.swapped_caches.text?.[props.nodeId]),
   );
   const text30 = React.useMemo(() => {
     return text.slice(0, 30);
   }, [text]);
 
   return (
-    <>
-      <button
-        className="btn-icon"
-        onClick={props.handlers.toggle}
-        onDoubleClick={utils.prevent_propagation}
-      >
-        {consts.DETAIL_MARK}
-      </button>
-      <Mtc.Drawer
-        closeOnClickOutside={false}
-        lockScroll={false}
-        onClose={props.handlers.close}
-        opened={props.opened}
-        position="right"
-        title={text30}
-        withOverlay={false}
-      >
-        <Details node_id={props.node_id} />
-      </Mtc.Drawer>
-    </>
+    <Mtc.Drawer
+      closeOnClickOutside={false}
+      lockScroll={false}
+      onClose={handleClose}
+      opened={true}
+      position="right"
+      title={text30}
+      withOverlay={false}
+    >
+      <Details node_id={props.nodeId} />
+    </Mtc.Drawer>
   );
 };
+
+export const component = <Component />;
 
 export default ShowDetailsButton;

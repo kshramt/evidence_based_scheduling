@@ -4,7 +4,6 @@ import { useCallback } from "react";
 import * as Rr from "react-redux";
 import * as Dnd from "react-dnd";
 import * as Mt from "@mantine/core";
-import * as Mth from "@mantine/hooks";
 import * as Rv from "react-virtuoso";
 
 import { AddButton } from "./AddButton";
@@ -21,7 +20,10 @@ import GanttChart from "./GanttChart";
 import { LastRange } from "./LastRange";
 import { QueueEntry } from "./QueueEntry";
 import MenuButton from "./Header/MenuButton";
-import ShowDetailsButton from "./ShowDetailsButton";
+import {
+  ShowDetailsButton,
+  component as drawerComponent,
+} from "./ShowDetailsButton";
 import ShowGanttToggle from "./ShowGanttToggle";
 import StartButton from "./StartButton";
 import StartConcurrentButton from "./StartConcurrentButton";
@@ -34,7 +36,8 @@ import ToggleButton from "./ToggleButton";
 import TopButton from "./TopButton";
 import { TotalTime } from "./TotalTime";
 import * as types from "./types";
-import { useDispatch, useSelector } from "./types";
+import { useSelector, useDispatch } from "./types";
+
 import * as actions from "./actions";
 import * as consts from "./consts";
 import * as hooks from "./hooks";
@@ -61,6 +64,7 @@ export const MobileApp = React.memo(
       <div className="flex flex-col h-screen w-screen">
         <MobileMenu ctx={props.ctx} logOut={props.logOut} />
         <MobileBody />
+        {drawerComponent}
       </div>
     );
   },
@@ -72,6 +76,7 @@ export const DesktopApp = React.memo(
       <div className="flex flex-col h-screen w-screen">
         <Menu ctx={props.ctx} logOut={props.logOut} />
         <Body />
+        {drawerComponent}
       </div>
     );
   },
@@ -1353,18 +1358,13 @@ const MobileQueueNodesImpl = React.memo(
   },
 );
 const MobileQueueNode = React.memo((props: { nodeId: types.TNodeId }) => {
-  const [opened, handlers] = Mth.useDisclosure(false);
   return (
     <EntryWrapper node_id={props.nodeId}>
       <TextArea
         node_id={props.nodeId}
         className="w-[100vw] px-[0.75em] py-[0.5em]"
       />
-      <MobileEntryButtons
-        node_id={props.nodeId}
-        opened={opened}
-        handlers={handlers}
-      />
+      <MobileEntryButtons node_id={props.nodeId} />
     </EntryWrapper>
   );
 });
@@ -1388,7 +1388,6 @@ const TreeEntry = React.memo(
     const is_root = props.node_id === root;
     const prefix = props.prefix || consts.TREE_PREFIX;
     const handleKeyDown = hooks.useTaskShortcutKeys(props.node_id, prefix);
-    const [opened, handlers] = Mth.useDisclosure(false);
 
     return (
       <EntryWrapper node_id={props.node_id}>
@@ -1417,23 +1416,14 @@ const TreeEntry = React.memo(
           utils.digits1(leaf_estimates_sum) + " | "}
         {status === "todo" && percentiles.map(utils.digits1).join(", ")}
         {is_root ? null : (
-          <EntryButtons
-            node_id={props.node_id}
-            prefix={prefix}
-            opened={opened}
-            handlers={handlers}
-          />
+          <EntryButtons node_id={props.node_id} prefix={prefix} />
         )}
       </EntryWrapper>
     );
   },
 );
 
-const MobileEntryButtons = (props: {
-  node_id: types.TNodeId;
-  opened: boolean;
-  handlers: { toggle: () => void; close: () => void };
-}) => {
+const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
   const leaf_estimates_sum = utils.assertV(
     useSelector(
       (state) => state.swapped_caches.leaf_estimates_sum?.[props.node_id],
@@ -1469,11 +1459,7 @@ const MobileEntryButtons = (props: {
         {/* <DeleteButton node_id={props.node_id} /> */}
         <CopyNodeIdButton node_id={props.node_id} />
         {status === "todo" && <AddButton node_id={props.node_id} />}
-        <ShowDetailsButton
-          node_id={props.node_id}
-          opened={props.opened}
-          handlers={props.handlers}
-        />
+        <ShowDetailsButton node_id={props.node_id} />
         <TotalTime node_id={props.node_id} />
         {is_root || <LastRange node_id={props.node_id} />}
       </div>

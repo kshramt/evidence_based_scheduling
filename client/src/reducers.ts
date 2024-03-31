@@ -209,6 +209,12 @@ export const getRootReducer = (
         for (const parent_node_id of affected_parent_node_ids) {
           total_time_utils.setTotalTimeOfAncestors(state, parent_node_id, vid);
         }
+        {
+          const i = state.drawerStack.indexOf(node_id);
+          if (i !== -1) {
+            state.drawerStack.splice(i, 1);
+          }
+        }
       },
     );
     builder.addCase(
@@ -873,6 +879,23 @@ export const getRootReducer = (
     );
     builder.addCase(actions.increment_count_action, (state) => {
       ++state.data.timeline.count;
+    });
+    builder.addCase(actions.toggleDrawerAction, (state, action) => {
+      const nodeId = action.payload;
+      const i = state.drawerStack.indexOf(nodeId);
+      if (i === -1) {
+        state.drawerStack.push(nodeId);
+        return;
+      }
+      if (i === state.drawerStack.length - 1) {
+        state.drawerStack.pop();
+        return;
+      }
+      state.drawerStack.splice(i, 1);
+      state.drawerStack.push(nodeId);
+    });
+    builder.addCase(actions.closeDrawerAction, (state) => {
+      state.drawerStack.pop();
     });
   });
 };

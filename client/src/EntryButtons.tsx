@@ -3,7 +3,7 @@ import * as React from "react";
 import { AddButton } from "./AddButton";
 import { DoneOrDontToTodoButton } from "./DoneOrDontToTodoButton";
 import { EvalButton } from "./EvalButton";
-import ShowDetailsButton from "./ShowDetailsButton";
+import { ShowDetailsButton } from "./ShowDetailsButton";
 import { StartOrStopButtons } from "./StartOrStopButtons";
 import { TodoToDoneButton } from "./TodoToDoneButton";
 import { TodoToDontButton } from "./TodoToDontButton";
@@ -16,12 +16,7 @@ import * as types from "./types";
 import * as utils from "./utils";
 
 export const EntryButtons = React.memo(
-  (props: {
-    node_id: types.TNodeId;
-    prefix?: string;
-    opened: boolean;
-    handlers: { toggle: () => void; close: () => void };
-  }) => {
+  (props: { node_id: types.TNodeId; prefix?: string }) => {
     const status = utils.assertV(
       useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
     );
@@ -44,11 +39,7 @@ export const EntryButtons = React.memo(
         {is_root || !is_todo || <MoveDownButton node_id={props.node_id} />}
         {/* <DeleteButton node_id={props.node_id} /> */}
         {is_todo && <AddButton node_id={props.node_id} prefix={props.prefix} />}
-        <ShowDetailsButton
-          node_id={props.node_id}
-          opened={props.opened}
-          handlers={props.handlers}
-        />
+        <ShowDetailsButton node_id={props.node_id} />
       </div>
     );
   },

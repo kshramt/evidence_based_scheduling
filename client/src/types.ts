@@ -153,6 +153,7 @@ export type TState = {
   readonly swapped_caches: swapper.TSwapped1<TCaches>;
   readonly swapped_edges: swapper.TSwapped1<TData["edges"]>;
   readonly swapped_nodes: swapper.TSwapped1<TData["nodes"]>;
+  readonly drawerStack: TNodeId[];
 };
 export type TGanttZoom = "D" | "W" | "M" | "Q" | "Y";
 

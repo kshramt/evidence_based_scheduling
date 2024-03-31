@@ -131,6 +131,7 @@ const get_state_and_patch = async (arg: {
       swapped_caches: swapper.swapKeys(caches),
       swapped_edges: swapper.swapKeys(parsed_data.data.edges),
       swapped_nodes: swapper.swapKeys(parsed_data.data.nodes),
+      drawerStack: [],
     };
     patch = parsed_data.patch;
   }
