@@ -410,11 +410,6 @@ export class PersistentStateManager {
       "readwrite"
     >,
   ) => {
-    console.log(
-      "#save_remote_head: head, this.heads.remote",
-      head,
-      this.heads.remote,
-    );
     if (store === undefined) {
       const tx = this.db.transaction("heads", "readwrite");
       store = tx.objectStore("heads");
@@ -436,8 +431,8 @@ export class PersistentStateManager {
       return;
     }
     await this.#push_rpc(async () => {
-      const resp = await retryer.with_retry(async () => {
-        return await this.client_v2.putUsersUser_idhead(
+      await retryer.with_retry(async () => {
+        const resp = await this.client_v2.putUsersUser_idhead(
           {
             patch_key: newRemoteHead,
             header_if_match: this.heads.remote,
@@ -447,29 +442,29 @@ export class PersistentStateManager {
             headers: { authorization: bearer },
           },
         );
+        if (resp.updated) {
+          await this.#save_remote_head(newRemoteHead);
+        } else {
+          const resp = await get_remote_head_and_save_remote_pending_patches(
+            this.client_id,
+            this.client_v2,
+            this.id_token,
+            this.db,
+            retryer.with_retry,
+          );
+          this.#sync_store.set_state(() => {
+            return {
+              updated_at: resp.created_at,
+              name: resp.name,
+              head: {
+                client_id: resp.client_id,
+                session_id: resp.session_id,
+                patch_id: resp.patch_id,
+              },
+            };
+          });
+        }
       });
-      if (resp.updated) {
-        await this.#save_remote_head(newRemoteHead);
-      } else {
-        const resp = await get_remote_head_and_save_remote_pending_patches(
-          this.client_id,
-          this.client_v2,
-          this.id_token,
-          this.db,
-          retryer.with_retry,
-        );
-        this.#sync_store.set_state(() => {
-          return {
-            updated_at: resp.created_at,
-            name: resp.name,
-            head: {
-              client_id: resp.client_id,
-              session_id: resp.session_id,
-              patch_id: resp.patch_id,
-            },
-          };
-        });
-      }
     });
   };
 
