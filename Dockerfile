@@ -60,7 +60,7 @@ COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/bin/docker /usr/local
 COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/libexec/docker /usr/local/libexec/docker
 
 
-FROM rust:1.76.0-bookworm AS rust_downloader
+FROM rust:1.77.1-bookworm AS rust_downloader
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 RUN rustup component add clippy rust-analyzer rustfmt
