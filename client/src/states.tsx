@@ -481,6 +481,7 @@ export class PersistentStateManager {
         return;
       }
       try {
+        await retryers.get_online_promise();
         await rpc();
       } catch {
         // Ignore errors.
