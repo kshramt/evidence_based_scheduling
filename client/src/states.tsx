@@ -410,12 +410,14 @@ export class PersistentStateManager {
       "readwrite"
     >,
   ) => {
+    console.debug("#save_remote_head/start", head);
     if (store === undefined) {
       const tx = this.db.transaction("heads", "readwrite");
       store = tx.objectStore("heads");
     }
     await store.put(head, "remote");
     this.heads.remote = head;
+    console.debug("#save_remote_head/end", head);
   };
 
   #update_remote_head_if_not_modified = async (
@@ -453,6 +455,10 @@ export class PersistentStateManager {
             retryer.with_retry,
           );
           this.#sync_store.set_state(() => {
+            console.debug(
+              "#update_remote_head_if_not_modified/sync_store",
+              resp,
+            );
             return {
               updated_at: resp.created_at,
               name: resp.name,

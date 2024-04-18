@@ -1,6 +1,6 @@
 export class Queue<T> {
-  #promises: Promise<T>[] = [];
-  #resolves: ((value: T) => void)[] = [];
+  #promises: Promise<T>[];
+  #resolves: ((value: T) => void)[];
   constructor() {
     this.#promises = [];
     this.#resolves = [];
