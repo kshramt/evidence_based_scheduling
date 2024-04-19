@@ -662,6 +662,11 @@ export class PersistentStateManager {
         this.#sync_store.set_state(() => null);
       } else {
         this.#sync_store.set_state(() => {
+          console.debug(
+            "check_remote_head/sync_store",
+            resp,
+            this.heads.remote,
+          );
           return {
             updated_at: resp.created_at,
             name: resp.name,
