@@ -376,8 +376,11 @@ export class PersistentStateManager {
           });
         }
         await tx.done;
-        await this.#push_rpc(() =>
-          retryer.with_retry(async () => {
+        await this.#push_rpc(async () => {
+          console.debug(
+            "#push_rpc/#push_and_remove_local_pending_patches/start",
+          );
+          await retryer.with_retry(async () => {
             await this.client_v2.postUsersUser_idpatches_batch(
               {
                 patches,
@@ -387,8 +390,8 @@ export class PersistentStateManager {
                 headers: { authorization: bearer },
               },
             );
-          }),
-        );
+          });
+        });
       }
       {
         const tx = this.db.transaction("pending_patches", "readwrite");
@@ -433,6 +436,7 @@ export class PersistentStateManager {
       return;
     }
     await this.#push_rpc(async () => {
+      console.debug("#push_rpc/#update_remote_head_if_not_modified/start");
       await retryer.with_retry(async () => {
         const resp = await this.client_v2.putUsersUser_idhead(
           {
@@ -489,8 +493,8 @@ export class PersistentStateManager {
       try {
         await retryers.get_online_promise();
         await rpc();
-      } catch {
-        // Ignore errors.
+      } catch (err: unknown) {
+        console.warn("RPC error:", err);
       }
     }
   };
@@ -576,6 +580,7 @@ export class PersistentStateManager {
       await this.#push_and_remove_local_pending_patches();
       const remoteHead = this.heads.remote;
       await this.#push_rpc(async () => {
+        console.debug("#push_rpc/use_local/start", remoteHead);
         return await this.client_v2.putUsersUser_idhead(
           {
             patch_key: remoteHead,
@@ -648,6 +653,7 @@ export class PersistentStateManager {
   };
   check_remote_head = async () => {
     await this.#push_rpc(async () => {
+      console.debug("#push_rpc/check_remote_head/start");
       const resp = await get_remote_head_and_save_remote_pending_patches(
         this.client_id,
         this.client_v2,
