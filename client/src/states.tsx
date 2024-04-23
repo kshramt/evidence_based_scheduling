@@ -27,6 +27,23 @@ const retryer = new retryers.Retryer();
 export const nodeFilterQueryState = Jotai.atom("");
 export const nodeIdsState = Jotai.atom("");
 
+/**
+ * Wrap an async function and log debug messages before and after its execution.
+ * @param msg - The message to be logged.
+ * @param fn - The function to be executed.
+ * @returns The result of `fn`.
+ */
+const logSpan = <T,>(msg: string, fn: () => Promise<T>) => {
+  return async () => {
+    console.debug(`${msg}/start`);
+    try {
+      return await fn();
+    } finally {
+      console.debug(`${msg}/end`);
+    }
+  };
+};
+
 const get_client_id = async (
   client_v2: TClientV2,
   db: Awaited<ReturnType<typeof storage.getDb>>,
@@ -376,22 +393,21 @@ export class PersistentStateManager {
           });
         }
         await tx.done;
-        await this.#push_rpc(async () => {
-          console.debug(
-            "#push_rpc/#push_and_remove_local_pending_patches/start",
-          );
-          await retryer.with_retry(async () => {
-            await this.client_v2.postUsersUser_idpatches_batch(
-              {
-                patches,
-              },
-              {
-                params: { user_id: this.id_token.user_id },
-                headers: { authorization: bearer },
-              },
-            );
-          });
-        });
+        await this.#push_rpc(
+          logSpan("#rpc/#push_and_remove_local_pending_patches", async () => {
+            await retryer.with_retry(async () => {
+              await this.client_v2.postUsersUser_idpatches_batch(
+                {
+                  patches,
+                },
+                {
+                  params: { user_id: this.id_token.user_id },
+                  headers: { authorization: bearer },
+                },
+              );
+            });
+          }),
+        );
       }
       {
         const tx = this.db.transaction("pending_patches", "readwrite");
@@ -435,47 +451,48 @@ export class PersistentStateManager {
       // This branch will not happen.
       return;
     }
-    await this.#push_rpc(async () => {
-      console.debug("#push_rpc/#update_remote_head_if_not_modified/start");
-      await retryer.with_retry(async () => {
-        const resp = await this.client_v2.putUsersUser_idhead(
-          {
-            patch_key: newRemoteHead,
-            header_if_match: this.heads.remote,
-          },
-          {
-            params: { user_id: this.id_token.user_id },
-            headers: { authorization: bearer },
-          },
-        );
-        if (resp.updated) {
-          await this.#save_remote_head(newRemoteHead);
-        } else {
-          const resp = await get_remote_head_and_save_remote_pending_patches(
-            this.client_id,
-            this.client_v2,
-            this.id_token,
-            this.db,
-            retryer.with_retry,
+    await this.#push_rpc(
+      logSpan("#rpc/#update_remote_head_if_not_modified", async () => {
+        await retryer.with_retry(async () => {
+          const resp = await this.client_v2.putUsersUser_idhead(
+            {
+              patch_key: newRemoteHead,
+              header_if_match: this.heads.remote,
+            },
+            {
+              params: { user_id: this.id_token.user_id },
+              headers: { authorization: bearer },
+            },
           );
-          this.#sync_store.set_state(() => {
-            console.debug(
-              "#update_remote_head_if_not_modified/sync_store",
-              resp,
+          if (resp.updated) {
+            await this.#save_remote_head(newRemoteHead);
+          } else {
+            const resp = await get_remote_head_and_save_remote_pending_patches(
+              this.client_id,
+              this.client_v2,
+              this.id_token,
+              this.db,
+              retryer.with_retry,
             );
-            return {
-              updated_at: resp.created_at,
-              name: resp.name,
-              head: {
-                client_id: resp.client_id,
-                session_id: resp.session_id,
-                patch_id: resp.patch_id,
-              },
-            };
-          });
-        }
-      });
-    });
+            this.#sync_store.set_state(() => {
+              console.debug(
+                "#update_remote_head_if_not_modified/sync_store",
+                resp,
+              );
+              return {
+                updated_at: resp.created_at,
+                name: resp.name,
+                head: {
+                  client_id: resp.client_id,
+                  session_id: resp.session_id,
+                  patch_id: resp.patch_id,
+                },
+              };
+            });
+          }
+        });
+      }),
+    );
   };
 
   #push_rpc = <T,>(rpc: () => Promise<T>) => {
@@ -579,18 +596,19 @@ export class PersistentStateManager {
     const use_local = React.useCallback(async () => {
       await this.#push_and_remove_local_pending_patches();
       const remoteHead = this.heads.remote;
-      await this.#push_rpc(async () => {
-        console.debug("#push_rpc/use_local/start", remoteHead);
-        return await this.client_v2.putUsersUser_idhead(
-          {
-            patch_key: remoteHead,
-          },
-          {
-            params: { user_id: this.id_token.user_id },
-            headers: { authorization: utils.get_bearer(this.id_token) },
-          },
-        );
-      });
+      await this.#push_rpc(
+        logSpan("#rpc/use_local", async () => {
+          return await this.client_v2.putUsersUser_idhead(
+            {
+              patch_key: remoteHead,
+            },
+            {
+              params: { user_id: this.id_token.user_id },
+              headers: { authorization: utils.get_bearer(this.id_token) },
+            },
+          );
+        }),
+      );
       await this.#save_remote_head(remoteHead); // Protect from other local clients (tabs).
       this.#sync_store.set_state(() => null);
     }, []);
@@ -652,39 +670,40 @@ export class PersistentStateManager {
     }, []);
   };
   check_remote_head = async () => {
-    await this.#push_rpc(async () => {
-      console.debug("#push_rpc/check_remote_head/start");
-      const resp = await get_remote_head_and_save_remote_pending_patches(
-        this.client_id,
-        this.client_v2,
-        this.id_token,
-        this.db,
-      );
-      if (
-        resp.client_id === this.heads.remote.client_id &&
-        resp.session_id === this.heads.remote.session_id &&
-        resp.patch_id === this.heads.remote.patch_id
-      ) {
-        this.#sync_store.set_state(() => null);
-      } else {
-        this.#sync_store.set_state(() => {
-          console.debug(
-            "check_remote_head/sync_store",
-            resp,
-            this.heads.remote,
-          );
-          return {
-            updated_at: resp.created_at,
-            name: resp.name,
-            head: {
-              client_id: resp.client_id,
-              session_id: resp.session_id,
-              patch_id: resp.patch_id,
-            },
-          };
-        });
-      }
-    });
+    await this.#push_rpc(
+      logSpan("#rpc/check_remote_head", async () => {
+        const resp = await get_remote_head_and_save_remote_pending_patches(
+          this.client_id,
+          this.client_v2,
+          this.id_token,
+          this.db,
+        );
+        if (
+          resp.client_id === this.heads.remote.client_id &&
+          resp.session_id === this.heads.remote.session_id &&
+          resp.patch_id === this.heads.remote.patch_id
+        ) {
+          this.#sync_store.set_state(() => null);
+        } else {
+          this.#sync_store.set_state(() => {
+            console.debug(
+              "check_remote_head/sync_store",
+              resp,
+              this.heads.remote,
+            );
+            return {
+              updated_at: resp.created_at,
+              name: resp.name,
+              head: {
+                client_id: resp.client_id,
+                session_id: resp.session_id,
+                patch_id: resp.patch_id,
+              },
+            };
+          });
+        }
+      }),
+    );
   };
 }
 
