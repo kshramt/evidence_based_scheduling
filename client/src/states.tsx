@@ -35,11 +35,11 @@ export const nodeIdsState = Jotai.atom("");
  */
 const logSpan = <T,>(msg: string, fn: () => Promise<T>) => {
   return async () => {
-    console.debug(`${msg}/start`);
+    console.debug(new Date().toISOString(), `${msg}/start`);
     try {
       return await fn();
     } finally {
-      console.debug(`${msg}/end`);
+      console.debug(new Date().toISOString(), `${msg}/end`);
     }
   };
 };
