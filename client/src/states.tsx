@@ -466,6 +466,13 @@ export class PersistentStateManager {
           );
           if (resp.updated) {
             await this.#save_remote_head(newRemoteHead);
+            this.#sync_store.set_state(() => {
+              console.debug(
+                "#update_remote_head_if_not_modified/sync_store/ok",
+                resp,
+              );
+              return null;
+            });
           } else {
             const resp = await get_remote_head_and_save_remote_pending_patches(
               this.client_id,
@@ -476,7 +483,7 @@ export class PersistentStateManager {
             );
             this.#sync_store.set_state(() => {
               console.debug(
-                "#update_remote_head_if_not_modified/sync_store",
+                "#update_remote_head_if_not_modified/sync_store/conflict",
                 resp,
               );
               return {
