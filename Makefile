@@ -43,7 +43,7 @@ check_lint:
 .PHONY: write_lockfile
 write: write_lockfile
 write_lockfile: write_crate_index
-	: bazelisk mod deps --lockfile_mode=update
+	bazelisk mod deps --lockfile_mode=update
 
 .PHONY: write_crate_index
 write: write_crate_index

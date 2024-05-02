@@ -13,7 +13,7 @@ use std::{
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
-use tracing::{info, instrument};
+use tracing::{debug, info, instrument};
 use tracing_subscriber::EnvFilter;
 
 mod db;
@@ -269,13 +269,15 @@ impl gen::Api for ApiImpl {
         let mut tx = state.pool.begin().await?;
         let head = db::get_head(&mut tx, &path.user_id).await?;
         tx.commit().await?;
-        Ok(gen::UsersUserIdHeadGet::S200(gen::GetHeadResponse {
+        let res = gen::GetHeadResponse {
             client_id: head.head_client_id,
             session_id: head.head_session_id,
             patch_id: head.head_patch_id,
             created_at: head.created_at,
             name: head.name,
-        }))
+        };
+        debug!(res=?res);
+        Ok(gen::UsersUserIdHeadGet::S200(res))
     }
 
     #[instrument(skip(state))]
@@ -391,7 +393,7 @@ async fn main() {
         .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
 
     let port = get_server_port();
-    info!(port = &port);
+    info!(port = ?port);
     let listener = tokio::net::TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], port)))
         .await
         .unwrap();
