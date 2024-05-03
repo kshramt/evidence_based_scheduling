@@ -10,8 +10,8 @@
 
 import { clientsClaim } from "workbox-core";
 import { cleanupOutdatedCaches, precacheAndRoute } from "workbox-precaching";
-import { setDefaultHandler } from "workbox-routing";
-import { NetworkFirst } from "workbox-strategies";
+import { registerRoute, setDefaultHandler } from "workbox-routing";
+import { NetworkFirst, NetworkOnly } from "workbox-strategies";
 
 declare const self: ServiceWorkerGlobalScope;
 
@@ -24,11 +24,15 @@ precacheAndRoute(self.__WB_MANIFEST);
 
 const CACHE_NAME = "app";
 
-const network_first = new NetworkFirst({
-  cacheName: CACHE_NAME,
-  networkTimeoutSeconds: 5,
-});
-setDefaultHandler(network_first);
+// API requests should not be cached.
+registerRoute(({ url }) => url.pathname.startsWith("/api/"), new NetworkOnly());
+
+setDefaultHandler(
+  new NetworkFirst({
+    cacheName: CACHE_NAME,
+    networkTimeoutSeconds: 5,
+  }),
+);
 
 self.addEventListener("install", (event) => {
   // eslint-disable-next-line @typescript-eslint/no-floating-promises
