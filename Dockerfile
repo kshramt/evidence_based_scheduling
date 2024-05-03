@@ -206,7 +206,7 @@ FROM nginx:1.25.4-alpine AS base_nginx
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
-FROM envoyproxy/envoy:distroless-v1.29.2 AS base_envoy
+FROM envoyproxy/envoy:distroless-v1.30.1 AS base_envoy
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
