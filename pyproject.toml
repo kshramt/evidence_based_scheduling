@@ -16,7 +16,7 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest~=7.4", "ruff"]
+dev = ["pytest~=8.2", "ruff"]
 
 [tool.setuptools]
 packages = []
