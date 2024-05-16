@@ -36,7 +36,7 @@ RUN arch="$(dpkg --print-architecture)" && curl -L -o /usr/local/bin/buildifier 
 RUN arch="$(dpkg --print-architecture)" && curl -L -o /usr/local/bin/bazelisk "https://github.com/bazelbuild/bazelisk/releases/download/v1.19.0/bazelisk-linux-${arch}" && chmod +x /usr/local/bin/bazelisk
 
 
-FROM node:22.1.0-bookworm-slim AS node_downloader
+FROM node:22.2.0-bookworm-slim AS node_downloader
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 RUN mkdir -p /usr/local/node \
