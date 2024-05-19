@@ -26,6 +26,7 @@ const AutoHeightTextArea = React.forwardRef<
       const el = e.target;
       const spacer = divRef.current;
       if (spacer) {
+        // eslint-disable-next-line react-compiler/react-compiler
         spacer.textContent = handleTrailingNewline(el.value);
       }
       setLocalText(el.value);
