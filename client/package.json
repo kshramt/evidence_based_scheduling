@@ -138,6 +138,7 @@
     "@vitest/coverage-istanbul": "^1.6.0",
     "@vitest/ui": "^1.6.0",
     "autoprefixer": "^10.4.19",
+    "babel-plugin-react-compiler": "0.0.0-experimental-592953e-20240517",
     "eslint": "^8.57.0",
     "eslint-import-resolver-typescript": "^3.6.1",
     "eslint-plugin-import": "^2.29.1",

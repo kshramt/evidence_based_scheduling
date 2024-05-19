@@ -43,7 +43,7 @@ RUN mkdir -p /usr/local/node \
    && cp -a /usr/local/bin /usr/local/node/bin && rm -f /usr/local/node/bin/docker-entrypoint.sh \
    && cp -a /usr/local/include /usr/local/node/include \
    && cp -a /usr/local/lib /usr/local/node/lib
-RUN npm install -g @pnpm/exe@8.13.1
+RUN npm install -g @pnpm/exe@9.1.1
 
 
 FROM ubuntu_base as base_js
