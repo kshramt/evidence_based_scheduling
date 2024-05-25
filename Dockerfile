@@ -108,6 +108,7 @@ RUN apt-get update \
    libnss3\
    libpango-1.0-0\
    libpangocairo-1.0-0\
+   libsecret-1-0 \
    libx11-6\
    libx11-xcb1\
    libxcb-shm0\
