@@ -63,6 +63,8 @@
         "[typescript]": {
           "editor.defaultFormatter": "esbenp.prettier-vscode"
         },
+        "bazel.lsp.args": ["server", "--experimental_infer_ctx_attributes"],
+        "bazel.lsp.command": "starpls",
         "deno.enablePaths": [
           "bake.ts"
         ],

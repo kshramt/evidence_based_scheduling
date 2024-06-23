@@ -10,6 +10,9 @@ RUN apt-get update \
    && apt-get clean \
    && rm -rf /var/lib/apt/lists/*
 
+FROM curl_base AS starpls_downloader
+RUN arch="$(dpkg --print-architecture)" && curl -sSf -L -o /usr/local/bin/starpls "https://github.com/withered-magic/starpls/releases/download/v0.1.14/starpls-linux-${arch}" && chmod +x /usr/local/bin/starpls
+
 FROM curl_base AS build_essential_base
 RUN apt-get update \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -32,8 +35,8 @@ ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 FROM curl_base as bazel_downloader
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
-RUN arch="$(dpkg --print-architecture)" && curl -L -o /usr/local/bin/buildifier "https://github.com/bazelbuild/buildtools/releases/download/v6.4.0/buildifier-linux-${arch}" && chmod +x /usr/local/bin/buildifier
-RUN arch="$(dpkg --print-architecture)" && curl -L -o /usr/local/bin/bazelisk "https://github.com/bazelbuild/bazelisk/releases/download/v1.19.0/bazelisk-linux-${arch}" && chmod +x /usr/local/bin/bazelisk
+RUN arch="$(dpkg --print-architecture)" && curl -sSf -L -o /usr/local/bin/buildifier "https://github.com/bazelbuild/buildtools/releases/download/v6.4.0/buildifier-linux-${arch}" && chmod +x /usr/local/bin/buildifier
+RUN arch="$(dpkg --print-architecture)" && curl -sSf -L -o /usr/local/bin/bazel "https://github.com/bazelbuild/bazelisk/releases/download/v1.19.0/bazelisk-linux-${arch}" && chmod +x /usr/local/bin/bazel
 
 
 FROM node:21.7.1-bookworm-slim AS node_downloader
@@ -166,8 +169,9 @@ COPY --link --from=node_downloader /usr/local/bin/pnpm /usr/local/bin/
 COPY --link --from=docker_downloader /usr/local/bin/docker /usr/local/bin/docker
 COPY --link --from=docker_downloader /usr/local/libexec/docker /usr/local/libexec/docker
 COPY --link --from=bazel_downloader /usr/local/bin/buildifier /usr/local/bin/buildifier
-COPY --link --from=bazel_downloader /usr/local/bin/bazelisk /usr/local/bin/bazelisk
+COPY --link --from=bazel_downloader /usr/local/bin/bazel /usr/local/bin/bazel
 COPY --link --from=hadolint_base /bin/hadolint /usr/local/bin/hadolint
+COPY --link --from=starpls_downloader /usr/local/bin/starpls /usr/local/bin/starpls
 
 ARG host_home
 
