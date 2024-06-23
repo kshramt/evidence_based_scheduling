@@ -24,11 +24,11 @@ FROM hadolint/hadolint:v2.12.0-alpine as hadolint_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
-FROM ghcr.io/amacneil/dbmate:2.13.0 AS base_dbmate
+FROM ghcr.io/amacneil/dbmate:2.15.0 AS base_dbmate
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
-FROM denoland/deno:distroless-1.42.4 as deno_base
+FROM denoland/deno:distroless-1.43.2 as deno_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
@@ -39,7 +39,7 @@ RUN arch="$(dpkg --print-architecture)" && curl -sSf -L -o /usr/local/bin/buildi
 RUN arch="$(dpkg --print-architecture)" && curl -sSf -L -o /usr/local/bin/bazel "https://github.com/bazelbuild/bazelisk/releases/download/v1.19.0/bazelisk-linux-${arch}" && chmod +x /usr/local/bin/bazel
 
 
-FROM node:21.7.1-bookworm-slim AS node_downloader
+FROM node:22.1.0-bookworm-slim AS node_downloader
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 RUN mkdir -p /usr/local/node \
@@ -63,7 +63,7 @@ COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/bin/docker /usr/local
 COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/libexec/docker /usr/local/libexec/docker
 
 
-FROM rust:1.77.1-bookworm AS rust_downloader
+FROM rust:1.78.0-bookworm AS rust_downloader
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 RUN rustup component add clippy rust-analyzer rustfmt
@@ -206,15 +206,15 @@ ENV PYTHONDONTWRITEBYTECODE 1
 WORKDIR /app
 RUN python3 -m venv .venv
 
-FROM nginx:1.25.4-alpine AS base_nginx
+FROM nginx:1.26.0-alpine AS base_nginx
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
-FROM envoyproxy/envoy:distroless-v1.29.2 AS base_envoy
+FROM envoyproxy/envoy:distroless-v1.30.1 AS base_envoy
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
-FROM postgres:16.2-bookworm AS base_postgres
+FROM postgres:16.3-bookworm AS base_postgres
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
