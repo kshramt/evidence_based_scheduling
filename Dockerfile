@@ -82,8 +82,8 @@ ENV CARGO_HOME "/usr/local/cargo"
 FROM curl_base AS rye_downloader
 RUN curl -sSf https://rye.astral.sh/get | RYE_VERSION="0.35.0" RYE_INSTALL_OPTION="--yes" bash
 RUN /root/.rye/shims/rye fetch cpython@3.12.0
-RUN cd /root/.rye/py/cpython@3.12.0/install/bin && ln -s python3 python
-RUN /root/.rye/py/cpython@3.12.0/install/bin/python3 -m pip install poetry==1.7.1
+RUN cd /root/.rye/py/cpython@3.12.0/bin && ln -s python3 python
+RUN /root/.rye/py/cpython@3.12.0/bin/python3 -m pip install poetry==1.7.1
 
 
 FROM ubuntu_base AS devcontainer
@@ -152,7 +152,7 @@ RUN apt-get update \
    wget \
    vim
 COPY --link --from=rye_downloader /root/.rye /root/.rye
-ENV PATH "/root/.rye/py/cpython@3.12.0/install/bin:${PATH}"
+ENV PATH "/root/.rye/py/cpython@3.12.0/bin:${PATH}"
 
 COPY --link .devcontainer/skel /etc/skel
 
@@ -200,7 +200,7 @@ WORKDIR /app
 
 FROM ubuntu_base AS base_poetry12
 COPY --link --from=rye_downloader /root/.rye /root/.rye
-ENV PATH "/root/.rye/py/cpython@3.12.0/install/bin:${PATH}"
+ENV PATH "/root/.rye/py/cpython@3.12.0/bin:${PATH}"
 ENV PYTHONUNBUFFERED 1
 ENV PYTHONDONTWRITEBYTECODE 1
 WORKDIR /app
