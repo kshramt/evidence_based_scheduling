@@ -20,7 +20,7 @@ RUN apt-get update \
    && apt-get clean \
    && rm -rf /var/lib/apt/lists/*
 
-FROM hadolint/hadolint:v2.12.0-alpine as hadolint_base
+FROM hadolint/hadolint:v2.12.0-alpine AS hadolint_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
@@ -28,11 +28,11 @@ FROM ghcr.io/amacneil/dbmate:2.15.0 AS base_dbmate
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
-FROM denoland/deno:distroless-1.43.2 as deno_base
+FROM denoland/deno:distroless-1.43.2 AS deno_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
-FROM curl_base as bazel_downloader
+FROM curl_base AS bazel_downloader
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 RUN arch="$(dpkg --print-architecture)" && curl -sSf -L -o /usr/local/bin/buildifier "https://github.com/bazelbuild/buildtools/releases/download/v6.4.0/buildifier-linux-${arch}" && chmod +x /usr/local/bin/buildifier
@@ -49,7 +49,7 @@ RUN mkdir -p /usr/local/node \
 RUN npm install -g @pnpm/exe@8.13.1
 
 
-FROM ubuntu_base as base_js
+FROM ubuntu_base AS base_js
 COPY --link --from=node_downloader /usr/local/node /usr/local/node
 COPY --link --from=node_downloader /usr/local/lib/node_modules /usr/local/lib/node_modules
 COPY --link --from=node_downloader /usr/local/bin/pnpm /usr/local/bin/
