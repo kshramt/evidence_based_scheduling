@@ -24,7 +24,7 @@ FROM hadolint/hadolint:v2.12.0-alpine AS hadolint_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
-FROM ghcr.io/amacneil/dbmate:2.15.0 AS base_dbmate
+FROM ghcr.io/amacneil/dbmate:2.18.0 AS base_dbmate
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
