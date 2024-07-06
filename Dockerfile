@@ -10,8 +10,8 @@ RUN apt-get update \
    && apt-get clean \
    && rm -rf /var/lib/apt/lists/*
 
-FROM curl_base AS starpls_downloader
-RUN arch="$(dpkg --print-architecture)" && curl -sSf -L -o /usr/local/bin/starpls "https://github.com/withered-magic/starpls/releases/download/v0.1.14/starpls-linux-${arch}" && chmod +x /usr/local/bin/starpls
+# FROM curl_base AS starpls_downloader
+# RUN arch="$(dpkg --print-architecture)" && curl -sSf -L -o /usr/local/bin/starpls "https://github.com/withered-magic/starpls/releases/download/v0.1.14/starpls-linux-${arch}" && chmod +x /usr/local/bin/starpls
 
 FROM curl_base AS build_essential_base
 RUN apt-get update \
@@ -171,7 +171,7 @@ COPY --link --from=docker_downloader /usr/local/libexec/docker /usr/local/libexe
 COPY --link --from=bazel_downloader /usr/local/bin/buildifier /usr/local/bin/buildifier
 COPY --link --from=bazel_downloader /usr/local/bin/bazel /usr/local/bin/bazel
 COPY --link --from=hadolint_base /bin/hadolint /usr/local/bin/hadolint
-COPY --link --from=starpls_downloader /usr/local/bin/starpls /usr/local/bin/starpls
+# COPY --link --from=starpls_downloader /usr/local/bin/starpls /usr/local/bin/starpls
 
 ARG host_home
 
