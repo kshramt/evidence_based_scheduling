@@ -338,8 +338,8 @@ RUN cargo build --release
 FROM gcr.io/distroless/cc-debian12:nonroot AS prod_api_v2
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
-WORKDIR /app
-COPY --link --from=base_rust_builder /app/target/release/api_v2 .
+COPY --link --from=base_rust_builder /app/target/release/api_v2 /work/api_v2
+WORKDIR /work
 ENTRYPOINT ["./api_v2"]
 
 FROM base_poetry11 AS tests_e2e
