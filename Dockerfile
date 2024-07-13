@@ -28,7 +28,7 @@ FROM ghcr.io/amacneil/dbmate:2.19.0 AS base_dbmate
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
-FROM denoland/deno:distroless-1.43.2 AS deno_base
+FROM denoland/deno:distroless-1.45.2 AS deno_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
