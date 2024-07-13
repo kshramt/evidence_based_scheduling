@@ -338,7 +338,7 @@ RUN cargo build --release
 FROM gcr.io/distroless/cc-debian12:nonroot AS prod_api_v2
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
-WORKDIR /app
+WORKDIR /app2
 COPY --link --from=base_rust_builder /app/target/release/api_v2 .
 ENTRYPOINT ["./api_v2"]
 
