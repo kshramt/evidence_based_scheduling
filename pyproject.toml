@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "py"
 version = "1.0.0"
-dependencies = ["pydantic~=2.7", "pytest-asyncio~=0.23", "pyyaml~=6.0"]
+dependencies = ["pydantic~=2.7", "pyyaml~=6.0"]
 requires-python = ">=3.11,<3.13"
 authors = [{ name = "kshramt", email = "kshramt@example.com" }]
 description = "Evidence Based Scheduling"
@@ -16,7 +16,7 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest~=7.4", "ruff"]
+dev = ["ruff"]
 
 [tool.setuptools]
 packages = []
