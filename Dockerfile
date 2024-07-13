@@ -1,4 +1,4 @@
-FROM ubuntu:22.04 AS ubuntu_base
+FROM ubuntu:24.04 AS ubuntu_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
