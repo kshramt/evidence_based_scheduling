@@ -60,21 +60,16 @@ impl Id128 {
     }
 
     pub fn to_base62(&self) -> String {
-        let mut num = u128::from_be_bytes(self.0);
-        if num == 0 {
-            return "0".into();
+        let mut encoded = [0u8; 22];
+        let mut n = u128::from_be_bytes(self.0);
+
+        for i in 0..22 {
+            let rem = (n % 62) as usize;
+            encoded[21 - i] = BASE62_CHARS[rem];
+            n /= 62;
         }
 
-        let mut encoded: Vec<u8> = vec![];
-        while 0 < num {
-            let remainder = (num % 62) as usize;
-            encoded.push(BASE62_CHARS[remainder]);
-            num /= 62;
-        }
-
-        // Convert Vec<u8> to String.
-        encoded.reverse();
-        String::from_utf8(encoded).unwrap()
+        String::from_utf8(encoded.to_vec()).unwrap()
     }
 }
 
@@ -123,27 +118,27 @@ mod tests {
 
     #[test]
     fn test_to_base62() {
-        assert_eq!(Id128::new([0u8; 16]).to_base62(), "0");
+        assert_eq!(Id128::new([0u8; 16]).to_base62(), "0000000000000000000000");
         assert_eq!(
             Id128::new([
                 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 1u8
             ])
             .to_base62(),
-            "1"
+            "0000000000000000000001"
         );
         assert_eq!(
             Id128::new([
                 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 61u8
             ])
             .to_base62(),
-            "z"
+            "000000000000000000000z"
         );
         assert_eq!(
             Id128::new([
                 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 62u8
             ])
             .to_base62(),
-            "10"
+            "0000000000000000000010"
         );
     }
 }
