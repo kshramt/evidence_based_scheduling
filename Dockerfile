@@ -206,7 +206,7 @@ ENV PYTHONDONTWRITEBYTECODE 1
 WORKDIR /app
 RUN python3 -m venv .venv
 
-FROM nginx:1.26.0-alpine AS base_nginx
+FROM nginx:1.27.0-alpine AS base_nginx
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
