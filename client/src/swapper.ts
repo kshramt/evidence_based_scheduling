@@ -58,7 +58,6 @@ export const set = <K1 extends PropertyKey, Data extends object>(
     // @ts-expect-error Just ignore the error.
     swapped[k2] = { [k1]: value };
   } else {
-    // @ts-expect-error Just ignore the error.
     swapped[k2][k1] = value;
   }
 };
@@ -89,7 +88,6 @@ const addToSwapped = <K1 extends PropertyKey, Data extends object>(
       // @ts-expect-error Just ignore the error.
       swapped[k2] = { [k1]: value[k2] };
     } else {
-      // @ts-expect-error Just ignore the error.
       swapped[k2][k1] = value[k2];
     }
   }
