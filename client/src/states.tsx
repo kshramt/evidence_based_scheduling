@@ -644,38 +644,6 @@ export class PersistentStateManager {
       </div>
     );
   };
-
-  useCheckUpdates = () => {
-    React.useEffect(() => {
-      let awaited = false;
-      const handle_focus = async () => {
-        if (awaited) {
-          return;
-        }
-        if (document.hidden) {
-          return;
-        }
-        try {
-          awaited = true;
-          await retryers.get_online_promise();
-          await this.check_remote_head();
-        } finally {
-          awaited = false;
-        }
-      };
-
-      window.addEventListener("focus", handle_focus);
-      window.addEventListener("visibilitychange", handle_focus);
-
-      // Check for update on load.
-      void handle_focus();
-
-      return () => {
-        window.removeEventListener("focus", handle_focus);
-        window.removeEventListener("visibilitychange", handle_focus);
-      };
-    }, []);
-  };
   check_remote_head = async () => {
     await this.#push_rpc(
       logSpan("#rpc/check_remote_head", async () => {

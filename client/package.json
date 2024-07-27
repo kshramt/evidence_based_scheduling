@@ -63,6 +63,9 @@
       "project": "./tsconfig.json",
       "tsconfigRootDir": "."
     },
+    "plugins": [
+      "eslint-plugin-react-compiler"
+    ],
     "rules": {
       "@typescript-eslint/no-confusing-void-expression": "off",
       "@typescript-eslint/no-dynamic-delete": "off",
@@ -102,7 +105,8 @@
       "react/display-name": "off",
       "react/jsx-uses-react": "off",
       "react/prop-types": "off",
-      "react/react-in-jsx-scope": "off"
+      "react/react-in-jsx-scope": "off",
+      "react-compiler/react-compiler": "error"
     },
     "settings": {
       "import/resolver": {
@@ -139,6 +143,7 @@
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-jsx-a11y": "^6.8.0",
     "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-compiler": "0.0.0-experimental-9ed098e-20240725",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-testing-library": "^6.2.0",
     "openapi-zod-client": "^1.15.0",

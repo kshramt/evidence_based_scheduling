@@ -8,6 +8,7 @@ import * as Dnd from "react-dnd";
 import * as Mt from "@mantine/core";
 
 import * as consts from "src/consts";
+import * as retryers from "src/retryers";
 import * as states from "./states";
 import * as toast from "./toast";
 import "./lib.css";
@@ -186,7 +187,36 @@ const AppComponentImpl = (props: {
   store: Awaited<ReturnType<states.PersistentStateManager["get_redux_store"]>>;
   auth: Auth.Auth;
 }) => {
-  props.ctx.useCheckUpdates();
+  // Check for update on focus.
+  React.useEffect(() => {
+    let awaited = false;
+    const handle_focus = async () => {
+      if (awaited) {
+        return;
+      }
+      if (document.hidden) {
+        return;
+      }
+      try {
+        awaited = true;
+        await retryers.get_online_promise();
+        await props.ctx.check_remote_head();
+      } finally {
+        awaited = false;
+      }
+    };
+
+    window.addEventListener("focus", handle_focus);
+    window.addEventListener("visibilitychange", handle_focus);
+
+    // Check for update on load.
+    void handle_focus();
+
+    return () => {
+      window.removeEventListener("focus", handle_focus);
+      window.removeEventListener("visibilitychange", handle_focus);
+    };
+  }, [props.ctx]);
   return (
     <states.session_key_context.Provider value={props.ctx.session_key}>
       <states.idbContext.Provider value={props.ctx.db}>
