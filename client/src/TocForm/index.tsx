@@ -4,7 +4,7 @@ import * as actions from "src/actions";
 import * as types from "src/types";
 import Component from "./Component";
 
-const TocForm = React.memo((props: { nodeId: types.TNodeId }) => {
+const TocForm = (props: { nodeId: types.TNodeId }) => {
   const [selected, setSelected] = React.useState(false);
 
   const dispatch = types.useDispatch();
@@ -37,6 +37,6 @@ const TocForm = React.memo((props: { nodeId: types.TNodeId }) => {
       toggleSelected={toggleSelected}
     />
   );
-});
+};
 
 export default TocForm;

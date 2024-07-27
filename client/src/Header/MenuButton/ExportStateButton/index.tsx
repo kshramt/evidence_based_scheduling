@@ -3,7 +3,7 @@ import * as React from "react";
 import * as types from "src/types";
 import * as utils from "src/utils";
 
-const ExportStateButton = React.memo(() => {
+const ExportStateButton = () => {
   const dispatch = types.useDispatch();
   const handleClick = React.useCallback(() => {
     dispatch((disptch, getState) => {
@@ -21,6 +21,6 @@ const ExportStateButton = React.memo(() => {
       Export state
     </span>
   );
-});
+};
 
 export default ExportStateButton;

@@ -72,28 +72,29 @@ const getRowBackgroundColor = (rowIndex: number) => {
     : "bg-neutral-200 dark:bg-neutral-800";
 };
 
-const HeaderCell = React.memo(
-  (props: { columnIndex: number; style: React.CSSProperties }) => {
-    const ganttDt = getMsecOfGanttZoom(useGanttZoomValue());
-    const t = new Date(START_TIME.f + props.columnIndex * ganttDt);
-    const yy = t.getUTCFullYear() - 2000;
-    const mm = (t.getUTCMonth() + 1).toString().padStart(2, "0");
-    const dd = t.getUTCDate().toString().padStart(2, "0");
-    const title = `${yy}${mm}${dd}`;
-    return (
-      <div
-        style={props.style}
-        className={utils.join(
-          "border border-solid dark:border-neutral-500 border-neutral-400",
-          isToday(props.columnIndex, ganttDt) &&
-            "border-x-yellow-300 dark:border-x-yellow-700 bg-yellow-200 dark:bg-yellow-800",
-        )}
-      >
-        {title}
-      </div>
-    );
-  },
-);
+const HeaderCell = (props: {
+  columnIndex: number;
+  style: React.CSSProperties;
+}) => {
+  const ganttDt = getMsecOfGanttZoom(useGanttZoomValue());
+  const t = new Date(START_TIME.f + props.columnIndex * ganttDt);
+  const yy = t.getUTCFullYear() - 2000;
+  const mm = (t.getUTCMonth() + 1).toString().padStart(2, "0");
+  const dd = t.getUTCDate().toString().padStart(2, "0");
+  const title = `${yy}${mm}${dd}`;
+  return (
+    <div
+      style={props.style}
+      className={utils.join(
+        "border border-solid dark:border-neutral-500 border-neutral-400",
+        isToday(props.columnIndex, ganttDt) &&
+          "border-x-yellow-300 dark:border-x-yellow-700 bg-yellow-200 dark:bg-yellow-800",
+      )}
+    >
+      {title}
+    </div>
+  );
+};
 
 const isToday = (columnIndex: number, ganttDt: number) => {
   return (
@@ -102,91 +103,87 @@ const isToday = (columnIndex: number, ganttDt: number) => {
   );
 };
 
-const IndexCell = React.memo(
-  (props: {
-    rowIndex: number;
-    style: React.CSSProperties;
-    data: types.TNodeId[];
-  }) => {
-    const nodeId = props.data[props.rowIndex];
-    const toTree = utils.useToTree(nodeId);
-    const text = utils.assertV(
-      types.useSelector((state) => {
-        return state.swapped_caches.text?.[nodeId];
-      }),
-    );
-    return (
-      <div
-        className="px-[0.5em] border border-solid dark:border-neutral-500 border-neutral-400 flex"
-        style={props.style}
-      >
-        <button
-          onClick={toTree}
-          title={text}
-          className={utils.join(
-            "w-full whitespace-nowrap text-left overflow-hidden",
-            getRowBackgroundColor(props.rowIndex),
-          )}
-        >
-          {text}
-        </button>
-      </div>
-    );
-  },
-);
-
-const Cell = React.memo(
-  (props: {
-    columnIndex: number;
-    rowIndex: number;
-    style: React.CSSProperties;
-    data: types.TNodeId[];
-  }) => {
-    const nodeId = props.data[props.rowIndex];
-    const events = types.useSelector(
-      (state) => state.swapped_nodes.events?.[nodeId],
-    );
-    const ganttDt = getMsecOfGanttZoom(useGanttZoomValue());
-    const hit = React.useMemo(() => {
-      const start = { f: START_TIME.f + props.columnIndex * ganttDt };
-      const end = { f: start.f + ganttDt };
-      let hit = false;
-      for (const event of events || []) {
-        if (utils.getEventStatus(event) !== "created") {
-          continue;
-        }
-        const overlapState = intervals.getOverlapState(
-          start,
-          end,
-          times.ensureFloatingTime(event.interval_set.start),
-          times.ensureFloatingTime(event.interval_set.end),
-          event.interval_set.delta,
-          intervals.getFloatingTimeOfLimit(event.interval_set),
-        );
-        if (overlapState !== intervals.Overlap.NO_OVERLAP) {
-          hit = true;
-          break;
-        }
-      }
-      return hit;
-    }, [events, ganttDt, props.columnIndex]);
-    return (
-      <div
+const IndexCell = (props: {
+  rowIndex: number;
+  style: React.CSSProperties;
+  data: types.TNodeId[];
+}) => {
+  const nodeId = props.data[props.rowIndex];
+  const toTree = utils.useToTree(nodeId);
+  const text = utils.assertV(
+    types.useSelector((state) => {
+      return state.swapped_caches.text?.[nodeId];
+    }),
+  );
+  return (
+    <div
+      className="px-[0.5em] border border-solid dark:border-neutral-500 border-neutral-400 flex"
+      style={props.style}
+    >
+      <button
+        onClick={toTree}
+        title={text}
         className={utils.join(
-          "border border-solid dark:border-neutral-500 border-neutral-400",
-          isToday(props.columnIndex, ganttDt) &&
-            "border-x-yellow-300 dark:border-x-yellow-700",
-          hit
-            ? "bg-blue-400 dark:bg-blue-900"
-            : getRowBackgroundColor(props.rowIndex),
+          "w-full whitespace-nowrap text-left overflow-hidden",
+          getRowBackgroundColor(props.rowIndex),
         )}
-        style={props.style}
-      />
-    );
-  },
-);
+      >
+        {text}
+      </button>
+    </div>
+  );
+};
 
-const GanttZoomSelector = React.memo(() => {
+const Cell = (props: {
+  columnIndex: number;
+  rowIndex: number;
+  style: React.CSSProperties;
+  data: types.TNodeId[];
+}) => {
+  const nodeId = props.data[props.rowIndex];
+  const events = types.useSelector(
+    (state) => state.swapped_nodes.events?.[nodeId],
+  );
+  const ganttDt = getMsecOfGanttZoom(useGanttZoomValue());
+  const hit = React.useMemo(() => {
+    const start = { f: START_TIME.f + props.columnIndex * ganttDt };
+    const end = { f: start.f + ganttDt };
+    let hit = false;
+    for (const event of events || []) {
+      if (utils.getEventStatus(event) !== "created") {
+        continue;
+      }
+      const overlapState = intervals.getOverlapState(
+        start,
+        end,
+        times.ensureFloatingTime(event.interval_set.start),
+        times.ensureFloatingTime(event.interval_set.end),
+        event.interval_set.delta,
+        intervals.getFloatingTimeOfLimit(event.interval_set),
+      );
+      if (overlapState !== intervals.Overlap.NO_OVERLAP) {
+        hit = true;
+        break;
+      }
+    }
+    return hit;
+  }, [events, ganttDt, props.columnIndex]);
+  return (
+    <div
+      className={utils.join(
+        "border border-solid dark:border-neutral-500 border-neutral-400",
+        isToday(props.columnIndex, ganttDt) &&
+          "border-x-yellow-300 dark:border-x-yellow-700",
+        hit
+          ? "bg-blue-400 dark:bg-blue-900"
+          : getRowBackgroundColor(props.rowIndex),
+      )}
+      style={props.style}
+    />
+  );
+};
+
+const GanttZoomSelector = () => {
   const [ganttZoom, setGanttZoom] = useGanttZoom();
   const handleChange = React.useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -203,21 +200,21 @@ const GanttZoomSelector = React.memo(() => {
       <option value="Y">Year</option>
     </select>
   );
-});
+};
 
 const getScrollLeft = (now: number, ganttDt: number, columnWidth: number) => {
   return columnWidth * Math.floor((now - START_TIME.f) / ganttDt);
 };
 
-const GanttChart = React.memo((props: { indexColumnWidth: number }) => {
+const GanttChart = (props: { indexColumnWidth: number }) => {
   const session = React.useContext(states.session_key_context);
   const showGantt = Jotai.useAtomValue(states.showGanttAtomMap.get(session));
   if (!showGantt) {
     return null;
   }
   return <GanttChartImpl indexColumnWidth={props.indexColumnWidth} />;
-});
-const GanttChartImpl = React.memo((props: { indexColumnWidth: number }) => {
+};
+const GanttChartImpl = (props: { indexColumnWidth: number }) => {
   const resize = useComponentSize();
   const eventss = types.useSelector((state) => state.swapped_nodes.events);
   const statuses = types.useSelector((state) => state.swapped_nodes.status);
@@ -423,6 +420,6 @@ const GanttChartImpl = React.memo((props: { indexColumnWidth: number }) => {
       </div>
     </div>
   );
-});
+};
 
 export default GanttChart;

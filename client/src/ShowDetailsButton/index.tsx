@@ -15,7 +15,7 @@ import * as toast from "src/toast";
 import * as types from "src/types";
 import * as utils from "src/utils";
 
-const Details = React.memo((props: { node_id: types.TNodeId }) => {
+const Details = (props: { node_id: types.TNodeId }) => {
   const [new_edge_type, set_new_edge_type] =
     React.useState<types.TEdgeType>("weak");
   const handle_new_edge_type_change = React.useCallback(
@@ -99,7 +99,7 @@ const Details = React.memo((props: { node_id: types.TNodeId }) => {
       {hline}
     </div>
   );
-});
+};
 
 export const ShowDetailsButton = (props: { node_id: types.TNodeId }) => {
   const dispatch = types.useDispatch();

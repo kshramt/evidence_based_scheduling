@@ -18,49 +18,49 @@ import * as Auth from "./auth";
 
 const TWO_DAYS = 2 * 24 * 60 * 60 * 1000;
 
-const App = React.memo(
-  (props: { ctx: states.PersistentStateManager; logOut: () => void }) => {
-    const [isShowMobileSelected, setIsShowMobileSelected] =
-      React.useState(false);
+const App = (props: {
+  ctx: states.PersistentStateManager;
+  logOut: () => void;
+}) => {
+  const [isShowMobileSelected, setIsShowMobileSelected] = React.useState(false);
 
-    const show_mobile = Jotai.useAtomValue(
-      states.show_mobile_atom_map.get(
-        React.useContext(states.session_key_context),
-      ),
-    );
-    const [showMobileUpdatedAt, setShowMobileUpdatedAt] = Jotai.useAtom(
-      states.showMobileUpdatedAtAtomMap.get(
-        React.useContext(states.session_key_context),
-      ),
-    );
-    const handleClick = React.useCallback(() => {
-      setShowMobileUpdatedAt(-Date.now());
-      setIsShowMobileSelected(true);
-    }, [setShowMobileUpdatedAt, setIsShowMobileSelected]);
-    if (!isShowMobileSelected && Date.now() < showMobileUpdatedAt + TWO_DAYS) {
-      return (
-        <>
-          <button className="btn-icon" onClick={handleClick}>
-            Continue
-          </button>
-          with the current setting. Or select:
-          <components.ToggleShowMobileButton />
-        </>
-      );
-    }
-
+  const show_mobile = Jotai.useAtomValue(
+    states.show_mobile_atom_map.get(
+      React.useContext(states.session_key_context),
+    ),
+  );
+  const [showMobileUpdatedAt, setShowMobileUpdatedAt] = Jotai.useAtom(
+    states.showMobileUpdatedAtAtomMap.get(
+      React.useContext(states.session_key_context),
+    ),
+  );
+  const handleClick = React.useCallback(() => {
+    setShowMobileUpdatedAt(-Date.now());
+    setIsShowMobileSelected(true);
+  }, [setShowMobileUpdatedAt, setIsShowMobileSelected]);
+  if (!isShowMobileSelected && Date.now() < showMobileUpdatedAt + TWO_DAYS) {
     return (
       <>
-        {toast.component}
-        {show_mobile ? (
-          <components.MobileApp ctx={props.ctx} logOut={props.logOut} />
-        ) : (
-          <components.DesktopApp ctx={props.ctx} logOut={props.logOut} />
-        )}
+        <button className="btn-icon" onClick={handleClick}>
+          Continue
+        </button>
+        with the current setting. Or select:
+        <components.ToggleShowMobileButton />
       </>
     );
-  },
-);
+  }
+
+  return (
+    <>
+      {toast.component}
+      {show_mobile ? (
+        <components.MobileApp ctx={props.ctx} logOut={props.logOut} />
+      ) : (
+        <components.DesktopApp ctx={props.ctx} logOut={props.logOut} />
+      )}
+    </>
+  );
+};
 
 const Center = ({ children }: { children: React.ReactNode }) => {
   return (

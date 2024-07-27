@@ -7,7 +7,7 @@ import * as states from "src/states";
 import * as types from "src/types";
 import * as utils from "src/utils";
 
-const AddButton = React.memo((props: { timeId: string }) => {
+const AddButton = (props: { timeId: string }) => {
   const nodeIds = Jotai.useAtomValue(states.nodeIdsState);
   const dispatch = types.useDispatch();
   const handleClick = React.useCallback(() => {
@@ -23,6 +23,6 @@ const AddButton = React.memo((props: { timeId: string }) => {
       {consts.ADD_MARK}
     </button>
   );
-});
+};
 
 export default AddButton;

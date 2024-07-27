@@ -10,7 +10,7 @@ import * as states from "src/states";
 import * as types from "src/types";
 import * as utils from "src/utils";
 
-const Calendar = React.memo(() => {
+const Calendar = () => {
   const queues = hooks.useQueues();
   const tn = (timeId: string) => (
     <TimeNode
@@ -43,86 +43,84 @@ const Calendar = React.memo(() => {
       {tn("F2096")}
     </>
   );
-});
+};
 
 const auto2Style = { gridTemplateColumns: "auto auto" };
 
-const TimeNode = React.memo(
-  (props: {
-    timeId: string;
-    todoNodeIds: types.TNodeId[];
-    nonTodoNodeIds: types.TNodeId[];
-  }) => {
-    const [isOpen, toggle] = states.useUiCalendarOpenSet(props.timeId);
-    const children = React.useMemo(() => {
-      if (props.timeId[0] === "D" || isOpen) {
-        const childIds = utils.getChildTimeIds(props.timeId);
-        const children = childIds.map((timeId) => {
-          return (
-            <TimeNode
-              timeId={timeId}
-              key={timeId}
-              todoNodeIds={props.todoNodeIds}
-              nonTodoNodeIds={props.nonTodoNodeIds}
-            />
-          );
-        });
-        switch (props.timeId[0]) {
-          case "W":
-          case "D": {
-            return children;
-          }
-          default: {
-            return <div>{children}</div>;
-          }
+const TimeNode = (props: {
+  timeId: string;
+  todoNodeIds: types.TNodeId[];
+  nonTodoNodeIds: types.TNodeId[];
+}) => {
+  const [isOpen, toggle] = states.useUiCalendarOpenSet(props.timeId);
+  const children = React.useMemo(() => {
+    if (props.timeId[0] === "D" || isOpen) {
+      const childIds = utils.getChildTimeIds(props.timeId);
+      const children = childIds.map((timeId) => {
+        return (
+          <TimeNode
+            timeId={timeId}
+            key={timeId}
+            todoNodeIds={props.todoNodeIds}
+            nonTodoNodeIds={props.nonTodoNodeIds}
+          />
+        );
+      });
+      switch (props.timeId[0]) {
+        case "W":
+        case "D": {
+          return children;
+        }
+        default: {
+          return <div>{children}</div>;
         }
       }
-      return null;
-    }, [isOpen, props.timeId, props.todoNodeIds, props.nonTodoNodeIds]);
-    const plannedNodeIds = utils.usePlannedNodeIds(
-      props.timeId,
-      props.todoNodeIds,
-      props.nonTodoNodeIds,
-    );
-    const plannedNodes = React.useMemo(() => {
-      return plannedNodeIds.map((nodeId) => {
-        return <PlannedNode node_id={nodeId} key={nodeId} />;
-      });
-    }, [plannedNodeIds]);
-    switch (props.timeId[0]) {
-      case "D": {
-        return (
-          <div className="grid gap-x-[0.125em pl-[0.5em]" style={auto2Style}>
-            <div />
-            <Id timeId={props.timeId} toggle={toggle} />
-            <div />
-            <div>{plannedNodes}</div>
-            {children}
-          </div>
-        );
-      }
-      case "H": {
-        return (
-          <>
-            <Id timeId={props.timeId} toggle={toggle} />
-            <div>{plannedNodes}</div>
-          </>
-        );
-      }
-      default: {
-        return (
-          <div className="pb-[0.0625em] pl-[0.5em] flex gap-x-[0.125em] items-start">
-            <div>
-              <Id timeId={props.timeId} toggle={toggle} />
-              {plannedNodes}
-            </div>
-            {children}
-          </div>
-        );
-      }
     }
-  },
-);
+    return null;
+  }, [isOpen, props.timeId, props.todoNodeIds, props.nonTodoNodeIds]);
+  const plannedNodeIds = utils.usePlannedNodeIds(
+    props.timeId,
+    props.todoNodeIds,
+    props.nonTodoNodeIds,
+  );
+  const plannedNodes = React.useMemo(() => {
+    return plannedNodeIds.map((nodeId) => {
+      return <PlannedNode node_id={nodeId} key={nodeId} />;
+    });
+  }, [plannedNodeIds]);
+  switch (props.timeId[0]) {
+    case "D": {
+      return (
+        <div className="grid gap-x-[0.125em pl-[0.5em]" style={auto2Style}>
+          <div />
+          <Id timeId={props.timeId} toggle={toggle} />
+          <div />
+          <div>{plannedNodes}</div>
+          {children}
+        </div>
+      );
+    }
+    case "H": {
+      return (
+        <>
+          <Id timeId={props.timeId} toggle={toggle} />
+          <div>{plannedNodes}</div>
+        </>
+      );
+    }
+    default: {
+      return (
+        <div className="pb-[0.0625em] pl-[0.5em] flex gap-x-[0.125em] items-start">
+          <div>
+            <Id timeId={props.timeId} toggle={toggle} />
+            {plannedNodes}
+          </div>
+          {children}
+        </div>
+      );
+    }
+  }
+};
 
 const PlannedNode = (props: { node_id: types.TNodeId }) => {
   const text = utils.assertV(
@@ -177,33 +175,31 @@ const PlannedNode = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const Id = React.memo(
-  (props: { timeId: string; toggle: () => Promise<void> }) => {
-    const title = utils.getStringOfTimeId(props.timeId);
-    const { isOn, turnOn, turnOff } = utils.useOn();
-    return (
-      <div
-        onMouseOver={turnOn}
-        onMouseLeave={turnOff}
-        onFocus={turnOn}
-        onBlur={turnOff}
-      >
-        {props.timeId[0] === "D" || props.timeId[0] === "H" ? (
-          <div>{title}</div>
-        ) : (
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={props.toggle}
-            className="font-bold"
-          >
-            {title}
-          </div>
-        )}
-        {isOn ? <AddButton timeId={props.timeId} /> : null}
-      </div>
-    );
-  },
-);
+const Id = (props: { timeId: string; toggle: () => Promise<void> }) => {
+  const title = utils.getStringOfTimeId(props.timeId);
+  const { isOn, turnOn, turnOff } = utils.useOn();
+  return (
+    <div
+      onMouseOver={turnOn}
+      onMouseLeave={turnOff}
+      onFocus={turnOn}
+      onBlur={turnOff}
+    >
+      {props.timeId[0] === "D" || props.timeId[0] === "H" ? (
+        <div>{title}</div>
+      ) : (
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={props.toggle}
+          className="font-bold"
+        >
+          {title}
+        </div>
+      )}
+      {isOn ? <AddButton timeId={props.timeId} /> : null}
+    </div>
+  );
+};
 
 export default Calendar;

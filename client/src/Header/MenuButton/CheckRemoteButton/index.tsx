@@ -2,7 +2,7 @@ import * as React from "react";
 
 import * as utils from "src/utils";
 
-const CheckRemoteButton = React.memo((props: { onClick: () => void }) => {
+const CheckRemoteButton = (props: { onClick: () => void }) => {
   return (
     <span
       onClick={props.onClick}
@@ -13,6 +13,6 @@ const CheckRemoteButton = React.memo((props: { onClick: () => void }) => {
       Check remote
     </span>
   );
-});
+};
 
 export default CheckRemoteButton;
