@@ -11,7 +11,7 @@ export const useTaskShortcutKeys = (
   prefix: string,
 ) => {
   const dispatch = types.useDispatch();
-  const session = React.useContext(states.session_key_context);
+  const session = React.use(states.session_key_context);
   const show_mobile = Jotai.useAtomValue(
     states.show_mobile_atom_map.get(session),
   );

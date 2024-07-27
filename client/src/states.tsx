@@ -936,7 +936,7 @@ const _get_store = () => {
 export const idbContext =
   React.createContext<null | Idb.IDBPDatabase<storage.TDb>>(null);
 export const useIdb = () => {
-  const db = React.useContext(idbContext);
+  const db = React.use(idbContext);
   if (db === null) {
     throw new Error("idbContext is not set");
   }

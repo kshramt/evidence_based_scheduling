@@ -249,7 +249,7 @@ const getNonTodoQueueNodeIdsSortByCtime = memo1_3(getQueueNodeIds);
 
 const useQueue = (isTodo: boolean, nodeFilterQuery: string) => {
   const queues = hooks.useQueues();
-  const session = React.useContext(states.session_key_context);
+  const session = React.use(states.session_key_context);
   const sortByCtime = Jotai.useAtomValue(states.sortByCtimeMap.get(session));
   const texts = useSelector((state) => state.swapped_caches.text);
   return sortByCtime
@@ -346,7 +346,7 @@ const SBTBB = (props: { onClick: () => void }) => {
 };
 
 export const ToggleShowMobileButton = () => {
-  const session = React.useContext(states.session_key_context);
+  const session = React.use(states.session_key_context);
   const [show_mobile, set_show_mobile] = Jotai.useAtom(
     states.show_mobile_atom_map.get(session),
   );
@@ -378,7 +378,7 @@ const Menu = (props: {
     () => dispatch(actions.stop_all_action()),
     [dispatch],
   );
-  const session = React.useContext(states.session_key_context);
+  const session = React.use(states.session_key_context);
   const [sortByCtime, setSortByCtime] = Jotai.useAtom(
     states.sortByCtimeMap.get(session),
   );
@@ -498,7 +498,7 @@ const Body = () => {
   const root = useSelector((state) => {
     return state.data.root;
   });
-  const session = React.useContext(states.session_key_context);
+  const session = React.use(states.session_key_context);
   const pin = Jotai.useAtomValue(states.pinQueueAtomMap.get(session));
   const handleNonTodoQueueSBTTBClick = useCallback(() => {
     nonTodoQueueNodesRef.current?.scrollTo({ top: 0 });
@@ -992,7 +992,7 @@ const PlannedNode = (props: {
 type TNodeIdsWithPrefix = ["special/header", ...types.TNodeId[]];
 
 const TodoQueueNodes = (props: {
-  virtuosoRef: React.RefObject<Rv.VirtuosoHandle>;
+  virtuosoRef: React.RefObject<null | Rv.VirtuosoHandle>;
 }) => {
   const nodeFilterQuery = React.useDeferredValue(
     Jotai.useAtomValue(states.nodeFilterQueryState),
@@ -1176,7 +1176,7 @@ const Edge = (props: {
   edge_id: types.TEdgeId;
   prefix?: undefined | string;
 }) => {
-  const session = React.useContext(states.session_key_context);
+  const session = React.use(states.session_key_context);
   const show_todo_only = Jotai.useAtomValue(
     states.show_todo_only_atom_map.get(session),
   );
@@ -1219,7 +1219,7 @@ const MobileMenu = (props: {
     () => dispatch(actions.stop_all_action()),
     [dispatch],
   );
-  const session = React.useContext(states.session_key_context);
+  const session = React.use(states.session_key_context);
   const [show_todo_only, set_show_todo_only] = Jotai.useAtom(
     states.show_todo_only_atom_map.get(session),
   );
@@ -1307,7 +1307,7 @@ const MobileQueueNodes = () => {
   const texts = utils.assertV(
     useSelector((state) => state.swapped_caches.text),
   );
-  const session = React.useContext(states.session_key_context);
+  const session = React.use(states.session_key_context);
   const show_todo_only = Jotai.useAtomValue(
     states.show_todo_only_atom_map.get(session),
   );
@@ -1580,7 +1580,7 @@ const CopyDescendantTimeNodesPlannedNodeIdsButton = (props: {
 
 const useToQueue = (nodeId: types.TNodeId) => {
   const store = Rr.useStore<types.TState>();
-  const session = React.useContext(states.session_key_context);
+  const session = React.use(states.session_key_context);
   const sortByCtime = Jotai.useAtomValue(states.sortByCtimeMap.get(session));
   return React.useCallback(() => {
     const state = store.getState();

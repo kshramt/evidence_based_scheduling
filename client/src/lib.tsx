@@ -25,13 +25,11 @@ const App = (props: {
   const [isShowMobileSelected, setIsShowMobileSelected] = React.useState(false);
 
   const show_mobile = Jotai.useAtomValue(
-    states.show_mobile_atom_map.get(
-      React.useContext(states.session_key_context),
-    ),
+    states.show_mobile_atom_map.get(React.use(states.session_key_context)),
   );
   const [showMobileUpdatedAt, setShowMobileUpdatedAt] = Jotai.useAtom(
     states.showMobileUpdatedAtAtomMap.get(
-      React.useContext(states.session_key_context),
+      React.use(states.session_key_context),
     ),
   );
   const handleClick = React.useCallback(() => {

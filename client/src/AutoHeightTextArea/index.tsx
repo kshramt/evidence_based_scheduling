@@ -5,16 +5,15 @@ import css from "./index.module.css";
 
 const handleTrailingNewline = (x: string) => x + "\u200b";
 
-const AutoHeightTextArea = React.forwardRef<
-  HTMLTextAreaElement,
-  {
-    text: string;
-    className?: undefined | string;
-  } & Omit<
-    React.HTMLProps<HTMLTextAreaElement>,
-    "ref" | "placeholder" | "value" | "defaultValue" | "className"
-  >
->(({ text, className, ...textareaProps }, ref) => {
+const AutoHeightTextArea = ({
+  ref,
+  text,
+  className,
+  ...textareaProps
+}: {
+  ref?: React.RefObject<null | HTMLTextAreaElement>;
+  text: string;
+} & React.TextareaHTMLAttributes<HTMLTextAreaElement>) => {
   const [localLext, setLocalText] = React.useState(text);
   React.useEffect(() => {
     setLocalText(text);
@@ -53,6 +52,6 @@ const AutoHeightTextArea = React.forwardRef<
       />
     </div>
   );
-});
+};
 
 export default AutoHeightTextArea;

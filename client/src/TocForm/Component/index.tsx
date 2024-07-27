@@ -4,14 +4,16 @@ import AutoHeightTextArea from "src/AutoHeightTextArea";
 import * as consts from "src/consts";
 import * as utils from "src/utils";
 
-const TocForm = React.forwardRef<
-  HTMLTextAreaElement,
-  {
-    onClick: () => void;
-    selected: boolean;
-    toggleSelected: () => void;
-  }
->((props, ref) => {
+const TocForm = ({
+  ref,
+  ...props
+}: {
+  onClick: () => void;
+  selected: boolean;
+  toggleSelected: () => void;
+} & {
+  ref: React.RefObject<null | HTMLTextAreaElement>;
+}) => {
   return (
     <>
       <button className="btn-icon" onClick={props.toggleSelected}>
@@ -33,6 +35,6 @@ const TocForm = React.forwardRef<
       </div>
     </>
   );
-});
+};
 
 export default TocForm;

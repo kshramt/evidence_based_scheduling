@@ -5,7 +5,7 @@ import * as React from "react";
 import * as states from "src/states";
 
 const ShowGanttToggle = () => {
-  const session = React.useContext(states.session_key_context);
+  const session = React.use(states.session_key_context);
   const [showGantt, setShowGantt] = Jotai.useAtom(
     states.showGanttAtomMap.get(session),
   );

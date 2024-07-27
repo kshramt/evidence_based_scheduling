@@ -5,7 +5,7 @@ import * as states from "src/states";
 import * as utils from "src/utils";
 
 const ToggleShowMobileButton = () => {
-  const session = React.useContext(states.session_key_context);
+  const session = React.use(states.session_key_context);
   const [show_mobile, set_show_mobile] = Jotai.useAtom(
     states.show_mobile_atom_map.get(session),
   );
