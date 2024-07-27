@@ -321,9 +321,11 @@ const NodeIdsInput = () => {
   );
 };
 
-const SBTTB: React.FC<{
-  onClick: () => void;
-}> = (props) => {
+const SBTTB = (
+  props: {
+    onClick: () => void;
+  }
+) => {
   return (
     <button
       onClick={props.onClick}
@@ -334,9 +336,11 @@ const SBTTB: React.FC<{
   );
 };
 
-const SBTBB: React.FC<{
-  onClick: () => void;
-}> = (props) => {
+const SBTBB = (
+  props: {
+    onClick: () => void;
+  }
+) => {
   return (
     <button
       onClick={props.onClick}
@@ -999,9 +1003,11 @@ const PlannedNode = (props: {
 
 type TNodeIdsWithPrefix = ["special/header", ...types.TNodeId[]];
 
-const TodoQueueNodes: React.FC<{
-  virtuosoRef: React.RefObject<Rv.VirtuosoHandle>;
-}> = (props) => {
+const TodoQueueNodes = (
+  props: {
+    virtuosoRef: React.RefObject<Rv.VirtuosoHandle>;
+  }
+) => {
   const nodeFilterQuery = React.useDeferredValue(
     Jotai.useAtomValue(states.nodeFilterQueryState),
   );
@@ -1027,10 +1033,12 @@ const QueueNodes = React.memo((props: { node_ids: types.TNodeId[] }) => {
   );
 });
 
-const VirtualizedQueueNodes: React.FC<{
-  node_ids: types.TNodeId[] | TNodeIdsWithPrefix;
-  virtuosoRef: React.Ref<Rv.VirtuosoHandle>;
-}> = React.memo((props) => {
+const VirtualizedQueueNodes = React.memo((
+  props: {
+    node_ids: types.TNodeId[] | TNodeIdsWithPrefix;
+    virtuosoRef: React.Ref<Rv.VirtuosoHandle>;
+  }
+) => {
   return (
     <Rv.Virtuoso
       style={{ height: "100%" }}
@@ -1131,9 +1139,11 @@ const TreeNode = React.memo(
   },
 );
 
-const NonTodoQueueNodes: React.FC<{
-  virtuosoRef: React.Ref<Rv.VirtuosoHandle>;
-}> = React.memo((props) => {
+const NonTodoQueueNodes = React.memo((
+  props: {
+    virtuosoRef: React.Ref<Rv.VirtuosoHandle>;
+  }
+) => {
   const nodeFilterQuery = React.useDeferredValue(
     Jotai.useAtomValue(states.nodeFilterQueryState),
   );
