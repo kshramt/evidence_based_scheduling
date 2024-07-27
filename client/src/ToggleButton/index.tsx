@@ -6,27 +6,25 @@ const toggle = (x: boolean) => {
   return !x;
 };
 
-const ToggleButton = React.memo(
-  (props: {
-    setValue: (fn: (prev: boolean) => boolean) => void;
-    value: boolean;
-    titleOnTrue: string;
-    titleOnFalse: string;
-  }) => {
-    const setValue = props.setValue;
-    const onClick = React.useCallback(() => {
-      setValue(toggle);
-    }, [setValue]);
-    return (
-      <button
-        className="btn-icon"
-        onClick={onClick}
-        onDoubleClick={utils.prevent_propagation}
-      >
-        {props.value ? props.titleOnTrue : props.titleOnFalse}
-      </button>
-    );
-  },
-);
+const ToggleButton = (props: {
+  setValue: (fn: (prev: boolean) => boolean) => void;
+  value: boolean;
+  titleOnTrue: string;
+  titleOnFalse: string;
+}) => {
+  const setValue = props.setValue;
+  const onClick = () => {
+    setValue(toggle);
+  };
+  return (
+    <button
+      className="btn-icon"
+      onClick={onClick}
+      onDoubleClick={utils.prevent_propagation}
+    >
+      {props.value ? props.titleOnTrue : props.titleOnFalse}
+    </button>
+  );
+};
 
 export default ToggleButton;

@@ -8,10 +8,7 @@ import * as utils from "./utils";
 
 export const TodoToDoneButton = (props: { node_id: types.TNodeId }) => {
   const dispatch = useDispatch();
-  const on_click = React.useCallback(
-    () => dispatch(actions.todoToDone(props.node_id)),
-    [props.node_id, dispatch],
-  );
+  const on_click = () => dispatch(actions.todoToDone(props.node_id));
 
   return (
     <button

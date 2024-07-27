@@ -1,6 +1,5 @@
 import * as Jotai from "jotai";
 import * as React from "react";
-import { useCallback } from "react";
 import * as Rr from "react-redux";
 import * as Dnd from "react-dnd";
 import * as Mt from "@mantine/core";
@@ -58,45 +57,44 @@ const SCROLL_BACK_TO_BOTTOM_MARK = (
 const nonTodoQueueNodesRef = React.createRef<Rv.VirtuosoHandle>();
 const todoQueueNodesRef = React.createRef<Rv.VirtuosoHandle>();
 
-export const MobileApp = React.memo(
-  (props: { ctx: states.PersistentStateManager; logOut: () => void }) => {
-    return (
-      <div className="flex flex-col h-screen w-screen">
-        <MobileMenu ctx={props.ctx} logOut={props.logOut} />
-        <MobileBody />
-        {drawerComponent}
-      </div>
-    );
-  },
-);
+export const MobileApp = (props: {
+  ctx: states.PersistentStateManager;
+  logOut: () => void;
+}) => {
+  return (
+    <div className="flex flex-col h-screen w-screen">
+      <MobileMenu ctx={props.ctx} logOut={props.logOut} />
+      <MobileBody />
+      {drawerComponent}
+    </div>
+  );
+};
 
-export const DesktopApp = React.memo(
-  (props: { ctx: states.PersistentStateManager; logOut: () => void }) => {
-    return (
-      <div className="flex flex-col h-screen w-screen">
-        <Menu ctx={props.ctx} logOut={props.logOut} />
-        <Body />
-        {drawerComponent}
-      </div>
-    );
-  },
-);
+export const DesktopApp = (props: {
+  ctx: states.PersistentStateManager;
+  logOut: () => void;
+}) => {
+  return (
+    <div className="flex flex-col h-screen w-screen">
+      <Menu ctx={props.ctx} logOut={props.logOut} />
+      <Body />
+      {drawerComponent}
+    </div>
+  );
+};
 
 const MobileNodeFilterQueryInput = () => {
   const [nodeFilterQuery, setNodeFilterQuery] = Jotai.useAtom(
     states.nodeFilterQueryState,
   );
-  const handle_change = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const v = e.target.value;
-      setNodeFilterQuery(v);
-    },
-    [setNodeFilterQuery],
-  );
-  const clear_input = useCallback(() => {
+  const handle_change = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value;
+    setNodeFilterQuery(v);
+  };
+  const clear_input = () => {
     const v = consts.EMPTY_STRING;
     setNodeFilterQuery(v);
-  }, [setNodeFilterQuery]);
+  };
   return (
     <div className="flex items-center border border-solid border-neutral-400">
       <input
@@ -119,17 +117,14 @@ const NodeFilterQueryInput = () => {
   const [nodeFilterQuery, setNodeFilterQuery] = Jotai.useAtom(
     states.nodeFilterQueryState,
   );
-  const handle_change = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const v = e.target.value;
-      setNodeFilterQuery(v);
-    },
-    [setNodeFilterQuery],
-  );
-  const clear_input = useCallback(() => {
+  const handle_change = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value;
+    setNodeFilterQuery(v);
+  };
+  const clear_input = () => {
     const v = consts.EMPTY_STRING;
     setNodeFilterQuery(v);
-  }, [setNodeFilterQuery]);
+  };
   const ref = useMetaK();
   const queue = useQueue(true, nodeFilterQuery);
   const node_id = queue[0] || null;
@@ -138,17 +133,14 @@ const NodeFilterQueryInput = () => {
     consts.TREE_PREFIX,
   );
   const toTree = utils.useToTree(node_id);
-  const onKeyDown = React.useCallback(
-    (event: React.KeyboardEvent<HTMLElement>) => {
-      if (taskShortcutKeys(event)) {
-        if (event.key === "Enter" && !event.nativeEvent.isComposing) {
-          event.preventDefault();
-          void toTree();
-        }
+  const onKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (taskShortcutKeys(event)) {
+      if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+        event.preventDefault();
+        void toTree();
       }
-    },
-    [taskShortcutKeys, toTree],
-  );
+    }
+  };
 
   return (
     <>
@@ -177,11 +169,9 @@ const RunningNodes = () => {
   const queues = hooks.useQueues();
   const queue = queues.todoQueue;
   const ranges = useSelector((state) => state.swapped_nodes.ranges);
-  const nodeIds = React.useMemo(() => {
-    return queue.filter((nodeId) => {
-      return ranges?.[nodeId].at(-1)?.end === null;
-    });
-  }, [queue, ranges]);
+  const nodeIds = queue.filter((nodeId) => {
+    return ranges?.[nodeId].at(-1)?.end === null;
+  });
   return <QueueNodes node_ids={nodeIds} />;
 };
 
@@ -289,17 +279,14 @@ const useMetaK = () => {
 
 const NodeIdsInput = () => {
   const [nodeIds, setNodeIds] = Jotai.useAtom(states.nodeIdsState);
-  const handle_change = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const v = e.target.value;
-      setNodeIds(v);
-    },
-    [setNodeIds],
-  );
-  const clear_input = useCallback(() => {
+  const handle_change = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = e.target.value;
+    setNodeIds(v);
+  };
+  const clear_input = () => {
     const v = consts.EMPTY_STRING;
     setNodeIds(v);
-  }, [setNodeIds]);
+  };
   return (
     <>
       {consts.IDS_MARK}
@@ -321,11 +308,7 @@ const NodeIdsInput = () => {
   );
 };
 
-const SBTTB = (
-  props: {
-    onClick: () => void;
-  }
-) => {
+const SBTTB = (props: { onClick: () => void }) => {
   return (
     <button
       onClick={props.onClick}
@@ -336,11 +319,7 @@ const SBTTB = (
   );
 };
 
-const SBTBB = (
-  props: {
-    onClick: () => void;
-  }
-) => {
+const SBTBB = (props: { onClick: () => void }) => {
   return (
     <button
       onClick={props.onClick}
@@ -359,10 +338,10 @@ export const ToggleShowMobileButton = () => {
   const setShowMobileUpdatedAt = Jotai.useSetAtom(
     states.showMobileUpdatedAtAtomMap.get(session),
   );
-  const handleClick = useCallback(() => {
+  const handleClick = () => {
     set_show_mobile((v) => !v);
     setShowMobileUpdatedAt(Date.now());
-  }, [set_show_mobile, setShowMobileUpdatedAt]);
+  };
   return (
     <button
       className="btn-icon"
@@ -380,10 +359,7 @@ const Menu = (props: {
 }) => {
   const root = useSelector((state) => state.data.root);
   const dispatch = useDispatch();
-  const stop_all = useCallback(
-    () => dispatch(actions.stop_all_action()),
-    [dispatch],
-  );
+  const stop_all = () => dispatch(actions.stop_all_action());
   const session = React.useContext(states.session_key_context);
   const [sortByCtime, setSortByCtime] = Jotai.useAtom(
     states.sortByCtimeMap.get(session),
@@ -394,28 +370,28 @@ const Menu = (props: {
   const [show_strong_edge_only, set_show_strong_edge_only] = Jotai.useAtom(
     states.show_strong_edge_only_atom_map.get(session),
   );
-  const _undo = useCallback(() => {
+  const _undo = () => {
     dispatch({ type: undoable.UNDO_TYPE });
-  }, [dispatch]);
-  const _redo = useCallback(() => {
+  };
+  const _redo = () => {
     dispatch({ type: undoable.REDO_TYPE });
-  }, [dispatch]);
-  const _smallestToTop = useCallback(() => {
+  };
+  const _smallestToTop = () => {
     dispatch(actions.smallestToTop());
-  }, [dispatch]);
-  const _closestToTop = useCallback(() => {
+  };
+  const _closestToTop = () => {
     dispatch(actions.closestToTop());
-  }, [dispatch]);
-  const move_important_node_to_top = useCallback(() => {
+  };
+  const move_important_node_to_top = () => {
     dispatch(actions.move_important_node_to_top_action());
-  }, [dispatch]);
-  const check_remote_head = useCallback(async () => {
+  };
+  const check_remote_head = async () => {
     try {
       await props.ctx.check_remote_head();
     } catch {
       /* empty */
     }
-  }, [props.ctx]);
+  };
   const [pin, setPin] = Jotai.useAtom(states.pinQueueAtomMap.get(session));
   return (
     <div
@@ -506,19 +482,19 @@ const Body = () => {
   });
   const session = React.useContext(states.session_key_context);
   const pin = Jotai.useAtomValue(states.pinQueueAtomMap.get(session));
-  const handleNonTodoQueueSBTTBClick = useCallback(() => {
+  const handleNonTodoQueueSBTTBClick = () => {
     nonTodoQueueNodesRef.current?.scrollTo({ top: 0 });
-  }, []);
-  const handleTodoQueueSBTTBClick = useCallback(() => {
+  };
+  const handleTodoQueueSBTTBClick = () => {
     todoQueueNodesRef.current?.scrollTo({ top: 0 });
-  }, []);
-  const handleTodoQueueSBTBBClick = useCallback(() => {
+  };
+  const handleTodoQueueSBTBBClick = () => {
     todoQueueNodesRef.current?.scrollTo({ top: Number.MAX_SAFE_INTEGER });
-  }, []);
+  };
   const treeNodesRef = React.useRef<HTMLDivElement>(null);
-  const handleTreeSBTTBClick = useCallback(() => {
+  const handleTreeSBTTBClick = () => {
     treeNodesRef.current?.scrollTo({ top: 0 });
-  }, [treeNodesRef]);
+  };
   return (
     <div className="flex flex-1 gap-x-[1em] overflow-y-hidden">
       <div className="overflow-y-auto flex-none w-[52em] pl-[2em]">
@@ -567,7 +543,7 @@ const CoveyQuadrants = () => {
   );
 };
 
-const PinnedSubTrees = React.memo(() => {
+const PinnedSubTrees = () => {
   const pinned_sub_trees = useSelector((state) => {
     return state.data.pinned_sub_trees;
   });
@@ -578,121 +554,114 @@ const PinnedSubTrees = React.memo(() => {
       })}
     </>
   );
-});
+};
 
-const CoveyQuadrant = React.memo(
-  (props: {
-    quadrant_id:
-      | "important_urgent"
-      | "important_not_urgent"
-      | "not_important_urgent"
-      | "not_important_not_urgent";
-  }) => {
-    const nodes = useSelector(
-      (state) => state.data.covey_quadrants[props.quadrant_id].nodes,
-    );
-    const dispatch = useDispatch();
-    const selectedNodeIds = Jotai.useAtomValue(states.nodeIdsState);
-    const assign_nodes = React.useCallback(() => {
-      const node_ids = utils.node_ids_list_of_node_ids_string(selectedNodeIds);
-      if (node_ids.length < 1) {
-        return;
-      }
-      const payload = {
+const CoveyQuadrant = (props: {
+  quadrant_id:
+    | "important_urgent"
+    | "important_not_urgent"
+    | "not_important_urgent"
+    | "not_important_not_urgent";
+}) => {
+  const nodes = useSelector(
+    (state) => state.data.covey_quadrants[props.quadrant_id].nodes,
+  );
+  const dispatch = useDispatch();
+  const selectedNodeIds = Jotai.useAtomValue(states.nodeIdsState);
+  const assign_nodes = () => {
+    const node_ids = utils.node_ids_list_of_node_ids_string(selectedNodeIds);
+    if (node_ids.length < 1) {
+      return;
+    }
+    const payload = {
+      quadrant_id: props.quadrant_id,
+      node_ids,
+    };
+    dispatch(actions.assign_nodes_to_covey_quadrant_action(payload));
+  };
+  return (
+    <div className={`overflow-y-auto h-[50%] p-[0.5em]`}>
+      <button className="btn-icon" onClick={assign_nodes}>
+        {consts.ADD_MARK}
+      </button>
+      {props.quadrant_id}
+      {nodes
+        .slice(0)
+        .reverse()
+        .map((node_id) => (
+          <CoveyQuadrantNode
+            node_id={node_id}
+            quadrant_id={props.quadrant_id}
+            key={node_id}
+          />
+        ))}
+    </div>
+  );
+};
+
+const CoveyQuadrantNode = (props: {
+  node_id: types.TNodeId;
+  quadrant_id:
+    | "important_urgent"
+    | "important_not_urgent"
+    | "not_important_urgent"
+    | "not_important_not_urgent";
+}) => {
+  const text = utils.assertV(
+    useSelector((state) => state.swapped_caches.text?.[props.node_id]),
+  );
+  const status = utils.assertV(
+    useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
+  );
+  const dispatch = useDispatch();
+  const { isOn, turnOn, turnOff } = utils.useOn();
+  const is_running = utils.useIsRunning(props.node_id);
+  const unassign_node = () => {
+    dispatch(
+      actions.unassign_nodes_of_covey_quadrant_action({
         quadrant_id: props.quadrant_id,
-        node_ids,
-      };
-      dispatch(actions.assign_nodes_to_covey_quadrant_action(payload));
-    }, [props.quadrant_id, selectedNodeIds, dispatch]);
-    return (
-      <div className={`overflow-y-auto h-[50%] p-[0.5em]`}>
-        <button className="btn-icon" onClick={assign_nodes}>
-          {consts.ADD_MARK}
-        </button>
-        {props.quadrant_id}
-        {nodes
-          .slice(0)
-          .reverse()
-          .map((node_id) => (
-            <CoveyQuadrantNode
-              node_id={node_id}
-              quadrant_id={props.quadrant_id}
-              key={node_id}
-            />
-          ))}
-      </div>
+        node_ids: [props.node_id],
+      }),
     );
-  },
-);
-
-const CoveyQuadrantNode = React.memo(
-  (props: {
-    node_id: types.TNodeId;
-    quadrant_id:
-      | "important_urgent"
-      | "important_not_urgent"
-      | "not_important_urgent"
-      | "not_important_not_urgent";
-  }) => {
-    const text = utils.assertV(
-      useSelector((state) => state.swapped_caches.text?.[props.node_id]),
-    );
-    const status = utils.assertV(
-      useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
-    );
-    const dispatch = useDispatch();
-    const { isOn, turnOn, turnOff } = utils.useOn();
-    const is_running = utils.useIsRunning(props.node_id);
-    const unassign_node = React.useCallback(() => {
-      dispatch(
-        actions.unassign_nodes_of_covey_quadrant_action({
-          quadrant_id: props.quadrant_id,
-          node_ids: [props.node_id],
-        }),
-      );
-    }, [props.quadrant_id, props.node_id, dispatch]);
-    const to_tree = utils.useToTree(props.node_id);
-    return status === "todo" ? (
-      <div
-        className={utils.join(
-          "p-[0.0625em] inline-block",
-          is_running ? "running" : undefined,
-        )}
-        onMouseOver={turnOn}
-        onFocus={turnOn}
-        onMouseLeave={turnOff}
+  };
+  const to_tree = utils.useToTree(props.node_id);
+  return status === "todo" ? (
+    <div
+      className={utils.join(
+        "p-[0.0625em] inline-block",
+        is_running ? "running" : undefined,
+      )}
+      onMouseOver={turnOn}
+      onFocus={turnOn}
+      onMouseLeave={turnOff}
+    >
+      <span
+        onClick={to_tree}
+        className="w-[15em] block whitespace-nowrap overflow-hidden cursor-pointer"
+        role="button"
+        tabIndex={0}
       >
-        <span
-          onClick={to_tree}
-          className="w-[15em] block whitespace-nowrap overflow-hidden cursor-pointer"
-          role="button"
-          tabIndex={0}
-        >
-          {text.slice(0, 40)}
-        </span>
-        {(isOn || is_running) && (
-          <div className="flex w-fit gap-x-[0.25em]">
-            <StartButton node_id={props.node_id} />
-            <StartConcurrentButton node_id={props.node_id} />
-            <CopyNodeIdButton node_id={props.node_id} />
-            <button className="btn-icon" onClick={unassign_node}>
-              {consts.DELETE_MARK}
-            </button>
-          </div>
-        )}
-      </div>
-    ) : null;
-  },
-);
+        {text.slice(0, 40)}
+      </span>
+      {(isOn || is_running) && (
+        <div className="flex w-fit gap-x-[0.25em]">
+          <StartButton node_id={props.node_id} />
+          <StartConcurrentButton node_id={props.node_id} />
+          <CopyNodeIdButton node_id={props.node_id} />
+          <button className="btn-icon" onClick={unassign_node}>
+            {consts.DELETE_MARK}
+          </button>
+        </div>
+      )}
+    </div>
+  ) : null;
+};
 
-const Timeline = React.memo(() => {
+const Timeline = () => {
   const dispatch = useDispatch();
   const count = useSelector((state) => state.data.timeline.count);
-  const increment_count = React.useCallback(
-    () => dispatch(actions.increment_count_action()),
-    [dispatch],
-  );
-  const decade_nodes = React.useMemo(() => {
+  const increment_count = () => dispatch(actions.increment_count_action());
+  const decade_nodes = () => {
     const res = [];
     for (let i_count = 0; i_count < count; ++i_count) {
       const time_node_id = `e${i_count}`;
@@ -701,7 +670,7 @@ const Timeline = React.memo(() => {
       }
     }
     return res;
-  }, [count]);
+  };
   return (
     <>
       {decade_nodes}
@@ -710,7 +679,7 @@ const Timeline = React.memo(() => {
       </button>
     </>
   );
-});
+};
 
 const getTimeNodeIdEl = (
   time_node_id: types.TTimeNodeId,
@@ -774,7 +743,7 @@ const getTimeNodeIdEl = (
   }
 };
 
-const TimeNode = React.memo((props: { time_node_id: types.TTimeNodeId }) => {
+const TimeNode = (props: { time_node_id: types.TTimeNodeId }) => {
   const time_node = useSelector(
     (state) => state.data.timeline.time_nodes[props.time_node_id],
   );
@@ -862,76 +831,73 @@ const TimeNode = React.memo((props: { time_node_id: types.TTimeNodeId }) => {
       {props.time_node_id[0] === "w" ? children : <div>{children}</div>}
     </div>
   );
-});
+};
 
-const TimeNodeEntry = React.memo(
-  (props: { time_node_id: types.TTimeNodeId }) => {
-    const dispatch = useDispatch();
-    const time_node = useSelector(
-      (state) => state.data.timeline.time_nodes[props.time_node_id],
-    );
-    const selectedNodeIds = Jotai.useAtomValue(states.nodeIdsState);
-    const text = time_node?.text ? time_node.text : consts.EMPTY_STRING;
-    const { isOn, turnOn, turnOff } = utils.useOn(0);
+const TimeNodeEntry = (props: { time_node_id: types.TTimeNodeId }) => {
+  const dispatch = useDispatch();
+  const time_node = useSelector(
+    (state) => state.data.timeline.time_nodes[props.time_node_id],
+  );
+  const selectedNodeIds = Jotai.useAtomValue(states.nodeIdsState);
+  const text = time_node?.text ? time_node.text : consts.EMPTY_STRING;
+  const { isOn, turnOn, turnOff } = utils.useOn(0);
 
-    const toggle_show_children = React.useCallback(() => {
-      const payload = props.time_node_id;
-      dispatch(actions.toggle_show_time_node_children_action(payload));
-    }, [props.time_node_id, dispatch]);
-    const assign_nodes = React.useCallback(() => {
-      const node_ids = utils.node_ids_list_of_node_ids_string(selectedNodeIds);
-      if (node_ids.length < 1) {
-        return;
-      }
-      const payload = {
+  const toggle_show_children = () => {
+    const payload = props.time_node_id;
+    dispatch(actions.toggle_show_time_node_children_action(payload));
+  };
+  const assign_nodes = () => {
+    const node_ids = utils.node_ids_list_of_node_ids_string(selectedNodeIds);
+    if (node_ids.length < 1) {
+      return;
+    }
+    const payload = {
+      time_node_id: props.time_node_id,
+      node_ids,
+    };
+    dispatch(actions.assign_nodes_to_time_node_action(payload));
+  };
+  const dispatch_set_text_action = (
+    e: React.ChangeEvent<HTMLTextAreaElement>,
+  ) => {
+    const el = e.target;
+    dispatch(
+      actions.set_time_node_text_action({
         time_node_id: props.time_node_id,
-        node_ids,
-      };
-      dispatch(actions.assign_nodes_to_time_node_action(payload));
-    }, [props.time_node_id, selectedNodeIds, dispatch]);
-    const dispatch_set_text_action = React.useCallback(
-      (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        const el = e.target;
-        dispatch(
-          actions.set_time_node_text_action({
-            time_node_id: props.time_node_id,
-            text: el.value,
-          }),
-        );
-      },
-      [dispatch, props.time_node_id],
+        text: el.value,
+      }),
     );
+  };
 
-    return (
-      <td onMouseLeave={turnOff}>
-        <AutoHeightTextArea
-          text={text}
-          className="textarea whitespace-pre-wrap overflow-wrap-anywhere w-[17em] overflow-hidden bg-white dark:bg-neutral-800 px-[0.75em] py-[0.5em]"
-          onBlur={dispatch_set_text_action}
-          onClick={turnOn}
-          onDoubleClick={prevent_propagation}
-        />
-        {isOn && (
-          <div className="flex w-fit gap-x-[0.125em]">
-            <button className="btn-icon" onClick={assign_nodes}>
-              {consts.ADD_MARK}
-            </button>
-            <CopyDescendantTimeNodesPlannedNodeIdsButton
-              time_node_id={props.time_node_id}
-            />
-            <button className="btn-icon" onClick={toggle_show_children}>
-              {time_node === undefined || time_node.show_children === "partial"
-                ? consts.IS_PARTIAL_MARK
-                : time_node.show_children === "full"
-                  ? consts.IS_FULL_MARK
-                  : consts.IS_NONE_MARK}
-            </button>
-          </div>
-        )}
-      </td>
-    );
-  },
-);
+  return (
+    <td onMouseLeave={turnOff}>
+      <AutoHeightTextArea
+        text={text}
+        className="textarea whitespace-pre-wrap overflow-wrap-anywhere w-[17em] overflow-hidden bg-white dark:bg-neutral-800 px-[0.75em] py-[0.5em]"
+        onBlur={dispatch_set_text_action}
+        onClick={turnOn}
+        onDoubleClick={prevent_propagation}
+      />
+      {isOn && (
+        <div className="flex w-fit gap-x-[0.125em]">
+          <button className="btn-icon" onClick={assign_nodes}>
+            {consts.ADD_MARK}
+          </button>
+          <CopyDescendantTimeNodesPlannedNodeIdsButton
+            time_node_id={props.time_node_id}
+          />
+          <button className="btn-icon" onClick={toggle_show_children}>
+            {time_node === undefined || time_node.show_children === "partial"
+              ? consts.IS_PARTIAL_MARK
+              : time_node.show_children === "full"
+                ? consts.IS_FULL_MARK
+                : consts.IS_NONE_MARK}
+          </button>
+        </div>
+      )}
+    </td>
+  );
+};
 
 const PlannedNode = (props: {
   node_id: types.TNodeId;
@@ -947,14 +913,14 @@ const PlannedNode = (props: {
   const dispatch = useDispatch();
   const { isOn, turnOn, turnOff } = utils.useOn();
   const is_running = utils.useIsRunning(props.node_id);
-  const unassign_node = React.useCallback(() => {
+  const unassign_node = () => {
     dispatch(
       actions.unassign_nodes_of_time_node_action({
         time_node_id: props.time_node_id,
         node_ids: [props.node_id],
       }),
     );
-  }, [props.time_node_id, props.node_id, dispatch]);
+  };
   const to_tree = utils.useToTree(props.node_id);
   return (
     <props.Component
@@ -1003,18 +969,16 @@ const PlannedNode = (props: {
 
 type TNodeIdsWithPrefix = ["special/header", ...types.TNodeId[]];
 
-const TodoQueueNodes = (
-  props: {
-    virtuosoRef: React.RefObject<Rv.VirtuosoHandle>;
-  }
-) => {
+const TodoQueueNodes = (props: {
+  virtuosoRef: React.RefObject<Rv.VirtuosoHandle>;
+}) => {
   const nodeFilterQuery = React.useDeferredValue(
     Jotai.useAtomValue(states.nodeFilterQueryState),
   );
   const queue = useQueue(true, nodeFilterQuery);
-  const queueWithPrefix = React.useMemo(() => {
-    return ["special/header"].concat(queue) as unknown as TNodeIdsWithPrefix;
-  }, [queue]);
+  const queueWithPrefix = ["special/header"].concat(
+    queue,
+  ) as unknown as TNodeIdsWithPrefix;
   return (
     <VirtualizedQueueNodes
       node_ids={queueWithPrefix}
@@ -1023,7 +987,7 @@ const TodoQueueNodes = (
   );
 };
 
-const QueueNodes = React.memo((props: { node_ids: types.TNodeId[] }) => {
+const QueueNodes = (props: { node_ids: types.TNodeId[] }) => {
   return (
     <div>
       {props.node_ids.map((node_id, index) => (
@@ -1031,14 +995,12 @@ const QueueNodes = React.memo((props: { node_ids: types.TNodeId[] }) => {
       ))}
     </div>
   );
-});
+};
 
-const VirtualizedQueueNodes = React.memo((
-  props: {
-    node_ids: types.TNodeId[] | TNodeIdsWithPrefix;
-    virtuosoRef: React.Ref<Rv.VirtuosoHandle>;
-  }
-) => {
+const VirtualizedQueueNodes = (props: {
+  node_ids: types.TNodeId[] | TNodeIdsWithPrefix;
+  virtuosoRef: React.Ref<Rv.VirtuosoHandle>;
+}) => {
   return (
     <Rv.Virtuoso
       style={{ height: "100%" }}
@@ -1048,7 +1010,7 @@ const VirtualizedQueueNodes = React.memo((
       ref={props.virtuosoRef}
     />
   );
-});
+};
 
 function queueItemContent(index: number, item: TNodeIdsWithPrefix[number]) {
   switch (item) {
@@ -1071,7 +1033,7 @@ function queueComputeItemKey(_: number, item: TNodeIdsWithPrefix[number]) {
   return item;
 }
 
-const DndTreeNode = React.memo((props: { node_id: types.TNodeId }) => {
+const DndTreeNode = (props: { node_id: types.TNodeId }) => {
   const dispatch = useDispatch();
   const [{ isDragging }, drag] = Dnd.useDrag(
     {
@@ -1106,12 +1068,9 @@ const DndTreeNode = React.memo((props: { node_id: types.TNodeId }) => {
     },
     [props.node_id, dispatch],
   );
-  const ref = React.useCallback(
-    (el: HTMLDivElement | null) => {
-      drag(drop(el));
-    },
-    [drag, drop],
-  );
+  const ref = (el: HTMLDivElement | null) => {
+    drag(drop(el));
+  };
   return (
     <div
       ref={ref}
@@ -1126,24 +1085,23 @@ const DndTreeNode = React.memo((props: { node_id: types.TNodeId }) => {
       )}
     </div>
   );
-});
+};
 
-const TreeNode = React.memo(
-  (props: { node_id: types.TNodeId; prefix?: undefined | string }) => {
-    return (
-      <>
-        <TreeEntry node_id={props.node_id} prefix={props.prefix} />
-        <EdgeList node_id={props.node_id} prefix={props.prefix} />
-      </>
-    );
-  },
-);
+const TreeNode = (props: {
+  node_id: types.TNodeId;
+  prefix?: undefined | string;
+}) => {
+  return (
+    <>
+      <TreeEntry node_id={props.node_id} prefix={props.prefix} />
+      <EdgeList node_id={props.node_id} prefix={props.prefix} />
+    </>
+  );
+};
 
-const NonTodoQueueNodes = React.memo((
-  props: {
-    virtuosoRef: React.Ref<Rv.VirtuosoHandle>;
-  }
-) => {
+const NonTodoQueueNodes = (props: {
+  virtuosoRef: React.Ref<Rv.VirtuosoHandle>;
+}) => {
   const nodeFilterQuery = React.useDeferredValue(
     Jotai.useAtomValue(states.nodeFilterQueryState),
   );
@@ -1154,83 +1112,77 @@ const NonTodoQueueNodes = React.memo((
       virtuosoRef={props.virtuosoRef}
     />
   );
-});
+};
 
-const EdgeList = React.memo(
-  (props: { node_id: types.TNodeId; prefix?: undefined | string }) => {
-    const children = utils.assertV(
-      useSelector((state) => state.swapped_nodes.children?.[props.node_id]),
-    );
-    const statuses = utils.assertV(
-      useSelector((state) => state.swapped_nodes.status),
-    );
-    const cs = utils.assertV(
-      useSelector((state) => state.swapped_edges.c ?? {}),
-    );
-    const todos = Array<JSX.Element>();
-    const dones = Array<JSX.Element>();
-    const donts = Array<JSX.Element>();
-    for (const edgeId of ops.sorted_keys_of(children)) {
-      const c = cs[edgeId];
-      const status = statuses[c];
-      if (status === "todo") {
-        todos.push(
-          <Edge edge_id={edgeId} key={edgeId} prefix={props.prefix} />,
-        );
-      } else if (status === "done") {
-        dones.push(
-          <Edge edge_id={edgeId} key={edgeId} prefix={props.prefix} />,
-        );
-      } else if (status === "dont") {
-        donts.push(
-          <Edge edge_id={edgeId} key={edgeId} prefix={props.prefix} />,
-        );
-      }
+const EdgeList = (props: {
+  node_id: types.TNodeId;
+  prefix?: undefined | string;
+}) => {
+  const children = utils.assertV(
+    useSelector((state) => state.swapped_nodes.children?.[props.node_id]),
+  );
+  const statuses = utils.assertV(
+    useSelector((state) => state.swapped_nodes.status),
+  );
+  const cs = utils.assertV(useSelector((state) => state.swapped_edges.c ?? {}));
+  const todos = Array<JSX.Element>();
+  const dones = Array<JSX.Element>();
+  const donts = Array<JSX.Element>();
+  for (const edgeId of ops.sorted_keys_of(children)) {
+    const c = cs[edgeId];
+    const status = statuses[c];
+    if (status === "todo") {
+      todos.push(<Edge edge_id={edgeId} key={edgeId} prefix={props.prefix} />);
+    } else if (status === "done") {
+      dones.push(<Edge edge_id={edgeId} key={edgeId} prefix={props.prefix} />);
+    } else if (status === "dont") {
+      donts.push(<Edge edge_id={edgeId} key={edgeId} prefix={props.prefix} />);
     }
-    const edge_ids = ops.sorted_keys_of(children);
-    return edge_ids.length ? (
-      <ol className="list-outside pl-[4em] content-visibility-auto">
-        {todos.concat(dones, donts)}
-      </ol>
-    ) : null;
-  },
-);
+  }
+  const edge_ids = ops.sorted_keys_of(children);
+  return edge_ids.length ? (
+    <ol className="list-outside pl-[4em] content-visibility-auto">
+      {todos.concat(dones, donts)}
+    </ol>
+  ) : null;
+};
 
-const Edge = React.memo(
-  (props: { edge_id: types.TEdgeId; prefix?: undefined | string }) => {
-    const session = React.useContext(states.session_key_context);
-    const show_todo_only = Jotai.useAtomValue(
-      states.show_todo_only_atom_map.get(session),
-    );
-    const show_strong_edge_only = Jotai.useAtomValue(
-      states.show_strong_edge_only_atom_map.get(session),
-    );
-    const edgeHide = useSelector(
-      (state) => state.swapped_edges.hide?.[props.edge_id],
-    );
-    const edgeT = utils.assertV(
-      useSelector((state) => state.swapped_edges.t?.[props.edge_id]),
-    );
-    const edgeC = utils.assertV(
-      useSelector((state) => state.swapped_edges.c?.[props.edge_id]),
-    );
-    const childNodeStatus = utils.assertV(
-      useSelector((state) => state.swapped_nodes.status?.[edgeC]),
-    );
-    if (
-      edgeHide ||
-      (show_strong_edge_only && edgeT === "weak") ||
-      (show_todo_only && childNodeStatus !== "todo")
-    ) {
-      return null;
-    }
-    return (
-      <li>
-        <TreeNode node_id={edgeC} prefix={props.prefix} />
-      </li>
-    );
-  },
-);
+const Edge = (props: {
+  edge_id: types.TEdgeId;
+  prefix?: undefined | string;
+}) => {
+  const session = React.useContext(states.session_key_context);
+  const show_todo_only = Jotai.useAtomValue(
+    states.show_todo_only_atom_map.get(session),
+  );
+  const show_strong_edge_only = Jotai.useAtomValue(
+    states.show_strong_edge_only_atom_map.get(session),
+  );
+  const edgeHide = useSelector(
+    (state) => state.swapped_edges.hide?.[props.edge_id],
+  );
+  const edgeT = utils.assertV(
+    useSelector((state) => state.swapped_edges.t?.[props.edge_id]),
+  );
+  const edgeC = utils.assertV(
+    useSelector((state) => state.swapped_edges.c?.[props.edge_id]),
+  );
+  const childNodeStatus = utils.assertV(
+    useSelector((state) => state.swapped_nodes.status?.[edgeC]),
+  );
+  if (
+    edgeHide ||
+    (show_strong_edge_only && edgeT === "weak") ||
+    (show_todo_only && childNodeStatus !== "todo")
+  ) {
+    return null;
+  }
+  return (
+    <li>
+      <TreeNode node_id={edgeC} prefix={props.prefix} />
+    </li>
+  );
+};
 
 const MobileMenu = (props: {
   ctx: states.PersistentStateManager;
@@ -1238,27 +1190,24 @@ const MobileMenu = (props: {
 }) => {
   const root = useSelector((state) => state.data.root);
   const dispatch = useDispatch();
-  const stop_all = useCallback(
-    () => dispatch(actions.stop_all_action()),
-    [dispatch],
-  );
+  const stop_all = () => dispatch(actions.stop_all_action());
   const session = React.useContext(states.session_key_context);
   const [show_todo_only, set_show_todo_only] = Jotai.useAtom(
     states.show_todo_only_atom_map.get(session),
   );
-  const _undo = useCallback(() => {
+  const _undo = () => {
     dispatch({ type: undoable.UNDO_TYPE });
-  }, [dispatch]);
-  const _redo = useCallback(() => {
+  };
+  const _redo = () => {
     dispatch({ type: undoable.REDO_TYPE });
-  }, [dispatch]);
-  const check_remote_head = useCallback(async () => {
+  };
+  const check_remote_head = async () => {
     try {
       await props.ctx.check_remote_head();
     } catch {
       /* empty */
     }
-  }, [props.ctx]);
+  };
   return (
     <div
       className={`flex items-center overflow-x-auto gap-x-[0.25em] h-[3rem] w-full top-0 bg-neutral-200 dark:bg-neutral-900`}
@@ -1337,37 +1286,31 @@ const MobileQueueNodes = () => {
   const nodeFilterQuery = React.useDeferredValue(
     Jotai.useAtomValue(states.nodeFilterQueryState),
   );
-  const processedQuery = React.useMemo(() => {
-    return nodeFilterQuery.toLowerCase().split(" ");
-  }, [nodeFilterQuery]);
+  const processedQuery = nodeFilterQuery.toLowerCase().split(" ");
 
-  const node_ids = React.useMemo(() => {
-    return ops
-      .sorted_keys_of(queue)
-      .filter((node_id) => {
-        return (
-          !(show_todo_only && statuses[node_id] !== "todo") &&
-          getIsMatch(processedQuery, texts[node_id], node_id)
-        );
-      })
-      .slice(0, 100);
-  }, [queue, show_todo_only, statuses, processedQuery, texts]);
+  const node_ids = ops
+    .sorted_keys_of(queue)
+    .filter((node_id) => {
+      return (
+        !(show_todo_only && statuses[node_id] !== "todo") &&
+        getIsMatch(processedQuery, texts[node_id], node_id)
+      );
+    })
+    .slice(0, 100);
 
   return <MobileQueueNodesImpl node_ids={node_ids} />;
 };
 
-const MobileQueueNodesImpl = React.memo(
-  (props: { node_ids: types.TNodeId[] }) => {
-    return (
-      <>
-        {props.node_ids.map((nodeId) => (
-          <MobileQueueNode nodeId={nodeId} key={nodeId} />
-        ))}
-      </>
-    );
-  },
-);
-const MobileQueueNode = React.memo((props: { nodeId: types.TNodeId }) => {
+const MobileQueueNodesImpl = (props: { node_ids: types.TNodeId[] }) => {
+  return (
+    <>
+      {props.node_ids.map((nodeId) => (
+        <MobileQueueNode nodeId={nodeId} key={nodeId} />
+      ))}
+    </>
+  );
+};
+const MobileQueueNode = (props: { nodeId: types.TNodeId }) => {
   return (
     <EntryWrapper node_id={props.nodeId}>
       <TextArea
@@ -1377,61 +1320,62 @@ const MobileQueueNode = React.memo((props: { nodeId: types.TNodeId }) => {
       <MobileEntryButtons node_id={props.nodeId} />
     </EntryWrapper>
   );
-});
+};
 
-const TreeEntry = React.memo(
-  (props: { node_id: types.TNodeId; prefix?: undefined | string }) => {
-    const leaf_estimates_sum = utils.assertV(
-      useSelector(
-        (state) => state.swapped_caches.leaf_estimates_sum?.[props.node_id],
-      ),
-    );
-    const percentiles = utils.assertV(
-      useSelector((state) => state.swapped_caches.percentiles?.[props.node_id]),
-    );
-    const status = utils.assertV(
-      useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
-    );
+const TreeEntry = (props: {
+  node_id: types.TNodeId;
+  prefix?: undefined | string;
+}) => {
+  const leaf_estimates_sum = utils.assertV(
+    useSelector(
+      (state) => state.swapped_caches.leaf_estimates_sum?.[props.node_id],
+    ),
+  );
+  const percentiles = utils.assertV(
+    useSelector((state) => state.swapped_caches.percentiles?.[props.node_id]),
+  );
+  const status = utils.assertV(
+    useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
+  );
 
-    const to_queue = useToQueue(props.node_id);
-    const root = useSelector((state) => state.data.root);
-    const is_root = props.node_id === root;
-    const prefix = props.prefix || consts.TREE_PREFIX;
-    const handleKeyDown = hooks.useTaskShortcutKeys(props.node_id, prefix);
+  const to_queue = useToQueue(props.node_id);
+  const root = useSelector((state) => state.data.root);
+  const is_root = props.node_id === root;
+  const prefix = props.prefix || consts.TREE_PREFIX;
+  const handleKeyDown = hooks.useTaskShortcutKeys(props.node_id, prefix);
 
-    return (
-      <EntryWrapper node_id={props.node_id}>
-        <div className="flex items-end w-fit content-visibility-auto">
-          {is_root ? null : <button onClick={to_queue}>→</button>}
-          <CopyNodeIdButton node_id={props.node_id} />
-          {is_root ? null : (
-            <TextArea
-              node_id={props.node_id}
-              id={`${prefix}${props.node_id}`}
-              className={utils.join(
-                "w-[29em] px-[0.75em] py-[0.5em]",
-                status === "done"
-                  ? "text-red-600 dark:text-red-400"
-                  : status === "dont"
-                    ? "text-neutral-500"
-                    : null,
-              )}
-              onKeyDown={handleKeyDown}
-            />
-          )}
-          <EntryInfos node_id={props.node_id} />
-        </div>
-        {status === "todo" &&
-          0 <= leaf_estimates_sum &&
-          utils.digits1(leaf_estimates_sum) + " | "}
-        {status === "todo" && percentiles.map(utils.digits1).join(", ")}
+  return (
+    <EntryWrapper node_id={props.node_id}>
+      <div className="flex items-end w-fit content-visibility-auto">
+        {is_root ? null : <button onClick={to_queue}>→</button>}
+        <CopyNodeIdButton node_id={props.node_id} />
         {is_root ? null : (
-          <EntryButtons node_id={props.node_id} prefix={prefix} />
+          <TextArea
+            node_id={props.node_id}
+            id={`${prefix}${props.node_id}`}
+            className={utils.join(
+              "w-[29em] px-[0.75em] py-[0.5em]",
+              status === "done"
+                ? "text-red-600 dark:text-red-400"
+                : status === "dont"
+                  ? "text-neutral-500"
+                  : null,
+            )}
+            onKeyDown={handleKeyDown}
+          />
         )}
-      </EntryWrapper>
-    );
-  },
-);
+        <EntryInfos node_id={props.node_id} />
+      </div>
+      {status === "todo" &&
+        0 <= leaf_estimates_sum &&
+        utils.digits1(leaf_estimates_sum) + " | "}
+      {status === "todo" && percentiles.map(utils.digits1).join(", ")}
+      {is_root ? null : (
+        <EntryButtons node_id={props.node_id} prefix={prefix} />
+      )}
+    </EntryWrapper>
+  );
+};
 
 const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
   const leaf_estimates_sum = utils.assertV(
@@ -1547,7 +1491,7 @@ const PredictedNextNodes = () => {
     </ol>
   );
 };
-const PredictedNextNode = React.memo((props: { node_id: types.TNodeId }) => {
+const PredictedNextNode = (props: { node_id: types.TNodeId }) => {
   const text = utils.assertV(
     useSelector((state) => state.swapped_caches.text?.[props.node_id]),
   );
@@ -1567,7 +1511,7 @@ const PredictedNextNode = React.memo((props: { node_id: types.TNodeId }) => {
       </span>
     </div>
   );
-});
+};
 
 const CopyDescendantTimeNodesPlannedNodeIdsButton = (props: {
   time_node_id: types.TTimeNodeId;
@@ -1575,22 +1519,19 @@ const CopyDescendantTimeNodesPlannedNodeIdsButton = (props: {
   const { copy, is_copied } = utils.useClipboard();
   const setNodeIds = Jotai.useSetAtom(states.nodeIdsState);
   const dispatch = useDispatch();
-  const handle_click = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      const multi = e.ctrlKey || e.metaKey;
-      const descend = !e.shiftKey;
-      dispatch(
-        copy_descendant_time_nodes_planned_node_ids_action(
-          props.time_node_id,
-          multi,
-          descend,
-          setNodeIds,
-          copy,
-        ),
-      );
-    },
-    [props.time_node_id, setNodeIds, copy, dispatch],
-  );
+  const handle_click = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const multi = e.ctrlKey || e.metaKey;
+    const descend = !e.shiftKey;
+    dispatch(
+      copy_descendant_time_nodes_planned_node_ids_action(
+        props.time_node_id,
+        multi,
+        descend,
+        setNodeIds,
+        copy,
+      ),
+    );
+  };
   return (
     <button
       className="btn-icon"
@@ -1606,7 +1547,7 @@ const useToQueue = (nodeId: types.TNodeId) => {
   const store = Rr.useStore<types.TState>();
   const session = React.useContext(states.session_key_context);
   const sortByCtime = Jotai.useAtomValue(states.sortByCtimeMap.get(session));
-  return React.useCallback(() => {
+  return () => {
     const state = store.getState();
     const queues = utils.getQueues(
       state.data.queue,
@@ -1628,7 +1569,7 @@ const useToQueue = (nodeId: types.TNodeId) => {
     const ref = isTodo ? todoQueueNodesRef : nonTodoQueueNodesRef;
     const offset = isTodo ? 1 : 0;
     ref.current?.scrollToIndex(index + offset);
-  }, [store, sortByCtime, nodeId]);
+  };
 };
 
 const getIsMatch = (

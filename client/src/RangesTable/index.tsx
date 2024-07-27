@@ -13,19 +13,12 @@ const RangesTable = (props: { node_id: types.TNodeId }) => {
       (state) => state.swapped_nodes.ranges?.[props.node_id].length,
     ),
   );
-  const handle_offset_input = React.useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) =>
-      set_offset(Math.min(Math.max(0, parseInt(e.target.value)), n - 1)),
-    [n, set_offset],
-  );
-  const handle_offset_next = React.useCallback(
-    () => set_offset((offset) => Math.min(offset + rows_per_page, n - 1)),
-    [n, set_offset],
-  );
-  const handle_offset_prev = React.useCallback(
-    () => set_offset((offset) => Math.max(offset - rows_per_page, 0)),
-    [set_offset],
-  );
+  const handle_offset_input = (e: React.ChangeEvent<HTMLInputElement>) =>
+    set_offset(Math.min(Math.max(0, parseInt(e.target.value)), n - 1));
+  const handle_offset_next = () =>
+    set_offset((offset) => Math.min(offset + rows_per_page, n - 1));
+  const handle_offset_prev = () =>
+    set_offset((offset) => Math.max(offset - rows_per_page, 0));
   const rows = [];
   for (let i = offset; i < Math.min(offset + rows_per_page, n); ++i) {
     const i_range = n - i - 1;
@@ -73,71 +66,58 @@ const RangesTableRow = (props: { node_id: types.TNodeId; i_range: number }) => {
     ),
   );
   const dispatch = types.useDispatch();
-  const set_start = React.useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      dispatch(
-        actions.set_range_value_action({
-          node_id: props.node_id,
-          i_range: props.i_range,
-          k: "start",
-          v: e.target.value,
-        }),
-      );
-    },
-    [props.node_id, props.i_range, dispatch],
-  );
-  const set_end = React.useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      dispatch(
-        actions.set_range_value_action({
-          node_id: props.node_id,
-          i_range: props.i_range,
-          k: "end",
-          v: e.target.value,
-        }),
-      );
-    },
-    [props.node_id, props.i_range, dispatch],
-  );
-  const handle_delete = React.useCallback(() => {
+  const set_start = (e: React.ChangeEvent<HTMLInputElement>) => {
+    dispatch(
+      actions.set_range_value_action({
+        node_id: props.node_id,
+        i_range: props.i_range,
+        k: "start",
+        v: e.target.value,
+      }),
+    );
+  };
+  const set_end = (e: React.ChangeEvent<HTMLInputElement>) => {
+    dispatch(
+      actions.set_range_value_action({
+        node_id: props.node_id,
+        i_range: props.i_range,
+        k: "end",
+        v: e.target.value,
+      }),
+    );
+  };
+  const handle_delete = () => {
     dispatch(
       actions.delete_range_action({
         node_id: props.node_id,
         i_range: props.i_range,
       }),
     );
-  }, [props.node_id, props.i_range, dispatch]);
+  };
   const start_date = utils.getStringOfLocalTime(range.start);
   const end_date = range.end
     ? utils.getStringOfLocalTime(range.end)
     : undefined;
-  return React.useMemo(
-    () => (
-      <tr>
-        <td className="p-[0.25em]">
-          <input
-            type="datetime-local"
-            value={start_date}
-            onChange={set_start}
-          />
-        </td>
-        <td className="p-[0.25em]">
-          {end_date && (
-            <input type="datetime-local" value={end_date} onChange={set_end} />
-          )}
-        </td>
-        <td className="p-[0.25em]">
-          <button
-            className="btn-icon"
-            onClick={handle_delete}
-            onDoubleClick={utils.prevent_propagation}
-          >
-            {consts.DELETE_MARK}
-          </button>
-        </td>
-      </tr>
-    ),
-    [end_date, start_date, handle_delete, set_start, set_end],
+  return (
+    <tr>
+      <td className="p-[0.25em]">
+        <input type="datetime-local" value={start_date} onChange={set_start} />
+      </td>
+      <td className="p-[0.25em]">
+        {end_date && (
+          <input type="datetime-local" value={end_date} onChange={set_end} />
+        )}
+      </td>
+      <td className="p-[0.25em]">
+        <button
+          className="btn-icon"
+          onClick={handle_delete}
+          onDoubleClick={utils.prevent_propagation}
+        >
+          {consts.DELETE_MARK}
+        </button>
+      </td>
+    </tr>
   );
 };
 

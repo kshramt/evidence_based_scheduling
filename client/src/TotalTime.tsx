@@ -11,15 +11,12 @@ export const TotalTime = (props: { node_id: types.TNodeId }) => {
   );
   const dispatch = useDispatch();
   const observe = total_time_utils.observe_of(dispatch);
-  const ref_cb = React.useCallback(
-    (el: null | HTMLSpanElement) => {
-      if (el === null) {
-        return;
-      }
-      observe(el, props.node_id);
-    },
-    [observe, props.node_id],
-  );
+  const ref_cb = (el: null | HTMLSpanElement) => {
+    if (el === null) {
+      return;
+    }
+    observe(el, props.node_id);
+  };
 
   return (
     <span ref={ref_cb}>

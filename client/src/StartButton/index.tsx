@@ -7,11 +7,11 @@ import * as utils from "src/utils";
 
 const StartButton = (props: { node_id: types.TNodeId }) => {
   const dispatch = types.useDispatch();
-  const on_click = React.useCallback(() => {
+  const on_click = () => {
     dispatch(
       actions.start_action({ node_id: props.node_id, is_concurrent: false }),
     );
-  }, [props.node_id, dispatch]);
+  };
   return (
     <button
       className="btn-icon"

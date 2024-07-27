@@ -15,42 +15,41 @@ import * as consts from "./consts";
 import * as types from "./types";
 import * as utils from "./utils";
 
-export const EntryButtons = React.memo(
-  (props: { node_id: types.TNodeId; prefix?: string }) => {
-    const status = utils.assertV(
-      useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
-    );
+export const EntryButtons = (props: {
+  node_id: types.TNodeId;
+  prefix?: string;
+}) => {
+  const status = utils.assertV(
+    useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
+  );
 
-    const root = useSelector((state) => state.data.root);
-    const is_root = props.node_id === root;
-    const is_todo = status === "todo";
+  const root = useSelector((state) => state.data.root);
+  const is_root = props.node_id === root;
+  const is_todo = status === "todo";
 
-    return (
-      <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em] content-visibility-auto">
-        {is_root || !is_todo || <StartOrStopButtons node_id={props.node_id} />}
-        {is_root || !is_todo || <TodoToDoneButton node_id={props.node_id} />}
-        {is_root || !is_todo || <TodoToDontButton node_id={props.node_id} />}
-        {is_root || is_todo || (
-          <DoneOrDontToTodoButton node_id={props.node_id} />
-        )}
-        {is_todo && <EvalButton node_id={props.node_id} />}
-        {is_root || !is_todo || <TopButton node_id={props.node_id} />}
-        {is_root || !is_todo || <MoveUpButton node_id={props.node_id} />}
-        {is_root || !is_todo || <MoveDownButton node_id={props.node_id} />}
-        {/* <DeleteButton node_id={props.node_id} /> */}
-        {is_todo && <AddButton node_id={props.node_id} prefix={props.prefix} />}
-        <ShowDetailsButton node_id={props.node_id} />
-      </div>
-    );
-  },
-);
+  return (
+    <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em] content-visibility-auto">
+      {is_root || !is_todo || <StartOrStopButtons node_id={props.node_id} />}
+      {is_root || !is_todo || <TodoToDoneButton node_id={props.node_id} />}
+      {is_root || !is_todo || <TodoToDontButton node_id={props.node_id} />}
+      {is_root || is_todo || <DoneOrDontToTodoButton node_id={props.node_id} />}
+      {is_todo && <EvalButton node_id={props.node_id} />}
+      {is_root || !is_todo || <TopButton node_id={props.node_id} />}
+      {is_root || !is_todo || <MoveUpButton node_id={props.node_id} />}
+      {is_root || !is_todo || <MoveDownButton node_id={props.node_id} />}
+      {/* <DeleteButton node_id={props.node_id} /> */}
+      {is_todo && <AddButton node_id={props.node_id} prefix={props.prefix} />}
+      <ShowDetailsButton node_id={props.node_id} />
+    </div>
+  );
+};
 
 const MoveUpButton = (props: { node_id: types.TNodeId }) => {
   const dispatch = useDispatch();
-  const on_click = React.useCallback(() => {
+  const on_click = () => {
     dispatch(actions.moveUp_(props.node_id));
     doFocusMoveUpButton(props.node_id);
-  }, [props.node_id, dispatch]);
+  };
 
   return (
     <button
@@ -66,10 +65,10 @@ const MoveUpButton = (props: { node_id: types.TNodeId }) => {
 
 const MoveDownButton = (props: { node_id: types.TNodeId }) => {
   const dispatch = useDispatch();
-  const on_click = React.useCallback(() => {
+  const on_click = () => {
     dispatch(actions.moveDown_(props.node_id));
     doFocusMoveDownButton(props.node_id);
-  }, [props.node_id, dispatch]);
+  };
 
   return (
     <button

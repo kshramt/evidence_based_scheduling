@@ -7,9 +7,9 @@ import * as utils from "src/utils";
 
 const TopButton = (props: { node_id: types.TNodeId; disabled?: boolean }) => {
   const dispatch = types.useDispatch();
-  const on_click = React.useCallback(() => {
+  const on_click = () => {
     dispatch(actions.top_action(props.node_id));
-  }, [props.node_id, dispatch]);
+  };
   return (
     <button
       className="btn-icon"

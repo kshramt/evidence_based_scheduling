@@ -21,9 +21,9 @@ export const EntryWrapper = (props: {
   const has_hidden_leaf = 0 < n_hidden_child_edges;
 
   const dispatch = useDispatch();
-  const handle_toggle_show_children = React.useCallback(() => {
+  const handle_toggle_show_children = () => {
     dispatch(actions.toggle_show_children(props.node_id));
-  }, [props.node_id, dispatch]);
+  };
 
   const Component = props.component || "div";
   return (

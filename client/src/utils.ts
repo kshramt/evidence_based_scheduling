@@ -66,7 +66,7 @@ export const join = (...xs: (undefined | null | boolean | string)[]) =>
 
 export const useClipboard = () => {
   const [is_copied, set_is_copied] = React.useState(false);
-  const copy = React.useCallback((text: string) => {
+  const copy = (text: string) => {
     navigator.clipboard
       .writeText(text)
       .then(() => {
@@ -74,14 +74,11 @@ export const useClipboard = () => {
         setTimeout(() => set_is_copied(false), 400);
       })
       .catch(() => set_is_copied(false));
-  }, []);
-  return React.useMemo(
-    () => ({
-      copy,
-      is_copied,
-    }),
-    [copy, is_copied],
-  );
+  };
+  return {
+    copy,
+    is_copied,
+  };
 };
 
 let _VISIT_COUNTER = 0;
@@ -265,19 +262,19 @@ export const focusRobustly = async (id: string) => {
 
 export const useToTree = (node_id: null | types.TNodeId) => {
   const dispatch = types.useDispatch();
-  return React.useCallback(async () => {
+  return async () => {
     if (node_id === null) {
       return;
     }
     dispatch(actions.show_path_to_selected_node(node_id));
     const id = `t-${node_id}`;
     await focusRobustly(id);
-  }, [node_id, dispatch]);
+  };
 };
 
 export const useToggle = (initialValue: boolean = false) => {
   const [value, setValue] = React.useState(initialValue);
-  const toggle = React.useCallback(() => setValue((v) => !v), [setValue]);
+  const toggle = () => setValue((v) => !v);
   return [value, toggle] as const;
 };
 
@@ -399,12 +396,12 @@ export const useOn = (delayMsec: number = consts.DEFAULT_DELAY_MSEC) => {
     }
   }, []);
 
-  const turnOn = React.useCallback(() => {
+  const turnOn = () => {
     clearDelay();
     setHover(true);
-  }, [clearDelay]);
+  };
 
-  const turnOff = React.useCallback(() => {
+  const turnOff = () => {
     clearDelay();
     if (0 < delayMsec) {
       timeoutRef.current = window.setTimeout(() => {
@@ -413,19 +410,17 @@ export const useOn = (delayMsec: number = consts.DEFAULT_DELAY_MSEC) => {
     } else {
       setHover(false);
     }
-  }, [clearDelay, delayMsec]);
+  };
 
   React.useEffect(() => {
     return clearDelay;
   }, [clearDelay]);
 
-  return React.useMemo(() => {
-    return {
-      isOn,
-      turnOn,
-      turnOff,
-    };
-  }, [isOn, turnOn, turnOff]);
+  return {
+    isOn,
+    turnOn,
+    turnOff,
+  };
 };
 
 export const useIsRunning = (node_id: null | types.TNodeId) => {
@@ -577,50 +572,48 @@ export const usePlannedNodeIds = (
   nonTodoNodeIds: types.TNodeId[],
 ) => {
   const eventss = types.useSelector((state) => state.swapped_nodes.events);
-  const res = React.useMemo(() => {
-    const _res: types.TNodeId[] = [];
-    const prefix = timeId[0];
-    if (!(prefix in deltaRanges)) {
-      return _res;
+
+  const res: types.TNodeId[] = [];
+  const prefix = timeId[0];
+  if (!(prefix in deltaRanges)) {
+    return res;
+  }
+  const [deltaLo, deltaHi] = deltaRanges[prefix];
+  const [t0, t1] = getRangeOfTimeId(timeId);
+  const start = { f: t0 };
+  const end = { f: t1 };
+  for (const nodeId of todoNodeIds.concat(nonTodoNodeIds)) {
+    const events = eventss?.[nodeId];
+    if (events === undefined) {
+      continue;
     }
-    const [deltaLo, deltaHi] = deltaRanges[prefix];
-    const [t0, t1] = getRangeOfTimeId(timeId);
-    const start = { f: t0 };
-    const end = { f: t1 };
-    for (const nodeId of todoNodeIds.concat(nonTodoNodeIds)) {
-      const events = eventss?.[nodeId];
-      if (events === undefined) {
+    for (const event of events) {
+      if (utils.getEventStatus(event) !== "created") {
         continue;
       }
-      for (const event of events) {
-        if (utils.getEventStatus(event) !== "created") {
+      {
+        const duration =
+          times.ensureFloatingTime(event.interval_set.end).f -
+          times.ensureFloatingTime(event.interval_set.start).f;
+        if (duration < deltaLo || deltaHi <= duration) {
           continue;
         }
-        {
-          const duration =
-            times.ensureFloatingTime(event.interval_set.end).f -
-            times.ensureFloatingTime(event.interval_set.start).f;
-          if (duration < deltaLo || deltaHi <= duration) {
-            continue;
-          }
-        }
-        const overlapState = intervals.getOverlapState(
-          start,
-          end,
-          times.ensureFloatingTime(event.interval_set.start),
-          times.ensureFloatingTime(event.interval_set.end),
-          event.interval_set.delta,
-          intervals.getFloatingTimeOfLimit(event.interval_set),
-        );
-        if (overlapState === intervals.Overlap.NO_OVERLAP) {
-          continue;
-        }
-        _res.push(nodeId);
-        break;
       }
+      const overlapState = intervals.getOverlapState(
+        start,
+        end,
+        times.ensureFloatingTime(event.interval_set.start),
+        times.ensureFloatingTime(event.interval_set.end),
+        event.interval_set.delta,
+        intervals.getFloatingTimeOfLimit(event.interval_set),
+      );
+      if (overlapState === intervals.Overlap.NO_OVERLAP) {
+        continue;
+      }
+      res.push(nodeId);
+      break;
     }
-    return _res;
-  }, [eventss, nonTodoNodeIds, timeId, todoNodeIds]);
+  }
   return res;
 };
 

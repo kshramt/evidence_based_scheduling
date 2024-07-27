@@ -16,37 +16,34 @@ export const useTaskShortcutKeys = (
     states.show_mobile_atom_map.get(session),
   );
   const is_running = utils.useIsRunning(node_id);
-  return React.useCallback(
-    (event: React.KeyboardEvent<HTMLElement>) => {
-      if (node_id === null) {
+  return (event: React.KeyboardEvent<HTMLElement>) => {
+    if (node_id === null) {
+      return;
+    }
+    if (event.ctrlKey || event.metaKey) {
+      if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+        event.preventDefault();
+        dispatch(actions.add_action({ node_id, show_mobile }));
+        dispatch(actions.focusFirstChildTextAreaActionOf(node_id, prefix));
+        return;
+      } else if (event.key === ".") {
+        event.preventDefault();
+        if (is_running) {
+          if (event.shiftKey) {
+            dispatch(actions.stop_action(node_id));
+          } else {
+            dispatch(actions.stop_all_action());
+          }
+        } else {
+          dispatch(
+            actions.start_action({ node_id, is_concurrent: event.shiftKey }),
+          );
+        }
         return;
       }
-      if (event.ctrlKey || event.metaKey) {
-        if (event.key === "Enter" && !event.nativeEvent.isComposing) {
-          event.preventDefault();
-          dispatch(actions.add_action({ node_id, show_mobile }));
-          dispatch(actions.focusFirstChildTextAreaActionOf(node_id, prefix));
-          return;
-        } else if (event.key === ".") {
-          event.preventDefault();
-          if (is_running) {
-            if (event.shiftKey) {
-              dispatch(actions.stop_action(node_id));
-            } else {
-              dispatch(actions.stop_all_action());
-            }
-          } else {
-            dispatch(
-              actions.start_action({ node_id, is_concurrent: event.shiftKey }),
-            );
-          }
-          return;
-        }
-      }
-      return true;
-    },
-    [node_id, is_running, show_mobile, dispatch, prefix],
-  );
+    }
+    return true;
+  };
 };
 
 export const useQueues = () => {
@@ -55,7 +52,5 @@ export const useQueues = () => {
   const startTimes = types.useSelector(
     (state) => state.swapped_nodes.start_time,
   );
-  return React.useMemo(() => {
-    return utils.getQueues(queue, statuses, startTimes);
-  }, [queue, statuses, startTimes]);
+  return utils.getQueues(queue, statuses, startTimes);
 };

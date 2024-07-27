@@ -4,12 +4,12 @@ import * as actions from "src/actions";
 import * as types from "src/types";
 import Component from "./Component";
 
-const TocForm = React.memo((props: { nodeId: types.TNodeId }) => {
+const TocForm = (props: { nodeId: types.TNodeId }) => {
   const [selected, setSelected] = React.useState(false);
 
   const dispatch = types.useDispatch();
   const ref = React.useRef<HTMLTextAreaElement>(null);
-  const onClick = React.useCallback(() => {
+  const onClick = () => {
     if (ref.current) {
       dispatch(
         actions.parseTocAction({
@@ -18,10 +18,10 @@ const TocForm = React.memo((props: { nodeId: types.TNodeId }) => {
         }),
       );
     }
-  }, [props.nodeId, dispatch]);
-  const toggleSelected = React.useCallback(() => {
+  };
+  const toggleSelected = () => {
     setSelected((prev) => !prev);
-  }, [setSelected]);
+  };
 
   React.useEffect(() => {
     if (selected) {
@@ -37,6 +37,6 @@ const TocForm = React.memo((props: { nodeId: types.TNodeId }) => {
       toggleSelected={toggleSelected}
     />
   );
-});
+};
 
 export default TocForm;

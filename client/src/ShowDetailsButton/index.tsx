@@ -15,23 +15,22 @@ import * as toast from "src/toast";
 import * as types from "src/types";
 import * as utils from "src/utils";
 
-const Details = React.memo((props: { node_id: types.TNodeId }) => {
+const Details = (props: { node_id: types.TNodeId }) => {
   const [new_edge_type, set_new_edge_type] =
     React.useState<types.TEdgeType>("weak");
-  const handle_new_edge_type_change = React.useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const v = e.target.value;
-      if (types.is_TEdgeType(v)) {
-        set_new_edge_type(v);
-      } else {
-        toast.add("error", `Invalid edge type: ${v}`);
-      }
-    },
-    [set_new_edge_type],
-  );
+  const handle_new_edge_type_change = (
+    e: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
+    const v = e.target.value;
+    if (types.is_TEdgeType(v)) {
+      set_new_edge_type(v);
+    } else {
+      toast.add("error", `Invalid edge type: ${v}`);
+    }
+  };
   const dispatch = types.useDispatch();
   const nodeIds = Jotai.useAtomValue(states.nodeIdsState);
-  const handle_add_parents = React.useCallback(() => {
+  const handle_add_parents = () => {
     dispatch(
       actions.add_edges_action(
         utils.node_ids_list_of_node_ids_string(nodeIds).map((p) => ({
@@ -41,8 +40,8 @@ const Details = React.memo((props: { node_id: types.TNodeId }) => {
         })),
       ),
     );
-  }, [dispatch, nodeIds, new_edge_type, props.node_id]);
-  const handle_add_children = React.useCallback(() => {
+  };
+  const handle_add_children = () => {
     dispatch(
       actions.add_edges_action(
         utils.node_ids_list_of_node_ids_string(nodeIds).map((c) => ({
@@ -52,7 +51,7 @@ const Details = React.memo((props: { node_id: types.TNodeId }) => {
         })),
       ),
     );
-  }, [dispatch, nodeIds, new_edge_type, props.node_id]);
+  };
   const hline = (
     <hr className="my-[0.5em] border-neutral-300 dark:border-neutral-600 bg-neutral-300 dark:bg-neutral-600" />
   );
@@ -99,13 +98,13 @@ const Details = React.memo((props: { node_id: types.TNodeId }) => {
       {hline}
     </div>
   );
-});
+};
 
 export const ShowDetailsButton = (props: { node_id: types.TNodeId }) => {
   const dispatch = types.useDispatch();
-  const handleClick = React.useCallback(() => {
+  const handleClick = () => {
     dispatch(actions.toggleDrawerAction(props.node_id));
-  }, [dispatch, props.node_id]);
+  };
   return (
     <button
       className="btn-icon"
@@ -127,15 +126,13 @@ const Component = () => {
 
 const _Component = (props: { nodeId: types.TNodeId }) => {
   const dispatch = types.useDispatch();
-  const handleClose = React.useCallback(() => {
+  const handleClose = () => {
     dispatch(actions.closeDrawerAction());
-  }, [dispatch]);
+  };
   const text = utils.assertV(
     types.useSelector((state) => state.swapped_caches.text?.[props.nodeId]),
   );
-  const text30 = React.useMemo(() => {
-    return text.slice(0, 30);
-  }, [text]);
+  const text30 = text.slice(0, 30);
 
   return (
     <Mtc.Drawer

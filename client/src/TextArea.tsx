@@ -18,7 +18,7 @@ export const TextArea = (props: {
     useSelector((state) => state.swapped_caches.text?.[props.node_id]),
   );
   const dispatch = useDispatch();
-  const onBlur = React.useMemo(() => {
+  const onBlur = () => {
     const _onBlur = props.onBlur;
     return (e: React.FocusEvent<HTMLTextAreaElement>) => {
       if (_onBlur !== undefined) {
@@ -34,7 +34,7 @@ export const TextArea = (props: {
         }),
       );
     };
-  }, [dispatch, props.node_id, props.onBlur]);
+  };
 
   return (
     <AutoHeightTextArea

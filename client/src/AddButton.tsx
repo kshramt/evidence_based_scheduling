@@ -19,12 +19,12 @@ export const AddButton = (props: {
     states.show_mobile_atom_map.get(session),
   );
   const prefix = props.prefix || consts.TREE_PREFIX;
-  const handle_click = React.useCallback(() => {
+  const handle_click = () => {
     dispatch(
       actions.add_action({ node_id: props.node_id, show_mobile: show_mobile }),
     );
     dispatch(actions.focusFirstChildTextAreaActionOf(props.node_id, prefix));
-  }, [props.node_id, dispatch, show_mobile, prefix]);
+  };
   return (
     <button
       className="btn-icon"

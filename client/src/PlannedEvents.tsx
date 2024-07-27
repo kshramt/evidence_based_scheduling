@@ -11,13 +11,10 @@ const PlannedEvents = (props: { nodeId: types.TNodeId }) => {
     (state) => state.swapped_nodes.events?.[props.nodeId],
   );
   const dispatch = types.useDispatch();
-  const addNewEvent = React.useCallback(
-    (event: types.TEvent) => {
-      dispatch(actions.addNewEventAction({ nodeId: props.nodeId, event }));
-    },
-    [dispatch, props.nodeId],
-  );
-  const eventEls = React.useMemo(() => {
+  const addNewEvent = (event: types.TEvent) => {
+    dispatch(actions.addNewEventAction({ nodeId: props.nodeId, event }));
+  };
+  const eventEls = () => {
     if (!events) return null;
     const n = events.length;
     return events
@@ -52,7 +49,7 @@ const PlannedEvents = (props: { nodeId: types.TNodeId }) => {
           />
         );
       });
-  }, [events, props.nodeId, dispatch]);
+  };
   return (
     <>
       <CalendarEventForm onSubmit={addNewEvent} onDelete={noOp} />

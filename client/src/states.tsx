@@ -587,7 +587,7 @@ export class PersistentStateManager {
       this.#sync_store.subscribe,
       this.#sync_store.get_state,
     );
-    const use_remote = React.useCallback(async () => {
+    const use_remote = async () => {
       await this.check_remote_head();
       const state = this.#sync_store.get_state();
       if (state === null) {
@@ -599,8 +599,8 @@ export class PersistentStateManager {
       await store.put(state.head, "local");
       await tx.done;
       window.location.reload();
-    }, []);
-    const use_local = React.useCallback(async () => {
+    };
+    const use_local = async () => {
       await this.#push_and_remove_local_pending_patches();
       const remoteHead = this.heads.remote;
       await this.#push_rpc(
@@ -618,7 +618,7 @@ export class PersistentStateManager {
       );
       await this.#save_remote_head(remoteHead); // Protect from other local clients (tabs).
       this.#sync_store.set_state(() => null);
-    }, []);
+    };
     if (state === null) {
       return null;
     }
@@ -946,7 +946,7 @@ export const useIdb = () => {
 export const useUiCalendarOpenSet = (id: string) => {
   const db = useIdb();
   const [isOpen, setIsOpen] = React.useState(false);
-  const toggle = React.useCallback(async () => {
+  const toggle = async () => {
     const tx = db.transaction("ui_calendar_open_set", "readwrite");
     const store = tx.objectStore("ui_calendar_open_set");
     if (await store.get(id)) {
@@ -957,7 +957,7 @@ export const useUiCalendarOpenSet = (id: string) => {
       setIsOpen(true);
     }
     await tx.done;
-  }, [id, db, setIsOpen]);
+  };
   React.useEffect(() => {
     void db
       .transaction("ui_calendar_open_set", "readonly")
@@ -968,7 +968,5 @@ export const useUiCalendarOpenSet = (id: string) => {
       });
   }, [id, db]);
 
-  return React.useMemo(() => {
-    return [isOpen, toggle] as const;
-  }, [isOpen, toggle]);
+  return [isOpen, toggle] as const;
 };

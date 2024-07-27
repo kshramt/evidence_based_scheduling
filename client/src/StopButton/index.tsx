@@ -10,9 +10,9 @@ const StopButton = React.forwardRef<
   { node_id: types.TNodeId }
 >((props, ref) => {
   const dispatch = types.useDispatch();
-  const on_click = React.useCallback(() => {
+  const on_click = () => {
     dispatch(actions.stop_action(props.node_id));
-  }, [props.node_id, dispatch]);
+  };
 
   return (
     <button

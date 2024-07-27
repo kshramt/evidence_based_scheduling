@@ -20,7 +20,7 @@ const AutoHeightTextArea = React.forwardRef<
     setLocalText(text);
   }, [text]);
   const divRef = React.useRef<HTMLDivElement>(null);
-  const handleChange = React.useMemo(() => {
+  const handleChange = () => {
     const onChange = textareaProps.onChange;
     return (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       const el = e.target;
@@ -33,7 +33,7 @@ const AutoHeightTextArea = React.forwardRef<
         onChange(e);
       }
     };
-  }, [textareaProps.onChange]);
+  };
 
   return (
     <div className={css.auto_height_container}>

@@ -18,49 +18,49 @@ import * as Auth from "./auth";
 
 const TWO_DAYS = 2 * 24 * 60 * 60 * 1000;
 
-const App = React.memo(
-  (props: { ctx: states.PersistentStateManager; logOut: () => void }) => {
-    const [isShowMobileSelected, setIsShowMobileSelected] =
-      React.useState(false);
+const App = (props: {
+  ctx: states.PersistentStateManager;
+  logOut: () => void;
+}) => {
+  const [isShowMobileSelected, setIsShowMobileSelected] = React.useState(false);
 
-    const show_mobile = Jotai.useAtomValue(
-      states.show_mobile_atom_map.get(
-        React.useContext(states.session_key_context),
-      ),
-    );
-    const [showMobileUpdatedAt, setShowMobileUpdatedAt] = Jotai.useAtom(
-      states.showMobileUpdatedAtAtomMap.get(
-        React.useContext(states.session_key_context),
-      ),
-    );
-    const handleClick = React.useCallback(() => {
-      setShowMobileUpdatedAt(-Date.now());
-      setIsShowMobileSelected(true);
-    }, [setShowMobileUpdatedAt, setIsShowMobileSelected]);
-    if (!isShowMobileSelected && Date.now() < showMobileUpdatedAt + TWO_DAYS) {
-      return (
-        <>
-          <button className="btn-icon" onClick={handleClick}>
-            Continue
-          </button>
-          with the current setting. Or select:
-          <components.ToggleShowMobileButton />
-        </>
-      );
-    }
-
+  const show_mobile = Jotai.useAtomValue(
+    states.show_mobile_atom_map.get(
+      React.useContext(states.session_key_context),
+    ),
+  );
+  const [showMobileUpdatedAt, setShowMobileUpdatedAt] = Jotai.useAtom(
+    states.showMobileUpdatedAtAtomMap.get(
+      React.useContext(states.session_key_context),
+    ),
+  );
+  const handleClick = () => {
+    setShowMobileUpdatedAt(-Date.now());
+    setIsShowMobileSelected(true);
+  };
+  if (!isShowMobileSelected && Date.now() < showMobileUpdatedAt + TWO_DAYS) {
     return (
       <>
-        {toast.component}
-        {show_mobile ? (
-          <components.MobileApp ctx={props.ctx} logOut={props.logOut} />
-        ) : (
-          <components.DesktopApp ctx={props.ctx} logOut={props.logOut} />
-        )}
+        <button className="btn-icon" onClick={handleClick}>
+          Continue
+        </button>
+        with the current setting. Or select:
+        <components.ToggleShowMobileButton />
       </>
     );
-  },
-);
+  }
+
+  return (
+    <>
+      {toast.component}
+      {show_mobile ? (
+        <components.MobileApp ctx={props.ctx} logOut={props.logOut} />
+      ) : (
+        <components.DesktopApp ctx={props.ctx} logOut={props.logOut} />
+      )}
+    </>
+  );
+};
 
 const Center = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -90,7 +90,7 @@ const AuthComponent = ({
 }) => {
   const [err, set_err] = React.useState("");
   const [logInLoading, setLogInLoading] = React.useState(false);
-  const onLogIn = React.useCallback(async () => {
+  const onLogIn = async () => {
     const el = document.getElementById(
       "log-in-name",
     ) as null | HTMLInputElement;
@@ -111,10 +111,10 @@ const AuthComponent = ({
     } finally {
       setLogInLoading(false);
     }
-  }, [setLogInLoading, logIn]);
+  };
 
   const [sign_up_loading, set_sign_up_loading] = React.useState(false);
-  const on_sign_up = React.useCallback(async () => {
+  const on_sign_up = async () => {
     const el = document.getElementById(
       "sign-up-name",
     ) as null | HTMLInputElement;
@@ -135,7 +135,7 @@ const AuthComponent = ({
     } finally {
       set_sign_up_loading(false);
     }
-  }, [set_sign_up_loading, sign_up]);
+  };
   return (
     <Center>
       <div className="flex flex-col item-center gap-y-[1em]">

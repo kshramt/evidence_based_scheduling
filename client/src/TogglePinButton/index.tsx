@@ -9,9 +9,9 @@ const TogglePinButton = (props: { node_id: types.TNodeId }) => {
   const pinned_sub_trees = types.useSelector((state) => {
     return state.data.pinned_sub_trees;
   });
-  const on_click = React.useCallback(() => {
+  const on_click = () => {
     dispatch(actions.toggle_pin_action({ node_id: props.node_id }));
-  }, [props.node_id, dispatch]);
+  };
   const is_pinned = pinned_sub_trees.includes(props.node_id);
   return (
     <button

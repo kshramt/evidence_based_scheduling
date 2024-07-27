@@ -12,10 +12,10 @@ const ToggleShowMobileButton = () => {
   const setShowMobileUpdatedAt = Jotai.useSetAtom(
     states.showMobileUpdatedAtAtomMap.get(session),
   );
-  const handleClick = React.useCallback(() => {
+  const handleClick = () => {
     set_show_mobile((v) => !v);
     setShowMobileUpdatedAt(Date.now());
-  }, [set_show_mobile, setShowMobileUpdatedAt]);
+  };
   return (
     <span
       onClick={handleClick}

@@ -9,17 +9,14 @@ import * as utils from "src/utils";
 const CopyNodeIdButton = (props: { node_id: types.TNodeId }) => {
   const { copy, is_copied } = utils.useClipboard();
   const setNodeIds = Jotai.useSetAtom(states.nodeIdsState);
-  const handle_click = React.useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      const multi = e.ctrlKey || e.metaKey;
-      setNodeIds((node_ids: string) => {
-        const res = multi ? props.node_id + " " + node_ids : props.node_id;
-        copy(res);
-        return res;
-      });
-    },
-    [props.node_id, setNodeIds, copy],
-  );
+  const handle_click = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const multi = e.ctrlKey || e.metaKey;
+    setNodeIds((node_ids: string) => {
+      const res = multi ? props.node_id + " " + node_ids : props.node_id;
+      copy(res);
+      return res;
+    });
+  };
   return (
     <button
       className="btn-icon"
