@@ -32,11 +32,12 @@ FROM denoland/deno:distroless-1.45.2 AS deno_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 
-FROM curl_base AS bazel_downloader
+FROM ubuntu_base AS bazel_downloader
+ARG TARGETARCH
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
-RUN arch="$(dpkg --print-architecture)" && curl -sSf -L -o /usr/local/bin/buildifier "https://github.com/bazelbuild/buildtools/releases/download/v6.4.0/buildifier-linux-${arch}" && chmod +x /usr/local/bin/buildifier
-RUN arch="$(dpkg --print-architecture)" && curl -sSf -L -o /usr/local/bin/bazel "https://github.com/bazelbuild/bazelisk/releases/download/v1.19.0/bazelisk-linux-${arch}" && chmod +x /usr/local/bin/bazel
+ADD --link --chmod=555 https://github.com/bazelbuild/buildtools/releases/download/v6.4.0/buildifier-linux-${TARGETARCH:?} /usr/local/bin/buildifier
+ADD --link --chmod=555 https://github.com/bazelbuild/bazelisk/releases/download/v1.19.0/bazelisk-linux-${TARGETARCH:?} /usr/local/bin/bazel
 
 
 FROM node:22.4.1-bookworm-slim AS node_downloader
@@ -57,10 +58,6 @@ ENV PATH "/usr/local/node/bin:${PATH}"
 
 
 FROM docker:24.0.7-cli-alpine3.18 AS docker_downloader
-ARG SOURCE_DATE_EPOCH
-ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
-COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/bin/docker /usr/local/bin/docker
-COPY --link --from=docker:24.0.4-cli-alpine3.18 /usr/local/libexec/docker /usr/local/libexec/docker
 
 
 FROM rust:1.78.0-bookworm AS rust_downloader
