@@ -27,8 +27,8 @@ importers:
         specifier: ^3.1.2
         version: 3.1.2
       '@kshramt/runtime-type-validator':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.13.0
+        version: 0.13.0
       '@kshramt/sequence-comparisons':
         specifier: ^0.5.0
         version: 0.5.0
@@ -2538,8 +2538,8 @@ packages:
     resolution: {integrity: sha512-YqFdK3kMMjnD04WFMnYx2ilJms9ROrN5S9LFZfGJ+nxsTwFf6EAcLr6ZUnQvafeQqZ36RP7w7jxS0YPYHMruwQ==}
     dev: false
 
-  /@kshramt/runtime-type-validator@0.12.0:
-    resolution: {integrity: sha512-ds6BuO9cVrgBTEPuLoS/6BYcBDsxQjW+9dSMzAzMmlh2xh7HUu25q2Guh/hDPJloAgN0o3WzO09BC3OAAleC3Q==}
+  /@kshramt/runtime-type-validator@0.13.0:
+    resolution: {integrity: sha512-ICCO30/UVxBjqN49VS5Kcyqe1nBny/OsRniJ+fkD6kpCF4IBxCKZjFeCyQFjXhbzeqYkZGqlhhq65fsuLLo4Yg==}
     dev: false
 
   /@kshramt/sequence-comparisons@0.5.0:

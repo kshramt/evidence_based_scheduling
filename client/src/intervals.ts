@@ -10,16 +10,18 @@ export const Overlap = {
 } as const;
 type TOverlap = (typeof Overlap)[keyof typeof Overlap];
 
-const tCount = rt.$object({ c: rt.$number() });
+const tCount = rt.$required({ c: rt.$number() });
 const tLimit = rt.$union(rt.$null(), tCount, times.tTime);
 export type TLimit = rt.$infer<typeof tLimit>;
 
-export const tIntervalSet = rt.$object({
-  start: rt.$readonly(times.tTime), // The start time (inclusive) of the first interval. Timestamp in milliseconds.
-  end: rt.$readonly(times.tTime), // The end time (exclusive) of the first interval. Timestamp in milliseconds.
-  limit: rt.$readonly(tLimit), // null: Unlimited. tCount: The total number of intervals (inclusive). times.tTime: The end time of the last interval. Tiemstamp in milliseconds (exclusive).
-  delta: rt.$readonly(rt.$number()), // The time gap between start times of consective intervals in milliseconds.
-});
+export const tIntervalSet = rt.$readonly(
+  rt.$required({
+    start: times.tTime, // The start time (inclusive) of the first interval. Timestamp in milliseconds.
+    end: times.tTime, // The end time (exclusive) of the first interval. Timestamp in milliseconds.
+    limit: tLimit, // null: Unlimited. tCount: The total number of intervals (inclusive). times.tTime: The end time of the last interval. Tiemstamp in milliseconds (exclusive).
+    delta: rt.$number(), // The time gap between start times of consective intervals in milliseconds.
+  }),
+);
 export type TIntervalSet = rt.$infer<typeof tIntervalSet>;
 
 export const getFloatingTimeOfLimit = (

@@ -8,7 +8,7 @@ vt.test("swapKeys", ({ expect }) => {
   const tid = rt.$opaque("Tid", rt.$string());
   const t = rt.$record(
     tid,
-    rt.$object({
+    rt.$required({
       a: rt.$string(),
       b: rt.$number(),
     }),

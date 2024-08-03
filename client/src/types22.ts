@@ -31,77 +31,100 @@ const tEdgeType = rt.$union(
 );
 const tOrderedTNodeIds = rt.$record(tNodeId, rt.$number());
 const tOrderedTEdgeIds = rt.$record(tEdgeId, rt.$number());
-const tRange = rt.$object({
-  start: rt.$readonly(rt.$number()),
-  end: rt.$readonly(rt.$union(rt.$null(), rt.$number())),
-});
-const tTextPatch = rt.$object({
-  created_at: rt.$readonly(rt.$number()),
-  ops: rt.$readonly(
-    rt.$array(rt.$typeGuard(sequenceComparisons.isTCompressedOp)),
+const tRange = rt.$readonly(
+  rt.$required({
+    start: rt.$number(),
+    end: rt.$union(rt.$null(), rt.$number()),
+  }),
+);
+const tTextPatch = rt.$readonly(
+  rt.$required({
+    created_at: rt.$number(),
+    ops: rt.$array(rt.$typeGuard(sequenceComparisons.isTCompressedOp)),
+  }),
+);
+const tEdge = rt.$readonly(
+  rt.$intersection(
+    rt.$required({
+      c: tNodeId,
+      p: tNodeId,
+      t: tEdgeType,
+    }),
+    rt.$optional({
+      hide: rt.$boolean(),
+    }),
   ),
-});
-const tEdge = rt.$object({
-  c: rt.$readonly(tNodeId),
-  p: rt.$readonly(tNodeId),
-  t: rt.$readonly(tEdgeType),
-  hide: rt.$readonly(rt.$optional(rt.$boolean())),
-});
-const tEvent = rt.$object({
-  created_at: rt.$readonly(rt.$number()), // Timestamp in milliseconds.
-  status: rt.$readonly(
-    rt.$union(rt.$literal("created"), rt.$literal("deleted")),
-  ),
-  interval_set: rt.$readonly(intervals.tIntervalSet),
-});
-const tNode = rt.$object({
-  children: rt.$readonly(tOrderedTEdgeIds),
-  end_time: rt.$readonly(rt.$union(rt.$null(), rt.$number())),
-  estimate: rt.$readonly(rt.$number()),
-  events: rt.$readonly(rt.$optional(rt.$array(tEvent))),
-  parents: rt.$readonly(tOrderedTEdgeIds),
-  ranges: rt.$readonly(rt.$array(tRange)),
-  start_time: rt.$readonly(rt.$number()),
-  status: rt.$readonly(tStatus),
-  text_patches: rt.$readonly(rt.$array(tTextPatch)), // The initial text is the empty string.
-});
+);
+const tEvent = rt.$readonly(
+  rt.$required({
+    created_at: rt.$number(), // Timestamp in milliseconds.
+    status: rt.$union(rt.$literal("created"), rt.$literal("deleted")),
+    interval_set: intervals.tIntervalSet,
+  }),
+);
+const tNode = rt.$intersection(
+  rt.$required({
+    children: tOrderedTEdgeIds,
+    end_time: rt.$union(rt.$null(), rt.$number()),
+    estimate: rt.$number(),
+    parents: tOrderedTEdgeIds,
+    ranges: rt.$array(tRange),
+    start_time: rt.$number(),
+    status: tStatus,
+    text_patches: rt.$array(tTextPatch), // The initial text is the empty string.
+  }),
+  rt.$optional({
+    events: rt.$array(tEvent),
+  }),
+);
 const tNodes = rt.$record(tNodeId, tNode);
 const tEdges = rt.$record(tEdgeId, tEdge);
-const tTimeNode = rt.$object({
-  created_at: rt.$readonly(rt.$number()),
-  nodes: rt.$readonly(tOrderedTNodeIds),
-  show_children: rt.$readonly(
-    rt.$union(rt.$literal("none"), rt.$literal("partial"), rt.$literal("full")),
-  ),
-  text: rt.$readonly(rt.$string()),
-  tz: rt.$readonly(rt.$number()),
-});
-const tTimeline = rt.$object({
-  year_begin: rt.$readonly(rt.$number()),
-  count: rt.$readonly(rt.$number()),
-  time_nodes: rt.$record(tTimeNodeId, rt.$readonly(tTimeNode)),
-});
-const tCoveyQuadrant = rt.$object({
-  nodes: rt.$readonly(rt.$array(tNodeId)),
-});
-const tCoveyQuadrants = rt.$object({
-  important_urgent: rt.$readonly(tCoveyQuadrant),
-  not_important_urgent: rt.$readonly(tCoveyQuadrant),
-  important_not_urgent: rt.$readonly(tCoveyQuadrant),
-  not_important_not_urgent: rt.$readonly(tCoveyQuadrant),
-});
-export const tData = rt.$object({
-  covey_quadrants: rt.$readonly(tCoveyQuadrants),
-  edges: rt.$readonly(tEdges),
-  id_seq: rt.$readonly(rt.$number()),
-  nodes: rt.$readonly(tNodes),
-  pinned_sub_trees: rt.$readonly(rt.$array(tNodeId)),
-  queue: rt.$readonly(tOrderedTNodeIds),
-  root: rt.$readonly(tNodeId),
-  timeline: rt.$readonly(tTimeline),
-  version: rt.$readonly(rt.$literal(VERSION)),
-});
-
+const tTimeNode = rt.$readonly(
+  rt.$required({
+    created_at: rt.$number(),
+    nodes: tOrderedTNodeIds,
+    show_children: rt.$union(
+      rt.$literal("none"),
+      rt.$literal("partial"),
+      rt.$literal("full"),
+    ),
+    text: rt.$string(),
+    tz: rt.$number(),
+  }),
+);
+const tTimeline = rt.$readonly(
+  rt.$required({
+    year_begin: rt.$number(),
+    count: rt.$number(),
+    time_nodes: rt.$record(tTimeNodeId, tTimeNode),
+  }),
+);
+const tCoveyQuadrant = rt.$readonly(
+  rt.$required({
+    nodes: rt.$array(tNodeId),
+  }),
+);
+const tCoveyQuadrants = rt.$readonly(
+  rt.$required({
+    important_urgent: tCoveyQuadrant,
+    not_important_urgent: tCoveyQuadrant,
+    important_not_urgent: tCoveyQuadrant,
+    not_important_not_urgent: tCoveyQuadrant,
+  }),
+);
+export const tData = rt.$readonly(
+  rt.$required({
+    covey_quadrants: tCoveyQuadrants,
+    edges: tEdges,
+    id_seq: rt.$number(),
+    nodes: tNodes,
+    pinned_sub_trees: rt.$array(tNodeId),
+    queue: tOrderedTNodeIds,
+    root: tNodeId,
+    timeline: tTimeline,
+    version: rt.$literal(VERSION),
+  }),
+);
 export const parse_data = (x: {
   data: unknown;
 }):

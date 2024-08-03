@@ -1,6 +1,6 @@
 import * as rt from "@kshramt/runtime-type-validator";
 
-export const tFloatingTime = rt.$object({ f: rt.$number() });
+export const tFloatingTime = rt.$required({ f: rt.$number() });
 export const tTzTime = rt.$number();
 export const tTime = rt.$union(tFloatingTime, tTzTime);
 
