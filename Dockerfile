@@ -188,7 +188,7 @@ ENV RUSTUP_HOME "/usr/local/rustup"
 ENV CARGO_HOME "/home/${devcontainer_user:?}/.cargo"
 
 
-FROM python:3.11.5-slim-bullseye AS base_py11
+FROM python:3.12.5-slim-bullseye AS base_py11
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 ENV PYTHONUNBUFFERED 1
