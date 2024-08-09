@@ -60,7 +60,7 @@ ENV PATH "/usr/local/node/bin:${PATH}"
 FROM docker:24.0.7-cli-alpine3.18 AS docker_downloader
 
 
-FROM rust:1.78.0-bookworm AS rust_downloader
+FROM rust:1.80.1-bookworm AS rust_downloader
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 RUN rustup component add clippy rust-analyzer rustfmt
