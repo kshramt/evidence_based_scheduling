@@ -1379,8 +1379,6 @@ const TreeEntry = (props: {
   return (
     <EntryWrapper node_id={props.node_id}>
       <div className="flex items-end w-fit content-visibility-auto">
-        {is_root ? null : <button onClick={to_queue}>→</button>}
-        <CopyNodeIdButton node_id={props.node_id} />
         {is_root ? null : (
           <TextArea
             node_id={props.node_id}
@@ -1403,7 +1401,11 @@ const TreeEntry = (props: {
         utils.digits1(leaf_estimates_sum) + " | "}
       {status === "todo" && percentiles.map(utils.digits1).join(", ")}
       {is_root ? null : (
-        <EntryButtons node_id={props.node_id} prefix={prefix} />
+        <EntryButtons
+          node_id={props.node_id}
+          jumpButton={is_root ? null : <button onClick={to_queue}>→</button>}
+          prefix={prefix}
+        />
       )}
     </EntryWrapper>
   );

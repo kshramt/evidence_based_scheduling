@@ -14,9 +14,11 @@ import * as actions from "./actions";
 import * as consts from "./consts";
 import * as types from "./types";
 import * as utils from "./utils";
+import CopyNodeIdButton from "./CopyNodeIdButton";
 
 export const EntryButtons = (props: {
   node_id: types.TNodeId;
+  jumpButton: React.ReactNode;
   prefix?: string;
 }) => {
   const status = utils.assertV(
@@ -29,6 +31,8 @@ export const EntryButtons = (props: {
 
   return (
     <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em] content-visibility-auto">
+      {props.jumpButton}
+      <CopyNodeIdButton node_id={props.node_id} />
       {is_root || !is_todo || <StartOrStopButtons node_id={props.node_id} />}
       {is_root || !is_todo || <TodoToDoneButton node_id={props.node_id} />}
       {is_root || !is_todo || <TodoToDontButton node_id={props.node_id} />}

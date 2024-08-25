@@ -61,9 +61,6 @@ const NonTodoQueueEntry = (props: {
   return (
     <EntryWrapper node_id={props.node_id} component="div">
       <div className="flex items-end w-fit">
-        {props.index}
-        <button onClick={to_tree}>←</button>
-        <CopyNodeIdButton node_id={props.node_id} />
         <TextArea
           node_id={props.node_id}
           id={id}
@@ -79,7 +76,10 @@ const NonTodoQueueEntry = (props: {
         />
         <EntryInfos node_id={props.node_id} />
       </div>
-      <EntryButtons node_id={props.node_id} />
+      <EntryButtons
+        node_id={props.node_id}
+        jumpButton={<button onClick={to_tree}>←</button>}
+      />
     </EntryWrapper>
   );
 };
