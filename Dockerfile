@@ -22,7 +22,7 @@ FROM hadolint/hadolint:v2.12.0-alpine AS hadolint_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 
-FROM ghcr.io/amacneil/dbmate:2.19.0 AS base_dbmate
+FROM ghcr.io/amacneil/dbmate:2.21.0 AS base_dbmate
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 
@@ -190,7 +190,7 @@ ENV PYTHONDONTWRITEBYTECODE 1
 WORKDIR /app
 RUN python3 -m venv .venv
 
-FROM nginx:1.26.0-alpine AS base_nginx
+FROM nginx:1.27.0-alpine AS base_nginx
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 
@@ -277,7 +277,7 @@ COPY --link ./envoy.yaml /etc/envoy/envoy.yaml
 
 FROM base_postgres AS prod_postgres
 
-FROM debian:12.5-slim AS prod_postgres_migration
+FROM debian:12.7-slim AS prod_postgres_migration
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 COPY --link --from=base_dbmate /usr/local/bin/dbmate /usr/local/bin/dbmate
