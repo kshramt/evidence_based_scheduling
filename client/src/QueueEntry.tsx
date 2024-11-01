@@ -3,7 +3,6 @@ import * as React from "react";
 import CopyNodeIdButton from "./CopyNodeIdButton";
 import { EntryButtons } from "./EntryButtons";
 import { EntryInfos } from "./EntryInfos";
-import { EvalButton } from "./EvalButton";
 import { EntryWrapper } from "./EntryWrapper";
 import { ShowDetailsButton } from "./ShowDetailsButton";
 import { StartOrStopButtons } from "./StartOrStopButtons";
@@ -16,6 +15,7 @@ import * as hooks from "./hooks";
 import { useSelector, useRawSelector } from "./types";
 import * as types from "./types";
 import * as utils from "./utils";
+import TopButton from "./TopButton";
 
 export const QueueEntry = (props: {
   node_id: types.TNodeId;
@@ -109,7 +109,7 @@ const TodoQueueEntry = (props: { node_id: types.TNodeId; index: number }) => {
       >
         <div className="flex items-baseline gap-x-[0.25em] w-[22em]">
           <span className="w-[5em] text-right">{props.index}</span>
-          <EvalButton node_id={props.node_id} />
+          <TopButton node_id={props.node_id} />
           <TodoToDoneButton node_id={props.node_id} />
           <TodoToDontButton node_id={props.node_id} />
           <ShowDetailsButton node_id={props.node_id} />
