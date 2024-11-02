@@ -1,4 +1,7 @@
-FROM curlimages/curl-base:8.9.1 AS curl_base
+# FROM curlimages/curl-base:8.9.1 AS curl_base
+
+FROM docker:24.0.2-cli-alpine3.18 AS download_docker
+
 
 FROM ghcr.io/astral-sh/ruff:0.6.4 AS download_ruff
 
@@ -15,6 +18,15 @@ FROM ubuntu_base AS build_essential_base
 RUN apt-get update \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
    build-essential \
+   ca-certificates \
+   && apt-get clean \
+   && rm -rf /var/lib/apt/lists/*
+
+FROM ubuntu_base AS curl_base
+RUN apt-get update \
+   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+   ca-certificates \
+   curl \
    && apt-get clean \
    && rm -rf /var/lib/apt/lists/*
 
@@ -55,13 +67,13 @@ COPY --link --from=node_downloader /usr/local/lib/node_modules /usr/local/lib/no
 FROM docker:24.0.7-cli-alpine3.18 AS docker_downloader
 
 
-FROM rust:1.78.0-bookworm AS rust_downloader
+FROM rust:1.82.0-bookworm AS rust_downloader
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 RUN rustup component add clippy rust-analyzer rustfmt
 
 FROM rust_downloader AS sqlx_cli_downloader
-RUN cargo install sqlx-cli@0.7.3
+RUN cargo install sqlx-cli@0.8.2
 
 FROM build_essential_base AS base_rust
 COPY --link --from=rust_downloader /usr/local/cargo /usr/local/cargo
@@ -174,21 +186,10 @@ ENV PATH="/usr/local/cargo/bin:/usr/local/rustup/bin:${PATH}"
 ENV RUSTUP_HOME="/usr/local/rustup"
 ENV CARGO_HOME="/home/${devcontainer_user:?}/.cargo"
 
-
-FROM python:3.11.5-slim-bullseye AS base_py11
-ARG SOURCE_DATE_EPOCH
-ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
+FROM ubuntu_base AS base_py
 ENV PYTHONUNBUFFERED 1
 ENV PYTHONDONTWRITEBYTECODE 1
 WORKDIR /app
-
-FROM ubuntu_base AS base_poetry12
-COPY --link --from=rye_downloader /root/.rye /root/.rye
-ENV PATH "/root/.rye/py/cpython@3.12.0/bin:${PATH}"
-ENV PYTHONUNBUFFERED 1
-ENV PYTHONDONTWRITEBYTECODE 1
-WORKDIR /app
-RUN python3 -m venv .venv
 
 FROM nginx:1.27.0-alpine AS base_nginx
 ARG SOURCE_DATE_EPOCH
@@ -203,12 +204,6 @@ ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 
 FROM base_py11 AS base_poetry11
-RUN apt-get update \
-   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-   build-essential \
-   ca-certificates \
-   && apt-get clean \
-   && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir poetry==1.7.0
 
 FROM base_js AS base_client
@@ -286,19 +281,19 @@ COPY --link db/migrations /app/db/migrations
 ENTRYPOINT ["/app/scripts/migrate.sh"]
 
 
-FROM base_poetry12 AS ruff_builder
-COPY --link pyproject.toml requirements_linux.txt ./
-RUN .venv/bin/python3 -m pip install -r requirements_linux.txt
-
-
-FROM base_poetry12 AS openapi_codegen_builder
-WORKDIR /app
-COPY --link --from=ruff_builder /app/pyproject.toml /app/
-COPY --link --from=ruff_builder /app/.venv /app/.venv
-RUN .venv/bin/python3 -m ruff check .
-RUN .venv/bin/python3 -m ruff format --check .
-COPY --link openapi/api_v2.yaml openapi/api_v2.yaml
+FROM base_py AS openapi_codegen_builder
+RUN --mount=type=cache,target=/root/.cache \
+    --mount=from=download_uv,source=/uv,target=/usr/local/bin/uv \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+   uv sync --frozen
 COPY --link openapi_codegen openapi_codegen
+RUN --mount=type=cache,target=/root/.cache \
+    --mount=from=download_ruff,source=/ruff,target=/usr/local/bin/ruff \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    ruff check . \
+    && ruff format --check .
+COPY --link openapi/api_v2.yaml openapi/api_v2.yaml
 RUN .venv/bin/python3 -m openapi_codegen.app < openapi/api_v2.yaml >| openapi_codegen/gen.rs
 
 
@@ -326,13 +321,15 @@ COPY --link --from=base_rust_builder /app/target/release/api_v2 /work/api_v2
 WORKDIR /work
 ENTRYPOINT ["./api_v2"]
 
-FROM base_poetry11 AS tests_e2e
-COPY --link tests/e2e/poetry.toml tests/e2e/pyproject.toml tests/e2e/poetry.lock ./
-RUN python3 -m poetry install --only main
-RUN python3 -m poetry run python3 -m playwright install-deps
-RUN python3 -m poetry run python3 -m playwright install
-COPY --link --from=docker:24.0.2-cli-alpine3.18 /usr/local/bin/docker /usr/local/bin/docker
-COPY --link --from=docker:24.0.2-cli-alpine3.18 /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
-COPY --link --from=docker:24.0.2-cli-alpine3.18 /usr/local/libexec/docker/cli-plugins/docker-buildx /usr/local/libexec/docker/cli-plugins/docker-buildx
+FROM base_py AS tests_e2e
+RUN --mount=type=cache,target=/root/.cache \
+    --mount=from=download_uv,source=/uv,target=/usr/local/bin/uv \
+    --mount=type=bind,source=tests/e2e/pyproject.toml,target=pyproject.toml \
+    --mount=type=bind,source=tests/e2e/uv.lock,target=uv.lock \
+   uv sync --frozen
+RUN .venv/bin/python3 -m playwright install-deps \
+      && .venv/bin/python3 -m playwright install
+COPY --link --from=download_docker /usr/local/bin/docker /usr/local/bin/docker
+COPY --link --from=download_docker /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
+COPY --link --from=download_docker /usr/local/libexec/docker/cli-plugins/docker-buildx /usr/local/libexec/docker/cli-plugins/docker-buildx
 COPY --link tests/e2e/src src
-RUN python3 -m poetry install --only main

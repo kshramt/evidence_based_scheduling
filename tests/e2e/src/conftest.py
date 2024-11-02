@@ -8,8 +8,8 @@ import uuid
 from typing import Any, Final
 
 import httpx
-import pytest
 import playwright.async_api
+import pytest
 
 MY_HOST: Final = os.environ["MY_HOST"]
 

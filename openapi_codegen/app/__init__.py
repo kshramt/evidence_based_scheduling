@@ -3,7 +3,7 @@ import json
 import re
 import sys
 from collections.abc import Iterable
-from typing import Final, Literal, Self, TypeAlias
+from typing import Final, Literal, Self
 
 import pydantic
 import yaml
@@ -18,8 +18,7 @@ class NoExtraModel(pydantic.BaseModel):
 
 class AbstractSchema(NoExtraModel, abc.ABC):
     @abc.abstractmethod
-    def type_repr(self: Self) -> str:
-        ...
+    def type_repr(self: Self) -> str: ...
 
 
 class AnySchema(AbstractSchema):
@@ -83,7 +82,7 @@ class Ref(AbstractSchema):
         return self.ref.split("/")[-1]
 
 
-NonObjectSchema: TypeAlias = (
+type NonObjectSchema = (
     Ref
     | StringSchema
     | DateTimeSchema
@@ -93,7 +92,7 @@ NonObjectSchema: TypeAlias = (
     | ArraySchema
 )
 
-Schema: TypeAlias = (
+type Schema = (
     Ref
     | StringSchema
     | IntegerSchema
