@@ -20,6 +20,7 @@ values
     .await
 }
 
+#[allow(dead_code)]
 pub struct FakeIdpGetUserByNameRow {
     pub id: String,
     pub name: String,
@@ -48,6 +49,7 @@ where
     .await
 }
 
+#[allow(dead_code)]
 pub struct RawCreateUserRow {
     pub id: String,
     pub head_client_id: i64,
@@ -89,6 +91,7 @@ returning
     .await
 }
 
+#[allow(dead_code)]
 pub struct CreateSeqRow {
     pub user_id: String,
     pub last_value: i64,
@@ -270,6 +273,7 @@ from
     Ok(())
 }
 
+#[allow(dead_code)]
 pub struct GetPendingPatchesRow {
     pub user_id: String,
     pub client_id: i64,
