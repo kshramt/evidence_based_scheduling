@@ -1,4 +1,4 @@
-FROM curlimages/curl-base:8.9.1 AS curl_base
+# FROM curlimages/curl-base:8.9.1 AS curl_base
 
 FROM ghcr.io/astral-sh/ruff:0.6.4 AS download_ruff
 
@@ -17,6 +17,20 @@ RUN apt-get update \
    build-essential \
    && apt-get clean \
    && rm -rf /var/lib/apt/lists/*
+
+FROM ubuntu_base AS curl_base
+RUN apt-get update \
+   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+   ca-certificates \
+   curl \
+   && apt-get clean \
+   && rm -rf /var/lib/apt/lists/*
+
+FROM curl_base AS rye_downloader
+RUN curl -sSf -L -o /usr/local/bin/rye_installer https://rye.astral.sh/get | RYE_VERSION="0.35.0" RYE_INSTALL_OPTION="--yes" bash
+RUN /root/.rye/shims/rye fetch cpython@3.12.0
+RUN cd /root/.rye/py/cpython@3.12.0/bin && ln -s python3 python
+RUN /root/.rye/py/cpython@3.12.0/bin/python3 -m pip install poetry==1.7.1
 
 FROM hadolint/hadolint:v2.12.0-alpine AS hadolint_base
 ARG SOURCE_DATE_EPOCH
