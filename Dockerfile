@@ -5,7 +5,7 @@ FROM docker:24.0.2-cli-alpine3.18 AS download_docker
 
 FROM ghcr.io/astral-sh/ruff:0.6.4 AS download_ruff
 
-FROM ghcr.io/astral-sh/uv:0.4.7 AS download_uv
+FROM ghcr.io/astral-sh/uv:0.5.4 AS download_uv
 
 FROM ubuntu:22.04 AS ubuntu_base
 ARG SOURCE_DATE_EPOCH
