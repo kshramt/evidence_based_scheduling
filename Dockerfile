@@ -199,7 +199,7 @@ FROM envoyproxy/envoy:distroless-v1.30.1 AS base_envoy
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 
-FROM postgres:16.3-bookworm AS base_postgres
+FROM postgres:17.2-bookworm AS base_postgres
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 
