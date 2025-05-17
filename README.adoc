@@ -47,3 +47,11 @@ Please run the following commands for the first run.
 $ sudo chown <you>:<you> ~/.cache
 $ sudo chown <you>:<you> ~/.cargo
 ----
+
+=== OpenAPI Zod Client
+
+[source,bash]
+----
+npx openapi-zod-client ../openapi/api_v2.yaml  -o src/gen/api/v2.ts
+----
+
