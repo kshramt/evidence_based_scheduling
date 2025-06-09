@@ -51,9 +51,8 @@ ADD --link --chmod=555 https://github.com/bazelbuild/buildtools/releases/downloa
 ADD --link --chmod=555 https://github.com/bazelbuild/bazelisk/releases/download/v1.21.0/bazelisk-linux-${TARGETARCH:?} /usr/local/bin/bazel
 
 
-FROM node:22.7.0-bookworm-slim AS node_downloader
-RUN rm -f /usr/local/bin/docker-entrypoint.sh /usr/local/bin/yarn /usr/local/bin/yarnpkg \
-   && corepack enable pnpm
+FROM node:22.16.0-bookworm-slim AS node_downloader
+RUN npm install -g pnpm@latest
 
 FROM node_downloader AS firebase_downloader
 RUN npm install --cache /tmp/empty-cache -g firebase-tools@13.16.0 \
@@ -67,7 +66,7 @@ COPY --link --from=node_downloader /usr/local/lib/node_modules /usr/local/lib/no
 FROM docker:24.0.7-cli-alpine3.18 AS docker_downloader
 
 
-FROM rust:1.84.0-bookworm AS rust_downloader
+FROM rust:1.87.0-bookworm AS rust_downloader
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 RUN rustup component add clippy rust-analyzer rustfmt
