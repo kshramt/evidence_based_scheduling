@@ -52,8 +52,7 @@ ADD --link --chmod=555 https://github.com/bazelbuild/bazelisk/releases/download/
 
 
 FROM node:22.7.0-bookworm-slim AS node_downloader
-RUN rm -f /usr/local/bin/docker-entrypoint.sh /usr/local/bin/yarn /usr/local/bin/yarnpkg \
-   && corepack enable pnpm
+RUN npm install -g pnpm@latest
 
 FROM node_downloader AS firebase_downloader
 RUN npm install --cache /tmp/empty-cache -g firebase-tools@13.16.0 \
