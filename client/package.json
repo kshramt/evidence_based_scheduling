@@ -140,7 +140,7 @@
     "autoprefixer": "^10.4.21",
     "babel-plugin-react-compiler": "0.0.0-experimental-334f00b-20240725",
     "eslint": "^8.56.0",
-    "eslint-import-resolver-typescript": "^3.6.1",
+    "eslint-import-resolver-typescript": "^4.4.3",
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-jsx-a11y": "^6.8.0",
     "eslint-plugin-react": "^7.33.2",
