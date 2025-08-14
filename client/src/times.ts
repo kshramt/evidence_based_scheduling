@@ -1,6 +1,68 @@
 import * as rt from "@kshramt/runtime-type-validator";
 
-export const tFloatingTime = rt.$required({ f: rt.$number() });
+type TPath =
+  | undefined // Nothing to report
+  | { invalid_element_key: { path: TPath } }
+  | { invalid_element_value: { key: string | number; path: TPath } }
+  | { invalid_value: unknown }
+  | { length_not_equal: unknown }
+  | { length_too_short: unknown }
+  | { not_array: unknown }
+  | { not_boolean: unknown }
+  | { not_found: string }
+  | { not_null: unknown }
+  | { not_number: unknown }
+  | { not_object: unknown }
+  | { not_string: unknown }
+  | { not_undefined: unknown }
+  | { not_union: TPath[] };
+
+type TRef<T> = { value?: T };
+type TValidator<T> = (value: unknown, path?: TRef<TPath>) => value is T;
+const isObject = (value: unknown): value is Record<string, unknown> => {
+  return value?.constructor === Object;
+};
+const required = <Kvs extends Record<string, TValidator<unknown>>>(
+  kvs: Kvs,
+) => {
+  return (
+    value: unknown,
+    path?: TRef<TPath>,
+  ): value is {
+    [K in keyof Kvs]: rt.$infer<Kvs[K]>;
+  } => {
+    if (!isObject(value)) {
+      if (path) {
+        path.value = { not_object: value };
+      }
+      return false;
+    }
+    for (const k in kvs) {
+      const validator = kvs[k];
+      if (!(k in value)) {
+        if (path) {
+          path.value = { not_found: k };
+        }
+        return false;
+      } else {
+        if (value[k] === null) {
+          value[k] = 946684800000; // === (new Date("2000-01-01T00:00:00Z")).getTime();
+        }
+        const result = validator(value[k], path);
+        if (!result) {
+          if (path) {
+            path.value = {
+              invalid_element_value: { key: k, path: path.value },
+            };
+          }
+          return false;
+        }
+      }
+    }
+    return true;
+  };
+};
+export const tFloatingTime = required({ f: rt.$number() });
 export const tTzTime = rt.$number();
 export const tTime = rt.$union(tFloatingTime, tTzTime);
 
@@ -11,7 +73,11 @@ export type TTime = rt.$infer<typeof tTime>;
 export const getFloatingTimeOfLocalString = (
   localString: string,
 ): TFloatingTime => {
-  return { f: new Date(localString + "Z").getTime() };
+  let f = new Date(localString + "Z").getTime();
+  if (isNaN(f)) {
+    f = 946684800000; // === (new Date("2000-01-01T00:00:00Z")).getTime();
+  }
+  return { f };
 };
 
 export const getTzTimeOfLocalString = (
