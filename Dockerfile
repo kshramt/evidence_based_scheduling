@@ -51,7 +51,7 @@ ADD --link --chmod=555 https://github.com/bazelbuild/buildtools/releases/downloa
 ADD --link --chmod=555 https://github.com/bazelbuild/bazelisk/releases/download/v1.21.0/bazelisk-linux-${TARGETARCH:?} /usr/local/bin/bazel
 
 
-FROM node:22.16.0-bookworm-slim AS node_downloader
+FROM node:24.6.0-bookworm-slim AS node_downloader
 RUN npm install -g pnpm@latest
 
 FROM node_downloader AS firebase_downloader
