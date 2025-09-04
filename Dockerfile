@@ -3,7 +3,7 @@
 FROM docker:24.0.2-cli-alpine3.18 AS download_docker
 
 
-FROM ghcr.io/astral-sh/ruff:0.11.13 AS download_ruff
+FROM ghcr.io/astral-sh/ruff:0.12.12 AS download_ruff
 
 FROM ghcr.io/astral-sh/uv:0.7.12 AS download_uv
 
