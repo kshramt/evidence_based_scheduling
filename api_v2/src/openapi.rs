@@ -1,6 +1,6 @@
 use crate::{gen, routes};
-use utoipa::{Modify, OpenApi};
 use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
+use utoipa::{Modify, OpenApi};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -71,14 +71,19 @@ mod tests {
 
     #[test]
     fn openapi_spec_is_up_to_date() {
-        let mut generated = ApiDoc::openapi().to_yaml().expect("failed to render openapi");
+        let mut generated = ApiDoc::openapi()
+            .to_yaml()
+            .expect("failed to render openapi");
         generated.push('\n');
 
-        let spec_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../openapi/api_v2.yaml");
+        let spec_path =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../openapi/api_v2.yaml");
         let expected = std::fs::read_to_string(&spec_path)
             .unwrap_or_else(|_| panic!("failed to read {}", spec_path.display()));
 
-        assert_eq!(expected, generated, "Run `cargo run --bin generate_openapi` to refresh openapi/api_v2.yaml");
+        assert_eq!(
+            expected, generated,
+            "Run `cargo run --bin generate_openapi` to refresh openapi/api_v2.yaml"
+        );
     }
 }

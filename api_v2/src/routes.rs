@@ -1,7 +1,7 @@
 use crate::{db, errors, gen, AppState};
 use axum::{extract::FromRequestParts, http::request::Parts, Json, RequestPartsExt};
-use base64::Engine;
 use axum_extra::{headers::authorization::Bearer, TypedHeader};
+use base64::Engine;
 use serde_json::json;
 use std::sync::Arc;
 use tracing::instrument;
@@ -90,8 +90,7 @@ pub async fn sys_health_get(
 pub async fn fake_idp_users_post(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
     Json(body): Json<gen::FakeIdpCreateUserRequest>,
-) -> Result<(axum::http::StatusCode, Json<gen::FakeIdpCreateUserResponse>), errors::ErrorStatus>
-{
+) -> Result<(axum::http::StatusCode, Json<gen::FakeIdpCreateUserResponse>), errors::ErrorStatus> {
     let user_id = state.id_generator.lock()?.gen();
     let user_id = user_id.to_base62();
     let mut tx = state.pool.begin().await?;
@@ -185,8 +184,7 @@ pub async fn users_user_id_clients_post(
     token: gen::IdToken,
     axum::extract::Path(path): axum::extract::Path<gen::UsersUserIdClientsPostPath>,
     Json(body): Json<gen::CreateClientRequest>,
-) -> Result<(axum::http::StatusCode, Json<gen::CreateClientResponse>), errors::ErrorStatus>
-{
+) -> Result<(axum::http::StatusCode, Json<gen::CreateClientResponse>), errors::ErrorStatus> {
     let _ = &token.authorize(&path.user_id)?;
     let mut tx = state.pool.begin().await?;
     let client_id = create_client(&mut tx, &path.user_id, -1, &body.name).await?;
@@ -210,8 +208,7 @@ pub async fn users_user_id_patches_batch_post(
     token: gen::IdToken,
     axum::extract::Path(path): axum::extract::Path<gen::UsersUserIdPatchesBatchPostPath>,
     Json(body): Json<gen::CreatePatchesRequest>,
-) -> Result<(axum::http::StatusCode, Json<gen::CreatePatchesResponse>), errors::ErrorStatus>
-{
+) -> Result<(axum::http::StatusCode, Json<gen::CreatePatchesResponse>), errors::ErrorStatus> {
     let _ = &token.authorize(&path.user_id)?;
     let mut tx = state.pool.begin().await?;
     let patches: Vec<db::Patch> = body
@@ -250,8 +247,12 @@ pub async fn users_user_id_patches_batch_post(
 pub async fn users_user_id_clients_client_id_pending_patches_get(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
     token: gen::IdToken,
-    axum::extract::Path(path): axum::extract::Path<gen::UsersUserIdClientsClientIdPendingPatchesGetPath>,
-    axum::extract::Query(query): axum::extract::Query<gen::UsersUserIdClientsClientIdPendingPatchesGetQuery>,
+    axum::extract::Path(path): axum::extract::Path<
+        gen::UsersUserIdClientsClientIdPendingPatchesGetPath,
+    >,
+    axum::extract::Query(query): axum::extract::Query<
+        gen::UsersUserIdClientsClientIdPendingPatchesGetQuery,
+    >,
 ) -> Result<Json<gen::GetPendingPatchesResponse>, errors::ErrorStatus> {
     let _ = &token.authorize(&path.user_id)?;
     let mut tx = state.pool.begin().await?;
@@ -291,7 +292,9 @@ pub async fn users_user_id_clients_client_id_pending_patches_get(
 pub async fn users_user_id_clients_client_id_pending_patches_batch_delete(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
     token: gen::IdToken,
-    axum::extract::Path(path): axum::extract::Path<gen::UsersUserIdClientsClientIdPendingPatchesBatchDeletePath>,
+    axum::extract::Path(path): axum::extract::Path<
+        gen::UsersUserIdClientsClientIdPendingPatchesBatchDeletePath,
+    >,
     Json(body): Json<gen::DeletePendingPatchesRequest>,
 ) -> Result<Json<gen::DeletePendingPatchesResponse>, errors::ErrorStatus> {
     let _ = &token.authorize(&path.user_id)?;

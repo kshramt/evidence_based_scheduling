@@ -10,7 +10,10 @@ fn parse_u16(s: String) -> Option<u16> {
 }
 
 fn get_server_port() -> u16 {
-    std::env::var("PORT").ok().and_then(parse_u16).unwrap_or(8080)
+    std::env::var("PORT")
+        .ok()
+        .and_then(parse_u16)
+        .unwrap_or(8080)
 }
 
 fn get_database_url() -> String {
