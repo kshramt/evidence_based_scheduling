@@ -268,22 +268,6 @@ COPY --link db/migrations /app/db/migrations
 ENTRYPOINT ["/app/scripts/migrate.sh"]
 
 
-FROM base_py AS openapi_codegen_builder
-RUN --mount=type=cache,target=/root/.cache \
-    --mount=from=download_uv,source=/uv,target=/usr/local/bin/uv \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-   uv sync --frozen
-COPY --link openapi_codegen openapi_codegen
-RUN --mount=type=cache,target=/root/.cache \
-    --mount=from=download_ruff,source=/ruff,target=/usr/local/bin/ruff \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    ruff check . \
-    && ruff format --check .
-COPY --link openapi/api_v2.yaml openapi/api_v2.yaml
-RUN .venv/bin/python3 -m openapi_codegen.app < openapi/api_v2.yaml >| openapi_codegen/gen.rs
-
-
 FROM base_rust AS base_rust_builder
 WORKDIR /app
 COPY --link Cargo.toml Cargo.lock ./
@@ -295,7 +279,6 @@ RUN cargo fetch
 COPY --link api_v2/src api_v2/src
 COPY --link id_generator/src id_generator/src
 COPY --link .sqlx .sqlx
-COPY --link --from=openapi_codegen_builder /app/openapi_codegen/gen.rs api_v2/src/gen.rs
 RUN cargo fmt --check
 RUN cargo clippy --all-targets --all-features -- -D warnings
 RUN cargo test --all-targets --all-features
