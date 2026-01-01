@@ -30,17 +30,15 @@ where
 {
     type Rejection = errors::ErrorStatus;
 
-    fn from_request_parts(
+    async fn from_request_parts(
         parts: &mut Parts,
         _state: &TState,
-    ) -> impl std::future::Future<Output = Result<Self, Self::Rejection>> + Send {
-        async move {
-            let TypedHeader(axum_extra::headers::Authorization(bearer)) = parts
-                .extract::<TypedHeader<axum_extra::headers::Authorization<Bearer>>>()
-                .await
-                .map_err(|_| errors::ErrorStatus::Status400)?;
-            Self::from_base64(bearer.token())
-        }
+    ) -> Result<Self, Self::Rejection> {
+        let TypedHeader(axum_extra::headers::Authorization(bearer)) = parts
+            .extract::<TypedHeader<axum_extra::headers::Authorization<Bearer>>>()
+            .await
+            .map_err(|_| errors::ErrorStatus::Status400)?;
+        Self::from_base64(bearer.token())
     }
 }
 

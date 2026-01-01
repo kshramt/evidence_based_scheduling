@@ -357,34 +357,6 @@ export const getRootReducer = (
       },
     );
     builder.addCase(
-      actions.assign_nodes_to_covey_quadrant_action,
-      (state: types.TStateDraftWithReadonly, action) => {
-        const node_ids =
-          state.data.covey_quadrants[action.payload.quadrant_id].nodes;
-        const seen = new Set(node_ids);
-        action.payload.node_ids.forEach((node_id) => {
-          if (seen.has(node_id)) {
-            return;
-          }
-          seen.add(node_id);
-          node_ids.push(node_id);
-        });
-      },
-    );
-    builder.addCase(
-      actions.unassign_nodes_of_covey_quadrant_action,
-      (state: types.TStateDraftWithReadonly, action) => {
-        action.payload.node_ids.forEach((node_id) => {
-          const node_ids =
-            state.data.covey_quadrants[action.payload.quadrant_id].nodes;
-          const i = node_ids.indexOf(node_id);
-          if (i !== -1) {
-            node_ids.splice(i, 1);
-          }
-        });
-      },
-    );
-    builder.addCase(
       actions.toggle_show_time_node_children_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const time_node =

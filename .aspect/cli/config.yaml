@@ -1,7 +1,0 @@
-lint:
-  aspects:
-    - "@rules_rust//rust:defs.bzl%rust_clippy_aspect"
-    - "@rules_rust//rust:defs.bzl%rustfmt_aspect"
-    - //tools:lint.bzl%eslint
-    - //tools:lint.bzl%ruff
-    - //tools:lint.bzl%shellcheck
