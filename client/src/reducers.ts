@@ -791,6 +791,7 @@ export const getRootReducer = (
           "todo",
         );
         for (const edge_id of ops.keys_of(state.data.nodes[node_id].parents)) {
+          setEdgeHidden(state, edge_id, false);
           const parent_node_id = state.data.edges[edge_id].p;
           swapper.set(
             state.data.nodes,
