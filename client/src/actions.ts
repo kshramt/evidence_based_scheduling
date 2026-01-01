@@ -86,26 +86,6 @@ export const unassign_nodes_of_time_node_action = register_history_type(
     node_ids: types.TNodeId[];
   }>("unassign_nodes_of_time_node_action"),
 );
-export const assign_nodes_to_covey_quadrant_action = register_history_type(
-  Rtk.createAction<{
-    quadrant_id:
-      | "important_urgent"
-      | "important_not_urgent"
-      | "not_important_urgent"
-      | "not_important_not_urgent";
-    node_ids: types.TNodeId[];
-  }>("assign_nodes_to_covey_quadrant_action"),
-);
-export const unassign_nodes_of_covey_quadrant_action = register_history_type(
-  Rtk.createAction<{
-    quadrant_id:
-      | "important_urgent"
-      | "important_not_urgent"
-      | "not_important_urgent"
-      | "not_important_not_urgent";
-    node_ids: types.TNodeId[];
-  }>("unassign_nodes_of_covey_quadrant_action"),
-);
 export const toggle_show_time_node_children_action = register_history_type(
   Rtk.createAction<types.TTimeNodeId>("toggle_show_time_node_children_action"),
 );
