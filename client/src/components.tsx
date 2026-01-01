@@ -540,24 +540,8 @@ const Body = () => {
           <Timeline />
         </div>
         <PinnedSubTrees />
-        <CoveyQuadrants />
       </div>
     </div>
-  );
-};
-
-const CoveyQuadrants = () => {
-  return (
-    <>
-      <div className="content-visibility-auto w-[16em] flex-none">
-        <CoveyQuadrant quadrant_id="important_urgent" />
-        <CoveyQuadrant quadrant_id="not_important_urgent" />
-      </div>
-      <div className="content-visibility-auto w-[16em] flex-none">
-        <CoveyQuadrant quadrant_id="important_not_urgent" />
-        <CoveyQuadrant quadrant_id="not_important_not_urgent" />
-      </div>
-    </>
   );
 };
 
@@ -572,107 +556,6 @@ const PinnedSubTrees = () => {
       })}
     </>
   );
-};
-
-const CoveyQuadrant = (props: {
-  quadrant_id:
-    | "important_urgent"
-    | "important_not_urgent"
-    | "not_important_urgent"
-    | "not_important_not_urgent";
-}) => {
-  const nodes = useSelector(
-    (state) => state.data.covey_quadrants[props.quadrant_id].nodes,
-  );
-  const dispatch = useDispatch();
-  const selectedNodeIds = Jotai.useAtomValue(states.nodeIdsState);
-  const assign_nodes = React.useCallback(() => {
-    const node_ids = utils.node_ids_list_of_node_ids_string(selectedNodeIds);
-    if (node_ids.length < 1) {
-      return;
-    }
-    const payload = {
-      quadrant_id: props.quadrant_id,
-      node_ids,
-    };
-    dispatch(actions.assign_nodes_to_covey_quadrant_action(payload));
-  }, [props.quadrant_id, selectedNodeIds, dispatch]);
-  return (
-    <div className={`overflow-y-auto h-[50%] p-[0.5em]`}>
-      <button className="btn-icon" onClick={assign_nodes}>
-        {consts.ADD_MARK}
-      </button>
-      {props.quadrant_id}
-      {nodes
-        .slice(0)
-        .reverse()
-        .map((node_id) => (
-          <CoveyQuadrantNode
-            node_id={node_id}
-            quadrant_id={props.quadrant_id}
-            key={node_id}
-          />
-        ))}
-    </div>
-  );
-};
-
-const CoveyQuadrantNode = (props: {
-  node_id: types.TNodeId;
-  quadrant_id:
-    | "important_urgent"
-    | "important_not_urgent"
-    | "not_important_urgent"
-    | "not_important_not_urgent";
-}) => {
-  const text = utils.assertV(
-    useSelector((state) => state.swapped_caches.text?.[props.node_id]),
-  );
-  const status = utils.assertV(
-    useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
-  );
-  const dispatch = useDispatch();
-  const { isOn, turnOn, turnOff } = utils.useOn();
-  const is_running = utils.useIsRunning(props.node_id);
-  const unassign_node = React.useCallback(() => {
-    dispatch(
-      actions.unassign_nodes_of_covey_quadrant_action({
-        quadrant_id: props.quadrant_id,
-        node_ids: [props.node_id],
-      }),
-    );
-  }, [props.quadrant_id, props.node_id, dispatch]);
-  const to_tree = utils.useToTree(props.node_id);
-  return status === "todo" ? (
-    <div
-      className={utils.join(
-        "p-[0.0625em] inline-block",
-        is_running ? "running" : undefined,
-      )}
-      onMouseOver={turnOn}
-      onFocus={turnOn}
-      onMouseLeave={turnOff}
-    >
-      <span
-        onClick={to_tree}
-        className="w-[15em] block whitespace-nowrap overflow-hidden cursor-pointer"
-        role="button"
-        tabIndex={0}
-      >
-        {text.slice(0, 40)}
-      </span>
-      {(isOn || is_running) && (
-        <div className="flex w-fit gap-x-[0.25em]">
-          <StartButton node_id={props.node_id} />
-          <StartConcurrentButton node_id={props.node_id} />
-          <CopyNodeIdButton node_id={props.node_id} />
-          <button className="btn-icon" onClick={unassign_node}>
-            {consts.DELETE_MARK}
-          </button>
-        </div>
-      )}
-    </div>
-  ) : null;
 };
 
 const Timeline = () => {
