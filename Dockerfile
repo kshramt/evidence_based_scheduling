@@ -42,15 +42,6 @@ FROM denoland/deno:distroless-2.3.5 AS deno_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 
-FROM ubuntu_base AS bazel_downloader
-ARG TARGETARCH
-ARG SOURCE_DATE_EPOCH
-ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
-ADD --link --chmod=555 https://github.com/bazelbuild/buildtools/releases/download/v7.3.1/buildifier-linux-${TARGETARCH:?} /usr/local/bin/buildifier
-ADD --link --chmod=555 https://github.com/bazelbuild/buildtools/releases/download/v7.3.1/buildozer-linux-${TARGETARCH:?} /usr/local/bin/buildozer
-ADD --link --chmod=555 https://github.com/bazelbuild/bazelisk/releases/download/v1.21.0/bazelisk-linux-${TARGETARCH:?} /usr/local/bin/bazel
-
-
 FROM node:22.16.0-bookworm-slim AS node_downloader
 RUN npm install -g pnpm@latest
 
@@ -161,9 +152,6 @@ COPY --link --from=firebase_downloader /usr/local/bin /usr/local/bin
 COPY --link --from=firebase_downloader /usr/local/lib/node_modules /usr/local/lib/node_modules
 COPY --link --from=docker_downloader /usr/local/bin/docker /usr/local/bin/docker
 COPY --link --from=docker_downloader /usr/local/libexec/docker /usr/local/libexec/docker
-COPY --link --from=bazel_downloader /usr/local/bin/buildifier /usr/local/bin/buildifier
-COPY --link --from=bazel_downloader /usr/local/bin/buildozer /usr/local/bin/buildozer
-COPY --link --from=bazel_downloader /usr/local/bin/bazel /usr/local/bin/bazel
 COPY --link --from=hadolint_base /bin/hadolint /usr/local/bin/hadolint
 COPY --link --from=download_ruff /ruff /usr/local/bin/ruff
 COPY --link --from=download_uv /uv /usr/local/bin/uv

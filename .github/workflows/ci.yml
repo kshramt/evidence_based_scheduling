@@ -20,36 +20,6 @@ jobs:
           echo "host-arch=$(docker version --format '{{ (index .Server.Components 0).Details.Arch }}')"
           echo "host-os=$(docker version --format '{{ (index .Server.Components 0).Details.Os }}')"
           } >> "$GITHUB_OUTPUT"
-  bazel:
-    if: false && (github.actor == 'dependabot[bot]' || github.actor == github.repository_owner)
-    permissions:
-      contents: read
-      packages: write
-    runs-on: ubuntu-latest
-    steps:
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/checkout@v4
-      - name: Set cache key
-        id: cache-key
-        run: |
-          {
-            echo "file_hashes=${{ hashFiles('.bazelversion', '.bazelrc', 'WORKSPACE', 'WORKSPACE.bazel', 'MODULE.bazel') }}"
-          } >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache
-          key: ${{ runner.os }}-bazel-${{ steps.cache-key.outputs.file_hashes }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-bazel-${{ steps.cache-key.outputs.file_hashes }}-
-            ${{ runner.os }}-bazel-
-      - run: EMBED_LABEL="git-${{ github.sha }}" scripts/bazel.sh
-      - run: EMBED_LABEL="latest" scripts/bazel.sh
-        if: github.ref == 'refs/heads/main'
   build-images:
     if: github.actor == 'dependabot[bot]' || github.actor == github.repository_owner
     permissions:
