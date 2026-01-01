@@ -1,5 +1,0 @@
-[bazel-bin/**]
-ignore = true
-
-[bazel-out/**]
-ignore = true

@@ -1,5 +1,0 @@
-.venv
-client/node_modules
-node_modules
-py/.venv
-tests/
