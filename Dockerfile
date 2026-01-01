@@ -7,6 +7,10 @@ FROM ghcr.io/astral-sh/ruff:0.14.2 AS download_ruff
 
 FROM ghcr.io/astral-sh/uv:0.7.12 AS download_uv
 
+FROM koalaman/shellcheck-alpine:0.10.0 AS download_shellcheck
+
+FROM mvdan/shfmt:v3.10.0-alpine AS download_shfmt
+
 FROM ubuntu:22.04 AS ubuntu_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
@@ -153,6 +157,8 @@ COPY --link --from=firebase_downloader /usr/local/lib/node_modules /usr/local/li
 COPY --link --from=docker_downloader /usr/local/bin/docker /usr/local/bin/docker
 COPY --link --from=docker_downloader /usr/local/libexec/docker /usr/local/libexec/docker
 COPY --link --from=hadolint_base /bin/hadolint /usr/local/bin/hadolint
+COPY --link --from=download_shellcheck /bin/shellcheck /usr/local/bin/shellcheck
+COPY --link --from=download_shfmt /bin/shfmt /usr/local/bin/shfmt
 COPY --link --from=download_ruff /ruff /usr/local/bin/ruff
 COPY --link --from=download_uv /uv /usr/local/bin/uv
 # COPY --link --from=starpls_downloader /usr/local/bin/starpls /usr/local/bin/starpls
