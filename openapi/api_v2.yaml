@@ -1,363 +1,324 @@
 openapi: 3.1.0
 info:
   title: API V2
+  description: ''
+  license:
+    name: ''
   version: 2.0.0
-security:
-  - bearerAuth: []
 servers:
-  - url: /api/v2
+- url: /api/v2
 paths:
-  /sys/health:
-    get:
-      summary: Check the health of the system.
-      security: []
-      responses:
-        "200":
-          description: System is healthy.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SysHealthResponse"
-  /fake_idp/users:
-    post:
-      summary: Create a user for the fake ID provider.
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/FakeIdpCreateUserRequest"
-      responses:
-        "201":
-          description: User created.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FakeIdpCreateUserResponse"
   /fake_idp/login/id_token:
     post:
-      summary: Create an id token for the fake ID provider.
-      security: []
+      tags:
+      - routes
+      operationId: fake_idp_login_id_token_post
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/FakeIdpCreateUserRequest"
+              $ref: '#/components/schemas/FakeIdpCreateUserRequest'
+        required: true
       responses:
-        "200":
+        '200':
           description: ID token created.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/FakeIdpCreateIdTokenResponse"
-  /users:
+                $ref: '#/components/schemas/FakeIdpCreateIdTokenResponse'
+      security:
+      - {}
+  /fake_idp/users:
     post:
-      summary: Create a user with the given ID token in the authorization Bearer header.
+      tags:
+      - routes
+      operationId: fake_idp_users_post
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateUserRequest"
+              $ref: '#/components/schemas/FakeIdpCreateUserRequest'
+        required: true
       responses:
-        "201":
+        '201':
           description: User created.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CreateUserResponse"
-  /users/{user_id}/clients:
+                $ref: '#/components/schemas/FakeIdpCreateUserResponse'
+      security:
+      - {}
+  /sys/health:
+    get:
+      tags:
+      - routes
+      operationId: sys_health_get
+      responses:
+        '200':
+          description: System is healthy.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SysHealthResponse'
+      security:
+      - {}
+  /users:
     post:
-      summary: Create a client with the given ID token in the authorization Bearer header.
-      parameters:
-        - name: user_id
-          in: path
-          required: true
-          schema:
-            type: string
+      tags:
+      - routes
+      operationId: users_post
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateClientRequest"
+              $ref: '#/components/schemas/CreateUserRequest'
+        required: true
       responses:
-        "201":
+        '201':
+          description: User created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateUserResponse'
+  /users/{user_id}/clients:
+    post:
+      tags:
+      - routes
+      operationId: users_user_id_clients_post
+      parameters:
+      - name: user_id
+        in: path
+        description: User ID
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClientRequest'
+        required: true
+      responses:
+        '201':
           description: Client created.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CreateClientResponse"
-  /users/{user_id}/patches~batch:
-    post:
-      summary: Push un-synched patches to the remote.
-      parameters:
-        - name: user_id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreatePatchesRequest"
-      responses:
-        "201":
-          description: Patches pushed.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CreatePatchesResponse"
+                $ref: '#/components/schemas/CreateClientResponse'
   /users/{user_id}/clients/{client_id}/pending_patches:
     get:
-      summary: Retrieve un-synched patches from the remote.
+      tags:
+      - routes
+      operationId: users_user_id_clients_client_id_pending_patches_get
       parameters:
-        - name: user_id
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: client_id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-        - name: limit
-          in: query
-          required: true
-          schema:
-            type: integer
-            format: int64
+      - name: user_id
+        in: path
+        description: User ID
+        required: true
+        schema:
+          type: string
+      - name: client_id
+        in: path
+        description: Client ID
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: limit
+        in: query
+        description: Maximum patches to fetch
+        required: true
+        schema:
+          type: integer
+          format: int64
       responses:
-        "200":
+        '200':
           description: Patches retrieved.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GetPendingPatchesResponse"
+                $ref: '#/components/schemas/GetPendingPatchesResponse'
   /users/{user_id}/clients/{client_id}/pending_patches~batch:
     delete:
-      summary: Delete remote patches that have been downloaded locally.
+      tags:
+      - routes
+      operationId: users_user_id_clients_client_id_pending_patches_batch_delete
       parameters:
-        - name: user_id
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: client_id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      requestBody:
+      - name: user_id
+        in: path
+        description: User ID
         required: true
+        schema:
+          type: string
+      - name: client_id
+        in: path
+        description: Client ID
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/DeletePendingPatchesRequest"
+              $ref: '#/components/schemas/DeletePendingPatchesRequest'
+        required: true
       responses:
-        "200":
+        '200':
           description: Patches deleted.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DeletePendingPatchesResponse"
+                $ref: '#/components/schemas/DeletePendingPatchesResponse'
   /users/{user_id}/head:
     get:
-      summary: Get the main branch.
+      tags:
+      - routes
+      operationId: users_user_id_head_get
       parameters:
-        - name: user_id
-          in: path
-          required: true
-          schema:
-            type: string
+      - name: user_id
+        in: path
+        description: User ID
+        required: true
+        schema:
+          type: string
       responses:
-        "200":
+        '200':
           description: Head retrieved.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GetHeadResponse"
+                $ref: '#/components/schemas/GetHeadResponse'
     put:
-      summary: Set the main branch.
+      tags:
+      - routes
+      operationId: users_user_id_head_put
       parameters:
-        - name: user_id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
+      - name: user_id
+        in: path
+        description: User ID
         required: true
+        schema:
+          type: string
+      requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateHeadRequest"
+              $ref: '#/components/schemas/UpdateHeadRequest'
+        required: true
       responses:
-        "200":
+        '200':
           description: Head has been set.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UpdateHeadResponse"
+                $ref: '#/components/schemas/UpdateHeadResponse'
+  /users/{user_id}/patches~batch:
+    post:
+      tags:
+      - routes
+      operationId: users_user_id_patches_batch_post
+      parameters:
+      - name: user_id
+        in: path
+        description: User ID
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePatchesRequest'
+        required: true
+      responses:
+        '201':
+          description: Patches pushed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatePatchesResponse'
 components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      description: |
-        Use the following value for the `Authorization` header:
-
-        ```
-        Bearer <id_token>
-        ```
-
-        where `<id_token>` is the Base64-encoded ID token.
   schemas:
-    IdToken:
-      type: object
-      properties:
-        user_id:
-          type: string
-      required:
-        - user_id
-    Patch:
-      type: object
-      properties:
-        patch_key:
-          $ref: "#/components/schemas/PatchKey"
-        parent_patch_key:
-          $ref: "#/components/schemas/PatchKey"
-        created_at:
-          type: string
-          format: date-time
-        patch:
-          description: Any JSON value.
-      required:
-        - patch_key
-        - parent_patch_key
-        - created_at
-        - patch
-    PatchKey:
-      type: object
-      properties:
-        client_id:
-          type: integer
-          format: int64
-        session_id:
-          type: integer
-          format: int64
-        patch_id:
-          type: integer
-          format: int64
-      required:
-        - client_id
-        - session_id
-        - patch_id
-    SysHealthResponse:
-      type: object
-      properties:
-        status:
-          type: string
-      required:
-        - status
-    FakeIdpCreateUserRequest:
-      type: object
-      properties:
-        name:
-          type: string
-      required:
-        - name
-    FakeIdpCreateUserResponse:
-      type: object
-      properties:
-        id_token:
-          $ref: "#/components/schemas/IdToken"
-      required:
-        - id_token
-    FakeIdpCreateIdTokenRequest:
-      type: object
-      properties:
-        name:
-          type: string
-      required:
-        - name
-    FakeIdpCreateIdTokenResponse:
-      type: object
-      properties:
-        id_token:
-          $ref: "#/components/schemas/IdToken"
-      required:
-        - id_token
-    CreateUserRequest:
-      type: object
-      properties: {}
-    CreateUserResponse:
-      type: object
-      properties: {}
     CreateClientRequest:
       type: object
+      required:
+      - name
       properties:
         name:
           type: string
-      required:
-        - name
     CreateClientResponse:
       type: object
+      required:
+      - client_id
       properties:
         client_id:
           type: integer
           format: int64
-      required:
-        - client_id
-    GetPendingPatchesResponse:
+    CreatePatchesRequest:
       type: object
+      required:
+      - patches
       properties:
         patches:
           type: array
           items:
-            $ref: "#/components/schemas/Patch"
-      required:
-        - patches
+            $ref: '#/components/schemas/Patch'
+    CreatePatchesResponse:
+      type: object
+    CreateUserRequest:
+      type: object
+    CreateUserResponse:
+      type: object
     DeletePendingPatchesRequest:
       type: object
+      required:
+      - patch_keys
       properties:
         patch_keys:
           type: array
           items:
-            $ref: "#/components/schemas/PatchKey"
-      required:
-        - patch_keys
+            $ref: '#/components/schemas/PatchKey'
     DeletePendingPatchesResponse:
       type: object
-      properties: {}
-    CreatePatchesRequest:
+    FakeIdpCreateIdTokenRequest:
       type: object
-      properties:
-        patches:
-          type: array
-          items:
-            $ref: "#/components/schemas/Patch"
       required:
-        - patches
-    CreatePatchesResponse:
+      - name
+      properties:
+        name:
+          type: string
+    FakeIdpCreateIdTokenResponse:
       type: object
-      properties: {}
+      required:
+      - id_token
+      properties:
+        id_token:
+          $ref: '#/components/schemas/IdToken'
+    FakeIdpCreateUserRequest:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          type: string
+    FakeIdpCreateUserResponse:
+      type: object
+      required:
+      - id_token
+      properties:
+        id_token:
+          $ref: '#/components/schemas/IdToken'
     GetHeadResponse:
       type: object
+      required:
+      - client_id
+      - session_id
+      - patch_id
+      - created_at
+      - name
       properties:
         client_id:
-          type: integer
-          format: int64
-        session_id:
-          type: integer
-          format: int64
-        patch_id:
           type: integer
           format: int64
         created_at:
@@ -365,25 +326,98 @@ components:
           format: date-time
         name:
           type: string
+        patch_id:
+          type: integer
+          format: int64
+        session_id:
+          type: integer
+          format: int64
+    GetPendingPatchesResponse:
+      type: object
       required:
-        - client_id
-        - session_id
-        - patch_id
-        - created_at
-        - name
+      - patches
+      properties:
+        patches:
+          type: array
+          items:
+            $ref: '#/components/schemas/Patch'
+    IdToken:
+      type: object
+      required:
+      - user_id
+      properties:
+        user_id:
+          type: string
+    Patch:
+      type: object
+      required:
+      - patch_key
+      - parent_patch_key
+      - created_at
+      - patch
+      properties:
+        created_at:
+          type: string
+          format: date-time
+        parent_patch_key:
+          $ref: '#/components/schemas/PatchKey'
+        patch:
+          description: Any JSON value.
+        patch_key:
+          $ref: '#/components/schemas/PatchKey'
+    PatchKey:
+      type: object
+      required:
+      - client_id
+      - session_id
+      - patch_id
+      properties:
+        client_id:
+          type: integer
+          format: int64
+        patch_id:
+          type: integer
+          format: int64
+        session_id:
+          type: integer
+          format: int64
+    SysHealthResponse:
+      type: object
+      required:
+      - status
+      properties:
+        status:
+          type: string
     UpdateHeadRequest:
       type: object
-      properties:
-        patch_key:
-          $ref: "#/components/schemas/PatchKey"
-        header_if_match:
-          $ref: "#/components/schemas/PatchKey"
       required:
-        - patch_key
+      - patch_key
+      properties:
+        header_if_match:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/PatchKey'
+        patch_key:
+          $ref: '#/components/schemas/PatchKey'
     UpdateHeadResponse:
       type: object
+      required:
+      - updated
       properties:
         updated:
           type: boolean
-      required:
-        - updated
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |-
+        Use the following value for the `Authorization` header:
+
+        ``````
+        Bearer <id_token>
+        ``````
+
+        where `<id_token>` is the Base64-encoded ID token.
+security:
+- bearerAuth: []
+
