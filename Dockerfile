@@ -46,7 +46,7 @@ FROM denoland/deno:distroless-2.6.3 AS deno_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 
-FROM node:22.16.0-bookworm-slim AS node_downloader
+FROM node:25.2.1-bookworm-slim AS node_downloader
 RUN npm install -g pnpm@latest
 
 FROM node_downloader AS firebase_downloader
