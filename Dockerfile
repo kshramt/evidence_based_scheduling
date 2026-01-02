@@ -9,7 +9,7 @@ FROM ghcr.io/astral-sh/uv:0.7.12 AS download_uv
 
 FROM koalaman/shellcheck-alpine:0.10.0 AS download_shellcheck
 
-FROM mvdan/shfmt:v3.10.0-alpine AS download_shfmt
+FROM mvdan/shfmt:v3.12.0-alpine AS download_shfmt
 
 FROM ubuntu:22.04 AS ubuntu_base
 ARG SOURCE_DATE_EPOCH
