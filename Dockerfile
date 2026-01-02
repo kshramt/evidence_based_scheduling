@@ -265,7 +265,7 @@ COPY --link ./envoy.yaml /etc/envoy/envoy.yaml
 
 FROM base_postgres AS prod_postgres
 
-FROM debian:13.1-slim AS prod_postgres_migration
+FROM debian:13.2-slim AS prod_postgres_migration
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 COPY --link --from=base_dbmate /usr/local/bin/dbmate /usr/local/bin/dbmate
