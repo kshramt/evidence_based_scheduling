@@ -82,6 +82,9 @@ impl gen::Api for ApiImpl {
         state: State<Arc<AppState>>,
         Json(body): Json<gen::FakeIdpCreateUserRequest>,
     ) -> Result<gen::FakeIdpUsersPost, errors::ErrorStatus> {
+        if body.name.len() > 256 {
+            return Err(errors::ErrorStatus::Status400);
+        }
         let user_id = state.id_generator.lock()?.gen();
         let user_id = user_id.to_base62();
         let mut tx = state.pool.begin().await?;
@@ -99,6 +102,9 @@ impl gen::Api for ApiImpl {
         state: State<Arc<AppState>>,
         Json(body): Json<gen::FakeIdpCreateUserRequest>,
     ) -> Result<gen::FakeIdpLoginIdTokenPost, errors::ErrorStatus> {
+        if body.name.len() > 256 {
+            return Err(errors::ErrorStatus::Status400);
+        }
         let mut tx = state.pool.begin().await?;
         let user = db::fake_idp_get_user_by_name(&mut tx, &body.name).await?;
         Ok(gen::FakeIdpLoginIdTokenPost::S200(
@@ -159,6 +165,9 @@ impl gen::Api for ApiImpl {
         Json(body): Json<gen::CreateClientRequest>,
     ) -> Result<gen::UsersUserIdClientsPost, errors::ErrorStatus> {
         let _ = &token.authorize(&path.user_id)?;
+        if body.name.len() > 256 {
+            return Err(errors::ErrorStatus::Status400);
+        }
         let mut tx = state.pool.begin().await?;
         let client_id = create_client(&mut tx, &path.user_id, -1, &body.name).await?;
         tx.commit().await?;
