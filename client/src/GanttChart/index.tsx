@@ -1,6 +1,7 @@
 import * as Jotai from "jotai";
 import * as React from "react";
 import * as RWindow from "react-window";
+import { useDebouncedValue } from "@mantine/hooks";
 
 import * as consts from "src/consts";
 import * as intervals from "src/intervals";
@@ -266,6 +267,7 @@ const GanttChartImpl = (props: { indexColumnWidth: number }) => {
   const initialScrollLeft = getScrollLeft(tnow.f, ganttDt, columnWidth);
   const initialScrollTop = rowHeight * 0;
   const [scrollLeft, setScrollLeft] = React.useState(initialScrollLeft);
+  const [debouncedScrollLeft] = useDebouncedValue(scrollLeft, 200);
   const onScroll = React.useCallback(
     ({ scrollLeft, scrollTop }: { scrollLeft: number; scrollTop: number }) => {
       if (headerRef.current) {
@@ -282,7 +284,7 @@ const GanttChartImpl = (props: { indexColumnWidth: number }) => {
     if (!filterActive) {
       return todoNodeIds;
     }
-    const tStart = { f: (scrollLeft / columnWidth) * ganttDt + START_TIME.f };
+    const tStart = { f: (debouncedScrollLeft / columnWidth) * ganttDt + START_TIME.f };
     const tEnd = { f: tStart.f + (resize.width / columnWidth) * ganttDt };
     const head = [];
     const tail = [];
@@ -317,7 +319,14 @@ const GanttChartImpl = (props: { indexColumnWidth: number }) => {
       }
     }
     return head.concat(tail);
-  }, [filterActive, scrollLeft, resize.width, todoNodeIds, eventss, ganttDt]);
+  }, [
+    filterActive,
+    debouncedScrollLeft,
+    resize.width,
+    todoNodeIds,
+    eventss,
+    ganttDt,
+  ]);
 
   const indexColumnStyle = React.useMemo(() => {
     return { width: props.indexColumnWidth };
