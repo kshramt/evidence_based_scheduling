@@ -61,6 +61,7 @@ const MoveUpButton = (props: { node_id: types.TNodeId }) => {
       onClick={on_click}
       ref={moveUpButtonRefOf(props.node_id)}
       onDoubleClick={utils.prevent_propagation}
+      aria-label="Move item up"
     >
       {consts.MOVE_UP_MARK}
     </button>
@@ -80,6 +81,7 @@ const MoveDownButton = (props: { node_id: types.TNodeId }) => {
       onClick={on_click}
       ref={moveDownButtonRefOf(props.node_id)}
       onDoubleClick={utils.prevent_propagation}
+      aria-label="Move item down"
     >
       {consts.MOVE_DOWN_MARK}
     </button>
