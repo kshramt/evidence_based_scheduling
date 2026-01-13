@@ -111,6 +111,8 @@ export const ShowDetailsButton = (props: { node_id: types.TNodeId }) => {
       className="btn-icon"
       onClick={handleClick}
       onDoubleClick={utils.prevent_propagation}
+      aria-label="Show Details"
+      title="Show Details"
     >
       {consts.DETAIL_MARK}
     </button>
