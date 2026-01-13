@@ -69,6 +69,8 @@ const EdgeRow = (props: { edge_id: types.TEdgeId; target: "p" | "c" }) => {
           className="btn-icon"
           onClick={delete_edge}
           onDoubleClick={utils.prevent_propagation}
+          aria-label="Delete Edge"
+          title="Delete Edge"
         >
           {consts.DELETE_MARK}
         </button>
