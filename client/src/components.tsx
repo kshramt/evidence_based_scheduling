@@ -108,6 +108,7 @@ const MobileNodeFilterQueryInput = () => {
       />
       <button
         className="icon-icon"
+        aria-label="Clear filter"
         onClick={clear_input}
         onDoubleClick={prevent_propagation}
       >
@@ -165,6 +166,7 @@ const NodeFilterQueryInput = () => {
         />
         <button
           className="btn-icon"
+          aria-label="Clear filter"
           onClick={clear_input}
           onDoubleClick={prevent_propagation}
         >
@@ -313,6 +315,7 @@ const NodeIdsInput = () => {
         />
         <button
           className="btn-icon"
+          aria-label="Clear IDs"
           onClick={clear_input}
           onDoubleClick={prevent_propagation}
         >
@@ -327,6 +330,7 @@ const SBTTB = (props: { onClick: () => void }) => {
   return (
     <button
       onClick={props.onClick}
+      aria-label="Scroll to top"
       className="sticky top-[60%] left-[50%] -translate-x-1/2 -translate-y-1/2 px-[0.15rem] dark:bg-neutral-300 bg-neutral-600 dark:hover:bg-neutral-400 hover:bg-neutral-500 text-center min-w-[3rem] h-[3rem] text-[2rem] border-none shadow-none opacity-70 hover:opacity-100 float-left mt-[-3rem] z-40"
     >
       {SCROLL_BACK_TO_TOP_MARK}
@@ -338,6 +342,7 @@ const SBTBB = (props: { onClick: () => void }) => {
   return (
     <button
       onClick={props.onClick}
+      aria-label="Scroll to bottom"
       className="sticky top-[calc(60%+4rem)] left-[50%] -translate-x-1/2 -translate-y-1/2 px-[0.15rem] dark:bg-neutral-300 bg-neutral-600 dark:hover:bg-neutral-400 hover:bg-neutral-500 text-center min-w-[3rem] h-[3rem] text-[2rem] border-none shadow-none opacity-70 hover:opacity-100 float-left mt-[-3rem] z-40"
     >
       {SCROLL_BACK_TO_BOTTOM_MARK}
@@ -360,6 +365,7 @@ export const ToggleShowMobileButton = () => {
   return (
     <button
       className="btn-icon"
+      aria-label={show_mobile ? "Switch to desktop view" : "Switch to mobile view"}
       onClick={handleClick}
       onDoubleClick={prevent_propagation}
     >
@@ -422,6 +428,7 @@ const Menu = (props: {
       />
       <button
         className="btn-icon"
+        aria-label="Stop all"
         onClick={stop_all}
         onDoubleClick={prevent_propagation}
       >
@@ -578,7 +585,7 @@ const Timeline = () => {
   return (
     <>
       {decade_nodes}
-      <button className="btn-icon" onClick={increment_count}>
+      <button className="btn-icon" aria-label="Add decade" onClick={increment_count}>
         {consts.ADD_MARK}
       </button>
     </>
@@ -785,13 +792,13 @@ const TimeNodeEntry = (props: { time_node_id: types.TTimeNodeId }) => {
       />
       {isOn && (
         <div className="flex w-fit gap-x-[0.125em]">
-          <button className="btn-icon" onClick={assign_nodes}>
+          <button className="btn-icon" aria-label="Assign nodes" onClick={assign_nodes}>
             {consts.ADD_MARK}
           </button>
           <CopyDescendantTimeNodesPlannedNodeIdsButton
             time_node_id={props.time_node_id}
           />
-          <button className="btn-icon" onClick={toggle_show_children}>
+          <button className="btn-icon" aria-label="Toggle children visibility" onClick={toggle_show_children}>
             {time_node === undefined || time_node.show_children === "partial"
               ? consts.IS_PARTIAL_MARK
               : time_node.show_children === "full"
@@ -863,7 +870,7 @@ const PlannedNode = (props: {
             </>
           )}
           <CopyNodeIdButton node_id={props.node_id} />
-          <button className="btn-icon" onClick={unassign_node}>
+          <button className="btn-icon" aria-label="Unassign node" onClick={unassign_node}>
             {consts.DELETE_MARK}
           </button>
         </div>
@@ -1130,6 +1137,7 @@ const MobileMenu = (props: {
       />
       <button
         className="btn-icon"
+        aria-label="Stop all"
         onClick={stop_all}
         onDoubleClick={prevent_propagation}
       >
@@ -1455,6 +1463,7 @@ const CopyDescendantTimeNodesPlannedNodeIdsButton = (props: {
   return (
     <button
       className="btn-icon"
+      aria-label="Copy descendant node IDs"
       onClick={handle_click}
       onDoubleClick={prevent_propagation}
     >
