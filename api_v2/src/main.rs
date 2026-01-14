@@ -1,6 +1,6 @@
 use axum::{
     extract::{FromRequestParts, Path, Query, State},
-    http::request::Parts,
+    http::{header, request::Parts},
     Json, RequestPartsExt,
 };
 use axum_extra::{
@@ -13,6 +13,7 @@ use std::{
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
+use tower_http::set_header::SetResponseHeaderLayer;
 use tracing::{debug, info, instrument};
 use tracing_subscriber::EnvFilter;
 
@@ -378,6 +379,22 @@ async fn get_pool() -> sqlx::postgres::PgPool {
         .unwrap()
 }
 
+fn create_app(state: Arc<AppState>) -> axum::Router {
+    let app = axum::Router::new();
+    let app = gen::register_app::<ApiImpl>(app);
+    let app = app.with_state(state);
+    app.layer(tower_http::trace::TraceLayer::new_for_http())
+        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::X_CONTENT_TYPE_OPTIONS,
+            header::HeaderValue::from_static("nosniff"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::X_FRAME_OPTIONS,
+            header::HeaderValue::from_static("DENY"),
+        ))
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
@@ -385,12 +402,7 @@ async fn main() {
         .json()
         .init();
     let state = std::sync::Arc::new(AppState::new(get_shard(), get_pool().await));
-    let app = axum::Router::new();
-    let app = gen::register_app::<ApiImpl>(app);
-    let app = app.with_state(state);
-    let app = app
-        .layer(tower_http::trace::TraceLayer::new_for_http())
-        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
+    let app = create_app(state);
 
     let port = get_server_port();
     info!(port = ?port);
@@ -400,4 +412,36 @@ async fn main() {
     axum::serve(listener, app.into_make_service())
         .await
         .unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::{body::Body, http::Request};
+    use tower::ServiceExt;
+
+    #[tokio::test]
+    async fn test_security_headers() {
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .connect_lazy("postgres://fake:fake@localhost:5432/fake")
+            .unwrap();
+        let state = Arc::new(AppState::new(0, pool));
+        let app = create_app(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v2/sys/health")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            response.headers().get("X-Content-Type-Options").unwrap(),
+            "nosniff"
+        );
+        assert_eq!(response.headers().get("X-Frame-Options").unwrap(), "DENY");
+    }
 }
