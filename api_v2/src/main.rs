@@ -378,19 +378,31 @@ async fn get_pool() -> sqlx::postgres::PgPool {
         .unwrap()
 }
 
+fn create_app(state: AppState) -> axum::Router {
+    let state = std::sync::Arc::new(state);
+    let app = axum::Router::new();
+    let app = gen::register_app::<ApiImpl>(app);
+    let app = app.with_state(state);
+    app.layer(tower_http::trace::TraceLayer::new_for_http())
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::X_FRAME_OPTIONS,
+            axum::http::HeaderValue::from_static("DENY"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::X_CONTENT_TYPE_OPTIONS,
+            axum::http::HeaderValue::from_static("nosniff"),
+        ))
+        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024))
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
         .json()
         .init();
-    let state = std::sync::Arc::new(AppState::new(get_shard(), get_pool().await));
-    let app = axum::Router::new();
-    let app = gen::register_app::<ApiImpl>(app);
-    let app = app.with_state(state);
-    let app = app
-        .layer(tower_http::trace::TraceLayer::new_for_http())
-        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
+    let state = AppState::new(get_shard(), get_pool().await);
+    let app = create_app(state);
 
     let port = get_server_port();
     info!(port = ?port);
@@ -400,4 +412,43 @@ async fn main() {
     axum::serve(listener, app.into_make_service())
         .await
         .unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::{body::Body, http::Request};
+    use tower::ServiceExt;
+
+    #[tokio::test]
+    async fn test_security_headers() {
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .connect_lazy("postgres://localhost:5432/test_db")
+            .unwrap();
+        let state = AppState::new(0, pool);
+        let app = create_app(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/sys/health")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let headers = response.headers();
+
+        assert_eq!(
+            headers.get("X-Frame-Options").map(|v| v.to_str().unwrap()),
+            Some("DENY")
+        );
+        assert_eq!(
+            headers
+                .get("X-Content-Type-Options")
+                .map(|v| v.to_str().unwrap()),
+            Some("nosniff")
+        );
+    }
 }
