@@ -12,6 +12,7 @@ const TopButton = (props: { node_id: types.TNodeId; disabled?: boolean }) => {
   }, [props.node_id, dispatch]);
   return (
     <button
+      aria-label="Move to top"
       className="btn-icon"
       onClick={on_click}
       onDoubleClick={utils.prevent_propagation}
