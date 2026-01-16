@@ -1,6 +1,6 @@
 use axum::{
     extract::{FromRequestParts, Path, Query, State},
-    http::request::Parts,
+    http::{header, request::Parts, HeaderValue},
     Json, RequestPartsExt,
 };
 use axum_extra::{
@@ -13,6 +13,7 @@ use std::{
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
+use tower_http::set_header::SetResponseHeaderLayer;
 use tracing::{debug, info, instrument};
 use tracing_subscriber::EnvFilter;
 
@@ -370,12 +371,27 @@ fn get_shard() -> u16 {
     std::env::var("SHARD").ok().and_then(parse_u16).unwrap_or(0)
 }
 
-async fn get_pool() -> sqlx::postgres::PgPool {
+fn get_pool() -> sqlx::postgres::PgPool {
     sqlx::postgres::PgPoolOptions::new()
         .max_connections(100)
-        .connect(&get_database_url())
-        .await
+        .connect_lazy(&get_database_url())
         .unwrap()
+}
+
+fn create_app(state: Arc<AppState>) -> axum::Router {
+    let app = axum::Router::new();
+    let app = gen::register_app::<ApiImpl>(app);
+    let app = app.with_state(state);
+    app.layer(tower_http::trace::TraceLayer::new_for_http())
+        .layer(SetResponseHeaderLayer::overriding(
+            header::X_FRAME_OPTIONS,
+            HeaderValue::from_static("DENY"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::X_CONTENT_TYPE_OPTIONS,
+            HeaderValue::from_static("nosniff"),
+        ))
+        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024))
 }
 
 #[tokio::main]
@@ -384,13 +400,8 @@ async fn main() {
         .with_env_filter(EnvFilter::from_default_env())
         .json()
         .init();
-    let state = std::sync::Arc::new(AppState::new(get_shard(), get_pool().await));
-    let app = axum::Router::new();
-    let app = gen::register_app::<ApiImpl>(app);
-    let app = app.with_state(state);
-    let app = app
-        .layer(tower_http::trace::TraceLayer::new_for_http())
-        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
+    let state = std::sync::Arc::new(AppState::new(get_shard(), get_pool()));
+    let app = create_app(state);
 
     let port = get_server_port();
     info!(port = ?port);
@@ -400,4 +411,41 @@ async fn main() {
     axum::serve(listener, app.into_make_service())
         .await
         .unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::{body::Body, http::Request};
+    use tower::ServiceExt;
+
+    #[tokio::test]
+    async fn test_security_headers() {
+        std::env::set_var("DATABASE_URL", "postgres://user:pass@localhost:5432/db");
+        let pool = get_pool();
+        let state = Arc::new(AppState::new(0, pool));
+        let app = create_app(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/sys/health")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            response.headers().get(header::X_FRAME_OPTIONS).unwrap(),
+            "DENY"
+        );
+        assert_eq!(
+            response
+                .headers()
+                .get(header::X_CONTENT_TYPE_OPTIONS)
+                .unwrap(),
+            "nosniff"
+        );
+    }
 }
