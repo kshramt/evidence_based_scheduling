@@ -2,6 +2,7 @@
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct IdToken {
     pub user_id: String,
+    pub token: String,
 }
 #[rustfmt::skip]
 #[derive(Debug, serde::Deserialize, serde::Serialize)]

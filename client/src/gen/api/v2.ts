@@ -3,7 +3,7 @@ import { z } from "zod";
 
 const SysHealthResponse = z.object({ status: z.string() }).passthrough();
 const FakeIdpCreateUserRequest = z.object({ name: z.string() }).passthrough();
-const IdToken = z.object({ user_id: z.string() }).passthrough();
+const IdToken = z.object({ user_id: z.string(), token: z.string() }).passthrough();
 const FakeIdpCreateUserResponse = z.object({ id_token: IdToken }).passthrough();
 const FakeIdpCreateIdTokenResponse = z
   .object({ id_token: IdToken })
