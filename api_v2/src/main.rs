@@ -8,6 +8,8 @@ use axum_extra::{
     TypedHeader,
 };
 use base64::Engine;
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{
     net::SocketAddr,
@@ -19,6 +21,47 @@ use tracing_subscriber::EnvFilter;
 mod db;
 mod errors;
 mod gen;
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Claims {
+    sub: String,
+    exp: u64,
+}
+
+fn get_jwt_secret() -> Vec<u8> {
+    match std::env::var("JWT_SECRET") {
+        Ok(val) => val.into_bytes(),
+        Err(_) => {
+            tracing::warn!("JWT_SECRET not set, using insecure default 'secret'");
+            b"secret".to_vec()
+        }
+    }
+}
+
+fn sign_token(user_id: &str) -> Result<String, errors::ErrorStatus> {
+    let my_claims = Claims {
+        sub: user_id.to_owned(),
+        exp: 20000000000, // Long expiry
+    };
+    let key = get_jwt_secret();
+    encode(
+        &Header::default(),
+        &my_claims,
+        &EncodingKey::from_secret(&key),
+    )
+    .map_err(|_| errors::ErrorStatus::Status500)
+}
+
+fn verify_token(token: &str) -> Result<Claims, errors::ErrorStatus> {
+    let key = get_jwt_secret();
+    decode::<Claims>(
+        token,
+        &DecodingKey::from_secret(&key),
+        &Validation::default(),
+    )
+    .map(|data| data.claims)
+    .map_err(|_| errors::ErrorStatus::Status400)
+}
 
 struct ApiImpl;
 
@@ -43,10 +86,18 @@ where
 
 impl gen::IdToken {
     pub fn from_base64(s: &str) -> Result<Self, errors::ErrorStatus> {
-        let s = base64::engine::general_purpose::STANDARD
+        let s_decoded = base64::engine::general_purpose::STANDARD
             .decode(s)
             .map_err(|_| errors::ErrorStatus::Status400)?;
-        serde_json::from_slice(&s).map_err(|_| errors::ErrorStatus::Status400)
+        let id_token: Self =
+            serde_json::from_slice(&s_decoded).map_err(|_| errors::ErrorStatus::Status400)?;
+
+        let claims = verify_token(&id_token.token)?;
+        if claims.sub != id_token.user_id {
+            return Err(errors::ErrorStatus::Status400);
+        }
+
+        Ok(id_token)
     }
 
     pub fn authorize(&self, user_id: &str) -> Result<(), errors::ErrorStatus> {
@@ -87,9 +138,10 @@ impl gen::Api for ApiImpl {
         let mut tx = state.pool.begin().await?;
         db::fake_idp_create_user(&mut tx, &user_id, &body.name).await?;
         tx.commit().await?;
+        let token = sign_token(&user_id)?;
         Ok(gen::FakeIdpUsersPost::S201(
             gen::FakeIdpCreateUserResponse {
-                id_token: gen::IdToken { user_id },
+                id_token: gen::IdToken { user_id, token },
             },
         ))
     }
@@ -101,9 +153,13 @@ impl gen::Api for ApiImpl {
     ) -> Result<gen::FakeIdpLoginIdTokenPost, errors::ErrorStatus> {
         let mut tx = state.pool.begin().await?;
         let user = db::fake_idp_get_user_by_name(&mut tx, &body.name).await?;
+        let token = sign_token(&user.id)?;
         Ok(gen::FakeIdpLoginIdTokenPost::S200(
             gen::FakeIdpCreateIdTokenResponse {
-                id_token: gen::IdToken { user_id: user.id },
+                id_token: gen::IdToken {
+                    user_id: user.id,
+                    token,
+                },
             },
         ))
     }
@@ -400,4 +456,68 @@ async fn main() {
     axum::serve(listener, app.into_make_service())
         .await
         .unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sign_and_verify_token() {
+        let user_id = "test_user";
+        let token = sign_token(user_id).expect("failed to sign token");
+        let claims = verify_token(&token).expect("failed to verify token");
+        assert_eq!(claims.sub, user_id);
+    }
+
+    #[test]
+    fn test_id_token_from_base64_valid() {
+        let user_id = "test_user_valid";
+        let token = sign_token(user_id).unwrap();
+        let id_token = gen::IdToken {
+            user_id: user_id.to_string(),
+            token: token.clone(),
+        };
+        let json = serde_json::to_string(&id_token).unwrap();
+        let base64_token = base64::engine::general_purpose::STANDARD.encode(json);
+
+        let parsed = gen::IdToken::from_base64(&base64_token).expect("should parse");
+        assert_eq!(parsed.user_id, user_id);
+    }
+
+    #[test]
+    fn test_id_token_from_base64_invalid_signature() {
+        let user_id = "test_user_invalid";
+        let token = sign_token("other_user").unwrap(); // Signature for WRONG user
+        let id_token = gen::IdToken {
+            user_id: user_id.to_string(),
+            token: token.clone(),
+        };
+        let json = serde_json::to_string(&id_token).unwrap();
+        let base64_token = base64::engine::general_purpose::STANDARD.encode(json);
+
+        let result = gen::IdToken::from_base64(&base64_token);
+        assert!(result.is_err(), "should fail verification");
+    }
+
+    #[test]
+    fn test_id_token_from_base64_tampered_token() {
+        let user_id = "test_user_tamper";
+        let token = sign_token(user_id).unwrap();
+        let mut id_token = gen::IdToken {
+            user_id: user_id.to_string(),
+            token: token.clone(),
+        };
+        // Tamper with the token string (e.g. change last char)
+        let mut bad_token = id_token.token.clone();
+        bad_token.pop();
+        bad_token.push('X');
+        id_token.token = bad_token;
+
+        let json = serde_json::to_string(&id_token).unwrap();
+        let base64_token = base64::engine::general_purpose::STANDARD.encode(json);
+
+        let result = gen::IdToken::from_base64(&base64_token);
+        assert!(result.is_err(), "should fail verification");
+    }
 }

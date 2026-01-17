@@ -16,6 +16,7 @@ const db = Idb.openDB<{ auth: { key: "id_token"; value: null | TIdToken } }>(
 
 export type TIdToken = {
   user_id: string;
+  token: string;
 };
 
 export class Auth {
