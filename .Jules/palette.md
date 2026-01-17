@@ -1,0 +1,3 @@
+## 2024-05-23 - Missing ARIA labels on icon-only buttons
+**Learning:** A significant number of interactive elements (buttons) relying solely on icons (Material Icons) lack `aria-label` attributes. This renders them inaccessible to screen reader users, who may only hear "button" or the icon's ligature text (e.g., "add", "play_arrow") which might not fully convey the context or action.
+**Action:** Systematically audit all components using `btn-icon` class or icon-only patterns and ensure they have descriptive `aria-label` attributes. Future button components should make `aria-label` a required prop if they don't render text content.
