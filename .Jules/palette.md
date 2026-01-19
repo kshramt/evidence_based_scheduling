@@ -1,0 +1,3 @@
+## 2025-02-18 - Missing ARIA Labels on Ligature Icon Buttons
+**Learning:** The application heavily relies on Material Icons implemented via ligatures (e.g., `<span className="material-icons">close</span>`). These buttons often lacked `aria-label` attributes. While the ligature text (like "close") might be read by some screen readers, it's not a reliable accessible name, and sometimes the text is not descriptive enough for the button's context (e.g., "delete" icon used for "Clear search").
+**Action:** When using icon-only buttons, always ensure an explicit `aria-label` is provided to describe the action, especially when the icon is implemented using ligatures or fonts that might not be reliably interpreted as text.
