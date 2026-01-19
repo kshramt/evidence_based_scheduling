@@ -105,11 +105,13 @@ const MobileNodeFilterQueryInput = () => {
         value={nodeFilterQuery}
         onChange={handle_change}
         className="h-[2em] border-none w-[8em]"
+        aria-label="Search nodes"
       />
       <button
         className="icon-icon"
         onClick={clear_input}
         onDoubleClick={prevent_propagation}
+        aria-label="Clear search"
       >
         {consts.DELETE_MARK}
       </button>
@@ -162,11 +164,13 @@ const NodeFilterQueryInput = () => {
           onKeyDown={onKeyDown}
           className="h-[2em] border-none"
           ref={ref}
+          aria-label="Search nodes"
         />
         <button
           className="btn-icon"
           onClick={clear_input}
           onDoubleClick={prevent_propagation}
+          aria-label="Clear search"
         >
           {consts.DELETE_MARK}
         </button>
@@ -310,11 +314,13 @@ const NodeIdsInput = () => {
           value={nodeIds}
           onChange={handle_change}
           className="h-[2em] border-none"
+          aria-label="Node IDs"
         />
         <button
           className="btn-icon"
           onClick={clear_input}
           onDoubleClick={prevent_propagation}
+          aria-label="Clear node IDs"
         >
           {consts.DELETE_MARK}
         </button>
@@ -362,6 +368,9 @@ export const ToggleShowMobileButton = () => {
       className="btn-icon"
       onClick={handleClick}
       onDoubleClick={prevent_propagation}
+      aria-label={
+        show_mobile ? "Switch to desktop view" : "Switch to mobile view"
+      }
     >
       {show_mobile ? consts.DESKTOP_MARK : consts.MOBILE_MARK}
     </button>
@@ -424,6 +433,7 @@ const Menu = (props: {
         className="btn-icon"
         onClick={stop_all}
         onDoubleClick={prevent_propagation}
+        aria-label="Stop all tasks"
       >
         {consts.STOP_MARK}
       </button>
