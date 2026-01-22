@@ -1,0 +1,3 @@
+## 2024-05-23 - Accessibility of Icon-only Buttons
+**Learning:** This application heavily relies on icon-only buttons (using Material Icons in `consts.tsx`) for core actions like adding, starting, and stopping tasks. These buttons were missing `aria-label` attributes, making them inaccessible to screen reader users who would only hear "button" or the icon name if available.
+**Action:** When creating or modifying button components, especially icon-only ones, always verify that an `aria-label` is present and descriptive. For dynamic states (like "Copy" vs "Copied"), ensure the `aria-label` updates to reflect the current state.
