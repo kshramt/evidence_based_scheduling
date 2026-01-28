@@ -33,3 +33,7 @@ yarn-error.log*
 
 **/target/
 **/ignored/
+
+**/dist/
+**/dev-dist/
+*.log
