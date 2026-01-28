@@ -1,0 +1,4 @@
+## 2024-05-23 - Insecure Fake IDP Authentication
+**Vulnerability:** The application uses an insecure "Fake IDP" authentication mechanism where `IdToken` is simply a Base64-encoded JSON object containing a `user_id`, without any cryptographic signature or verification.
+**Learning:** This mechanism allows trivial impersonation by encoding an arbitrary `user_id`. It likely exists to facilitate easy testing and development without a real identity provider, but it poses a critical risk if exposed or used in any environment resembling production.
+**Prevention:** Ensure that `fake_idp` endpoints are strictly isolated to development environments and never exposed to public networks. For any non-development deployment, replace this mechanism with a standard, cryptographically secure authentication scheme (e.g., OIDC, JWT with valid signatures).
