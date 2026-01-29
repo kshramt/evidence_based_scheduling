@@ -1,9 +1,8 @@
 use axum::{
     extract::{FromRequestParts, Path, Query, State},
-    http::{request::Parts, header, HeaderName, HeaderValue},
+    http::{header, request::Parts, HeaderName, HeaderValue},
     Json, RequestPartsExt, Router,
 };
-use tower_http::set_header::SetResponseHeaderLayer;
 use axum_extra::{
     headers::{authorization::Bearer, Authorization},
     TypedHeader,
@@ -14,6 +13,7 @@ use std::{
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
+use tower_http::set_header::SetResponseHeaderLayer;
 use tracing::{debug, info, instrument};
 use tracing_subscriber::EnvFilter;
 
@@ -444,13 +444,7 @@ mod tests {
             headers.get(header::X_CONTENT_TYPE_OPTIONS).unwrap(),
             "nosniff"
         );
-        assert_eq!(
-            headers.get("x-frame-options").unwrap(),
-            "DENY"
-        );
-        assert_eq!(
-            headers.get("x-xss-protection").unwrap(),
-            "1; mode=block"
-        );
+        assert_eq!(headers.get("x-frame-options").unwrap(), "DENY");
+        assert_eq!(headers.get("x-xss-protection").unwrap(), "1; mode=block");
     }
 }
