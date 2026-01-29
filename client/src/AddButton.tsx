@@ -31,6 +31,8 @@ export const AddButton = (props: {
       id={props.id}
       onClick={handle_click}
       onDoubleClick={utils.prevent_propagation}
+      aria-label="Add."
+      title="Add."
     >
       {consts.ADD_MARK}
     </button>
