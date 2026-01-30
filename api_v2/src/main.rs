@@ -1,6 +1,9 @@
 use axum::{
     extract::{FromRequestParts, Path, Query, State},
-    http::request::Parts,
+    http::{
+        header::{HeaderName, HeaderValue},
+        request::Parts,
+    },
     Json, RequestPartsExt,
 };
 use axum_extra::{
@@ -13,6 +16,7 @@ use std::{
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
+use tower_http::set_header::SetResponseHeaderLayer;
 use tracing::{debug, info, instrument};
 use tracing_subscriber::EnvFilter;
 
@@ -337,6 +341,23 @@ async fn create_client(
     Ok(client_id)
 }
 
+fn apply_middleware(app: axum::Router) -> axum::Router {
+    app.layer(tower_http::trace::TraceLayer::new_for_http())
+        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024))
+        .layer(SetResponseHeaderLayer::overriding(
+            HeaderName::from_static("x-content-type-options"),
+            HeaderValue::from_static("nosniff"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            HeaderName::from_static("x-frame-options"),
+            HeaderValue::from_static("DENY"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            HeaderName::from_static("x-xss-protection"),
+            HeaderValue::from_static("1; mode=block"),
+        ))
+}
+
 #[derive(Debug)]
 struct AppState {
     id_generator: Mutex<id_generator::SortableIdGenerator>,
@@ -388,9 +409,7 @@ async fn main() {
     let app = axum::Router::new();
     let app = gen::register_app::<ApiImpl>(app);
     let app = app.with_state(state);
-    let app = app
-        .layer(tower_http::trace::TraceLayer::new_for_http())
-        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
+    let app = apply_middleware(app);
 
     let port = get_server_port();
     info!(port = ?port);
@@ -400,4 +419,28 @@ async fn main() {
     axum::serve(listener, app.into_make_service())
         .await
         .unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::{body::Body, http::Request};
+    use tower::ServiceExt;
+
+    #[tokio::test]
+    async fn test_security_headers() {
+        let app = axum::Router::new().route("/", axum::routing::get(|| async { "ok" }));
+        let app = apply_middleware(app);
+
+        let response = app
+            .oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        let headers = response.headers();
+
+        assert_eq!(headers.get("x-content-type-options").unwrap(), "nosniff");
+        assert_eq!(headers.get("x-frame-options").unwrap(), "DENY");
+        assert_eq!(headers.get("x-xss-protection").unwrap(), "1; mode=block");
+    }
 }
