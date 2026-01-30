@@ -19,7 +19,11 @@ const AddButton = (props: { timeId: string }) => {
     );
   }, [dispatch, props.timeId, nodeIds]);
   return (
-    <button className="btn-icon" onClick={handleClick}>
+    <button
+      className="btn-icon"
+      onClick={handleClick}
+      aria-label="Add nodes to time slot"
+    >
       {consts.ADD_MARK}
     </button>
   );
