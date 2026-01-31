@@ -427,7 +427,7 @@ const Menu = (props: {
       >
         {consts.STOP_MARK}
       </button>
-      <AddButton node_id={root} id="add-root-button" />
+      <AddButton node_id={root} id="add-root-button" ariaLabel="Add to root" />
       <button
         className="btn-icon"
         aria-label="Undo."

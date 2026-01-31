@@ -12,6 +12,8 @@ export const AddButton = (props: {
   node_id: types.TNodeId;
   prefix?: undefined | string;
   id?: string;
+  ariaLabel?: string;
+  title?: string;
 }) => {
   const dispatch = useDispatch();
   const session = React.use(states.session_key_context);
@@ -31,6 +33,8 @@ export const AddButton = (props: {
       id={props.id}
       onClick={handle_click}
       onDoubleClick={utils.prevent_propagation}
+      aria-label={props.ariaLabel || "Add new item"}
+      title={props.title}
     >
       {consts.ADD_MARK}
     </button>
