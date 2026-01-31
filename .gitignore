@@ -11,6 +11,11 @@
 
 # production
 **/build/
+**/dist/
+**/dev-dist/
+
+# logs
+*.log
 
 # misc
 .DS_Store
