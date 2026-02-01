@@ -17,7 +17,9 @@ import * as types from "./types";
 import * as utils from "./utils";
 import TopButton from "./TopButton";
 
-export const QueueEntry = (props: {
+// Explicit React.memo is required for components rendered by react-virtuoso
+// to prevent parent-triggered re-renders.
+export const QueueEntry = React.memo((props: {
   node_id: types.TNodeId;
   index: number;
 }) => {
@@ -29,9 +31,9 @@ export const QueueEntry = (props: {
   ) : (
     <div className="w-[1px] h-[1px]" /> // `null` is not allowed as Virtuoso does not allow 0-height elements.
   );
-};
+});
 
-const _QueueEntry = (props: { node_id: types.TNodeId; index: number }) => {
+const _QueueEntry = React.memo((props: { node_id: types.TNodeId; index: number }) => {
   const isTodo =
     utils.assertV(
       useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
@@ -42,9 +44,9 @@ const _QueueEntry = (props: { node_id: types.TNodeId; index: number }) => {
   ) : (
     <NonTodoQueueEntry node_id={props.node_id} index={props.index} />
   );
-};
+});
 
-const NonTodoQueueEntry = (props: {
+const NonTodoQueueEntry = React.memo((props: {
   node_id: types.TNodeId;
   index: number;
 }) => {
@@ -82,9 +84,9 @@ const NonTodoQueueEntry = (props: {
       />
     </EntryWrapper>
   );
-};
+});
 
-const TodoQueueEntry = (props: { node_id: types.TNodeId; index: number }) => {
+const TodoQueueEntry = React.memo((props: { node_id: types.TNodeId; index: number }) => {
   const leaf_estimates_sum = utils.assertV(
     useSelector(
       (state) => state.swapped_caches.leaf_estimates_sum?.[props.node_id],
@@ -133,4 +135,4 @@ const TodoQueueEntry = (props: { node_id: types.TNodeId; index: number }) => {
       </div>
     </>
   );
-};
+});
