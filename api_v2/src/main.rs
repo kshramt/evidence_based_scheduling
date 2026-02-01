@@ -366,6 +366,26 @@ fn get_database_url() -> String {
     std::env::var("DATABASE_URL").expect("DATABASE_URL is not set")
 }
 
+fn apply_middleware<S>(app: axum::Router<S>) -> axum::Router<S>
+where
+    S: Clone + Send + Sync + 'static,
+{
+    app.layer(tower_http::trace::TraceLayer::new_for_http())
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::HeaderName::from_static("x-content-type-options"),
+            axum::http::HeaderValue::from_static("nosniff"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::HeaderName::from_static("x-frame-options"),
+            axum::http::HeaderValue::from_static("DENY"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::HeaderName::from_static("x-xss-protection"),
+            axum::http::HeaderValue::from_static("1; mode=block"),
+        ))
+        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024))
+}
+
 fn get_shard() -> u16 {
     std::env::var("SHARD").ok().and_then(parse_u16).unwrap_or(0)
 }
@@ -388,9 +408,7 @@ async fn main() {
     let app = axum::Router::new();
     let app = gen::register_app::<ApiImpl>(app);
     let app = app.with_state(state);
-    let app = app
-        .layer(tower_http::trace::TraceLayer::new_for_http())
-        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
+    let app = apply_middleware(app);
 
     let port = get_server_port();
     info!(port = ?port);
@@ -400,4 +418,50 @@ async fn main() {
     axum::serve(listener, app.into_make_service())
         .await
         .unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::{
+        body::Body,
+        http::{Request, StatusCode},
+        routing::get,
+        Router,
+    };
+    use tower::ServiceExt;
+
+    #[tokio::test]
+    async fn test_security_headers() {
+        let app = Router::new().route("/", get(|| async { "ok" }));
+        let app = apply_middleware(app);
+
+        let response = app
+            .oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let headers = response.headers();
+
+        // These are the headers we expect to be missing initially
+        assert!(
+            headers.get("x-content-type-options").is_some(),
+            "X-Content-Type-Options missing"
+        );
+        assert_eq!(headers.get("x-content-type-options").unwrap(), "nosniff");
+
+        assert!(
+            headers.get("x-frame-options").is_some(),
+            "X-Frame-Options missing"
+        );
+        assert_eq!(headers.get("x-frame-options").unwrap(), "DENY");
+
+        assert!(
+            headers.get("x-xss-protection").is_some(),
+            "X-XSS-Protection missing"
+        );
+        assert_eq!(headers.get("x-xss-protection").unwrap(), "1; mode=block");
+    }
 }
