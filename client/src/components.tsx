@@ -102,12 +102,16 @@ const MobileNodeFilterQueryInput = () => {
   return (
     <div className="flex items-center border border-solid border-neutral-400">
       <input
+        aria-label="Filter nodes"
+        placeholder="Filter nodes..."
         value={nodeFilterQuery}
         onChange={handle_change}
         className="h-[2em] border-none w-[8em]"
       />
       <button
-        className="icon-icon"
+        aria-label="Clear filter"
+        title="Clear filter"
+        className="btn-icon"
         onClick={clear_input}
         onDoubleClick={prevent_propagation}
       >
@@ -157,6 +161,8 @@ const NodeFilterQueryInput = () => {
       {consts.SEARCH_MARK}
       <div className="flex items-center border border-solid border-neutral-400">
         <input
+          aria-label="Filter nodes"
+          placeholder="Filter nodes..."
           value={nodeFilterQuery}
           onChange={handle_change}
           onKeyDown={onKeyDown}
@@ -164,6 +170,8 @@ const NodeFilterQueryInput = () => {
           ref={ref}
         />
         <button
+          aria-label="Clear filter"
+          title="Clear filter"
           className="btn-icon"
           onClick={clear_input}
           onDoubleClick={prevent_propagation}
@@ -307,11 +315,15 @@ const NodeIdsInput = () => {
       {consts.IDS_MARK}
       <div className="flex items-center border border-solid border-neutral-400">
         <input
+          aria-label="Selected node IDs"
+          placeholder="Node IDs..."
           value={nodeIds}
           onChange={handle_change}
           className="h-[2em] border-none"
         />
         <button
+          aria-label="Clear node IDs"
+          title="Clear node IDs"
           className="btn-icon"
           onClick={clear_input}
           onDoubleClick={prevent_propagation}
