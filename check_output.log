@@ -1,0 +1,23 @@
+set -o nounset
++ set -o nounset
+set -o errexit
++ set -o errexit
+set -o pipefail
++ set -o pipefail
+set -o noclobber
++ set -o noclobber
+
+export IFS=$' \t\n'
++ export 'IFS=
+'
++ IFS='
+'
+export LANG=C.UTF-8
++ export LANG=C.UTF-8
++ LANG=C.UTF-8
+umask u=rwx,g=,o=
++ umask u=rwx,g=,o=
+
+pnpm exec tsc --noEmit
++ pnpm exec tsc --noEmit
+ ERR_PNPM_RECURSIVE_EXEC_NO_PACKAGE  No package found in this workspace
