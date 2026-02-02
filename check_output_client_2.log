@@ -1,0 +1,211 @@
+set -o nounset
++ set -o nounset
+set -o errexit
++ set -o errexit
+set -o pipefail
++ set -o pipefail
+set -o noclobber
++ set -o noclobber
+
+export IFS=$' \t\n'
++ export 'IFS=
+'
++ IFS='
+'
+export LANG=C.UTF-8
++ export LANG=C.UTF-8
++ LANG=C.UTF-8
+umask u=rwx,g=,o=
++ umask u=rwx,g=,o=
+
+pnpm exec tsc --noEmit
++ pnpm exec tsc --noEmit
+pnpm exec vitest run --run --coverage
++ pnpm exec vitest run --run --coverage
+(node:3236) [DEP0180] DeprecationWarning: fs.Stats constructor is deprecated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+ RUN  v1.1.0 /app/client
+      Browser runner started at http://localhost:5173
+      Coverage enabled with istanbul
+
+
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 8 unhandled errors during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯⎯⎯⎯⎯ Reload Error ⎯⎯⎯⎯⎯⎯⎯⎯
+Error: Vitest failed to load "vitest/utils" after 10 retries.
+ ❯ WebSocket.<anonymous> ../../__vitest_browser__/index-JmUxqpfn.js:958:36
+
+Caused by: SyntaxError: The requested module '/@fs/app/node_modules/.pnpm/loupe@2.3.7/node_modules/loupe/loupe.js?v=ef418052' does not provide an export named 'inspect'
+
+⎯⎯⎯⎯⎯⎯⎯⎯ Reload Error ⎯⎯⎯⎯⎯⎯⎯⎯
+Error: Vitest failed to load "vitest/utils" after 10 retries.
+ ❯ WebSocket.<anonymous> ../../__vitest_browser__/index-JmUxqpfn.js:958:36
+
+Caused by: SyntaxError: The requested module '/@fs/app/node_modules/.pnpm/loupe@2.3.7/node_modules/loupe/loupe.js?v=ef418052' does not provide an export named 'inspect'
+
+⎯⎯⎯⎯⎯⎯⎯⎯ Reload Error ⎯⎯⎯⎯⎯⎯⎯⎯
+Error: Vitest failed to load "vitest/utils" after 10 retries.
+ ❯ WebSocket.<anonymous> ../../__vitest_browser__/index-JmUxqpfn.js:958:36
+
+Caused by: SyntaxError: The requested module '/@fs/app/node_modules/.pnpm/loupe@2.3.7/node_modules/loupe/loupe.js?v=ef418052' does not provide an export named 'inspect'
+
+⎯⎯⎯⎯⎯⎯⎯⎯ Reload Error ⎯⎯⎯⎯⎯⎯⎯⎯
+Error: Vitest failed to load "vitest/utils" after 10 retries.
+ ❯ WebSocket.<anonymous> ../../__vitest_browser__/index-JmUxqpfn.js:958:36
+
+Caused by: SyntaxError: The requested module '/@fs/app/node_modules/.pnpm/loupe@2.3.7/node_modules/loupe/loupe.js?v=ef418052' does not provide an export named 'inspect'
+
+⎯⎯⎯⎯⎯⎯⎯⎯ Reload Error ⎯⎯⎯⎯⎯⎯⎯⎯
+Error: Vitest failed to load "vitest/utils" after 10 retries.
+ ❯ WebSocket.<anonymous> ../../__vitest_browser__/index-JmUxqpfn.js:958:36
+
+Caused by: SyntaxError: The requested module '/@fs/app/node_modules/.pnpm/loupe@2.3.7/node_modules/loupe/loupe.js?v=ef418052' does not provide an export named 'inspect'
+
+⎯⎯⎯⎯⎯⎯⎯⎯ Reload Error ⎯⎯⎯⎯⎯⎯⎯⎯
+Error: Vitest failed to load "vitest/utils" after 10 retries.
+ ❯ WebSocket.<anonymous> ../../__vitest_browser__/index-JmUxqpfn.js:958:36
+
+Caused by: SyntaxError: The requested module '/@fs/app/node_modules/.pnpm/loupe@2.3.7/node_modules/loupe/loupe.js?v=ef418052' does not provide an export named 'inspect'
+
+⎯⎯⎯⎯⎯⎯⎯⎯ Reload Error ⎯⎯⎯⎯⎯⎯⎯⎯
+Error: Vitest failed to load "vitest/utils" after 10 retries.
+ ❯ WebSocket.<anonymous> ../../__vitest_browser__/index-JmUxqpfn.js:958:36
+
+Caused by: SyntaxError: The requested module '/@fs/app/node_modules/.pnpm/loupe@2.3.7/node_modules/loupe/loupe.js?v=ef418052' does not provide an export named 'inspect'
+
+⎯⎯⎯⎯⎯⎯⎯⎯ Reload Error ⎯⎯⎯⎯⎯⎯⎯⎯
+Error: Vitest failed to load "vitest/utils" after 10 retries.
+ ❯ WebSocket.<anonymous> ../../__vitest_browser__/index-JmUxqpfn.js:958:36
+
+Caused by: SyntaxError: The requested module '/@fs/app/node_modules/.pnpm/loupe@2.3.7/node_modules/loupe/loupe.js?v=ef418052' does not provide an export named 'inspect'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+ Test Files  no tests
+      Tests  no tests
+     Errors  8 errors
+   Start at  09:41:06
+   Duration  19.70s (transform 0ms, setup 0ms, collect 0ms, tests 0ms, environment 0ms, prepare 0ms)
+
+Browserslist: browsers data (caniuse-lite) is 9 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ % Coverage report from istanbul
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
+-------------------|---------|----------|---------|---------|-------------------
+All files          |       0 |        0 |       0 |       0 |
+ client            |       0 |      100 |     100 |       0 |
+  ...ss.config.cjs |       0 |      100 |     100 |       0 | 1
+  ...nd.config.cjs |       0 |      100 |     100 |       0 | 2
+ client/src        |       0 |        0 |       0 |       0 |
+  AddButton.tsx    |       0 |        0 |       0 |       0 | 11-36
+  ...EventForm.tsx |       0 |        0 |       0 |       0 | 10-277
+  ...odoButton.tsx |       0 |        0 |       0 |       0 | 9-21
+  EntryButtons.tsx |       0 |        0 |       0 |       0 | 19-102
+  EntryInfos.tsx   |       0 |        0 |       0 |       0 | 10-19
+  EntryWrapper.tsx |       0 |        0 |       0 |       0 | 8-41
+  ...tionInput.tsx |       0 |        0 |       0 |       0 | 8-40
+  EvalButton.tsx   |       0 |        0 |       0 |       0 | 9-22
+  LastRange.tsx    |       0 |        0 |       0 |       0 | 5-38
+  ...nedEvents.tsx |       0 |        0 |       0 |       0 | 9-64
+  QueueEntry.tsx   |       0 |        0 |       0 |       0 | 20-135
+  ...opButtons.tsx |       0 |        0 |       0 |       0 | 11-29
+  TextArea.tsx     |       0 |        0 |       0 |       0 | 9-47
+  ...oneButton.tsx |       0 |        0 |       0 |       0 | 9-23
+  ...ontButton.tsx |       0 |        0 |       0 |       0 | 9-23
+  TotalTime.tsx    |       0 |        0 |       0 |       0 | 8-27
+  actions.ts       |       0 |      100 |       0 |       0 | 8-176
+  auth.ts          |       0 |        0 |       0 |       0 | 7-121
+  checks.ts        |       0 |        0 |       0 |       0 | 7-161
+  common_types1.ts |       0 |        0 |       0 |       0 | 8-222
+  components.tsx   |       0 |        0 |       0 |       0 | 51-1568
+  consts.tsx       |       0 |      100 |     100 |       0 | 1-59
+  db.ts            |       0 |      100 |       0 |       0 | 3-8
+  ..._predictor.ts |       0 |        0 |       0 |       0 | 14-226
+  hooks.ts         |       0 |        0 |       0 |       0 | 9-59
+  intervals.ts     |       0 |        0 |       0 |       0 | 5-80
+  lib.tsx          |       0 |        0 |       0 |       0 | 19-345
+  main.tsx         |       0 |      100 |     100 |       0 | 7
+  multiset.ts      |       0 |        0 |       0 |       0 | 4-29
+  ..._predictor.ts |       0 |        0 |       0 |       0 | 5-110
+  ops.ts           |       0 |        0 |       0 |       0 | 19-622
+  producer.ts      |       0 |      100 |       0 |       0 | 17-23
+  queues.ts        |       0 |        0 |       0 |       0 | 5-30
+  rate_limit.ts    |       0 |        0 |       0 |       0 | 3-102
+  reducers.ts      |       0 |        0 |       0 |       0 | 16-1013
+  retryers.ts      |       0 |        0 |       0 |       0 | 14-68
+  states.tsx       |       0 |        0 |       0 |       0 | 25-972
+  storage.ts       |       0 |        0 |       0 |       0 | 120-262
+  sw.ts            |       0 |      100 |       0 |       0 | 22-48
+  swapper.ts       |       0 |        0 |       0 |       0 | 8-94
+  times.ts         |       0 |        0 |       0 |       0 | 22-154
+  toast.tsx        |       0 |        0 |       0 |       0 | 3-12
+  ...time_utils.ts |       0 |        0 |       0 |       0 | 10-168
+  types.ts         |       0 |        0 |       0 |       0 | 29-331
+  types14.ts       |       0 |        0 |       0 |       0 | 17-132
+  types15.ts       |       0 |        0 |       0 |       0 | 29-179
+  types16.ts       |       0 |        0 |       0 |       0 | 25-104
+  types17.ts       |       0 |        0 |       0 |       0 | 24-100
+  types18.ts       |       0 |        0 |       0 |       0 | 24-147
+  types19.ts       |       0 |        0 |       0 |       0 | 26-107
+  types20.ts       |       0 |        0 |       0 |       0 | 28-122
+  types21.ts       |       0 |        0 |       0 |       0 | 40-130
+  types22.ts       |       0 |        0 |       0 |       0 | 20-217
+  undoable.ts      |       0 |        0 |       0 |       0 | 5-79
+  utils.ts         |       0 |        0 |       0 |       0 | 19-719
+ ...HeightTextArea |       0 |        0 |       0 |       0 |
+  index.tsx        |       0 |        0 |       0 |       0 | 6-53
+ ...t/src/Calendar |       0 |        0 |       0 |       0 |
+  AddButton.tsx    |       0 |        0 |       0 |       0 | 10-24
+  index.tsx        |       0 |        0 |       0 |       0 | 13-201
+ ...ChildEdgeTable |       0 |        0 |       0 |       0 |
+  index.tsx        |       0 |        0 |       0 |       0 | 8-19
+ ...pyNodeIdButton |       0 |        0 |       0 |       0 |
+  index.tsx        |       0 |        0 |       0 |       0 | 9-30
+ ...nt/src/EdgeRow |       0 |        0 |       0 |       0 |
+  index.tsx        |       0 |        0 |       0 |       0 | 10-104
+ ...src/GanttChart |       0 |        0 |       0 |       0 |
+  index.tsx        |       0 |        0 |       0 |       0 | 13-349
+ ...der/MenuButton |       0 |        0 |       0 |       0 |
+  index.tsx        |       0 |        0 |       0 |       0 | 11-74
+ ...ckRemoteButton |       0 |        0 |       0 |       0 |
+  index.tsx        |       0 |        0 |       0 |       0 | 5-14
+ ...ndexedDbButton |       0 |        0 |       0 |       0 |
+  index.tsx        |       0 |        0 |       0 |       0 | 6-21
+ ...ortStateButton |       0 |        0 |       0 |       0 |
+  index.tsx        |       0 |        0 |       0 |       0 | 6-22
+ ...n/LogoutButton |       0 |        0 |       0 |       0 |
+  index.tsx        |       0 |        0 |       0 |       0 | 3-7
+ ...owMobileButton |       0 |        0 |       0 |       0 |
+  index.tsx        |       0 |        0 |       0 |       0 | 7-27
+ ...arentEdgeTable |       0 |        0 |       0 |       0 |
+  index.tsx        |       0 |        0 |       0 |       0 | 8-19
+ ...rc/RangesTable |       0 |        0 |       0 |       0 |
+  index.tsx        |       0 |        0 |       0 |       0 | 8-138
+ ...wDetailsButton |       0 |        0 |       0 |       0 |
+  index.tsx        |       0 |        0 |       0 |       0 | 18-155
+ ...howGanttToggle |       0 |        0 |       0 |       0 |
+  index.tsx        |       0 |        0 |       0 |       0 | 7-21
+ ...rc/StartButton |       0 |        0 |       0 |       0 |
+  index.tsx        |       0 |        0 |       0 |       0 | 8-22
+ ...ncurrentButton |       0 |        0 |       0 |       0 |
+  index.tsx        |       0 |        0 |       0 |       0 | 8-22
+ ...src/StopButton |       0 |        0 |       0 |       0 |
+  index.tsx        |       0 |        0 |       0 |       0 | 8-28
+ ...nt/src/TocForm |       0 |        0 |       0 |       0 |
+  index.tsx        |       0 |        0 |       0 |       0 | 7-38
+ ...Form/Component |       0 |        0 |       0 |       0 |
+  index.tsx        |       0 |        0 |       0 |       0 | 7-36
+ ...c/ToggleButton |       0 |        0 |       0 |       0 |
+  index.tsx        |       0 |        0 |       0 |       0 | 5-26
+ ...ogglePinButton |       0 |        0 |       0 |       0 |
+  index.tsx        |       0 |        0 |       0 |       0 | 7-23
+ .../src/TopButton |       0 |        0 |       0 |       0 |
+  index.tsx        |       0 |        0 |       0 |       0 | 8-21
+ ...nt/src/gen/api |       0 |      100 |       0 |       0 |
+  v2.ts            |       0 |      100 |       0 |       0 | 4-253
+-------------------|---------|----------|---------|---------|-------------------
