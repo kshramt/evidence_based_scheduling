@@ -33,3 +33,7 @@ yarn-error.log*
 
 **/target/
 **/ignored/
+
+# Build artifacts and logs
+**/dev-dist/
+*.log
