@@ -11,6 +11,8 @@
 
 # production
 **/build/
+**/dist/
+**/dev-dist/
 
 # misc
 .DS_Store
@@ -22,6 +24,7 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
 
 **/pgdata/
 **/pgdata_*/
