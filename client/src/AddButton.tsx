@@ -12,6 +12,7 @@ export const AddButton = (props: {
   node_id: types.TNodeId;
   prefix?: undefined | string;
   id?: string;
+  ariaLabel?: string;
 }) => {
   const dispatch = useDispatch();
   const session = React.use(states.session_key_context);
@@ -25,12 +26,17 @@ export const AddButton = (props: {
     );
     dispatch(actions.focusFirstChildTextAreaActionOf(props.node_id, prefix));
   }, [props.node_id, dispatch, show_mobile, prefix]);
+
+  const label = props.ariaLabel || "Add new item";
+
   return (
     <button
       className="btn-icon"
       id={props.id}
       onClick={handle_click}
       onDoubleClick={utils.prevent_propagation}
+      aria-label={label}
+      title={label}
     >
       {consts.ADD_MARK}
     </button>

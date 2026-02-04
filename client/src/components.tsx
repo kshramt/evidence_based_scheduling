@@ -427,7 +427,11 @@ const Menu = (props: {
       >
         {consts.STOP_MARK}
       </button>
-      <AddButton node_id={root} id="add-root-button" />
+      <AddButton
+        node_id={root}
+        id="add-root-button"
+        ariaLabel="Add new item to root"
+      />
       <button
         className="btn-icon"
         aria-label="Undo."
@@ -1135,7 +1139,7 @@ const MobileMenu = (props: {
       >
         {consts.STOP_MARK}
       </button>
-      <AddButton node_id={root} />
+      <AddButton node_id={root} ariaLabel="Add new item to root" />
       <button
         className="btn-icon"
         aria-label="Undo."
@@ -1329,7 +1333,9 @@ const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
         {is_root || status !== "todo" || <TopButton node_id={props.node_id} />}
         {/* <DeleteButton node_id={props.node_id} /> */}
         <CopyNodeIdButton node_id={props.node_id} />
-        {status === "todo" && <AddButton node_id={props.node_id} />}
+        {status === "todo" && (
+          <AddButton node_id={props.node_id} ariaLabel="Add sub-task" />
+        )}
         <ShowDetailsButton node_id={props.node_id} />
         <TotalTime node_id={props.node_id} />
         {is_root || <LastRange node_id={props.node_id} />}
