@@ -1,0 +1,3 @@
+## 2024-05-22 - Vitest Loupe Dependency Issue
+**Learning:** The `client` unit tests (`vitest`) fail globally due to a dependency issue with `loupe` ("does not provide an export named 'inspect'"). This is likely due to a transitive dependency update or incompatibility with the installed `loupe` version (2.3.7) and how `vitest` or its assertions use it.
+**Action:** Until this is resolved, reliance on unit tests for verification is impossible. Verification must rely on static analysis (linting, type checking) and build success. Future updates should pin or investigate the `loupe` dependency chain.
