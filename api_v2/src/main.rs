@@ -445,7 +445,9 @@ mod tests {
 
         let headers = response.headers();
         assert_eq!(
-            headers.get(axum::http::header::X_CONTENT_TYPE_OPTIONS).unwrap(),
+            headers
+                .get(axum::http::header::X_CONTENT_TYPE_OPTIONS)
+                .unwrap(),
             "nosniff"
         );
         assert_eq!(headers.get("x-frame-options").unwrap(), "DENY");
