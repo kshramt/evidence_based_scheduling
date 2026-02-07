@@ -1,6 +1,6 @@
 use axum::{
     extract::{FromRequestParts, Path, Query, State},
-    http::request::Parts,
+    http::{header, request::Parts, HeaderName, HeaderValue},
     Json, RequestPartsExt,
 };
 use axum_extra::{
@@ -15,6 +15,8 @@ use std::{
 };
 use tracing::{debug, info, instrument};
 use tracing_subscriber::EnvFilter;
+
+use tower_http::set_header::SetResponseHeaderLayer;
 
 mod db;
 mod errors;
@@ -378,6 +380,23 @@ async fn get_pool() -> sqlx::postgres::PgPool {
         .unwrap()
 }
 
+fn apply_middleware(app: axum::Router) -> axum::Router {
+    app.layer(tower_http::trace::TraceLayer::new_for_http())
+        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::X_CONTENT_TYPE_OPTIONS,
+            HeaderValue::from_static("nosniff"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            HeaderName::from_static("x-frame-options"),
+            HeaderValue::from_static("DENY"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            HeaderName::from_static("x-xss-protection"),
+            HeaderValue::from_static("1; mode=block"),
+        ))
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
@@ -388,9 +407,7 @@ async fn main() {
     let app = axum::Router::new();
     let app = gen::register_app::<ApiImpl>(app);
     let app = app.with_state(state);
-    let app = app
-        .layer(tower_http::trace::TraceLayer::new_for_http())
-        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
+    let app = apply_middleware(app);
 
     let port = get_server_port();
     info!(port = ?port);
@@ -400,4 +417,51 @@ async fn main() {
     axum::serve(listener, app.into_make_service())
         .await
         .unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::{
+        body::Body,
+        http::{Request, StatusCode},
+        routing::get,
+        Router,
+    };
+    use tower::ServiceExt;
+
+    #[tokio::test]
+    async fn test_security_headers() {
+        let app = Router::new().route("/", get(|| async { "hello" }));
+        let app = apply_middleware(app);
+
+        let response = app
+            .oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let headers = response.headers();
+
+        assert_eq!(
+            headers
+                .get("X-Content-Type-Options")
+                .and_then(|v| v.to_str().ok()),
+            Some("nosniff"),
+            "X-Content-Type-Options header missing or incorrect"
+        );
+        assert_eq!(
+            headers.get("X-Frame-Options").and_then(|v| v.to_str().ok()),
+            Some("DENY"),
+            "X-Frame-Options header missing or incorrect"
+        );
+        assert_eq!(
+            headers
+                .get("X-XSS-Protection")
+                .and_then(|v| v.to_str().ok()),
+            Some("1; mode=block"),
+            "X-XSS-Protection header missing or incorrect"
+        );
+    }
 }
