@@ -42,11 +42,11 @@ FROM ghcr.io/amacneil/dbmate:2.27.0 AS base_dbmate
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 
-FROM denoland/deno:distroless-2.6.3 AS deno_base
+FROM denoland/deno:distroless-2.1.2 AS deno_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 
-FROM node:22.16.0-bookworm-slim AS node_downloader
+FROM node:22.11.0-bookworm-slim AS node_downloader
 RUN npm install -g pnpm@latest
 
 FROM node_downloader AS firebase_downloader
@@ -61,18 +61,18 @@ COPY --link --from=node_downloader /usr/local/lib/node_modules /usr/local/lib/no
 FROM docker:24.0.7-cli-alpine3.18 AS docker_downloader
 
 
-FROM rust:1.87.0-bookworm AS rust_downloader
+FROM rust:1.83.0-bookworm AS rust_downloader
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 RUN rustup component add clippy rust-analyzer rustfmt
 
 FROM rust_downloader AS sqlx_cli_downloader
-RUN cargo install sqlx-cli@0.8.2
+RUN cargo install sqlx-cli@0.7.3
 
 FROM build_essential_base AS base_rust
 COPY --link --from=rust_downloader /usr/local/cargo /usr/local/cargo
 COPY --link --from=rust_downloader /usr/local/rustup /usr/local/rustup
-ENV PATH "/usr/local/cargo/bin:/usr/local/rustup/bin:${PATH}"
+ENV PATH="/usr/local/cargo/bin:/usr/local/rustup/bin:${PATH}"
 ENV RUSTUP_HOME="/usr/local/rustup"
 ENV CARGO_HOME="/usr/local/cargo"
 
@@ -180,8 +180,8 @@ ENV RUSTUP_HOME="/usr/local/rustup"
 ENV CARGO_HOME="/home/${devcontainer_user:?}/.cargo"
 
 FROM ubuntu_base AS base_py
-ENV PYTHONUNBUFFERED 1
-ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
 WORKDIR /app
 
 FROM nginx:1.29.3-alpine AS base_nginx
@@ -196,7 +196,7 @@ FROM postgres:16.3-bookworm AS base_postgres
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 
-FROM base_py11 AS base_poetry11
+FROM base_py AS base_poetry11
 RUN pip install --no-cache-dir poetry==1.7.0
 
 FROM base_js AS base_client
@@ -267,7 +267,7 @@ FROM base_postgres AS prod_postgres
 
 FROM debian:13.2-slim AS prod_postgres_migration
 ARG SOURCE_DATE_EPOCH
-ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
+ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 COPY --link --from=base_dbmate /usr/local/bin/dbmate /usr/local/bin/dbmate
 COPY --link db/scripts/migrate.sh /app/scripts/migrate.sh
 COPY --link db/migrations /app/db/migrations
@@ -309,7 +309,7 @@ RUN cargo build --release
 
 FROM gcr.io/distroless/cc-debian12:nonroot AS prod_api_v2
 ARG SOURCE_DATE_EPOCH
-ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
+ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 COPY --link --from=base_rust_builder /app/target/release/api_v2 /work/api_v2
 WORKDIR /work
 ENTRYPOINT ["./api_v2"]
