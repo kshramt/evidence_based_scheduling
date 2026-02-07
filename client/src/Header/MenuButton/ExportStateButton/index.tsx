@@ -11,9 +11,11 @@ const ExportStateButton = () => {
       utils.downloadJson<typeof state>("evidence_based_scheduling.json", state);
     });
   }, [dispatch]);
+  const onKeyDown = utils.useOnKeyDown(handleClick);
   return (
     <span
       onClick={handleClick}
+      onKeyDown={onKeyDown}
       onDoubleClick={utils.prevent_propagation}
       role="button"
       tabIndex={0}

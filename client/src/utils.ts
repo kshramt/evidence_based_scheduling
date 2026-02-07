@@ -720,3 +720,15 @@ export const getQueues = (
       : [],
   };
 };
+
+export const useOnKeyDown = (onClick: () => void) => {
+  return React.useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onClick();
+      }
+    },
+    [onClick],
+  );
+};
