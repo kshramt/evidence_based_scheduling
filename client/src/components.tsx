@@ -107,7 +107,8 @@ const MobileNodeFilterQueryInput = () => {
         className="h-[2em] border-none w-[8em]"
       />
       <button
-        className="icon-icon"
+        className="btn-icon"
+        aria-label="Clear filter query"
         onClick={clear_input}
         onDoubleClick={prevent_propagation}
       >
@@ -165,6 +166,7 @@ const NodeFilterQueryInput = () => {
         />
         <button
           className="btn-icon"
+          aria-label="Clear filter query"
           onClick={clear_input}
           onDoubleClick={prevent_propagation}
         >
@@ -313,6 +315,7 @@ const NodeIdsInput = () => {
         />
         <button
           className="btn-icon"
+          aria-label="Clear node IDs"
           onClick={clear_input}
           onDoubleClick={prevent_propagation}
         >
@@ -326,6 +329,7 @@ const NodeIdsInput = () => {
 const SBTTB = (props: { onClick: () => void }) => {
   return (
     <button
+      aria-label="Scroll to top"
       onClick={props.onClick}
       className="sticky top-[60%] left-[50%] -translate-x-1/2 -translate-y-1/2 px-[0.15rem] dark:bg-neutral-300 bg-neutral-600 dark:hover:bg-neutral-400 hover:bg-neutral-500 text-center min-w-[3rem] h-[3rem] text-[2rem] border-none shadow-none opacity-70 hover:opacity-100 float-left mt-[-3rem] z-40"
     >
@@ -337,6 +341,7 @@ const SBTTB = (props: { onClick: () => void }) => {
 const SBTBB = (props: { onClick: () => void }) => {
   return (
     <button
+      aria-label="Scroll to bottom"
       onClick={props.onClick}
       className="sticky top-[calc(60%+4rem)] left-[50%] -translate-x-1/2 -translate-y-1/2 px-[0.15rem] dark:bg-neutral-300 bg-neutral-600 dark:hover:bg-neutral-400 hover:bg-neutral-500 text-center min-w-[3rem] h-[3rem] text-[2rem] border-none shadow-none opacity-70 hover:opacity-100 float-left mt-[-3rem] z-40"
     >
@@ -360,6 +365,9 @@ export const ToggleShowMobileButton = () => {
   return (
     <button
       className="btn-icon"
+      aria-label={
+        show_mobile ? "Switch to Desktop view" : "Switch to Mobile view"
+      }
       onClick={handleClick}
       onDoubleClick={prevent_propagation}
     >
@@ -422,6 +430,7 @@ const Menu = (props: {
       />
       <button
         className="btn-icon"
+        aria-label="Stop all tasks"
         onClick={stop_all}
         onDoubleClick={prevent_propagation}
       >
@@ -1130,6 +1139,7 @@ const MobileMenu = (props: {
       />
       <button
         className="btn-icon"
+        aria-label="Stop all tasks"
         onClick={stop_all}
         onDoubleClick={prevent_propagation}
       >

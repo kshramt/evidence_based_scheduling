@@ -16,9 +16,11 @@ const ToggleShowMobileButton = () => {
     set_show_mobile((v) => !v);
     setShowMobileUpdatedAt(Date.now());
   }, [set_show_mobile, setShowMobileUpdatedAt]);
+  const onKeyDown = utils.useOnKeyDown(handleClick);
   return (
     <span
       onClick={handleClick}
+      onKeyDown={onKeyDown}
       onDoubleClick={utils.prevent_propagation}
       role="button"
       tabIndex={0}

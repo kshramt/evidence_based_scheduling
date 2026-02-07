@@ -49,6 +49,7 @@ const MenuButton = (props: {
           ref={menuButtonRef}
           onClick={handleButtonClick}
           className="btn-icon"
+          aria-label="Open menu"
         >
           <span className="material-icons">menu</span>
         </button>

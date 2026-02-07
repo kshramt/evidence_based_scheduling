@@ -10,9 +10,11 @@ const ExportIndexedDbButton = (props: {
     const res = await utils.getAllFromIndexedDb(props.db);
     utils.downloadJson("indexeddb.json", res);
   }, [props.db]);
+  const onKeyDown = utils.useOnKeyDown(onClick);
   return (
     <span
       onClick={onClick}
+      onKeyDown={onKeyDown}
       onDoubleClick={utils.prevent_propagation}
       role="button"
       tabIndex={0}
