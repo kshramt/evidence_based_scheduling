@@ -4,7 +4,7 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 
-const ReactCompilerConfig = {}
+const ReactCompilerConfig = {};
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -14,10 +14,8 @@ export default defineConfig({
   plugins: [
     react({
       babel: {
-        plugins: [
-          ["babel-plugin-react-compiler", ReactCompilerConfig],
-        ]
-      }
+        plugins: [["babel-plugin-react-compiler", ReactCompilerConfig]],
+      },
     }),
     VitePWA({
       // registerType: "autoUpdate",

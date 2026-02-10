@@ -19,19 +19,18 @@ import TopButton from "./TopButton";
 
 // Bolt: Wrapped in React.memo to prevent unnecessary re-renders when parent components update
 // but props (`node_id`, `index`) remain the same. This is crucial for performance in virtualized lists like `react-virtuoso`.
-export const QueueEntry = React.memo((props: {
-  node_id: types.TNodeId;
-  index: number;
-}) => {
-  const exists = useRawSelector((state) =>
-    Object.hasOwn(state.data.nodes, props.node_id),
-  );
-  return exists ? (
-    <_QueueEntry node_id={props.node_id} index={props.index} />
-  ) : (
-    <div className="w-[1px] h-[1px]" /> // `null` is not allowed as Virtuoso does not allow 0-height elements.
-  );
-});
+export const QueueEntry = React.memo(
+  (props: { node_id: types.TNodeId; index: number }) => {
+    const exists = useRawSelector((state) =>
+      Object.hasOwn(state.data.nodes, props.node_id),
+    );
+    return exists ? (
+      <_QueueEntry node_id={props.node_id} index={props.index} />
+    ) : (
+      <div className="w-[1px] h-[1px]" /> // `null` is not allowed as Virtuoso does not allow 0-height elements.
+    );
+  },
+);
 
 const _QueueEntry = (props: { node_id: types.TNodeId; index: number }) => {
   const isTodo =
