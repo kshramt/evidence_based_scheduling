@@ -372,7 +372,9 @@ export const ToggleShowMobileButton = () => {
       className="btn-icon"
       onClick={handleClick}
       onDoubleClick={prevent_propagation}
-      aria-label={show_mobile ? "Switch to desktop view" : "Switch to mobile view"}
+      aria-label={
+        show_mobile ? "Switch to desktop view" : "Switch to mobile view"
+      }
       title={show_mobile ? "Switch to desktop view" : "Switch to mobile view"}
     >
       {show_mobile ? consts.DESKTOP_MARK : consts.MOBILE_MARK}
