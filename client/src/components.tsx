@@ -327,6 +327,8 @@ const SBTTB = (props: { onClick: () => void }) => {
   return (
     <button
       onClick={props.onClick}
+      aria-label="Scroll back to top"
+      title="Scroll back to top"
       className="sticky top-[60%] left-[50%] -translate-x-1/2 -translate-y-1/2 px-[0.15rem] dark:bg-neutral-300 bg-neutral-600 dark:hover:bg-neutral-400 hover:bg-neutral-500 text-center min-w-[3rem] h-[3rem] text-[2rem] border-none shadow-none opacity-70 hover:opacity-100 float-left mt-[-3rem] z-40"
     >
       {SCROLL_BACK_TO_TOP_MARK}
@@ -338,6 +340,8 @@ const SBTBB = (props: { onClick: () => void }) => {
   return (
     <button
       onClick={props.onClick}
+      aria-label="Scroll back to bottom"
+      title="Scroll back to bottom"
       className="sticky top-[calc(60%+4rem)] left-[50%] -translate-x-1/2 -translate-y-1/2 px-[0.15rem] dark:bg-neutral-300 bg-neutral-600 dark:hover:bg-neutral-400 hover:bg-neutral-500 text-center min-w-[3rem] h-[3rem] text-[2rem] border-none shadow-none opacity-70 hover:opacity-100 float-left mt-[-3rem] z-40"
     >
       {SCROLL_BACK_TO_BOTTOM_MARK}
@@ -357,11 +361,14 @@ export const ToggleShowMobileButton = () => {
     set_show_mobile((v) => !v);
     setShowMobileUpdatedAt(Date.now());
   }, [set_show_mobile, setShowMobileUpdatedAt]);
+  const label = show_mobile ? "Show desktop version" : "Show mobile version";
   return (
     <button
       className="btn-icon"
       onClick={handleClick}
       onDoubleClick={prevent_propagation}
+      aria-label={label}
+      title={label}
     >
       {show_mobile ? consts.DESKTOP_MARK : consts.MOBILE_MARK}
     </button>
