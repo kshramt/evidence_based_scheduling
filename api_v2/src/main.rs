@@ -7,13 +7,13 @@ use axum_extra::{
     headers::{authorization::Bearer, Authorization},
     TypedHeader,
 };
-use tower_http::set_header::SetResponseHeaderLayer;
 use base64::Engine;
 use serde_json::json;
 use std::{
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
+use tower_http::set_header::SetResponseHeaderLayer;
 use tracing::{debug, info, instrument};
 use tracing_subscriber::EnvFilter;
 
@@ -443,17 +443,8 @@ mod tests {
 
         let headers = response.headers();
 
-        assert_eq!(
-            headers.get("x-content-type-options").unwrap(),
-            "nosniff"
-        );
-        assert_eq!(
-            headers.get("x-frame-options").unwrap(),
-            "DENY"
-        );
-        assert_eq!(
-            headers.get("x-xss-protection").unwrap(),
-            "1; mode=block"
-        );
+        assert_eq!(headers.get("x-content-type-options").unwrap(), "nosniff");
+        assert_eq!(headers.get("x-frame-options").unwrap(), "DENY");
+        assert_eq!(headers.get("x-xss-protection").unwrap(), "1; mode=block");
     }
 }
