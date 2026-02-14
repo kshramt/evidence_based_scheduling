@@ -17,19 +17,20 @@ import * as types from "./types";
 import * as utils from "./utils";
 import TopButton from "./TopButton";
 
-export const QueueEntry = (props: {
-  node_id: types.TNodeId;
-  index: number;
-}) => {
-  const exists = useRawSelector((state) =>
-    Object.hasOwn(state.data.nodes, props.node_id),
-  );
-  return exists ? (
-    <_QueueEntry node_id={props.node_id} index={props.index} />
-  ) : (
-    <div className="w-[1px] h-[1px]" /> // `null` is not allowed as Virtuoso does not allow 0-height elements.
-  );
-};
+// Memoize QueueEntry to prevent unnecessary re-renders in large lists (VirtualizedQueueNodes and RunningNodes)
+// when parent components re-render but props (node_id, index) haven't changed.
+export const QueueEntry = React.memo(
+  (props: { node_id: types.TNodeId; index: number }) => {
+    const exists = useRawSelector((state) =>
+      Object.hasOwn(state.data.nodes, props.node_id),
+    );
+    return exists ? (
+      <_QueueEntry node_id={props.node_id} index={props.index} />
+    ) : (
+      <div className="w-[1px] h-[1px]" /> // `null` is not allowed as Virtuoso does not allow 0-height elements.
+    );
+  },
+);
 
 const _QueueEntry = (props: { node_id: types.TNodeId; index: number }) => {
   const isTodo =
