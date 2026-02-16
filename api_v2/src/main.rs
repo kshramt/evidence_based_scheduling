@@ -1,7 +1,7 @@
 use axum::{
     extract::{FromRequestParts, Path, Query, State},
-    http::request::Parts,
-    Json, RequestPartsExt,
+    http::{header, request::Parts, HeaderValue},
+    Json, RequestPartsExt, Router,
 };
 use axum_extra::{
     headers::{authorization::Bearer, Authorization},
@@ -13,6 +13,7 @@ use std::{
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
+use tower_http::set_header::SetResponseHeaderLayer;
 use tracing::{debug, info, instrument};
 use tracing_subscriber::EnvFilter;
 
@@ -378,6 +379,30 @@ async fn get_pool() -> sqlx::postgres::PgPool {
         .unwrap()
 }
 
+fn create_app(state: Arc<AppState>) -> Router {
+    let app = Router::new();
+    let app = gen::register_app::<ApiImpl>(app);
+    let app = app.with_state(state);
+    app.layer(tower_http::trace::TraceLayer::new_for_http())
+        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::X_CONTENT_TYPE_OPTIONS,
+            HeaderValue::from_static("nosniff"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::X_FRAME_OPTIONS,
+            HeaderValue::from_static("DENY"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::X_XSS_PROTECTION,
+            HeaderValue::from_static("1; mode=block"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::CONTENT_SECURITY_POLICY,
+            HeaderValue::from_static("default-src 'none'; frame-ancestors 'none'; sandbox"),
+        ))
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
@@ -385,12 +410,7 @@ async fn main() {
         .json()
         .init();
     let state = std::sync::Arc::new(AppState::new(get_shard(), get_pool().await));
-    let app = axum::Router::new();
-    let app = gen::register_app::<ApiImpl>(app);
-    let app = app.with_state(state);
-    let app = app
-        .layer(tower_http::trace::TraceLayer::new_for_http())
-        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
+    let app = create_app(state);
 
     let port = get_server_port();
     info!(port = ?port);
@@ -400,4 +420,51 @@ async fn main() {
     axum::serve(listener, app.into_make_service())
         .await
         .unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::{
+        body::Body,
+        http::{Request, StatusCode},
+    };
+    use tower::ServiceExt;
+
+    #[tokio::test]
+    async fn test_security_headers() {
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .connect_lazy("postgres://fake:fake@localhost:5432/fake")
+            .unwrap();
+        let state = Arc::new(AppState::new(0, pool));
+        let app = create_app(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v2/sys/health")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        // Status should be 500 because DB is fake
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+
+        let headers = response.headers();
+        assert_eq!(
+            headers.get(header::X_CONTENT_TYPE_OPTIONS).unwrap(),
+            "nosniff"
+        );
+        assert_eq!(headers.get(header::X_FRAME_OPTIONS).unwrap(), "DENY");
+        assert_eq!(
+            headers.get(header::X_XSS_PROTECTION).unwrap(),
+            "1; mode=block"
+        );
+        assert_eq!(
+            headers.get(header::CONTENT_SECURITY_POLICY).unwrap(),
+            "default-src 'none'; frame-ancestors 'none'; sandbox"
+        );
+    }
 }
