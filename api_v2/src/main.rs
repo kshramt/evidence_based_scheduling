@@ -453,9 +453,15 @@ mod tests {
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
 
         let headers = response.headers();
-        assert_eq!(headers.get(header::X_CONTENT_TYPE_OPTIONS).unwrap(), "nosniff");
+        assert_eq!(
+            headers.get(header::X_CONTENT_TYPE_OPTIONS).unwrap(),
+            "nosniff"
+        );
         assert_eq!(headers.get(header::X_FRAME_OPTIONS).unwrap(), "DENY");
-        assert_eq!(headers.get(header::X_XSS_PROTECTION).unwrap(), "1; mode=block");
+        assert_eq!(
+            headers.get(header::X_XSS_PROTECTION).unwrap(),
+            "1; mode=block"
+        );
         assert_eq!(
             headers.get(header::CONTENT_SECURITY_POLICY).unwrap(),
             "default-src 'none'; frame-ancestors 'none'; sandbox"
