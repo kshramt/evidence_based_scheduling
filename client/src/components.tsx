@@ -367,7 +367,9 @@ export const ToggleShowMobileButton = () => {
     set_show_mobile((v) => !v);
     setShowMobileUpdatedAt(Date.now());
   }, [set_show_mobile, setShowMobileUpdatedAt]);
-  const title = show_mobile ? "Switch to desktop view" : "Switch to mobile view";
+  const title = show_mobile
+    ? "Switch to desktop view"
+    : "Switch to mobile view";
   return (
     <button
       className="btn-icon"
