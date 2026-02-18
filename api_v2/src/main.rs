@@ -429,10 +429,7 @@ async fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axum::{
-        body::Body,
-        http::Request,
-    };
+    use axum::{body::Body, http::Request};
     use tower::ServiceExt;
 
     #[tokio::test]
@@ -444,14 +441,35 @@ mod tests {
         let app = create_app(state);
 
         let response = app
-            .oneshot(Request::builder().uri("/not-found").body(Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri("/not-found")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
 
         let headers = response.headers();
-        assert_eq!(headers.get("X-Content-Type-Options").map(|h| h.to_str().unwrap()), Some("nosniff"));
-        assert_eq!(headers.get("X-Frame-Options").map(|h| h.to_str().unwrap()), Some("DENY"));
-        assert_eq!(headers.get("X-XSS-Protection").map(|h| h.to_str().unwrap()), Some("1; mode=block"));
-        assert_eq!(headers.get("Content-Security-Policy").map(|h| h.to_str().unwrap()), Some("default-src 'none'; frame-ancestors 'none'"));
+        assert_eq!(
+            headers
+                .get("X-Content-Type-Options")
+                .map(|h| h.to_str().unwrap()),
+            Some("nosniff")
+        );
+        assert_eq!(
+            headers.get("X-Frame-Options").map(|h| h.to_str().unwrap()),
+            Some("DENY")
+        );
+        assert_eq!(
+            headers.get("X-XSS-Protection").map(|h| h.to_str().unwrap()),
+            Some("1; mode=block")
+        );
+        assert_eq!(
+            headers
+                .get("Content-Security-Policy")
+                .map(|h| h.to_str().unwrap()),
+            Some("default-src 'none'; frame-ancestors 'none'")
+        );
     }
 }
