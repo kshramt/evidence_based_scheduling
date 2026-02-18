@@ -21,6 +21,7 @@ use tracing_subscriber::EnvFilter;
 
 mod db;
 mod errors;
+#[allow(dead_code)]
 mod gen;
 
 struct ApiImpl;
@@ -385,8 +386,7 @@ fn create_app(state: Arc<AppState>) -> axum::Router {
     let app = axum::Router::new();
     let app = gen::register_app::<ApiImpl>(app);
     let app = app.with_state(state);
-    let app = app
-        .layer(tower_http::trace::TraceLayer::new_for_http())
+    app.layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
             HeaderName::from_static("x-content-type-options"),
             HeaderValue::from_static("nosniff"),
@@ -403,8 +403,7 @@ fn create_app(state: Arc<AppState>) -> axum::Router {
             HeaderName::from_static("content-security-policy"),
             HeaderValue::from_static("default-src 'none'; frame-ancestors 'none'"),
         ))
-        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
-    app
+        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024))
 }
 
 #[tokio::main]
