@@ -41,7 +41,13 @@ export const EntryButtons = (props: {
       {is_root || !is_todo || <MoveUpButton node_id={props.node_id} />}
       {is_root || !is_todo || <MoveDownButton node_id={props.node_id} />}
       {/* <DeleteButton node_id={props.node_id} /> */}
-      {is_todo && <AddButton node_id={props.node_id} prefix={props.prefix} />}
+      {is_todo && (
+        <AddButton
+          node_id={props.node_id}
+          prefix={props.prefix}
+          ariaLabel="Add sub-task"
+        />
+      )}
       <ShowDetailsButton node_id={props.node_id} />
       {props.jumpButton}
     </div>
