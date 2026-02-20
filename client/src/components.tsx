@@ -105,11 +105,15 @@ const MobileNodeFilterQueryInput = () => {
         value={nodeFilterQuery}
         onChange={handle_change}
         className="h-[2em] border-none w-[8em]"
+        aria-label="Filter nodes"
+        placeholder="Filter nodes..."
       />
       <button
-        className="icon-icon"
+        className="btn-icon"
         onClick={clear_input}
         onDoubleClick={prevent_propagation}
+        aria-label="Clear filter"
+        title="Clear filter"
       >
         {consts.DELETE_MARK}
       </button>
@@ -162,11 +166,15 @@ const NodeFilterQueryInput = () => {
           onKeyDown={onKeyDown}
           className="h-[2em] border-none"
           ref={ref}
+          aria-label="Filter nodes"
+          placeholder="Filter nodes..."
         />
         <button
           className="btn-icon"
           onClick={clear_input}
           onDoubleClick={prevent_propagation}
+          aria-label="Clear filter"
+          title="Clear filter"
         >
           {consts.DELETE_MARK}
         </button>
@@ -310,11 +318,15 @@ const NodeIdsInput = () => {
           value={nodeIds}
           onChange={handle_change}
           className="h-[2em] border-none"
+          aria-label="Filter by Node IDs"
+          placeholder="Node IDs..."
         />
         <button
           className="btn-icon"
           onClick={clear_input}
           onDoubleClick={prevent_propagation}
+          aria-label="Clear IDs"
+          title="Clear IDs"
         >
           {consts.DELETE_MARK}
         </button>
@@ -328,6 +340,8 @@ const SBTTB = (props: { onClick: () => void }) => {
     <button
       onClick={props.onClick}
       className="sticky top-[60%] left-[50%] -translate-x-1/2 -translate-y-1/2 px-[0.15rem] dark:bg-neutral-300 bg-neutral-600 dark:hover:bg-neutral-400 hover:bg-neutral-500 text-center min-w-[3rem] h-[3rem] text-[2rem] border-none shadow-none opacity-70 hover:opacity-100 float-left mt-[-3rem] z-40"
+      aria-label="Scroll back to top"
+      title="Scroll back to top"
     >
       {SCROLL_BACK_TO_TOP_MARK}
     </button>
@@ -339,6 +353,8 @@ const SBTBB = (props: { onClick: () => void }) => {
     <button
       onClick={props.onClick}
       className="sticky top-[calc(60%+4rem)] left-[50%] -translate-x-1/2 -translate-y-1/2 px-[0.15rem] dark:bg-neutral-300 bg-neutral-600 dark:hover:bg-neutral-400 hover:bg-neutral-500 text-center min-w-[3rem] h-[3rem] text-[2rem] border-none shadow-none opacity-70 hover:opacity-100 float-left mt-[-3rem] z-40"
+      aria-label="Scroll back to bottom"
+      title="Scroll back to bottom"
     >
       {SCROLL_BACK_TO_BOTTOM_MARK}
     </button>
@@ -362,6 +378,10 @@ export const ToggleShowMobileButton = () => {
       className="btn-icon"
       onClick={handleClick}
       onDoubleClick={prevent_propagation}
+      aria-label={
+        show_mobile ? "Switch to desktop view" : "Switch to mobile view"
+      }
+      title={show_mobile ? "Switch to desktop view" : "Switch to mobile view"}
     >
       {show_mobile ? consts.DESKTOP_MARK : consts.MOBILE_MARK}
     </button>
