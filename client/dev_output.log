@@ -1,0 +1,20 @@
+
+> evidence_based_scheduling@0.1.0 dev /app/client
+> vite
+
+
+  VITE v5.0.10  ready in 1770 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+Browserslist: browsers data (caniuse-lite) is 9 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+10:00:24 AM [vite] ✨ new dependencies optimized: workbox-core, workbox-precaching, workbox-routing, workbox-strategies
+10:00:24 AM [vite] ✨ optimized dependencies changed. reloading
+10:01:47 AM [vite] hmr update /src/verification_harness.tsx, /src/lib.css
+10:02:22 AM [vite] hmr update /src/verification_harness.tsx, /src/lib.css
+10:02:51 AM [vite] hmr update /src/components.tsx, /src/lib.css
+10:02:56 AM [vite] page reload src/main.tsx
+10:03:00 AM [vite] hmr update /src/verification_harness.tsx, /src/lib.css
+ ELIFECYCLE  Command failed.
