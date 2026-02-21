@@ -1,6 +1,6 @@
 use axum::{
     extract::{FromRequestParts, Path, Query, State},
-    http::request::Parts,
+    http::{header, request::Parts, HeaderValue},
     Json, RequestPartsExt,
 };
 use axum_extra::{
@@ -390,6 +390,26 @@ async fn main() {
     let app = app.with_state(state);
     let app = app
         .layer(tower_http::trace::TraceLayer::new_for_http())
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            header::CONTENT_SECURITY_POLICY,
+            HeaderValue::from_static("default-src 'none'; frame-ancestors 'none'"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            header::X_CONTENT_TYPE_OPTIONS,
+            HeaderValue::from_static("nosniff"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            header::X_FRAME_OPTIONS,
+            HeaderValue::from_static("DENY"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            header::X_XSS_PROTECTION,
+            HeaderValue::from_static("1; mode=block"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            header::STRICT_TRANSPORT_SECURITY,
+            HeaderValue::from_static("max-age=31536000; includeSubDomains"),
+        ))
         .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
 
     let port = get_server_port();
