@@ -1,3 +1,3 @@
-## 2025-02-19 - React.memo for Virtualized List Items
-**Learning:** `QueueEntry` component used in `react-virtuoso` lists was not memoized, causing unnecessary re-renders when parent components updated, despite `Virtuoso` handling list virtualization.
-**Action:** Always ensure components rendered via `itemContent` in virtualization libraries are wrapped in `React.memo` (or similar) if they rely on props that are stable (like IDs) but are re-created by parent renders.
+## 2025-02-19 - Prettier Formatting Check
+**Learning:** The CI pipeline runs `prettier --check src` which fails if files are not formatted. Always run `pnpm exec prettier --write src` or configure your editor to format on save before committing.
+**Action:** Added a verification step to run prettier check locally before submitting.
