@@ -42,11 +42,11 @@ FROM ghcr.io/amacneil/dbmate:2.27.0 AS base_dbmate
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 
-FROM denoland/deno:distroless-2.6.3 AS deno_base
+FROM denoland/deno:distroless-2.1.2 AS deno_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 
-FROM node:22.16.0-bookworm-slim AS node_downloader
+FROM node:22.11.0-bookworm-slim AS node_downloader
 RUN npm install -g pnpm@latest
 
 FROM node_downloader AS firebase_downloader
@@ -61,13 +61,13 @@ COPY --link --from=node_downloader /usr/local/lib/node_modules /usr/local/lib/no
 FROM docker:24.0.7-cli-alpine3.18 AS docker_downloader
 
 
-FROM rust:1.87.0-bookworm AS rust_downloader
+FROM rust:1.83.0-bookworm AS rust_downloader
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 RUN rustup component add clippy rust-analyzer rustfmt
 
 FROM rust_downloader AS sqlx_cli_downloader
-RUN cargo install sqlx-cli@0.8.2
+RUN cargo install sqlx-cli@0.7.3
 
 FROM build_essential_base AS base_rust
 COPY --link --from=rust_downloader /usr/local/cargo /usr/local/cargo
