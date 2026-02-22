@@ -384,36 +384,26 @@ fn create_app(state: Arc<AppState>) -> axum::Router {
     let app = app.with_state(state);
     app.layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024))
-        .layer(
-            tower_http::set_header::SetResponseHeaderLayer::overriding(
-                axum::http::header::CONTENT_SECURITY_POLICY,
-                axum::http::HeaderValue::from_static("default-src 'none'; frame-ancestors 'none'"),
-            )
-        )
-        .layer(
-            tower_http::set_header::SetResponseHeaderLayer::overriding(
-                axum::http::header::X_CONTENT_TYPE_OPTIONS,
-                axum::http::HeaderValue::from_static("nosniff"),
-            )
-        )
-        .layer(
-            tower_http::set_header::SetResponseHeaderLayer::overriding(
-                axum::http::header::X_FRAME_OPTIONS,
-                axum::http::HeaderValue::from_static("DENY"),
-            )
-        )
-        .layer(
-            tower_http::set_header::SetResponseHeaderLayer::overriding(
-                axum::http::header::X_XSS_PROTECTION,
-                axum::http::HeaderValue::from_static("1; mode=block"),
-            )
-        )
-        .layer(
-            tower_http::set_header::SetResponseHeaderLayer::overriding(
-                axum::http::header::STRICT_TRANSPORT_SECURITY,
-                axum::http::HeaderValue::from_static("max-age=63072000; includeSubDomains; preload"),
-            )
-        )
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::CONTENT_SECURITY_POLICY,
+            axum::http::HeaderValue::from_static("default-src 'none'; frame-ancestors 'none'"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::X_CONTENT_TYPE_OPTIONS,
+            axum::http::HeaderValue::from_static("nosniff"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::X_FRAME_OPTIONS,
+            axum::http::HeaderValue::from_static("DENY"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::X_XSS_PROTECTION,
+            axum::http::HeaderValue::from_static("1; mode=block"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::STRICT_TRANSPORT_SECURITY,
+            axum::http::HeaderValue::from_static("max-age=63072000; includeSubDomains; preload"),
+        ))
 }
 
 #[tokio::main]
@@ -465,18 +455,9 @@ mod tests {
             headers.get("content-security-policy").unwrap(),
             "default-src 'none'; frame-ancestors 'none'"
         );
-        assert_eq!(
-            headers.get("x-content-type-options").unwrap(),
-            "nosniff"
-        );
-        assert_eq!(
-            headers.get("x-frame-options").unwrap(),
-            "DENY"
-        );
-        assert_eq!(
-            headers.get("x-xss-protection").unwrap(),
-            "1; mode=block"
-        );
+        assert_eq!(headers.get("x-content-type-options").unwrap(), "nosniff");
+        assert_eq!(headers.get("x-frame-options").unwrap(), "DENY");
+        assert_eq!(headers.get("x-xss-protection").unwrap(), "1; mode=block");
         assert_eq!(
             headers.get("strict-transport-security").unwrap(),
             "max-age=63072000; includeSubDomains; preload"
