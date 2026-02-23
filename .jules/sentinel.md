@@ -1,0 +1,4 @@
+## 2024-05-22 - [Critical Authentication Vulnerability: Fake IDP]
+**Vulnerability:** The application relies entirely on a "Fake IDP" for authentication, which uses unsigned, base64-encoded JSON tokens (`{"user_id": "..."}`) and exposes endpoints (`/fake_idp/*`) allowing arbitrary user impersonation.
+**Learning:** The `client` application is hardcoded to use these endpoints, making it impossible to disable them without breaking core functionality. The "Fake IDP" is not just a development tool but the *only* authentication mechanism.
+**Prevention:** In a real production environment, a proper OIDC/OAuth2 provider must replace this system. Token validation must include signature verification. This requires a significant refactor of both `api_v2` and `client`. Currently, we are mitigating risks by adding defense-in-depth measures (security headers) until a full auth rewrite is prioritized.
