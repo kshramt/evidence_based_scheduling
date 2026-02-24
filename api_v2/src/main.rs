@@ -378,6 +378,40 @@ async fn get_pool() -> sqlx::postgres::PgPool {
         .unwrap()
 }
 
+fn create_app(state: Arc<AppState>) -> axum::Router {
+    let app = axum::Router::new();
+    let app = gen::register_app::<ApiImpl>(app);
+    let app = app.with_state(state);
+    app.layer(tower_http::trace::TraceLayer::new_for_http())
+        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024))
+        // Security Headers
+        // HSTS: Enforce HTTPS for 1 year including subdomains
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::STRICT_TRANSPORT_SECURITY,
+            axum::http::HeaderValue::from_static("max-age=31536000; includeSubDomains"),
+        ))
+        // X-Content-Type-Options: Prevent MIME sniffing (always nosniff)
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::X_CONTENT_TYPE_OPTIONS,
+            axum::http::HeaderValue::from_static("nosniff"),
+        ))
+        // X-Frame-Options: Prevent clickjacking (deny all framing)
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::X_FRAME_OPTIONS,
+            axum::http::HeaderValue::from_static("DENY"),
+        ))
+        // X-XSS-Protection: Enable browser XSS filter (block mode)
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::X_XSS_PROTECTION,
+            axum::http::HeaderValue::from_static("1; mode=block"),
+        ))
+        // CSP: Restrict all sources (default-src 'none') as this is an API
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::CONTENT_SECURITY_POLICY,
+            axum::http::HeaderValue::from_static("default-src 'none'; frame-ancestors 'none';"),
+        ))
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
@@ -385,12 +419,7 @@ async fn main() {
         .json()
         .init();
     let state = std::sync::Arc::new(AppState::new(get_shard(), get_pool().await));
-    let app = axum::Router::new();
-    let app = gen::register_app::<ApiImpl>(app);
-    let app = app.with_state(state);
-    let app = app
-        .layer(tower_http::trace::TraceLayer::new_for_http())
-        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
+    let app = create_app(state);
 
     let port = get_server_port();
     info!(port = ?port);
@@ -400,4 +429,63 @@ async fn main() {
     axum::serve(listener, app.into_make_service())
         .await
         .unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::{
+        body::Body,
+        http::{Request, StatusCode},
+    };
+    use tower::ServiceExt;
+
+    #[tokio::test]
+    async fn test_security_headers() {
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .connect_lazy("postgres://postgres:postgres@localhost:5432/postgres")
+            .unwrap();
+        let state = Arc::new(AppState::new(0, pool));
+        let app = create_app(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v2/not-found")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        let headers = response.headers();
+        assert_eq!(
+            headers
+                .get(axum::http::header::STRICT_TRANSPORT_SECURITY)
+                .unwrap(),
+            "max-age=31536000; includeSubDomains"
+        );
+        assert_eq!(
+            headers
+                .get(axum::http::header::X_CONTENT_TYPE_OPTIONS)
+                .unwrap(),
+            "nosniff"
+        );
+        assert_eq!(
+            headers.get(axum::http::header::X_FRAME_OPTIONS).unwrap(),
+            "DENY"
+        );
+        assert_eq!(
+            headers.get(axum::http::header::X_XSS_PROTECTION).unwrap(),
+            "1; mode=block"
+        );
+        assert_eq!(
+            headers
+                .get(axum::http::header::CONTENT_SECURITY_POLICY)
+                .unwrap(),
+            "default-src 'none'; frame-ancestors 'none';"
+        );
+    }
 }
