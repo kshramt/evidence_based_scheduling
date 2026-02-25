@@ -338,28 +338,36 @@ pub async fn delete_pending_patches(
     client_id: i64,
     patch_keys: &[PatchKey],
 ) -> sqlx::Result<()> {
-    for patch_key in patch_keys.iter() {
-        sqlx::query!(
-            r#"
+    if patch_keys.is_empty() {
+        return Ok(());
+    }
+
+    // Optimization: Batch delete using UNNEST to avoid N+1 queries
+    let producer_client_ids: Vec<i64> = patch_keys.iter().map(|k| k.client_id).collect();
+    let producer_session_ids: Vec<i64> = patch_keys.iter().map(|k| k.session_id).collect();
+    let producer_patch_ids: Vec<i64> = patch_keys.iter().map(|k| k.patch_id).collect();
+
+    sqlx::query(
+        r#"
 delete from
     app.pending_patches
 where
     user_id = $1
     and consumer_client_id = $2
-    and producer_client_id = $3
-    and producer_session_id = $4
-    and producer_patch_id = $5
+    and (producer_client_id, producer_session_id, producer_patch_id) in (
+        select * from unnest($3, $4, $5)
+    )
 ;
 "#,
-            &user_id,
-            &client_id,
-            &patch_key.client_id,
-            &patch_key.session_id,
-            &patch_key.patch_id,
-        )
-        .execute(&mut **tx)
-        .await?;
-    }
+    )
+    .bind(user_id)
+    .bind(client_id)
+    .bind(&producer_client_ids)
+    .bind(&producer_session_ids)
+    .bind(&producer_patch_ids)
+    .execute(&mut **tx)
+    .await?;
+
     Ok(())
 }
 
