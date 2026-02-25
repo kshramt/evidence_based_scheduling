@@ -13,7 +13,7 @@ FROM mvdan/shfmt:v3.10.0-alpine AS download_shfmt
 
 FROM ubuntu:22.04 AS ubuntu_base
 ARG SOURCE_DATE_EPOCH
-ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
+ENV SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-0}"
 
 # FROM curl_base AS starpls_downloader
 # RUN arch="$(dpkg --print-architecture)" && curl -sSf -L -o /usr/local/bin/starpls "https://github.com/withered-magic/starpls/releases/download/v0.1.14/starpls-linux-${arch}" && chmod +x /usr/local/bin/starpls
@@ -36,15 +36,15 @@ RUN apt-get update \
 
 FROM hadolint/hadolint:v2.12.0-alpine AS hadolint_base
 ARG SOURCE_DATE_EPOCH
-ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
+ENV SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-0}"
 
 FROM ghcr.io/amacneil/dbmate:2.27.0 AS base_dbmate
 ARG SOURCE_DATE_EPOCH
-ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
+ENV SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-0}"
 
 FROM denoland/deno:distroless-2.6.3 AS deno_base
 ARG SOURCE_DATE_EPOCH
-ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
+ENV SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-0}"
 
 FROM node:22.16.0-bookworm-slim AS node_downloader
 RUN npm install -g pnpm@latest
@@ -63,7 +63,7 @@ FROM docker:24.0.7-cli-alpine3.18 AS docker_downloader
 
 FROM rust:1.87.0-bookworm AS rust_downloader
 ARG SOURCE_DATE_EPOCH
-ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
+ENV SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-0}"
 RUN rustup component add clippy rust-analyzer rustfmt
 
 FROM rust_downloader AS sqlx_cli_downloader
@@ -186,15 +186,15 @@ WORKDIR /app
 
 FROM nginx:1.29.3-alpine AS base_nginx
 ARG SOURCE_DATE_EPOCH
-ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
+ENV SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-0}"
 
 FROM envoyproxy/envoy:distroless-v1.34.2 AS base_envoy
 ARG SOURCE_DATE_EPOCH
-ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
+ENV SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-0}"
 
 FROM postgres:16.3-bookworm AS base_postgres
 ARG SOURCE_DATE_EPOCH
-ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
+ENV SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-0}"
 
 FROM base_py11 AS base_poetry11
 RUN pip install --no-cache-dir poetry==1.7.0
@@ -267,7 +267,7 @@ FROM base_postgres AS prod_postgres
 
 FROM debian:13.2-slim AS prod_postgres_migration
 ARG SOURCE_DATE_EPOCH
-ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
+ENV SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-0}"
 COPY --link --from=base_dbmate /usr/local/bin/dbmate /usr/local/bin/dbmate
 COPY --link db/scripts/migrate.sh /app/scripts/migrate.sh
 COPY --link db/migrations /app/db/migrations
@@ -309,7 +309,7 @@ RUN cargo build --release
 
 FROM gcr.io/distroless/cc-debian12:nonroot AS prod_api_v2
 ARG SOURCE_DATE_EPOCH
-ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
+ENV SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-0}"
 COPY --link --from=base_rust_builder /app/target/release/api_v2 /work/api_v2
 WORKDIR /work
 ENTRYPOINT ["./api_v2"]
