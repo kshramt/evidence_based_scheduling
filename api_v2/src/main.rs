@@ -392,9 +392,7 @@ fn create_app(state: Arc<AppState>) -> axum::Router {
         ))
         .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
             axum::http::header::STRICT_TRANSPORT_SECURITY,
-            axum::http::HeaderValue::from_static(
-                "max-age=63072000; includeSubDomains; preload",
-            ),
+            axum::http::HeaderValue::from_static("max-age=63072000; includeSubDomains; preload"),
         ))
         .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
             axum::http::header::X_FRAME_OPTIONS,
@@ -462,11 +460,15 @@ mod tests {
         let headers = response.headers();
 
         assert_eq!(
-            headers.get(axum::http::header::CONTENT_SECURITY_POLICY).unwrap(),
+            headers
+                .get(axum::http::header::CONTENT_SECURITY_POLICY)
+                .unwrap(),
             "default-src 'none'; frame-ancestors 'none'; sandbox"
         );
         assert_eq!(
-            headers.get(axum::http::header::STRICT_TRANSPORT_SECURITY).unwrap(),
+            headers
+                .get(axum::http::header::STRICT_TRANSPORT_SECURITY)
+                .unwrap(),
             "max-age=63072000; includeSubDomains; preload"
         );
         assert_eq!(
@@ -474,7 +476,9 @@ mod tests {
             "DENY"
         );
         assert_eq!(
-            headers.get(axum::http::header::X_CONTENT_TYPE_OPTIONS).unwrap(),
+            headers
+                .get(axum::http::header::X_CONTENT_TYPE_OPTIONS)
+                .unwrap(),
             "nosniff"
         );
         assert_eq!(
