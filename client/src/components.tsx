@@ -2,6 +2,7 @@ import * as Jotai from "jotai";
 import * as React from "react";
 import { useCallback } from "react";
 import * as Rr from "react-redux";
+import { shallowEqual } from "react-redux";
 import * as Dnd from "react-dnd";
 import * as Mt from "@mantine/core";
 import * as Rv from "react-virtuoso";
@@ -1026,31 +1027,40 @@ const EdgeList = (props: {
   node_id: types.TNodeId;
   prefix?: undefined | string;
 }) => {
-  const children = utils.assertV(
-    useSelector((state) => state.swapped_nodes.children?.[props.node_id]),
-  );
-  const statuses = utils.assertV(
-    useSelector((state) => state.swapped_nodes.status),
-  );
-  const cs = utils.assertV(useSelector((state) => state.swapped_edges.c ?? {}));
-  const todos = Array<JSX.Element>();
-  const dones = Array<JSX.Element>();
-  const donts = Array<JSX.Element>();
-  for (const edgeId of ops.sorted_keys_of(children)) {
-    const c = cs[edgeId];
-    const status = statuses[c];
-    if (status === "todo") {
-      todos.push(<Edge edge_id={edgeId} key={edgeId} prefix={props.prefix} />);
-    } else if (status === "done") {
-      dones.push(<Edge edge_id={edgeId} key={edgeId} prefix={props.prefix} />);
-    } else if (status === "dont") {
-      donts.push(<Edge edge_id={edgeId} key={edgeId} prefix={props.prefix} />);
+  // Optimization: We use a custom selector with shallowEqual to avoid re-rendering
+  // EdgeList whenever *any* node status changes in the global store.
+  // This selector only returns a new array if the list of edge IDs for this specific node changes.
+  const edge_ids = useSelector((state) => {
+    const children = state.swapped_nodes.children?.[props.node_id];
+    const statuses = state.swapped_nodes.status;
+    const cs = state.swapped_edges.c;
+    if (!children || !statuses || !cs) {
+      return [];
     }
-  }
-  const edge_ids = ops.sorted_keys_of(children);
+    const todos: types.TEdgeId[] = [];
+    const dones: types.TEdgeId[] = [];
+    const donts: types.TEdgeId[] = [];
+    for (const edgeId of ops.sorted_keys_of(children)) {
+      const c = cs[edgeId];
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (c === undefined) continue;
+      const status = statuses[c];
+      if (status === "todo") {
+        todos.push(edgeId);
+      } else if (status === "done") {
+        dones.push(edgeId);
+      } else if (status === "dont") {
+        donts.push(edgeId);
+      }
+    }
+    return todos.concat(dones, donts);
+  }, shallowEqual);
+
   return edge_ids.length ? (
     <ol className="list-outside pl-[4em] content-visibility-auto">
-      {todos.concat(dones, donts)}
+      {edge_ids.map((edgeId) => (
+        <Edge edge_id={edgeId} key={edgeId} prefix={props.prefix} />
+      ))}
     </ol>
   ) : null;
 };

@@ -92,6 +92,7 @@ export default defineConfig({
     coverage: {
       provider: "istanbul",
     },
+    fileParallelism: false,
     testTimeout: process.env.CI ? 40_000 : 10_000,
   },
 });
