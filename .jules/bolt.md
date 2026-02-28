@@ -1,0 +1,3 @@
+## 2024-03-01 - React-Redux useSelector O(N) Re-render Bottleneck
+**Learning:** `useSelector` in React-Redux subscribes the component to any change in the selected state. Selecting an entire map/dictionary (like `state.swapped_nodes.status`) when a component only needs specific items from it causes massive, unnecessary O(N) re-renders across all mounted components whenever *any* item in the map changes.
+**Action:** Always project only the specific, minimal required state out of large maps when using `useSelector`. If projecting an array or object, use `shallowEqual` (imported from `react-redux`) as the second argument to `useSelector` so Redux knows to bail out of re-rendering if the selected values haven't changed.

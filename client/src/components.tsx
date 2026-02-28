@@ -37,6 +37,7 @@ import TopButton from "./TopButton";
 import { TotalTime } from "./TotalTime";
 import * as types from "./types";
 import { useSelector, useDispatch } from "./types";
+import { shallowEqual } from "react-redux";
 
 import * as actions from "./actions";
 import * as consts from "./consts";
@@ -1029,16 +1030,30 @@ const EdgeList = (props: {
   const children = utils.assertV(
     useSelector((state) => state.swapped_nodes.children?.[props.node_id]),
   );
-  const statuses = utils.assertV(
-    useSelector((state) => state.swapped_nodes.status),
+  const edge_ids = React.useMemo(
+    () => ops.sorted_keys_of(children),
+    [children],
   );
-  const cs = utils.assertV(useSelector((state) => state.swapped_edges.c ?? {}));
+  // ⚡ Bolt Optimization: Prevent O(N) re-renders
+  // Previously, EdgeList subscribed to the entire `state.swapped_nodes.status` map.
+  // Any status change in the app would force every EdgeList to re-render.
+  // Now, we project only the specific statuses for this node's children and use
+  // `shallowEqual` so the component only re-renders when a child's status actually changes.
+  const childStatuses = useSelector((state) => {
+    const statuses = state.swapped_nodes.status;
+    const cs = state.swapped_edges.c ?? {};
+    return edge_ids.map((edgeId) => {
+      const c = cs[edgeId];
+      return c ? statuses?.[c] : undefined;
+    });
+  }, shallowEqual);
+
   const todos = Array<JSX.Element>();
   const dones = Array<JSX.Element>();
   const donts = Array<JSX.Element>();
-  for (const edgeId of ops.sorted_keys_of(children)) {
-    const c = cs[edgeId];
-    const status = statuses[c];
+  for (let i = 0; i < edge_ids.length; i++) {
+    const edgeId = edge_ids[i];
+    const status = childStatuses[i];
     if (status === "todo") {
       todos.push(<Edge edge_id={edgeId} key={edgeId} prefix={props.prefix} />);
     } else if (status === "done") {
@@ -1047,7 +1062,6 @@ const EdgeList = (props: {
       donts.push(<Edge edge_id={edgeId} key={edgeId} prefix={props.prefix} />);
     }
   }
-  const edge_ids = ops.sorted_keys_of(children);
   return edge_ids.length ? (
     <ol className="list-outside pl-[4em] content-visibility-auto">
       {todos.concat(dones, donts)}
