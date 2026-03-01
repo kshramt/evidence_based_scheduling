@@ -37,6 +37,8 @@ const RangesTable = (props: { node_id: types.TNodeId }) => {
     <>
       <div className="flex gap-x-[0.25em] items-baseline">
         <button
+          aria-label="Previous ranges"
+          title="Previous ranges"
           disabled={offset - rows_per_page < 0}
           onClick={handle_offset_prev}
           className="btn-icon"
@@ -52,6 +54,8 @@ const RangesTable = (props: { node_id: types.TNodeId }) => {
         />
         /{n}
         <button
+          aria-label="Next ranges"
+          title="Next ranges"
           disabled={n <= offset + rows_per_page}
           onClick={handle_offset_next}
           className="btn-icon"
@@ -128,6 +132,8 @@ const RangesTableRow = (props: { node_id: types.TNodeId; i_range: number }) => {
         </td>
         <td className="p-[0.25em]">
           <button
+            aria-label="Delete range"
+            title="Delete range"
             className="btn-icon"
             onClick={handle_delete}
             onDoubleClick={utils.prevent_propagation}
