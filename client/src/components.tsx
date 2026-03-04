@@ -105,11 +105,15 @@ const MobileNodeFilterQueryInput = () => {
         value={nodeFilterQuery}
         onChange={handle_change}
         className="h-[2em] border-none w-[8em]"
+        placeholder="Search nodes..."
+        aria-label="Search nodes"
       />
       <button
-        className="icon-icon"
+        className="btn-icon"
         onClick={clear_input}
         onDoubleClick={prevent_propagation}
+        aria-label="Clear search"
+        title="Clear search"
       >
         {consts.DELETE_MARK}
       </button>
@@ -162,11 +166,15 @@ const NodeFilterQueryInput = () => {
           onKeyDown={onKeyDown}
           className="h-[2em] border-none"
           ref={ref}
+          placeholder="Search nodes (⌘K)"
+          aria-label="Search nodes"
         />
         <button
           className="btn-icon"
           onClick={clear_input}
           onDoubleClick={prevent_propagation}
+          aria-label="Clear search"
+          title="Clear search"
         >
           {consts.DELETE_MARK}
         </button>
@@ -310,11 +318,15 @@ const NodeIdsInput = () => {
           value={nodeIds}
           onChange={handle_change}
           className="h-[2em] border-none"
+          placeholder="Selected IDs..."
+          aria-label="Selected node IDs"
         />
         <button
           className="btn-icon"
           onClick={clear_input}
           onDoubleClick={prevent_propagation}
+          aria-label="Clear IDs"
+          title="Clear IDs"
         >
           {consts.DELETE_MARK}
         </button>
