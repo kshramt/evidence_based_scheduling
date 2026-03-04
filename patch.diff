@@ -1,0 +1,97 @@
+<<<<<<< SEARCH
+      <input
+        value={nodeFilterQuery}
+        onChange={handle_change}
+        className="h-[2em] border-none w-[8em]"
+      />
+      <button
+        className="icon-icon"
+        onClick={clear_input}
+        onDoubleClick={prevent_propagation}
+      >
+        {consts.DELETE_MARK}
+      </button>
+=======
+      <input
+        value={nodeFilterQuery}
+        onChange={handle_change}
+        className="h-[2em] border-none w-[8em]"
+        placeholder="Search nodes..."
+        aria-label="Search nodes"
+      />
+      <button
+        className="btn-icon"
+        onClick={clear_input}
+        onDoubleClick={prevent_propagation}
+        aria-label="Clear search"
+        title="Clear search"
+      >
+        {consts.DELETE_MARK}
+      </button>
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        <input
+          value={nodeFilterQuery}
+          onChange={handle_change}
+          onKeyDown={onKeyDown}
+          className="h-[2em] border-none"
+          ref={ref}
+        />
+        <button
+          className="btn-icon"
+          onClick={clear_input}
+          onDoubleClick={prevent_propagation}
+        >
+          {consts.DELETE_MARK}
+        </button>
+=======
+        <input
+          value={nodeFilterQuery}
+          onChange={handle_change}
+          onKeyDown={onKeyDown}
+          className="h-[2em] border-none"
+          ref={ref}
+          placeholder="Search nodes (⌘K)"
+          aria-label="Search nodes"
+        />
+        <button
+          className="btn-icon"
+          onClick={clear_input}
+          onDoubleClick={prevent_propagation}
+          aria-label="Clear search"
+          title="Clear search"
+        >
+          {consts.DELETE_MARK}
+        </button>
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        <input
+          value={nodeIds}
+          onChange={handle_change}
+          className="h-[2em] border-none"
+        />
+        <button
+          className="btn-icon"
+          onClick={clear_input}
+          onDoubleClick={prevent_propagation}
+        >
+          {consts.DELETE_MARK}
+        </button>
+=======
+        <input
+          value={nodeIds}
+          onChange={handle_change}
+          className="h-[2em] border-none"
+          placeholder="Selected IDs..."
+          aria-label="Selected node IDs"
+        />
+        <button
+          className="btn-icon"
+          onClick={clear_input}
+          onDoubleClick={prevent_propagation}
+          aria-label="Clear IDs"
+          title="Clear IDs"
+        >
+          {consts.DELETE_MARK}
+        </button>
+>>>>>>> REPLACE
