@@ -1,0 +1,4 @@
+## 2024-03-05 - Missing Security Headers in Backend Service
+**Vulnerability:** The Axum backend application (`api_v2`) does not enforce any HTTP security headers in its middleware stack, and Axum does not provide them by default. This leaves the API vulnerable to Clickjacking, MIME-sniffing, missing HSTS, and lacking a Content-Security-Policy.
+**Learning:** Even if a reverse proxy like Envoy/Nginx is in front of the application or the application only serves JSON APIs, applying defense-in-depth directly at the application level ensures headers are not accidentally bypassed by proxy misconfigurations. The `api_v2` memory context also notes that `tower_http::set_header::SetResponseHeaderLayer` should be used for this.
+**Prevention:** Always add security headers middleware (e.g. `tower_http::set_header`) to axum applications by default.
