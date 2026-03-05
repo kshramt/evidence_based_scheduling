@@ -1,0 +1,3 @@
+## 2024-11-20 - Ensure Tooltips and ARIA on All Icon Buttons
+**Learning:** Found an instance (`ShowDetailsButton`) where an icon-only button had the `.btn-icon` class but lacked both `aria-label` and `title` attributes, making it completely invisible/unusable to screen readers and difficult for all users to understand what the "more vert" icon represents.
+**Action:** When adding `.btn-icon` styled buttons that rely purely on `consts.XYZ_MARK` icons without text, ALWAYS add explicit `aria-label` (for screen readers) and `title` (for tooltips on hover). We should perform regular audits of `client/src/` for `<button className="btn-icon">` tags that miss these attributes.
