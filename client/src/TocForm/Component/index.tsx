@@ -16,7 +16,12 @@ const TocForm = ({
 }) => {
   return (
     <>
-      <button className="btn-icon" onClick={props.toggleSelected}>
+      <button
+        className="btn-icon"
+        onClick={props.toggleSelected}
+        aria-label="Toggle table of contents"
+        title="Toggle table of contents"
+      >
         {consts.TOC_MARK}
       </button>
       <div className={utils.join(props.selected || "hidden")}>

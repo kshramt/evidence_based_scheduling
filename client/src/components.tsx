@@ -578,7 +578,12 @@ const Timeline = () => {
   return (
     <>
       {decade_nodes}
-      <button className="btn-icon" onClick={increment_count}>
+      <button
+        className="btn-icon"
+        onClick={increment_count}
+        aria-label="Add decade"
+        title="Add decade"
+      >
         {consts.ADD_MARK}
       </button>
     </>
@@ -785,13 +790,23 @@ const TimeNodeEntry = (props: { time_node_id: types.TTimeNodeId }) => {
       />
       {isOn && (
         <div className="flex w-fit gap-x-[0.125em]">
-          <button className="btn-icon" onClick={assign_nodes}>
+          <button
+            className="btn-icon"
+            onClick={assign_nodes}
+            aria-label="Assign nodes"
+            title="Assign nodes"
+          >
             {consts.ADD_MARK}
           </button>
           <CopyDescendantTimeNodesPlannedNodeIdsButton
             time_node_id={props.time_node_id}
           />
-          <button className="btn-icon" onClick={toggle_show_children}>
+          <button
+            className="btn-icon"
+            onClick={toggle_show_children}
+            aria-label="Toggle show children"
+            title="Toggle show children"
+          >
             {time_node === undefined || time_node.show_children === "partial"
               ? consts.IS_PARTIAL_MARK
               : time_node.show_children === "full"
@@ -863,7 +878,12 @@ const PlannedNode = (props: {
             </>
           )}
           <CopyNodeIdButton node_id={props.node_id} />
-          <button className="btn-icon" onClick={unassign_node}>
+          <button
+            className="btn-icon"
+            onClick={unassign_node}
+            aria-label="Unassign node"
+            title="Unassign node"
+          >
             {consts.DELETE_MARK}
           </button>
         </div>
