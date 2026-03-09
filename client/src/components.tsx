@@ -108,6 +108,8 @@ const MobileNodeFilterQueryInput = () => {
       />
       <button
         className="icon-icon"
+        aria-label="Clear filter input."
+        title="Clear filter input."
         onClick={clear_input}
         onDoubleClick={prevent_propagation}
       >
@@ -165,6 +167,8 @@ const NodeFilterQueryInput = () => {
         />
         <button
           className="btn-icon"
+          aria-label="Clear filter input."
+          title="Clear filter input."
           onClick={clear_input}
           onDoubleClick={prevent_propagation}
         >
@@ -313,6 +317,8 @@ const NodeIdsInput = () => {
         />
         <button
           className="btn-icon"
+          aria-label="Clear input."
+          title="Clear input."
           onClick={clear_input}
           onDoubleClick={prevent_propagation}
         >
@@ -327,6 +333,8 @@ const SBTTB = (props: { onClick: () => void }) => {
   return (
     <button
       onClick={props.onClick}
+      aria-label="Scroll back to top."
+      title="Scroll back to top."
       className="sticky top-[60%] left-[50%] -translate-x-1/2 -translate-y-1/2 px-[0.15rem] dark:bg-neutral-300 bg-neutral-600 dark:hover:bg-neutral-400 hover:bg-neutral-500 text-center min-w-[3rem] h-[3rem] text-[2rem] border-none shadow-none opacity-70 hover:opacity-100 float-left mt-[-3rem] z-40"
     >
       {SCROLL_BACK_TO_TOP_MARK}
@@ -338,6 +346,8 @@ const SBTBB = (props: { onClick: () => void }) => {
   return (
     <button
       onClick={props.onClick}
+      aria-label="Scroll back to bottom."
+      title="Scroll back to bottom."
       className="sticky top-[calc(60%+4rem)] left-[50%] -translate-x-1/2 -translate-y-1/2 px-[0.15rem] dark:bg-neutral-300 bg-neutral-600 dark:hover:bg-neutral-400 hover:bg-neutral-500 text-center min-w-[3rem] h-[3rem] text-[2rem] border-none shadow-none opacity-70 hover:opacity-100 float-left mt-[-3rem] z-40"
     >
       {SCROLL_BACK_TO_BOTTOM_MARK}
@@ -360,6 +370,8 @@ export const ToggleShowMobileButton = () => {
   return (
     <button
       className="btn-icon"
+      aria-label="Toggle mobile view."
+      title="Toggle mobile view."
       onClick={handleClick}
       onDoubleClick={prevent_propagation}
     >
@@ -422,6 +434,8 @@ const Menu = (props: {
       />
       <button
         className="btn-icon"
+        aria-label="Stop all running tasks."
+        title="Stop all running tasks."
         onClick={stop_all}
         onDoubleClick={prevent_propagation}
       >
@@ -578,7 +592,12 @@ const Timeline = () => {
   return (
     <>
       {decade_nodes}
-      <button className="btn-icon" onClick={increment_count}>
+      <button
+        className="btn-icon"
+        aria-label="Add decade."
+        title="Add decade."
+        onClick={increment_count}
+      >
         {consts.ADD_MARK}
       </button>
     </>
