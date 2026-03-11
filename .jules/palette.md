@@ -1,0 +1,3 @@
+## 2025-03-11 - Add aria-hidden to Material Icons inside interactive elements
+**Learning:** Material UI icon spans (e.g., `<span className="material-icons">`) must include `aria-hidden="true"` to prevent screen readers from incorrectly announcing their ligature text (e.g., "close", "play_arrow"), ensuring parent elements (like buttons) dictate the accessible name.
+**Action:** Always add `aria-hidden="true"` to ligature-based icon spans, especially when used inside buttons where the button itself provides the `aria-label` or `title`.
