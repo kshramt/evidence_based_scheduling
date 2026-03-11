@@ -48,11 +48,15 @@ import * as ops from "./ops";
 import * as undoable from "./undoable";
 
 const SCROLL_BACK_TO_TOP_MARK = (
-  <span className="material-icons">vertical_align_top</span>
+  <span className="material-icons" aria-hidden="true">
+    vertical_align_top
+  </span>
 );
 
 const SCROLL_BACK_TO_BOTTOM_MARK = (
-  <span className="material-icons">vertical_align_bottom</span>
+  <span className="material-icons" aria-hidden="true">
+    vertical_align_bottom
+  </span>
 );
 
 const nonTodoQueueNodesRef = React.createRef<Rv.VirtuosoHandle>();
@@ -442,7 +446,9 @@ const Menu = (props: {
         onClick={_redo}
         onDoubleClick={prevent_propagation}
       >
-        <span className="material-icons">redo</span>
+        <span className="material-icons" aria-hidden="true">
+          redo
+        </span>
       </button>
       <Mt.Switch
         checked={sortByCtime}
@@ -1150,7 +1156,9 @@ const MobileMenu = (props: {
         onClick={_redo}
         onDoubleClick={prevent_propagation}
       >
-        <span className="material-icons">redo</span>
+        <span className="material-icons" aria-hidden="true">
+          redo
+        </span>
       </button>
       <Mt.Switch
         checked={show_todo_only}

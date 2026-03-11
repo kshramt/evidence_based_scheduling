@@ -50,7 +50,9 @@ const MenuButton = (props: {
           onClick={handleButtonClick}
           className="btn-icon"
         >
-          <span className="material-icons">menu</span>
+          <span className="material-icons" aria-hidden="true">
+            menu
+          </span>
         </button>
       </Menu.Target>
 
