@@ -1225,7 +1225,11 @@ const MobileQueueNodesImpl = (props: { node_ids: types.TNodeId[] }) => {
     </>
   );
 };
-const MobileQueueNode = (props: { nodeId: types.TNodeId }) => {
+// ⚡ Bolt Performance Optimization:
+// Wrapped MobileQueueNode in React.memo to prevent O(N) re-renders when parent state updates.
+// Since it receives primitive props (nodeId), memoization ensures efficient rendering
+// within mapped arrays in the mobile view.
+const MobileQueueNode = React.memo((props: { nodeId: types.TNodeId }) => {
   return (
     <EntryWrapper node_id={props.nodeId}>
       <TextArea
@@ -1235,7 +1239,7 @@ const MobileQueueNode = (props: { nodeId: types.TNodeId }) => {
       <MobileEntryButtons node_id={props.nodeId} />
     </EntryWrapper>
   );
-};
+});
 
 const TreeEntry = (props: {
   node_id: types.TNodeId;
