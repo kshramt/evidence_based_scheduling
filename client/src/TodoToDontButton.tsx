@@ -15,6 +15,8 @@ export const TodoToDontButton = (props: { node_id: types.TNodeId }) => {
 
   return (
     <button
+      aria-label="Delete"
+      title="Delete"
       className="btn-icon"
       onClick={on_click}
       onDoubleClick={utils.prevent_propagation}
