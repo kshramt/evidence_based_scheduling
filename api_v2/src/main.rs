@@ -1,6 +1,6 @@
 use axum::{
     extract::{FromRequestParts, Path, Query, State},
-    http::request::Parts,
+    http::{header, request::Parts, HeaderValue},
     Json, RequestPartsExt,
 };
 use axum_extra::{
@@ -18,6 +18,7 @@ use tracing_subscriber::EnvFilter;
 
 mod db;
 mod errors;
+#[allow(dead_code)]
 mod gen;
 
 struct ApiImpl;
@@ -389,6 +390,26 @@ async fn main() {
     let app = gen::register_app::<ApiImpl>(app);
     let app = app.with_state(state);
     let app = app
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            header::CONTENT_SECURITY_POLICY,
+            HeaderValue::from_static("default-src 'none'; frame-ancestors 'none'; sandbox"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            header::STRICT_TRANSPORT_SECURITY,
+            HeaderValue::from_static("max-age=63072000; includeSubDomains; preload"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            header::X_FRAME_OPTIONS,
+            HeaderValue::from_static("DENY"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            header::X_CONTENT_TYPE_OPTIONS,
+            HeaderValue::from_static("nosniff"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            header::REFERRER_POLICY,
+            HeaderValue::from_static("no-referrer"),
+        ))
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
 
