@@ -14,6 +14,8 @@ export const EvalButton = (props: { node_id: types.TNodeId }) => {
 
   return (
     <button
+      aria-label="Evaluate"
+      title="Evaluate"
       className="btn-icon"
       onClick={on_click}
       onDoubleClick={utils.prevent_propagation}
