@@ -1,9 +1,8 @@
 export type TSwapped<K1 extends PropertyKey, Data> = Partial<{
   [k2 in keyof Data]: { [k1 in K1]: Data[k2] };
 }>;
-export type TSwapped1<R> = R extends Record<infer K1, infer Data>
-  ? TSwapped<K1, Data>
-  : never;
+export type TSwapped1<R> =
+  R extends Record<infer K1, infer Data> ? TSwapped<K1, Data> : never;
 
 export const add = <K1 extends PropertyKey, Data extends object>(
   x: Record<K1, Data>,

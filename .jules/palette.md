@@ -1,0 +1,3 @@
+## 2024-03-14 - Icon-only buttons lack accessible names
+**Learning:** Many icon-only buttons across the app's components (like StartButton and StartConcurrentButton) lack explicit `aria-label` and `title` attributes, rendering them invisible or confusing to screen reader users, and failing to provide tooltips for sighted users.
+**Action:** When creating or updating icon-only buttons, always ensure they include an `aria-label` attribute describing their function for assistive technologies, and a `title` attribute for tooltips on hover.
