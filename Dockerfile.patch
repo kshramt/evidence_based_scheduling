@@ -1,0 +1,9 @@
+<<<<<<< SEARCH
+FROM builder_client AS test_client
+RUN cd client && scripts/check.sh
+=======
+FROM builder_client AS test_client
+# Disable file parallelism for vitest to fix CI navigation race condition
+ENV VITEST_FILE_PARALLELISM=false
+RUN cd client && scripts/check.sh
+>>>>>>> REPLACE
