@@ -83,6 +83,8 @@ export default defineConfig({
   define: {},
   test: {
     includeSource: ["src/**/*.{js,ts,jsx,tsx}"],
+    fileParallelism: false,
+
     browser: {
       enabled: true,
       headless: true,
