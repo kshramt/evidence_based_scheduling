@@ -72,7 +72,7 @@ RUN cargo install sqlx-cli@0.8.2
 FROM build_essential_base AS base_rust
 COPY --link --from=rust_downloader /usr/local/cargo /usr/local/cargo
 COPY --link --from=rust_downloader /usr/local/rustup /usr/local/rustup
-ENV PATH="/usr/local/cargo/bin:/usr/local/rustup/bin:${PATH}"
+ENV PATH "/usr/local/cargo/bin:/usr/local/rustup/bin:${PATH}"
 ENV RUSTUP_HOME="/usr/local/rustup"
 ENV CARGO_HOME="/usr/local/cargo"
 
@@ -165,8 +165,8 @@ COPY --link --from=download_uv /uv /usr/local/bin/uv
 
 ARG host_home
 
-ENV PATH="/usr/local/go/bin:${PATH}"
-ENV GOPATH="/h/${host_home:?}/devcontainer/go"
+ENV PATH=/usr/local/go/bin:${PATH}
+ENV GOPATH=/h/${host_home:?}/devcontainer/go
 
 
 # Rust
@@ -180,8 +180,8 @@ ENV RUSTUP_HOME="/usr/local/rustup"
 ENV CARGO_HOME="/home/${devcontainer_user:?}/.cargo"
 
 FROM ubuntu_base AS base_py
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE 1
 WORKDIR /app
 
 FROM nginx:1.29.3-alpine AS base_nginx
@@ -267,7 +267,7 @@ FROM base_postgres AS prod_postgres
 
 FROM debian:13.2-slim AS prod_postgres_migration
 ARG SOURCE_DATE_EPOCH
-ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
+ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 COPY --link --from=base_dbmate /usr/local/bin/dbmate /usr/local/bin/dbmate
 COPY --link db/scripts/migrate.sh /app/scripts/migrate.sh
 COPY --link db/migrations /app/db/migrations
@@ -309,7 +309,7 @@ RUN cargo build --release
 
 FROM gcr.io/distroless/cc-debian12:nonroot AS prod_api_v2
 ARG SOURCE_DATE_EPOCH
-ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
+ENV SOURCE_DATE_EPOCH ${SOURCE_DATE_EPOCH:-0}
 COPY --link --from=base_rust_builder /app/target/release/api_v2 /work/api_v2
 WORKDIR /work
 ENTRYPOINT ["./api_v2"]
