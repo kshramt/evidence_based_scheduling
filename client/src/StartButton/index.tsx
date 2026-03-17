@@ -15,6 +15,8 @@ const StartButton = (props: { node_id: types.TNodeId }) => {
   return (
     <button
       className="btn-icon"
+      aria-label="Start node"
+      title="Start node"
       onClick={on_click}
       onDoubleClick={utils.prevent_propagation}
     >
