@@ -23,6 +23,8 @@ const CopyNodeIdButton = (props: { node_id: types.TNodeId }) => {
   return (
     <button
       className="btn-icon"
+      title="Copy Node ID"
+      aria-label="Copy Node ID"
       onClick={handle_click}
       onDoubleClick={utils.prevent_propagation}
     >

@@ -19,7 +19,12 @@ const AddButton = (props: { timeId: string }) => {
     );
   }, [dispatch, props.timeId, nodeIds]);
   return (
-    <button className="btn-icon" onClick={handleClick}>
+    <button
+      className="btn-icon"
+      title="Add Calendar Event"
+      aria-label="Add Calendar Event"
+      onClick={handleClick}
+    >
       {consts.ADD_MARK}
     </button>
   );

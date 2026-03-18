@@ -16,6 +16,8 @@ const TogglePinButton = (props: { node_id: types.TNodeId }) => {
   return (
     <button
       className="btn-icon"
+      title="Toggle Pin"
+      aria-label="Toggle Pin"
       onClick={on_click}
       onDoubleClick={utils.prevent_propagation}
     >
