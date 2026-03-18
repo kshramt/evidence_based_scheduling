@@ -75,6 +75,8 @@ const Details = (props: { node_id: types.TNodeId }) => {
         </select>
         <button
           className="btn-icon"
+          title="Show Details"
+          aria-label="Show Details"
           onClick={handle_add_parents}
           onDoubleClick={utils.prevent_propagation}
         >
@@ -82,6 +84,8 @@ const Details = (props: { node_id: types.TNodeId }) => {
         </button>
         <button
           className="btn-icon"
+          title="Show Details"
+          aria-label="Show Details"
           onClick={handle_add_children}
           onDoubleClick={utils.prevent_propagation}
         >
@@ -109,6 +113,8 @@ export const ShowDetailsButton = (props: { node_id: types.TNodeId }) => {
   return (
     <button
       className="btn-icon"
+      title="Show Details"
+      aria-label="Show Details"
       onClick={handleClick}
       onDoubleClick={utils.prevent_propagation}
     >

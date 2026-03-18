@@ -16,7 +16,12 @@ const TocForm = ({
 }) => {
   return (
     <>
-      <button className="btn-icon" onClick={props.toggleSelected}>
+      <button
+        className="btn-icon"
+        title="Toggle TOC"
+        aria-label="Toggle TOC"
+        onClick={props.toggleSelected}
+      >
         {consts.TOC_MARK}
       </button>
       <div className={utils.join(props.selected || "hidden")}>
@@ -24,6 +29,8 @@ const TocForm = ({
           onClick={props.onClick}
           onDoubleClick={utils.prevent_propagation}
           className="btn-icon"
+          title="Toggle TOC"
+          aria-label="Toggle TOC"
         >
           Parse
         </button>

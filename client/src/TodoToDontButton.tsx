@@ -16,6 +16,8 @@ export const TodoToDontButton = (props: { node_id: types.TNodeId }) => {
   return (
     <button
       className="btn-icon"
+      title="Mark as Don't"
+      aria-label="Mark as Don't"
       onClick={on_click}
       onDoubleClick={utils.prevent_propagation}
     >

@@ -67,6 +67,8 @@ const EdgeRow = (props: { edge_id: types.TEdgeId; target: "p" | "c" }) => {
       <td className="p-[0.25em]">
         <button
           className="btn-icon"
+          title="Edge Row Option"
+          aria-label="Edge Row Option"
           onClick={delete_edge}
           onDoubleClick={utils.prevent_propagation}
         >

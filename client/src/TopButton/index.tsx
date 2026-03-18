@@ -13,6 +13,8 @@ const TopButton = (props: { node_id: types.TNodeId; disabled?: boolean }) => {
   return (
     <button
       className="btn-icon"
+      title="Top"
+      aria-label="Top"
       onClick={on_click}
       onDoubleClick={utils.prevent_propagation}
       disabled={props.disabled}
