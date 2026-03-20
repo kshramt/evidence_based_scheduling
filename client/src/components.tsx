@@ -1225,7 +1225,9 @@ const MobileQueueNodesImpl = (props: { node_ids: types.TNodeId[] }) => {
     </>
   );
 };
-const MobileQueueNode = (props: { nodeId: types.TNodeId }) => {
+// ⚡ Bolt: Wrap MobileQueueNode in React.memo to prevent O(N) re-renders when parent component
+// maps and updates the queue list. Receiving only the primitive nodeId prevents unnecessary updates.
+const MobileQueueNode = React.memo((props: { nodeId: types.TNodeId }) => {
   return (
     <EntryWrapper node_id={props.nodeId}>
       <TextArea
@@ -1235,7 +1237,7 @@ const MobileQueueNode = (props: { nodeId: types.TNodeId }) => {
       <MobileEntryButtons node_id={props.nodeId} />
     </EntryWrapper>
   );
-};
+});
 
 const TreeEntry = (props: {
   node_id: types.TNodeId;

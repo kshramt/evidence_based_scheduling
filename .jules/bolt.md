@@ -1,0 +1,3 @@
+## 2024-05-24 - [Virtuoso list items not memoized]
+**Learning:** List items like `QueueEntry` inside `react-virtuoso` lists must be wrapped in `React.memo()`. Without it, scrolling or global state updates cause expensive O(N) re-renders for every rendered item, defeating some benefits of virtualization.
+**Action:** Always wrap components rendered as items in virtualized lists or large arrays mapped out in render (e.g., `QueueEntry`, `MobileQueueNode`) with `React.memo` if they only receive primitive props (like `node_id` and `index`).
