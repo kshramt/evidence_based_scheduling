@@ -1,0 +1,4 @@
+## 2024-03-20 - Missing API Security Headers
+**Vulnerability:** The `api_v2` backend service, which serves `/api/v2/*` endpoints directly without full reliance on Nginx's HTML-specific header rules, was missing defense-in-depth security headers (CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy).
+**Learning:** In axum, `tower_http::set_header::SetResponseHeaderLayer` is necessary for establishing security header boundaries when a reverse proxy like Nginx isn't applying them globally or universally (e.g. Nginx was configured to only apply CSP to text/html). Strict CSP (`default-src 'none'`) is highly appropriate for JSON APIs to mitigate potential XSS if responses are inadvertently rendered as HTML by a client.
+**Prevention:** Ensure API backends have their own explicitly defined security headers using `tower-http` to avoid relying entirely on an ingress reverse proxy, creating a defense-in-depth approach.
