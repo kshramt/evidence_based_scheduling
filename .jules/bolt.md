@@ -1,0 +1,3 @@
+## 2024-05-17 - Missing React.memo on Virtuoso list items causes O(N) re-renders
+**Learning:** List items like `QueueEntry` that are rendered by virtualized lists (`react-virtuoso`) or as a mapped array (`MobileQueueNode`) must be wrapped in `React.memo()`. Because the parent container component passes primitive props like `node_id` or `index`, if the parent re-renders due to global state updates or scroll events, the children will also re-render unnecessarily if not memoized, causing an O(N) performance bottleneck.
+**Action:** Always verify that components rendered in long virtualized lists or mapped arrays are wrapped in `React.memo` to prevent unnecessary and costly re-renders.
