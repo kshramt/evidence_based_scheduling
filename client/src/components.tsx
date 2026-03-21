@@ -1226,7 +1226,9 @@ const MobileQueueNodesImpl = (props: { node_ids: types.TNodeId[] }) => {
   );
 };
 // React.memo prevents O(N) re-renders during scrolling and state updates within mapped array components.
-const MobileQueueNode = React.memo((props: { nodeId: types.TNodeId }) => {
+const MobileQueueNode = React.memo(function MobileQueueNode(props: {
+  nodeId: types.TNodeId;
+}) {
   return (
     <EntryWrapper node_id={props.nodeId}>
       <TextArea
