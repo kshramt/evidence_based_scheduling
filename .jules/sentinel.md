@@ -1,0 +1,4 @@
+## 2024-05-24 - Missing Security Headers in Axum API
+**Vulnerability:** The Axum backend API (`api_v2`) lacked standard security headers such as `Content-Security-Policy`, `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options`, and `Referrer-Policy`.
+**Learning:** Axum (`v0.7`) does not set default security headers. They must be explicitly configured and chained via middleware using `tower_http::set_header::SetResponseHeaderLayer`. Without these headers, the application is susceptible to common web vulnerabilities like XSS, Clickjacking, and MIME-sniffing.
+**Prevention:** Always verify that security headers are applied to incoming requests. During API initialization, implement a middleware layer specifically for response headers, defaulting to strict values like `default-src 'none'; frame-ancestors 'none'; sandbox` for `Content-Security-Policy`.
