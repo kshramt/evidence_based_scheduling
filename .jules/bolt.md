@@ -1,0 +1,3 @@
+## 2024-05-24 - Explicit React.memo required for Virtuoso list items
+**Learning:** In `react-virtuoso` virtualized lists or mapped arrays, list item components receiving primitive props (e.g., `node_id`, `index`) must be explicitly wrapped in `React.memo` (like `QueueEntry` or `MobileQueueNode`). Otherwise, scrolling or state updates trigger O(N) re-renders for every rendered item in the virtualized window, causing significant main-thread lag.
+**Action:** Always wrap list/array items receiving primitives in `React.memo` when rendering multiple items within this application's architecture.
