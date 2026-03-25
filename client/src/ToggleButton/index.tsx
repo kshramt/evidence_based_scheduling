@@ -19,6 +19,8 @@ const ToggleButton = (props: {
   return (
     <button
       className="btn-icon"
+      aria-label={props.value ? props.titleOnTrue : props.titleOnFalse}
+      title={props.value ? props.titleOnTrue : props.titleOnFalse}
       onClick={onClick}
       onDoubleClick={utils.prevent_propagation}
     >
