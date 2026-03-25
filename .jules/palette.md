@@ -1,0 +1,3 @@
+## 2024-05-24 - Missing explicit aria-labels and titles on icon-only buttons
+**Learning:** Many icon-only buttons across the application (e.g., StartButton, StopButton, AddButton, EntryButtons) lacked explicit `aria-label` and `title` attributes, making them inaccessible to screen readers and difficult to understand without hover tooltips. Also, Material UI icon spans (e.g., `<span className="material-icons">`) need `aria-hidden="true"` to prevent screen readers from incorrectly announcing their ligature text.
+**Action:** When creating or updating icon-only buttons, always include `aria-label` and `title` attributes. Additionally, ensure the child icon span has `aria-hidden="true"`.
