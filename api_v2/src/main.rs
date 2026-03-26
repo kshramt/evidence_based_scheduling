@@ -1,3 +1,5 @@
+use axum::http::header;
+use axum::http::HeaderValue;
 use axum::{
     extract::{FromRequestParts, Path, Query, State},
     http::request::Parts,
@@ -13,11 +15,13 @@ use std::{
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
+use tower_http::set_header::SetResponseHeaderLayer;
 use tracing::{debug, info, instrument};
 use tracing_subscriber::EnvFilter;
 
 mod db;
 mod errors;
+#[allow(dead_code)]
 mod gen;
 
 struct ApiImpl;
@@ -389,6 +393,26 @@ async fn main() {
     let app = gen::register_app::<ApiImpl>(app);
     let app = app.with_state(state);
     let app = app
+        .layer(SetResponseHeaderLayer::if_not_present(
+            header::CONTENT_SECURITY_POLICY,
+            HeaderValue::from_static("default-src 'none'; frame-ancestors 'none'; sandbox"),
+        ))
+        .layer(SetResponseHeaderLayer::if_not_present(
+            header::STRICT_TRANSPORT_SECURITY,
+            HeaderValue::from_static("max-age=31536000; includeSubDomains"),
+        ))
+        .layer(SetResponseHeaderLayer::if_not_present(
+            header::X_FRAME_OPTIONS,
+            HeaderValue::from_static("DENY"),
+        ))
+        .layer(SetResponseHeaderLayer::if_not_present(
+            header::X_CONTENT_TYPE_OPTIONS,
+            HeaderValue::from_static("nosniff"),
+        ))
+        .layer(SetResponseHeaderLayer::if_not_present(
+            header::REFERRER_POLICY,
+            HeaderValue::from_static("no-referrer"),
+        ))
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
 
