@@ -1,0 +1,4 @@
+## 2024-05-18 - Missing Security Headers in Backend
+**Vulnerability:** The Axum v0.7 backend (`api_v2`) lacked standard security headers, leaving it vulnerable to clickjacking, MIME-type sniffing, and other web-based attacks. The `default-src 'none'` CSP breaks HTML rendering but works since this API returns JSON.
+**Learning:** Axum doesn't set security headers by default. You need to use `tower_http::set_header::SetResponseHeaderLayer` to add them explicitly on the router. Testing router middleware without database connectivity requires setting up an Axum app with dummy connections (`connect_lazy` and an invalid string) and hitting a non-existent route to execute the middleware stack without triggering DB queries.
+**Prevention:** Always ensure new web services explicitly opt-in to standard security headers (CSP, HSTS, X-Frame-Options, X-Content-Type-Options) by using the relevant `tower-http` layers in Rust/Axum.
