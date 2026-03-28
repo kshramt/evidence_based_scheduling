@@ -17,7 +17,8 @@ import * as types from "./types";
 import * as utils from "./utils";
 import TopButton from "./TopButton";
 
-export const QueueEntry = (props: {
+/** ⚡ Bolt: Memoize list item components receiving primitive props (node_id, index) to prevent unnecessary O(N) re-renders during scrolling and state updates within react-virtuoso virtualized lists. */
+export const QueueEntry = React.memo((props: {
   node_id: types.TNodeId;
   index: number;
 }) => {
@@ -29,7 +30,7 @@ export const QueueEntry = (props: {
   ) : (
     <div className="w-[1px] h-[1px]" /> // `null` is not allowed as Virtuoso does not allow 0-height elements.
   );
-};
+});
 
 const _QueueEntry = (props: { node_id: types.TNodeId; index: number }) => {
   const isTodo =
