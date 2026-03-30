@@ -1,0 +1,4 @@
+## 2024-05-18 - Missing Security Headers in Axum router
+**Vulnerability:** Axum (v0.7) does not apply security headers by default, exposing the API to risks like XSS, Clickjacking, and MIME sniffing.
+**Learning:** Testing Axum middleware layer behavior in integration tests usually requires initializing a running Postgres database due to offline validation, but this can be avoided. By extracting the axum router function independently (`pub fn app(state: Arc<AppState>) -> axum::Router`) and utilizing `tower::ServiceExt`'s `oneshot` testing utility along with `connect_lazy` using a fake dummy DB URL pointing to a 404 non-existent route, security headers can be safely tested without a database connection.
+**Prevention:** Apply `tower_http::set_header::SetResponseHeaderLayer` for strict headers on routers, and utilize `connect_lazy` + `oneshot` onto a dummy endpoint to test generic middleware layers cleanly without state overhead.
