@@ -1,0 +1,3 @@
+## 2024-05-19 - Virtualized List Renders
+**Learning:** Virtualized lists in React (like react-virtuoso used here) pass `index` and other primitive props directly to child components. Without `React.memo`, any update to the parent container array (like adding/removing items from the queue) will cause a full O(N) re-render of all visible items, which can be expensive with complex DOM structures.
+**Action:** Always wrap components rendered inside virtualized lists or large loops with `React.memo` if they accept primitive or memoized props, to prevent O(N) re-renders when the parent array changes.
