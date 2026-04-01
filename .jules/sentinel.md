@@ -1,0 +1,4 @@
+## 2024-05-24 - Add strict security headers to Axum router
+**Vulnerability:** The Axum v0.7 router in `api_v2` lacked default security headers, leaving endpoints vulnerable to clickjacking, MIME-sniffing, and lacking a Content Security Policy.
+**Learning:** Axum does not enforce security headers by default. `tower_http::set_header::SetResponseHeaderLayer` can be used to inject necessary security headers. Furthermore, extracting the router into a standalone `app(state)` function simplifies adding test modules without executing database queries that would fail with lazy connections (`connect_lazy`).
+**Prevention:** Ensure `SetResponseHeaderLayer` is added as a middleware layer and includes `Content-Security-Policy`, `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options`, and `Referrer-Policy`. For tests, trigger non-existent routes (like `/api/v2/not-found`) to test middleware execution without database access.
