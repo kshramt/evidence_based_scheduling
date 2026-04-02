@@ -14,7 +14,7 @@ const StartConcurrentButton = (props: { node_id: types.TNodeId }) => {
   }, [props.node_id, dispatch]);
   return (
     <button
-      className="btn-icon"
+      className="btn-icon" aria-label="Start concurrent" title="Start concurrent"
       onClick={on_click}
       onDoubleClick={utils.prevent_propagation}
     >

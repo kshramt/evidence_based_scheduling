@@ -74,14 +74,14 @@ const Details = (props: { node_id: types.TNodeId }) => {
           ))}
         </select>
         <button
-          className="btn-icon"
+          className="btn-icon" aria-label="Show details" title="Show details"
           onClick={handle_add_parents}
           onDoubleClick={utils.prevent_propagation}
         >
           Parents
         </button>
         <button
-          className="btn-icon"
+          className="btn-icon" aria-label="Show details" title="Show details"
           onClick={handle_add_children}
           onDoubleClick={utils.prevent_propagation}
         >
@@ -108,7 +108,7 @@ export const ShowDetailsButton = (props: { node_id: types.TNodeId }) => {
   }, [dispatch, props.node_id]);
   return (
     <button
-      className="btn-icon"
+      className="btn-icon" aria-label="Show details" title="Show details"
       onClick={handleClick}
       onDoubleClick={utils.prevent_propagation}
     >

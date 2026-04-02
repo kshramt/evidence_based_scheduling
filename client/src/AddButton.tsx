@@ -27,7 +27,7 @@ export const AddButton = (props: {
   }, [props.node_id, dispatch, show_mobile, prefix]);
   return (
     <button
-      className="btn-icon"
+      className="btn-icon" aria-label="Add" title="Add"
       id={props.id}
       onClick={handle_click}
       onDoubleClick={utils.prevent_propagation}
