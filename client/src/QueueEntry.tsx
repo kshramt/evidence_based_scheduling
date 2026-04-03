@@ -18,10 +18,10 @@ import * as utils from "./utils";
 import TopButton from "./TopButton";
 
 /** ⚡ Bolt: Prevent unnecessary O(N) re-renders during scrolling and state updates in Virtuoso */
-export const QueueEntry = React.memo((props: {
+export const QueueEntry = React.memo(function QueueEntry(props: {
   node_id: types.TNodeId;
   index: number;
-}) => {
+}) {
   const exists = useRawSelector((state) =>
     Object.hasOwn(state.data.nodes, props.node_id),
   );
