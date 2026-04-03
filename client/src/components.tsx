@@ -1225,7 +1225,10 @@ const MobileQueueNodesImpl = (props: { node_ids: types.TNodeId[] }) => {
     </>
   );
 };
-const MobileQueueNode = (props: { nodeId: types.TNodeId }) => {
+/** ⚡ Bolt: Prevent unnecessary O(N) re-renders during state updates */
+const MobileQueueNode = React.memo(function MobileQueueNode(props: {
+  nodeId: types.TNodeId;
+}) {
   return (
     <EntryWrapper node_id={props.nodeId}>
       <TextArea
@@ -1235,7 +1238,7 @@ const MobileQueueNode = (props: { nodeId: types.TNodeId }) => {
       <MobileEntryButtons node_id={props.nodeId} />
     </EntryWrapper>
   );
-};
+});
 
 const TreeEntry = (props: {
   node_id: types.TNodeId;
