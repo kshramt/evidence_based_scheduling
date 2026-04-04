@@ -17,6 +17,8 @@ export const EvalButton = (props: { node_id: types.TNodeId }) => {
       className="btn-icon"
       onClick={on_click}
       onDoubleClick={utils.prevent_propagation}
+      aria-label="Evaluate math expression"
+      title="Evaluate math expression"
     >
       {consts.EVAL_MARK}
     </button>
