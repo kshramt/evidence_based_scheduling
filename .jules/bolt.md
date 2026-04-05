@@ -1,0 +1,3 @@
+## 2024-05-18 - Missing React.memo in Virtualized Lists Causes O(N) Re-renders
+**Learning:** List item components in this codebase receiving primitive props like `node_id` and `index` (e.g., `QueueEntry`, `MobileQueueNode`) that are rendered within `react-virtuoso` virtualized lists or mapped arrays must be wrapped in `React.memo()`. Without it, updates triggered by global state changes or scrolling result in O(N) re-renders across all currently rendered items, creating a significant performance bottleneck.
+**Action:** Always wrap row/item components in `React.memo()` when they only depend on primitive props and are rendered within large lists or virtualized containers.
