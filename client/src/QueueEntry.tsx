@@ -134,4 +134,4 @@ const TodoQueueEntry = (props: { node_id: types.TNodeId; index: number }) => {
     </>
   );
 };
-QueueEntry.displayName = 'QueueEntry';
+QueueEntry.displayName = "QueueEntry";
