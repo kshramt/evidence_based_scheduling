@@ -382,12 +382,13 @@ pub fn app(state: std::sync::Arc<AppState>) -> axum::Router {
     let app = axum::Router::new();
     let app = gen::register_app::<ApiImpl>(app);
     let app = app.with_state(state);
-    app
-        .layer(tower_http::trace::TraceLayer::new_for_http())
+    app.layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024))
         .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
             axum::http::header::CONTENT_SECURITY_POLICY,
-            axum::http::HeaderValue::from_static("default-src 'none'; frame-ancestors 'none'; sandbox"),
+            axum::http::HeaderValue::from_static(
+                "default-src 'none'; frame-ancestors 'none'; sandbox",
+            ),
         ))
         .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
             axum::http::header::STRICT_TRANSPORT_SECURITY,
@@ -455,10 +456,7 @@ mod tests {
             response.headers().get("strict-transport-security").unwrap(),
             "max-age=63072000; includeSubDomains; preload"
         );
-        assert_eq!(
-            response.headers().get("x-frame-options").unwrap(),
-            "DENY"
-        );
+        assert_eq!(response.headers().get("x-frame-options").unwrap(), "DENY");
         assert_eq!(
             response.headers().get("x-content-type-options").unwrap(),
             "nosniff"
