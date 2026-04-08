@@ -1,0 +1,4 @@
+## 2023-10-27 - Added Missing Security Headers via Axum Middleware
+**Vulnerability:** The application was not setting key security headers (e.g., Content-Security-Policy, X-Frame-Options), leaving it vulnerable to Clickjacking, XSS, and MIME-type sniffing.
+**Learning:** Axum does not set standard security headers by default. Tower HTTP provides robust middleware to apply headers globally, but when using `Strict-Transport-Security` and `Content-Security-Policy` it's critical to apply them specifically at the router level. In Axum, using `tower_http::set_header::SetResponseHeaderLayer` offers a modular, declarative way to secure incoming requests and prevent these basic web vulnerabilities.
+**Prevention:** Always verify header inclusion by testing endpoints without a running DB via `connect_lazy` and `oneshot`, and explicitly include the `tower_http` security header layers in all Axum project bootstraps.
