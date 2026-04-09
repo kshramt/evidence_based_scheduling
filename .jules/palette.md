@@ -1,0 +1,3 @@
+## 2024-08-01 - Missing accessible names for icon-only buttons
+**Learning:** Material UI icon spans (e.g., `<span className="material-icons">`) often rely on ligature text (like "add" or "close"), which screen readers will announce confusingly. Merely wrapping these in a `<button className="btn-icon">` without an `aria-label` leaves them opaque or poorly labeled to assistive technologies.
+**Action:** Always ensure decorative/ligature icon spans have `aria-hidden="true"`, and simultaneously ensure their interactive parent elements (like `<button>`) have a clear, descriptive `aria-label` attribute.

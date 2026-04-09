@@ -15,6 +15,7 @@ const TogglePinButton = (props: { node_id: types.TNodeId }) => {
   const is_pinned = pinned_sub_trees.includes(props.node_id);
   return (
     <button
+      aria-label="Toggle pin"
       className="btn-icon"
       onClick={on_click}
       onDoubleClick={utils.prevent_propagation}
