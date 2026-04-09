@@ -1,0 +1,4 @@
+## 2023-10-27 - Added Missing Security Headers to API
+**Vulnerability:** The `api_v2` backend service lacked standard security headers such as `Content-Security-Policy`, `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options`, and `Referrer-Policy`. This could leave the application open to various classes of attacks like Clickjacking, Cross-Site Scripting (XSS), and MIME-sniffing.
+**Learning:** Testing middleware (e.g., security headers) in `api_v2` without a running database is best achieved by targeting a non-existent route (e.g., `/api/v2/not-found`). This triggers the 404 handler and middleware stack without executing database queries that would fail with `connect_lazy`.
+**Prevention:** Always implement standard security headers middleware globally using `tower_http::set_header::SetResponseHeaderLayer` in Axum router setups. Ensure router initialization is decoupled into an `app()` function that allows for easy service layer testing.
