@@ -1,3 +1,0 @@
-## 2024-04-11 - Prevent unnecessary list item re-renders with `React.memo`
-**Learning:** Using React Virtuoso to virtualize lists makes scrolling extremely fast, but virtual list row re-renders scale with the items in view when unrelated global states update. If components use `useSelector` without careful memoization, scrolling or modifying node statuses causes O(N) recalculations on visible child nodes.
-**Action:** When creating items bound to arrays (e.g. `QueueEntry`, `MobileQueueNode`), always ensure they accept primitive props like `nodeId` and `index`, then wrap them in `React.memo()`. Also provide a explicit `.displayName` on the memoized output for better DevTools readability.
