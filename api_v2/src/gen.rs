@@ -33,7 +33,6 @@ pub struct FakeIdpCreateUserRequest {
 pub struct FakeIdpCreateUserResponse {
     pub id_token: IdToken,
 }
-#[allow(dead_code)]
 #[rustfmt::skip]
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct FakeIdpCreateIdTokenRequest {
