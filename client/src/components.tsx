@@ -1237,7 +1237,7 @@ const MobileQueueNode = React.memo((props: { nodeId: types.TNodeId }) => {
     </EntryWrapper>
   );
 });
-MobileQueueNode.displayName = 'MobileQueueNode';
+MobileQueueNode.displayName = "MobileQueueNode";
 
 const TreeEntry = (props: {
   node_id: types.TNodeId;
