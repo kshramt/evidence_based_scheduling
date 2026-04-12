@@ -52,7 +52,9 @@ const MenuButton = (props: {
           aria-label="Menu"
           title="Menu"
         >
-          <span className="material-icons" aria-hidden="true">menu</span>
+          <span className="material-icons" aria-hidden="true">
+            menu
+          </span>
         </button>
       </Menu.Target>
 
