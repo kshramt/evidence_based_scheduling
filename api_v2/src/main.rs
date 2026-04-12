@@ -8,11 +8,13 @@ use axum_extra::{
     TypedHeader,
 };
 use base64::Engine;
+use hyper::header;
 use serde_json::json;
 use std::{
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
+use tower_http::set_header::SetResponseHeaderLayer;
 use tracing::{debug, info, instrument};
 use tracing_subscriber::EnvFilter;
 
@@ -338,9 +340,9 @@ async fn create_client(
 }
 
 #[derive(Debug)]
-struct AppState {
-    id_generator: Mutex<id_generator::SortableIdGenerator>,
-    pool: sqlx::postgres::PgPool,
+pub struct AppState {
+    pub id_generator: Mutex<id_generator::SortableIdGenerator>,
+    pub pool: sqlx::postgres::PgPool,
 }
 impl AppState {
     pub fn new(shard: u16, pool: sqlx::postgres::PgPool) -> Self {
@@ -378,6 +380,36 @@ async fn get_pool() -> sqlx::postgres::PgPool {
         .unwrap()
 }
 
+pub fn app(state: Arc<AppState>) -> axum::Router {
+    let app = axum::Router::new();
+    let app = gen::register_app::<ApiImpl>(app);
+    let app = app.with_state(state);
+    app.layer(tower_http::trace::TraceLayer::new_for_http())
+        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::CONTENT_SECURITY_POLICY,
+            hyper::header::HeaderValue::from_static(
+                "default-src 'none'; frame-ancestors 'none'; sandbox",
+            ),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::STRICT_TRANSPORT_SECURITY,
+            hyper::header::HeaderValue::from_static("max-age=31536000; includeSubDomains"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::X_FRAME_OPTIONS,
+            hyper::header::HeaderValue::from_static("DENY"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::X_CONTENT_TYPE_OPTIONS,
+            hyper::header::HeaderValue::from_static("nosniff"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            hyper::header::HeaderName::from_static("referrer-policy"),
+            hyper::header::HeaderValue::from_static("no-referrer"),
+        ))
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
@@ -385,12 +417,7 @@ async fn main() {
         .json()
         .init();
     let state = std::sync::Arc::new(AppState::new(get_shard(), get_pool().await));
-    let app = axum::Router::new();
-    let app = gen::register_app::<ApiImpl>(app);
-    let app = app.with_state(state);
-    let app = app
-        .layer(tower_http::trace::TraceLayer::new_for_http())
-        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
+    let app = app(state);
 
     let port = get_server_port();
     info!(port = ?port);
@@ -400,4 +427,49 @@ async fn main() {
     axum::serve(listener, app.into_make_service())
         .await
         .unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::Request;
+    use tower::ServiceExt;
+
+    #[tokio::test]
+    async fn test_security_headers() {
+        // Use a dummy connection string that will lazy connect to not fail on creation without db
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .connect_lazy("postgres://invalid:invalid@localhost/invalid")
+            .unwrap();
+
+        let state = std::sync::Arc::new(AppState::new(0, pool));
+        let app = app(state);
+
+        // Test against a non-existent route to avoid hitting db query logic
+        let req = Request::builder()
+            .uri("/api/v2/not-found")
+            .body(axum::body::Body::empty())
+            .unwrap();
+
+        let response = app.oneshot(req).await.unwrap();
+
+        let headers = response.headers();
+
+        assert_eq!(
+            headers.get(hyper::header::CONTENT_SECURITY_POLICY).unwrap(),
+            "default-src 'none'; frame-ancestors 'none'; sandbox"
+        );
+        assert_eq!(
+            headers
+                .get(hyper::header::STRICT_TRANSPORT_SECURITY)
+                .unwrap(),
+            "max-age=31536000; includeSubDomains"
+        );
+        assert_eq!(headers.get(hyper::header::X_FRAME_OPTIONS).unwrap(), "DENY");
+        assert_eq!(
+            headers.get(hyper::header::X_CONTENT_TYPE_OPTIONS).unwrap(),
+            "nosniff"
+        );
+        assert_eq!(headers.get("referrer-policy").unwrap(), "no-referrer");
+    }
 }
