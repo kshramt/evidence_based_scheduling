@@ -1,0 +1,4 @@
+## 2024-06-11 - Add security headers to backend
+**Vulnerability:** Missing strict security headers in Axum API.
+**Learning:** By separating the `AppState` creation and router app creation (`app(state: Arc<AppState>)`), tests can directly introspect the HTTP responses using `tower::ServiceExt::oneshot` against non-existent endpoints (e.g. `/api/v2/not-found`). This allows easy verification of middleware layer logic without initiating a live database connection (which requires actual credentials).
+**Prevention:** In Axum apps, extract the router construction into a reusable function (e.g. `pub fn app(state: ...) -> axum::Router`) to enable modular testing, especially for generic middleware like `SetResponseHeaderLayer`. Additionally, dummy DB connections can be initialized cleanly via `PgPoolOptions::new().connect_lazy()`.
