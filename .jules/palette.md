@@ -1,0 +1,3 @@
+## 2024-04-13 - Icon-only buttons lacking ARIA labels
+**Learning:** Many icon-only buttons (`.btn-icon`) in `client/src/` use Material UI ligature icons (e.g. `<span className="material-icons">add</span>`) but lack `aria-label` or `title` attributes on the parent `<button>`. This causes screen readers to either read the ligature text ("add") poorly or nothing at all if aria-hidden is applied to the span. It also means users without screen readers don't get tooltips to explain the button's purpose.
+**Action:** Always verify that buttons containing only an icon component or ligature text have an explicit `aria-label` and `title` attribute explaining the action.
