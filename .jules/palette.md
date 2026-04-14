@@ -1,0 +1,3 @@
+## 2024-05-24 - Material Icons Accessibility
+**Learning:** Material Icons spans (e.g., `<span className="material-icons">`) use ligature text, which screen readers will read aloud (e.g., "play arrow", "double arrow", "add") if not hidden. When these are used as the sole content of icon-only buttons (`.btn-icon`), not having `aria-hidden="true"` on the icon and `aria-label` on the button causes bad screen reader UX.
+**Action:** Add `aria-hidden="true"` to all Material UI icon spans in `client/src/consts.tsx` to prevent screen readers from reading the ligature text. Add `aria-label` and `title` to the top 5 most used icon buttons.
