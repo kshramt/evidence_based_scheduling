@@ -89,6 +89,7 @@ export default defineConfig({
       name: "chromium",
       provider: "playwright",
     },
+    fileParallelism: false,
     coverage: {
       provider: "istanbul",
     },
