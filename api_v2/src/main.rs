@@ -338,7 +338,7 @@ async fn create_client(
 }
 
 #[derive(Debug)]
-struct AppState {
+pub struct AppState {
     id_generator: Mutex<id_generator::SortableIdGenerator>,
     pool: sqlx::postgres::PgPool,
 }
@@ -378,6 +378,36 @@ async fn get_pool() -> sqlx::postgres::PgPool {
         .unwrap()
 }
 
+pub fn app(state: std::sync::Arc<AppState>) -> axum::Router {
+    use hyper::header;
+    use tower_http::set_header::SetResponseHeaderLayer;
+    let app = axum::Router::new();
+    let app = gen::register_app::<ApiImpl>(app);
+    app.with_state(state)
+        .layer(tower_http::trace::TraceLayer::new_for_http())
+        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::CONTENT_SECURITY_POLICY,
+            header::HeaderValue::from_static("default-src 'none'; frame-ancestors 'none'; sandbox"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::STRICT_TRANSPORT_SECURITY,
+            header::HeaderValue::from_static("max-age=31536000; includeSubDomains"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::X_FRAME_OPTIONS,
+            header::HeaderValue::from_static("DENY"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::X_CONTENT_TYPE_OPTIONS,
+            header::HeaderValue::from_static("nosniff"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::REFERRER_POLICY,
+            header::HeaderValue::from_static("no-referrer"),
+        ))
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
@@ -385,12 +415,7 @@ async fn main() {
         .json()
         .init();
     let state = std::sync::Arc::new(AppState::new(get_shard(), get_pool().await));
-    let app = axum::Router::new();
-    let app = gen::register_app::<ApiImpl>(app);
-    let app = app.with_state(state);
-    let app = app
-        .layer(tower_http::trace::TraceLayer::new_for_http())
-        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
+    let app = app(state);
 
     let port = get_server_port();
     info!(port = ?port);
@@ -400,4 +425,35 @@ async fn main() {
     axum::serve(listener, app.into_make_service())
         .await
         .unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::Request;
+    use tower::ServiceExt;
+
+    #[tokio::test]
+    async fn test_security_headers() {
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .connect_lazy("postgres://invalid:invalid@localhost/invalid")
+            .unwrap();
+        let state = std::sync::Arc::new(AppState::new(0, pool));
+        let response = app(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/not-found")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            response
+                .headers()
+                .get(hyper::header::CONTENT_SECURITY_POLICY)
+                .unwrap(),
+            "default-src 'none'; frame-ancestors 'none'; sandbox"
+        );
+    }
 }
