@@ -1,0 +1,3 @@
+## 2024-04-19 - ARIA Labels for Icon-Only Buttons
+**Learning:** React Material UI icon spans (e.g. `<span className="material-icons">`) often don't provide accessible text by themselves when used within interactive elements. When rendering an icon-only button like `<button><span className="material-icons">add</span></button>`, the `button` MUST be explicitly given an `aria-label` attribute (and ideally a `title` for hover tooltips) to be screen-reader accessible.
+**Action:** Always check that any button containing only an icon (especially one rendering just a material-icon string) has a corresponding `aria-label` or `title` explicitly set.
