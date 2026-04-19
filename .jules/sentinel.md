@@ -1,0 +1,4 @@
+## 2024-05-24 - Enforce Strict Security Headers in Rust Axum Backend
+**Vulnerability:** The application was missing critical security headers (Content-Security-Policy, Strict-Transport-Security, X-Frame-Options, X-Content-Type-Options, Referrer-Policy) in the Axum backend responses, exposing it to potential risks like XSS, Clickjacking, MIME-sniffing, and insecure transmission.
+**Learning:** In a Rust Axum application using `tower_http::set_header`, the security headers must be applied using `hyper::header` rather than `http::header` to avoid compilation errors, and the AppState and router configuration need to be carefully structured to allow testing without hitting the database.
+**Prevention:** Ensure that all new backend endpoints automatically inherit a secure set of default headers via a centralized middleware stack (`app` layer setup) and provide a unit test utilizing `tower::ServiceExt::oneshot` to verify headers are present on generic requests.
