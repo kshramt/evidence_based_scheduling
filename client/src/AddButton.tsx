@@ -27,6 +27,8 @@ export const AddButton = (props: {
   }, [props.node_id, dispatch, show_mobile, prefix]);
   return (
     <button
+      aria-label="Add child node"
+      title="Add child node"
       className="btn-icon"
       id={props.id}
       onClick={handle_click}
