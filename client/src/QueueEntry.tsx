@@ -18,19 +18,18 @@ import * as utils from "./utils";
 import TopButton from "./TopButton";
 
 /** ⚡ Bolt: Wraps list item with React.memo to prevent O(N) re-renders when parent state changes. Reduces render cycle overhead by preventing unchanged items from rendering. */
-export const QueueEntry = React.memo((props: {
-  node_id: types.TNodeId;
-  index: number;
-}) => {
-  const exists = useRawSelector((state) =>
-    Object.hasOwn(state.data.nodes, props.node_id),
-  );
-  return exists ? (
-    <_QueueEntry node_id={props.node_id} index={props.index} />
-  ) : (
-    <div className="w-[1px] h-[1px]" /> // `null` is not allowed as Virtuoso does not allow 0-height elements.
-  );
-});
+export const QueueEntry = React.memo(
+  (props: { node_id: types.TNodeId; index: number }) => {
+    const exists = useRawSelector((state) =>
+      Object.hasOwn(state.data.nodes, props.node_id),
+    );
+    return exists ? (
+      <_QueueEntry node_id={props.node_id} index={props.index} />
+    ) : (
+      <div className="w-[1px] h-[1px]" /> // `null` is not allowed as Virtuoso does not allow 0-height elements.
+    );
+  },
+);
 QueueEntry.displayName = "QueueEntry";
 
 const _QueueEntry = (props: { node_id: types.TNodeId; index: number }) => {
