@@ -1225,7 +1225,8 @@ const MobileQueueNodesImpl = (props: { node_ids: types.TNodeId[] }) => {
     </>
   );
 };
-const MobileQueueNode = (props: { nodeId: types.TNodeId }) => {
+/** ⚡ Bolt: Wraps list item with React.memo to prevent O(N) re-renders when parent state changes. Reduces render cycle overhead by preventing unchanged items from rendering. */
+const MobileQueueNode = React.memo((props: { nodeId: types.TNodeId }) => {
   return (
     <EntryWrapper node_id={props.nodeId}>
       <TextArea
@@ -1235,7 +1236,8 @@ const MobileQueueNode = (props: { nodeId: types.TNodeId }) => {
       <MobileEntryButtons node_id={props.nodeId} />
     </EntryWrapper>
   );
-};
+});
+MobileQueueNode.displayName = "MobileQueueNode";
 
 const TreeEntry = (props: {
   node_id: types.TNodeId;
