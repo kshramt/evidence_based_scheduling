@@ -408,6 +408,25 @@ pub fn app(state: std::sync::Arc<AppState>) -> axum::Router {
         ))
 }
 
+#[tokio::main]
+async fn main() {
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .json()
+        .init();
+    let state = std::sync::Arc::new(AppState::new(get_shard(), get_pool().await));
+    let app = app(state);
+
+    let port = get_server_port();
+    info!(port = ?port);
+    let listener = tokio::net::TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], port)))
+        .await
+        .unwrap();
+    axum::serve(listener, app.into_make_service())
+        .await
+        .unwrap();
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -453,23 +472,4 @@ mod tests {
             "no-referrer"
         );
     }
-}
-
-#[tokio::main]
-async fn main() {
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .json()
-        .init();
-    let state = std::sync::Arc::new(AppState::new(get_shard(), get_pool().await));
-    let app = app(state);
-
-    let port = get_server_port();
-    info!(port = ?port);
-    let listener = tokio::net::TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], port)))
-        .await
-        .unwrap();
-    axum::serve(listener, app.into_make_service())
-        .await
-        .unwrap();
 }
