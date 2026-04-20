@@ -35,7 +35,6 @@ pub struct FakeIdpCreateUserResponse {
 }
 #[rustfmt::skip]
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
-#[allow(dead_code)]
 pub struct FakeIdpCreateIdTokenRequest {
     pub name: String,
 }
