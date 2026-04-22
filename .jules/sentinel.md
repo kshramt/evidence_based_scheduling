@@ -1,0 +1,3 @@
+## 2024-05-24 - Testing Axum Middleware without Database
+**Learning:** Testing application-level middleware (like `tower_http::set_header`) in `axum` routing can be cleanly decoupled from database dependencies. By initializing a `PgPoolOptions` connection with `connect_lazy` and a dummy DSN (e.g., `postgres://invalid...`), tests can run purely against the routing layer using `tower::ServiceExt::oneshot`.
+**Action:** When adding HTTP headers or lightweight middleware in `axum`, always extract the router into a pure function taking injected state. Write explicit unit tests utilizing `connect_lazy` and `oneshot` against non-existent or dummy routes (e.g., `/not-found`) to verify middleware behavior locally without requiring a live Postgres instance.
