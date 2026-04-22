@@ -1,0 +1,3 @@
+## 2024-05-24 - Accessibility on Icon-only Buttons
+**Learning:** React elements passed to `aria-label` or `title` will be stringified as `[object Object]`. They must be properly evaluated to strings. Also, when using Material UI icon span (`<span className="material-icons">...</span>`), the span must have `aria-hidden="true"` so screen readers do not announce the ligature text (e.g. "close"), but the parent button MUST have a descriptive `aria-label`.
+**Action:** Always test `aria-label` and `title` values when passed dynamically. Add `aria-hidden="true"` to Material UI icons inside buttons, and ensure the button has a valid string `aria-label`.
