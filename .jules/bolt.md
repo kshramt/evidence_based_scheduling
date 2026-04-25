@@ -1,0 +1,3 @@
+## 2024-06-25 - React.memo for Queue Components
+**Learning:** Virtualized lists and mapped arrays in this application mapping primitive props like `node_id` or `index` to sub-components (like `QueueEntry` or `MobileQueueNode`) were suffering from O(N) re-renders because they lacked memoization. While `react-virtuoso` helps with DOM virtualization, it does not prevent React from re-rendering the visible subset of components on global state changes unless `React.memo` is applied.
+**Action:** Always wrap list item components that accept primitive IDs or indices as props with `React.memo` to prevent unnecessary re-rendering cascades, and attach a `displayName` to maintain DevTools clarity.
