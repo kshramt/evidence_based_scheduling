@@ -93,5 +93,6 @@ export default defineConfig({
       provider: "istanbul",
     },
     testTimeout: process.env.CI ? 40_000 : 10_000,
+    fileParallelism: false,
   },
 });
