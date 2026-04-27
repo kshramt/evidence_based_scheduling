@@ -18,8 +18,9 @@ const StopButton = ({
 
   return (
     <button
+      aria-label="Stop"
+      title="Stop"
       className="btn-icon"
-      aria-label="Stop."
       onClick={on_click}
       ref={ref}
       onDoubleClick={utils.prevent_propagation}
