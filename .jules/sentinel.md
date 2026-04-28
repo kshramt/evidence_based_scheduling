@@ -1,0 +1,5 @@
+## 2024-05-24 - Strict Security Headers Configuration
+
+**Vulnerability:** The Axum backend API endpoints lacked standard HTTP security headers (e.g., CSP, HSTS, X-Frame-Options), leaving API clients unnecessarily exposed to certain classes of attacks (like MIME-sniffing or framing).
+**Learning:** In the `tower_http` crate within the Rust backend, applying multiple security headers to the `axum::Router` requires carefully chaining the `.overriding()` method calls on `SetResponseHeaderLayer` alongside the exact header constants from `hyper::header`. Furthermore, tests that instantiate the router must use a mocked database connection string via `connect_lazy()` so that CI tests don't immediately fail when attempting to connect to a nonexistent database.
+**Prevention:** Apply security headers centrally to the top-level app router during bootstrapping. Always ensure the `tower::ServiceExt::oneshot` method is used in conjunction with a `connect_lazy()` database pool to accurately mock HTTP tests without heavy infrastructure requirements.
