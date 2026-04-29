@@ -1,0 +1,3 @@
+## 2025-04-29 - Prevent O(N) React Redux Re-renders in Global Lists
+**Learning:** In list components reading nested maps from Redux global state (like `swapped_nodes.status`), directly selecting the top-level parent map (`useSelector(state => state.swapped_nodes.status)`) causes the list to unnecessarily re-render anytime *any* item's status updates, creating a severe O(N) re-render cascade.
+**Action:** Always derive the exact subset of required state for a component's specific children and memoize it inside `useSelector` using `shallowEqual` (from `react-redux`) rather than relying on top-level state object identities.
