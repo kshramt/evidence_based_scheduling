@@ -1,0 +1,26 @@
+
+> evidence_based_scheduling@0.1.0 dev /app/client
+> vite
+
+Re-optimizing dependencies because vite config has changed
+
+  VITE v5.0.10  ready in 777 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+Browserslist: browsers data (caniuse-lite) is 11 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+10:42:41 AM [vite] ✨ new dependencies optimized: workbox-core, workbox-precaching, workbox-routing, workbox-strategies
+10:42:41 AM [vite] ✨ optimized dependencies changed. reloading
+(node:162992) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+10:44:14 AM [vite] http proxy error at /api/v2/fake_idp/users:
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+10:45:58 AM [vite] http proxy error at /api/v2/fake_idp/users:
+AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+10:50:10 AM [vite] page reload dist/index.html
