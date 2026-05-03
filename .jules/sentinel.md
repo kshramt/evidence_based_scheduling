@@ -1,0 +1,4 @@
+## 2024-05-24 - Missing Security Headers in Backend Service API
+**Vulnerability:** The API served by `api_v2/src/main.rs` via Axum did not include basic security headers like `Content-Security-Policy`, `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options`, and `Referrer-Policy`. Although it's purely a JSON API, defense-in-depth via headers is a foundational security best practice.
+**Learning:** Axum routes built via generated endpoints do not automatically gain security headers without explicitly layering them via `tower_http`. A pure backend API can use strict `default-src 'none'` for CSP to fully lock down resource loading, as no browser navigation or HTML rendering is performed.
+**Prevention:** Always wrap base Axum applications with standard security layers like `tower_http::set_header::SetResponseHeaderLayer` using security header constants provided by `hyper::header`. This ensures standard protections are injected into all HTTP responses.
