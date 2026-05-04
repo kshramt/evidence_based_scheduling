@@ -8,11 +8,21 @@ export const DELETE_MARK = <span className="material-icons">close</span>;
 
 export const NO_ESTIMATION = 0;
 
-export const START_MARK = <span className="material-icons">play_arrow</span>;
-export const START_CONCURRNET_MARK = (
-  <span className="material-icons">double_arrow</span>
+export const START_MARK = (
+  <span className="material-icons" aria-hidden="true">
+    play_arrow
+  </span>
 );
-export const ADD_MARK = <span className="material-icons">add</span>;
+export const START_CONCURRNET_MARK = (
+  <span className="material-icons" aria-hidden="true">
+    double_arrow
+  </span>
+);
+export const ADD_MARK = (
+  <span className="material-icons" aria-hidden="true">
+    add
+  </span>
+);
 export const DONE_MARK = <span className="material-icons">done</span>;
 export const DONT_MARK = <span className="material-icons">delete</span>;
 export const DETAIL_MARK = <span className="material-icons">more_vert</span>;
