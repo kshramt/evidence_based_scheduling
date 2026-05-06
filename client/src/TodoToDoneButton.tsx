@@ -1,7 +1,6 @@
 import * as React from "react";
 
 import * as actions from "./actions";
-import * as consts from "./consts";
 import { useDispatch } from "./types";
 import * as types from "./types";
 import * as utils from "./utils";
@@ -16,10 +15,14 @@ export const TodoToDoneButton = (props: { node_id: types.TNodeId }) => {
   return (
     <button
       className="btn-icon"
+      aria-label="Mark as done"
+      title="Mark as done"
       onClick={on_click}
       onDoubleClick={utils.prevent_propagation}
     >
-      {consts.DONE_MARK}
+      <span className="material-icons" aria-hidden="true">
+        done
+      </span>
     </button>
   );
 };

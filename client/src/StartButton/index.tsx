@@ -1,7 +1,6 @@
 import * as React from "react";
 
 import * as actions from "src/actions";
-import * as consts from "src/consts";
 import * as types from "src/types";
 import * as utils from "src/utils";
 
@@ -15,10 +14,14 @@ const StartButton = (props: { node_id: types.TNodeId }) => {
   return (
     <button
       className="btn-icon"
+      aria-label="Start"
+      title="Start"
       onClick={on_click}
       onDoubleClick={utils.prevent_propagation}
     >
-      {consts.START_MARK}
+      <span className="material-icons" aria-hidden="true">
+        play_arrow
+      </span>
     </button>
   );
 };

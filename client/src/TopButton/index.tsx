@@ -1,7 +1,6 @@
 import * as React from "react";
 
 import * as actions from "src/actions";
-import * as consts from "src/consts";
 import * as types from "src/types";
 import * as utils from "src/utils";
 
@@ -13,11 +12,15 @@ const TopButton = (props: { node_id: types.TNodeId; disabled?: boolean }) => {
   return (
     <button
       className="btn-icon"
+      aria-label="Move to top"
+      title="Move to top"
       onClick={on_click}
       onDoubleClick={utils.prevent_propagation}
       disabled={props.disabled}
     >
-      {consts.TOP_MARK}
+      <span className="material-icons" aria-hidden="true">
+        arrow_upward
+      </span>
     </button>
   );
 };
