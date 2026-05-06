@@ -1,7 +1,6 @@
 import * as React from "react";
 
 import * as actions from "./actions";
-import * as consts from "./consts";
 import { useDispatch } from "./types";
 import * as types from "./types";
 import * as utils from "./utils";

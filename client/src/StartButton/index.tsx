@@ -1,7 +1,6 @@
 import * as React from "react";
 
 import * as actions from "src/actions";
-import * as consts from "src/consts";
 import * as types from "src/types";
 import * as utils from "src/utils";
 
