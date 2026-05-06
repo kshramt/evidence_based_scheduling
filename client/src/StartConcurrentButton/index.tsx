@@ -15,10 +15,14 @@ const StartConcurrentButton = (props: { node_id: types.TNodeId }) => {
   return (
     <button
       className="btn-icon"
+      aria-label="Start concurrently"
+      title="Start concurrently"
       onClick={on_click}
       onDoubleClick={utils.prevent_propagation}
     >
-      {consts.START_CONCURRNET_MARK}
+      <span className="material-icons" aria-hidden="true">
+        double_arrow
+      </span>
     </button>
   );
 };

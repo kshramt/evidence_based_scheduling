@@ -29,10 +29,14 @@ export const AddButton = (props: {
     <button
       className="btn-icon"
       id={props.id}
+      aria-label="Add"
+      title="Add"
       onClick={handle_click}
       onDoubleClick={utils.prevent_propagation}
     >
-      {consts.ADD_MARK}
+      <span className="material-icons" aria-hidden="true">
+        add
+      </span>
     </button>
   );
 };
