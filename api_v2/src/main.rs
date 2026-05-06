@@ -338,9 +338,9 @@ async fn create_client(
 }
 
 #[derive(Debug)]
-struct AppState {
-    id_generator: Mutex<id_generator::SortableIdGenerator>,
-    pool: sqlx::postgres::PgPool,
+pub struct AppState {
+    pub id_generator: Mutex<id_generator::SortableIdGenerator>,
+    pub pool: sqlx::postgres::PgPool,
 }
 impl AppState {
     pub fn new(shard: u16, pool: sqlx::postgres::PgPool) -> Self {
@@ -378,6 +378,40 @@ async fn get_pool() -> sqlx::postgres::PgPool {
         .unwrap()
 }
 
+pub fn app(state: std::sync::Arc<AppState>) -> axum::Router {
+    let app = axum::Router::new();
+    let app = gen::register_app::<ApiImpl>(app);
+    let app = app.with_state(state);
+
+    // Add strict security headers
+    let app = app
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            hyper::header::CONTENT_SECURITY_POLICY,
+            axum::http::HeaderValue::from_static(
+                "default-src 'none'; frame-ancestors 'none'; sandbox",
+            ),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            hyper::header::STRICT_TRANSPORT_SECURITY,
+            axum::http::HeaderValue::from_static("max-age=31536000; includeSubDomains; preload"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            hyper::header::X_FRAME_OPTIONS,
+            axum::http::HeaderValue::from_static("DENY"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            hyper::header::X_CONTENT_TYPE_OPTIONS,
+            axum::http::HeaderValue::from_static("nosniff"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            hyper::header::HeaderName::from_static("referrer-policy"),
+            axum::http::HeaderValue::from_static("strict-origin-when-cross-origin"),
+        ));
+
+    app.layer(tower_http::trace::TraceLayer::new_for_http())
+        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024))
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
@@ -385,12 +419,7 @@ async fn main() {
         .json()
         .init();
     let state = std::sync::Arc::new(AppState::new(get_shard(), get_pool().await));
-    let app = axum::Router::new();
-    let app = gen::register_app::<ApiImpl>(app);
-    let app = app.with_state(state);
-    let app = app
-        .layer(tower_http::trace::TraceLayer::new_for_http())
-        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
+    let app = app(state);
 
     let port = get_server_port();
     info!(port = ?port);
@@ -400,4 +429,49 @@ async fn main() {
     axum::serve(listener, app.into_make_service())
         .await
         .unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::Request;
+    use tower::ServiceExt;
+
+    #[tokio::test]
+    async fn test_security_headers() {
+        // Initialize AppState with a dummy DB connection for testing
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .connect_lazy("postgres://invalid:invalid@localhost/invalid")
+            .unwrap();
+        let state = std::sync::Arc::new(AppState::new(0, pool));
+
+        let app = app(state);
+
+        let request = Request::builder()
+            .uri("/")
+            .method("GET")
+            .body(axum::body::Body::empty())
+            .unwrap();
+
+        let response = app.oneshot(request).await.unwrap();
+
+        // Verify security headers
+        assert_eq!(
+            response.headers().get("content-security-policy").unwrap(),
+            "default-src 'none'; frame-ancestors 'none'; sandbox"
+        );
+        assert_eq!(
+            response.headers().get("strict-transport-security").unwrap(),
+            "max-age=31536000; includeSubDomains; preload"
+        );
+        assert_eq!(response.headers().get("x-frame-options").unwrap(), "DENY");
+        assert_eq!(
+            response.headers().get("x-content-type-options").unwrap(),
+            "nosniff"
+        );
+        assert_eq!(
+            response.headers().get("referrer-policy").unwrap(),
+            "strict-origin-when-cross-origin"
+        );
+    }
 }
