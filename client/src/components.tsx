@@ -1225,7 +1225,7 @@ const MobileQueueNodesImpl = (props: { node_ids: types.TNodeId[] }) => {
     </>
   );
 };
-const MobileQueueNode = (props: { nodeId: types.TNodeId }) => {
+const MobileQueueNode = React.memo((props: { nodeId: types.TNodeId }) => {
   return (
     <EntryWrapper node_id={props.nodeId}>
       <TextArea
@@ -1235,9 +1235,10 @@ const MobileQueueNode = (props: { nodeId: types.TNodeId }) => {
       <MobileEntryButtons node_id={props.nodeId} />
     </EntryWrapper>
   );
-};
+});
+MobileQueueNode.displayName = 'MobileQueueNode';
 
-const TreeEntry = (props: {
+const TreeEntry = React.memo((props: {
   node_id: types.TNodeId;
   prefix?: undefined | string;
 }) => {
@@ -1292,7 +1293,8 @@ const TreeEntry = (props: {
       )}
     </EntryWrapper>
   );
-};
+});
+TreeEntry.displayName = 'TreeEntry';
 
 const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
   const leaf_estimates_sum = utils.assertV(

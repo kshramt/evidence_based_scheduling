@@ -7,7 +7,7 @@ import * as toast from "src/toast";
 import * as types from "src/types";
 import * as utils from "src/utils";
 
-const EdgeRow = (props: { edge_id: types.TEdgeId; target: "p" | "c" }) => {
+const EdgeRow = React.memo((props: { edge_id: types.TEdgeId; target: "p" | "c" }) => {
   // const edge = types.useSelector((state) => state.data.edges[props.edge_id]);
   const edgeT = utils.assertV(
     types.useSelector((state) => state.swapped_edges.t?.[props.edge_id]),
@@ -75,7 +75,8 @@ const EdgeRow = (props: { edge_id: types.TEdgeId; target: "p" | "c" }) => {
       </td>
     </tr>
   );
-};
+});
+EdgeRow.displayName = 'EdgeRow';
 
 const EdgeRowContent = (props: { node_id: types.TNodeId }) => {
   const to_tree = utils.useToTree(props.node_id);
