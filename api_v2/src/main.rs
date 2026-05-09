@@ -338,7 +338,7 @@ async fn create_client(
 }
 
 #[derive(Debug)]
-struct AppState {
+pub struct AppState {
     id_generator: Mutex<id_generator::SortableIdGenerator>,
     pool: sqlx::postgres::PgPool,
 }
@@ -378,6 +378,36 @@ async fn get_pool() -> sqlx::postgres::PgPool {
         .unwrap()
 }
 
+pub fn app(state: Arc<AppState>) -> axum::Router {
+    let app = axum::Router::new();
+    let app = gen::register_app::<ApiImpl>(app);
+    app.with_state(state)
+        .layer(tower_http::trace::TraceLayer::new_for_http())
+        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            hyper::header::CONTENT_SECURITY_POLICY,
+            hyper::header::HeaderValue::from_static(
+                "default-src 'none'; frame-ancestors 'none'; sandbox",
+            ),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            hyper::header::STRICT_TRANSPORT_SECURITY,
+            hyper::header::HeaderValue::from_static("max-age=31536000; includeSubDomains"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            hyper::header::HeaderName::from_static("x-frame-options"),
+            hyper::header::HeaderValue::from_static("DENY"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            hyper::header::HeaderName::from_static("x-content-type-options"),
+            hyper::header::HeaderValue::from_static("nosniff"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            hyper::header::HeaderName::from_static("referrer-policy"),
+            hyper::header::HeaderValue::from_static("no-referrer"),
+        ))
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
@@ -385,19 +415,56 @@ async fn main() {
         .json()
         .init();
     let state = std::sync::Arc::new(AppState::new(get_shard(), get_pool().await));
-    let app = axum::Router::new();
-    let app = gen::register_app::<ApiImpl>(app);
-    let app = app.with_state(state);
-    let app = app
-        .layer(tower_http::trace::TraceLayer::new_for_http())
-        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
 
     let port = get_server_port();
     info!(port = ?port);
     let listener = tokio::net::TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], port)))
         .await
         .unwrap();
-    axum::serve(listener, app.into_make_service())
+    axum::serve(listener, app(state).into_make_service())
         .await
         .unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::{
+        body::Body,
+        http::{Request, StatusCode},
+    };
+    use tower::ServiceExt;
+
+    #[tokio::test]
+    async fn test_security_headers() {
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .connect_lazy("postgres://invalid:invalid@localhost/invalid")
+            .unwrap();
+        let state = Arc::new(AppState::new(0, pool));
+        let router = app(state);
+
+        let response = router
+            .oneshot(
+                Request::builder()
+                    .uri("/users/1")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let headers = response.headers();
+
+        assert_eq!(
+            headers.get("content-security-policy").unwrap(),
+            "default-src 'none'; frame-ancestors 'none'; sandbox"
+        );
+        assert_eq!(
+            headers.get("strict-transport-security").unwrap(),
+            "max-age=31536000; includeSubDomains"
+        );
+        assert_eq!(headers.get("x-frame-options").unwrap(), "DENY");
+        assert_eq!(headers.get("x-content-type-options").unwrap(), "nosniff");
+        assert_eq!(headers.get("referrer-policy").unwrap(), "no-referrer");
+    }
 }
