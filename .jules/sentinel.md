@@ -1,0 +1,4 @@
+## 2026-05-13 - Add security headers to axum router
+**Vulnerability:** The `api_v2` Axum backend was missing critical security headers, making it potentially vulnerable to basic web attacks if endpoints were accessed directly.
+**Learning:** Axum's `tower_http::set_header::SetResponseHeaderLayer::overriding()` does not support chaining directly for multiple headers. Instead, multiple `.layer()` calls are required on the Axum router, each with a single header configuration. Additionally, the `hyper::header` module should be used instead of the `http` crate for header definitions. Non-standard headers like `Referrer-Policy` require `HeaderName::from_static`.
+**Prevention:** Always verify that security headers (like CSP, HSTS, X-Frame-Options) are applied correctly using the appropriate layer composition pattern when setting up new Axum routers or modifying existing ones.
