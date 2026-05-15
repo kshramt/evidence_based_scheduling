@@ -338,7 +338,7 @@ async fn create_client(
 }
 
 #[derive(Debug)]
-struct AppState {
+pub struct AppState {
     id_generator: Mutex<id_generator::SortableIdGenerator>,
     pool: sqlx::postgres::PgPool,
 }
