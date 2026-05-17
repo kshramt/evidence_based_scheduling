@@ -1,0 +1,3 @@
+## 2024-05-17 - Icon-only Button Accessibility
+**Learning:** This codebase relies heavily on `<span className="material-icons">` inside `<button className="btn-icon">` for actionable buttons (e.g., Add, Start, StartConcurrent, MoveUp, MoveDown). This pattern, without explicit accessible names, makes the core functionality invisible to screen readers and difficult to discover for new users since visual tooltips are also missing.
+**Action:** When creating new icon-only buttons or reviewing existing ones, always ensure `aria-label` and `title` attributes are provided to make the actions accessible and discoverable.
