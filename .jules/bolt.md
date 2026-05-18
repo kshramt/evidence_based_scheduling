@@ -1,0 +1,3 @@
+## 2024-05-24 - React.memo for Virtualized List Items
+**Learning:** Components rendered inside virtualized lists (like react-virtuoso) or large mapped arrays (like queues/trees) that receive primitive props (`node_id`, `index`) re-render unnecessarily on global state changes unless wrapped in `React.memo()`. This causes O(N) re-renders during scrolling or updates, leading to a significant performance bottleneck.
+**Action:** Wrap virtualized list components (`QueueEntry`, `MobileQueueNode`, `TreeEntry`, `EdgeRow`) in `React.memo` and append their `displayName` to prevent unnecessary re-renders.
