@@ -1,0 +1,3 @@
+## 2024-05-19 - Added ARIA labels to core Action Buttons
+**Learning:** This app's core interaction model relies heavily on icon-only action buttons (e.g., `AddButton`, `StartButton`, `MoveUpButton`) rendered dynamically within virtualized list entries (via `EntryButtons`). These components universally lacked `aria-label` and `title` attributes, making them inaccessible to screen readers and difficult for keyboard/mouse users to identify without prior context.
+**Action:** When adding new icon-only buttons to the interface, always ensure they are explicitly provided with `aria-label` and `title` attributes using static string values representing their action, as relying on the React node children (e.g., `consts.ADD_MARK`) will fail to provide accessible names.
