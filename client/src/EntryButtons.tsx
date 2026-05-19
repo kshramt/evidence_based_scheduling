@@ -57,6 +57,8 @@ const MoveUpButton = (props: { node_id: types.TNodeId }) => {
 
   return (
     <button
+      aria-label="Move Up"
+      title="Move Up"
       className="btn-icon"
       onClick={on_click}
       ref={moveUpButtonRefOf(props.node_id)}
@@ -76,6 +78,8 @@ const MoveDownButton = (props: { node_id: types.TNodeId }) => {
 
   return (
     <button
+      aria-label="Move Down"
+      title="Move Down"
       className="btn-icon"
       onClick={on_click}
       ref={moveDownButtonRefOf(props.node_id)}
