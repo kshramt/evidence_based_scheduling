@@ -31,18 +31,21 @@ export const QueueEntry = (props: {
   );
 };
 
-const _QueueEntry = (props: { node_id: types.TNodeId; index: number }) => {
-  const isTodo =
-    utils.assertV(
-      useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
-    ) === "todo";
+const _QueueEntry = React.memo(
+  (props: { node_id: types.TNodeId; index: number }) => {
+    const isTodo =
+      utils.assertV(
+        useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
+      ) === "todo";
 
-  return isTodo ? (
-    <TodoQueueEntry node_id={props.node_id} index={props.index} />
-  ) : (
-    <NonTodoQueueEntry node_id={props.node_id} index={props.index} />
-  );
-};
+    return isTodo ? (
+      <TodoQueueEntry node_id={props.node_id} index={props.index} />
+    ) : (
+      <NonTodoQueueEntry node_id={props.node_id} index={props.index} />
+    );
+  },
+);
+_QueueEntry.displayName = "_QueueEntry";
 
 const NonTodoQueueEntry = (props: {
   node_id: types.TNodeId;
