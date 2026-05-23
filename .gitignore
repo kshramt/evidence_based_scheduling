@@ -33,3 +33,7 @@ yarn-error.log*
 
 **/target/
 **/ignored/
+
+# development and production artifacts
+**/dist/
+**/dev-dist/
