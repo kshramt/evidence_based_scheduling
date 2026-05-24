@@ -1,0 +1,3 @@
+## 2024-03-24 - Memoize List Item Components
+**Learning:** List item components in virtualized lists or mapped arrays that receive primitive props (like `node_id`, `index`, `edge_id`) and render expensive subcomponents should be wrapped in `React.memo` to prevent unnecessary re-renders during state updates or scrolling. This is a common pattern in this codebase for components like `QueueEntry`, `EdgeRow`, `MobileQueueNode`, and `TreeEntry`.
+**Action:** When working with list items in Virtuoso or map loops, ensure they are wrapped with `React.memo()` and have their `.displayName` assigned to maintain React DevTools readability.

@@ -105,4 +105,5 @@ const EdgeRowContent = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-export default EdgeRow;
+EdgeRow.displayName = "EdgeRow";
+export default React.memo(EdgeRow);
