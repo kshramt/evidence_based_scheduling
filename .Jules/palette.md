@@ -1,0 +1,3 @@
+## 2024-05-25 - Icon-Only Button Accessibility Pattern
+**Learning:** Found a recurring pattern where generic icon-only action buttons (`StartButton`, `AddButton`, etc.) across various component directories lacked explicit `aria-label` and `title` attributes. Adding these globally to the shared icon constants would be wrong (creates duplicate labels if the parent button already has one), so it's critical to add them directly to the `<button>` tags in their respective React components.
+**Action:** Always inspect icon-only components for missing `aria-label` and `title` props. Apply them directly on the interactive HTML element, rather than modifying the underlying static icon definition.
