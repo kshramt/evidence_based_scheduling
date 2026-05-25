@@ -1,0 +1,3 @@
+## 2024-05-19 - React.memo for Virtualized List Components
+**Learning:** List item components receiving primitive props like `node_id` and `index` (e.g., `QueueEntry`, `MobileQueueNode`, `TreeEntry`, `EdgeRow`) should be wrapped in `React.memo` to prevent unnecessary O(N) re-renders during scrolling and state updates within `react-virtuoso` virtualized lists or mapped arrays. We also need to add `.displayName` to these memoized components to maintain React DevTools readability.
+**Action:** When creating or modifying components that are items in virtualized lists or large mappings, evaluate if wrapping them in `React.memo` is beneficial, especially if they only rely on primitive props and complex global state selection. Add `.displayName` when doing so.
