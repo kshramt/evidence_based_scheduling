@@ -1,0 +1,3 @@
+## 2026-05-26 - Accessible Icon-Only Buttons
+**Learning:** In this application, many core action buttons (e.g., Add, Start, Move Up/Down) are implemented as icon-only `<button>` elements using the `btn-icon` class and Material UI icon components from `consts.tsx`. To ensure screen reader and keyboard user accessibility without relying on global ARIA modifications that might cause regressions, each specific button component must directly receive `aria-label` and `title` attributes describing its action.
+**Action:** When creating or modifying new action buttons using the `btn-icon` class, strictly mandate passing descriptive `aria-label` and `title` string attributes on the `<button>` tag.
