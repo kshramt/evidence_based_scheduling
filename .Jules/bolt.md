@@ -1,0 +1,3 @@
+## 2024-05-24 - React.memo List Items Optimization
+**Learning:** Virtualized lists and long arrays in React can cause severe O(N) re-render bottlenecks when parent state updates. Wrapping individual list items (like `QueueEntry`, `MobileQueueNode`) that receive simple primitive props in `React.memo` effectively skips re-rendering for unaffected rows, drastically improving list scrolling and state update performance in the application architecture.
+**Action:** Always proactively wrap row/item components within long lists using `React.memo` if they only depend on primitive identifiers, and ensure a `.displayName` is attached for debugging.
