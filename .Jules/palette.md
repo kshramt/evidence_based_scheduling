@@ -1,0 +1,3 @@
+## 2024-05-27 - Icon-only Button Accessibility
+**Learning:** Icon-only buttons using constants (like `consts.ADD_MARK`) are prevalent in the `client/src` components. These buttons inherently lack accessible names, causing screen readers to announce them incorrectly (or not at all). Adding explicit `aria-label` and `title` attributes directly to the `<button>` tags significantly improves accessibility and provides native tooltips for sighted users.
+**Action:** When creating or modifying icon-only buttons, always ensure they have descriptive `aria-label` and `title` attributes. Do not apply `aria-hidden="true"` globally to the icon constants, as this breaks accessibility for buttons lacking explicit labels.
