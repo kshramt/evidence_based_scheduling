@@ -25,6 +25,7 @@ pub struct SysHealthResponse {
 }
 #[rustfmt::skip]
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[allow(dead_code)]
 pub struct FakeIdpCreateUserRequest {
     pub name: String,
 }
@@ -35,6 +36,7 @@ pub struct FakeIdpCreateUserResponse {
 }
 #[rustfmt::skip]
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[allow(dead_code)]
 pub struct FakeIdpCreateIdTokenRequest {
     pub name: String,
 }
