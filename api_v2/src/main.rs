@@ -18,6 +18,7 @@ use tracing_subscriber::EnvFilter;
 
 mod db;
 mod errors;
+#[allow(dead_code)]
 mod gen;
 
 struct ApiImpl;
@@ -391,7 +392,9 @@ async fn main() {
     let app = app
         .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
             hyper::header::CONTENT_SECURITY_POLICY,
-            hyper::header::HeaderValue::from_static("default-src 'none'; frame-ancestors 'none'; sandbox"),
+            hyper::header::HeaderValue::from_static(
+                "default-src 'none'; frame-ancestors 'none'; sandbox",
+            ),
         ))
         .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
             hyper::header::STRICT_TRANSPORT_SECURITY,
