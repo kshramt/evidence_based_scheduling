@@ -392,7 +392,9 @@ async fn main() {
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
             hyper::header::CONTENT_SECURITY_POLICY,
-            hyper::header::HeaderValue::from_static("default-src 'none'; frame-ancestors 'none'; sandbox"),
+            hyper::header::HeaderValue::from_static(
+                "default-src 'none'; frame-ancestors 'none'; sandbox",
+            ),
         ))
         .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
             hyper::header::STRICT_TRANSPORT_SECURITY,
