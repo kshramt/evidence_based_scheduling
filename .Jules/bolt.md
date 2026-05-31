@@ -1,0 +1,3 @@
+## 2026-05-31 - Memoizing primitive-prop list items
+**Learning:** Virtualized lists using `react-virtuoso` or mapped arrays render components like `QueueEntry`, `EdgeRow`, `MobileQueueNode`, and `TreeEntry` which accept simple primitive props (`node_id`, `index`). These are prime candidates for `React.memo` to avoid O(N) re-renders during unrelated state updates or scrolling. When wrapping these, explicitly assigning `displayName` prevents DevTools anonymization.
+**Action:** When inspecting performance of list views, check if entry components accepting primitive props lack `React.memo`. If so, wrap them and assign `.displayName`.
