@@ -77,6 +77,8 @@ const Details = (props: { node_id: types.TNodeId }) => {
           className="btn-icon"
           onClick={handle_add_parents}
           onDoubleClick={utils.prevent_propagation}
+          aria-label="Add parent edge"
+          title="Add parent edge"
         >
           Parents
         </button>
@@ -84,6 +86,8 @@ const Details = (props: { node_id: types.TNodeId }) => {
           className="btn-icon"
           onClick={handle_add_children}
           onDoubleClick={utils.prevent_propagation}
+          aria-label="Add child edge"
+          title="Add child edge"
         >
           Children
         </button>
@@ -111,6 +115,8 @@ export const ShowDetailsButton = (props: { node_id: types.TNodeId }) => {
       className="btn-icon"
       onClick={handleClick}
       onDoubleClick={utils.prevent_propagation}
+      aria-label="Show details"
+      title="Show details"
     >
       {consts.DETAIL_MARK}
     </button>
