@@ -19,6 +19,7 @@ const ToggleButton = (props: {
   return (
     <button
       className="btn-icon"
+      aria-label="Toggle"
       onClick={onClick}
       onDoubleClick={utils.prevent_propagation}
     >

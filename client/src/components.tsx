@@ -1286,7 +1286,17 @@ const TreeEntry = (props: {
       {is_root ? null : (
         <EntryButtons
           node_id={props.node_id}
-          jumpButton={is_root ? null : <button onClick={to_queue}>→</button>}
+          jumpButton={
+            is_root ? null : (
+              <button
+                aria-label="Jump to queue"
+                title="Jump to queue"
+                onClick={to_queue}
+              >
+                →
+              </button>
+            )
+          }
           prefix={prefix}
         />
       )}
