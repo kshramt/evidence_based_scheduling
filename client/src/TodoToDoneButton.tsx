@@ -18,6 +18,8 @@ export const TodoToDoneButton = (props: { node_id: types.TNodeId }) => {
       className="btn-icon"
       onClick={on_click}
       onDoubleClick={utils.prevent_propagation}
+      aria-label="Done"
+      title="Done"
     >
       {consts.DONE_MARK}
     </button>
