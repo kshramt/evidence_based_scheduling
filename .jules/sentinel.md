@@ -1,0 +1,4 @@
+## 2024-06-03 - Added Security Headers via SetResponseHeaderLayer
+**Vulnerability:** The `api_v2` Axum application was missing basic security headers like `Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, and `Referrer-Policy`. This could leave the application vulnerable to various attacks like clickjacking and MIME-sniffing.
+**Learning:** `tower-http`'s `SetResponseHeaderLayer::overriding()` is an effective way to inject headers globally. In `axum` with `hyper`, it's critical to use `hyper::header::HeaderValue::from_static` and `hyper::header::HeaderName::from_static` for custom or constant header definitions instead of relying solely on `http` crate components, which may not be linked natively by default in the workspace config.
+**Prevention:** Include a `SetResponseHeaderLayer` chain to enforce these security properties on newly created Axum routers by default.
