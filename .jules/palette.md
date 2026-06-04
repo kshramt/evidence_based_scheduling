@@ -1,0 +1,3 @@
+## 2024-08-16 - Add accessible labels and tooltips to icon-only buttons
+**Learning:** Icon-only buttons relying on constants for icons (`START_MARK`, `ADD_MARK`, etc.) without text content lack accessibility contexts and native hover tooltips unless `aria-label` and `title` are specifically provided on the wrapping component. Additionally, dynamic properties within these attributes (like `is_copied` state) need to evaluate strictly to strings to avoid `[object Object]` rendering bugs in the DOM when complex nodes are passed.
+**Action:** When creating new icon-only buttons or wrapping existing ones, explicitly add both `aria-label` and `title` properties. Verify that dynamically generated labels evaluate cleanly to strings before assigning them to these properties.
