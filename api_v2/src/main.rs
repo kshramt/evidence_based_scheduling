@@ -18,6 +18,7 @@ use tracing_subscriber::EnvFilter;
 
 mod db;
 mod errors;
+#[allow(dead_code)]
 mod gen;
 
 struct ApiImpl;
@@ -389,6 +390,18 @@ async fn main() {
     let app = gen::register_app::<ApiImpl>(app);
     let app = app.with_state(state);
     let app = app
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            hyper::header::X_CONTENT_TYPE_OPTIONS,
+            hyper::header::HeaderValue::from_static("nosniff"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            hyper::header::X_FRAME_OPTIONS,
+            hyper::header::HeaderValue::from_static("DENY"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            hyper::header::STRICT_TRANSPORT_SECURITY,
+            hyper::header::HeaderValue::from_static("max-age=31536000; includeSubDomains"),
+        ))
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
 
