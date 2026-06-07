@@ -1,0 +1,1 @@
+## 2026-06-07 - Added tooltips and ARIA labels to icon-only buttons\n**Learning:** Added accessibility traits (aria-label) and native tooltips (title) to the icon-only `<button>` components within the client.\n**Action:** When creating custom icon-only components, ensure that `aria-label` and `title` are explicitly exposed and populated.
