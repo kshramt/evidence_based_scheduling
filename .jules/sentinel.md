@@ -1,0 +1,4 @@
+## 2024-06-07 - Tower HTTP Security Headers
+**Vulnerability:** Missing important security headers like Content-Security-Policy, X-Content-Type-Options, X-Frame-Options, and Strict-Transport-Security in Axum server.
+**Learning:** Adding Axum server headers using `tower_http` is done with `SetResponseHeaderLayer::overriding`. It requires `hyper::header` definitions instead of `http::header`. Additionally, Axum projects with auto-generated modules (like `gen.rs`) may cause `dead_code` warnings. To fix this, apply `#[allow(dead_code)]` only on the specific module (`mod gen;`) instead of globally suppressing warnings using `#![allow(dead_code)]`.
+**Prevention:** Ensure security header implementations are paired with targeted module-level lint configurations rather than global crate-level suppressions.
