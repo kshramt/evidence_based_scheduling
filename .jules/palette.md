@@ -1,0 +1,3 @@
+## 2026-06-08 - Icon-only buttons require explicit accessible names
+**Learning:** React components acting as icon-only buttons (using `btn-icon`) must explicitly include `aria-label` and `title` attributes. Without these, the buttons are functionally invisible to screen readers, and lack tooltip affordances for pointer users.
+**Action:** Always verify that components rendering an icon-only `<button>` without visible text receive `aria-label` (for a11y) and `title` (for mouse users). This applies to custom components like `AddButton`, `StartButton`, and inline `<button>` definitions within lists.
