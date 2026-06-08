@@ -1,0 +1,3 @@
+## 2024-06-25 - Memoize Primitive Prop List Items
+**Learning:** In highly dynamic virtualized lists (like `react-virtuoso`'s `todoQueueNodesRef`) and large rendered arrays mapping complex data representations, list row components like `QueueEntry` or `TreeEntry` can cause significant unneeded rendering if they are just wrapping standard UI without memoization. When they accept only primitives (`node_id`, `index`), `React.memo` effectively squashes $O(N)$ re-renders downstream.
+**Action:** Always wrap list or table row wrapper components mapping basic identifiers in `React.memo` and append a `displayName` explicitly. Check lists for components holding primitive props that are not yet memoized.
