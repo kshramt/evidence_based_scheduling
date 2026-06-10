@@ -1225,7 +1225,7 @@ const MobileQueueNodesImpl = (props: { node_ids: types.TNodeId[] }) => {
     </>
   );
 };
-const MobileQueueNode = (props: { nodeId: types.TNodeId }) => {
+const MobileQueueNodeImpl = (props: { nodeId: types.TNodeId }) => {
   return (
     <EntryWrapper node_id={props.nodeId}>
       <TextArea
@@ -1237,7 +1237,11 @@ const MobileQueueNode = (props: { nodeId: types.TNodeId }) => {
   );
 };
 
-const TreeEntry = (props: {
+// ⚡ Bolt: React.memo prevents unnecessary O(N) re-renders during scrolling and state updates in virtualized lists.
+const MobileQueueNode = React.memo(MobileQueueNodeImpl);
+MobileQueueNode.displayName = "MobileQueueNode";
+
+const TreeEntryImpl = (props: {
   node_id: types.TNodeId;
   prefix?: undefined | string;
 }) => {
@@ -1293,6 +1297,10 @@ const TreeEntry = (props: {
     </EntryWrapper>
   );
 };
+
+// ⚡ Bolt: React.memo prevents unnecessary O(N) re-renders during scrolling and state updates in virtualized lists.
+const TreeEntry = React.memo(TreeEntryImpl);
+TreeEntry.displayName = "TreeEntry";
 
 const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
   const leaf_estimates_sum = utils.assertV(

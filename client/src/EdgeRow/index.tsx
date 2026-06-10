@@ -7,7 +7,7 @@ import * as toast from "src/toast";
 import * as types from "src/types";
 import * as utils from "src/utils";
 
-const EdgeRow = (props: { edge_id: types.TEdgeId; target: "p" | "c" }) => {
+const EdgeRowImpl = (props: { edge_id: types.TEdgeId; target: "p" | "c" }) => {
   // const edge = types.useSelector((state) => state.data.edges[props.edge_id]);
   const edgeT = utils.assertV(
     types.useSelector((state) => state.swapped_edges.t?.[props.edge_id]),
@@ -105,4 +105,7 @@ const EdgeRowContent = (props: { node_id: types.TNodeId }) => {
   );
 };
 
+// ⚡ Bolt: React.memo prevents unnecessary O(N) re-renders during scrolling and state updates in virtualized lists.
+const EdgeRow = React.memo(EdgeRowImpl);
+EdgeRow.displayName = "EdgeRow";
 export default EdgeRow;
