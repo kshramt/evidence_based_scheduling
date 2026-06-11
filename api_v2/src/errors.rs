@@ -9,6 +9,8 @@ use tracing::error;
 #[derive(Debug)]
 pub enum ErrorStatus {
     Status400,
+    Status401,
+    Status403,
     Status500,
 }
 
@@ -18,6 +20,8 @@ impl std::fmt::Display for ErrorStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ErrorStatus::Status400 => write!(f, "Status400"),
+            ErrorStatus::Status401 => write!(f, "Status401"),
+            ErrorStatus::Status403 => write!(f, "Status403"),
             ErrorStatus::Status500 => write!(f, "Status500"),
         }
     }
@@ -43,6 +47,16 @@ impl IntoResponse for ErrorStatus {
             ErrorStatus::Status400 => (
                 StatusCode::BAD_REQUEST,
                 Json(json!({"error": "Bad request."})),
+            )
+                .into_response(),
+            ErrorStatus::Status401 => (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"error": "Unauthorized."})),
+            )
+                .into_response(),
+            ErrorStatus::Status403 => (
+                StatusCode::FORBIDDEN,
+                Json(json!({"error": "Forbidden."})),
             )
                 .into_response(),
             ErrorStatus::Status500 => (

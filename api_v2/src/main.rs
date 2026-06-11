@@ -36,7 +36,7 @@ where
         let TypedHeader(Authorization(bearer)) = parts
             .extract::<TypedHeader<Authorization<Bearer>>>()
             .await
-            .map_err(|_| errors::ErrorStatus::Status400)?;
+            .map_err(|_| errors::ErrorStatus::Status401)?;
         Self::from_base64(bearer.token())
     }
 }
@@ -45,15 +45,15 @@ impl gen::IdToken {
     pub fn from_base64(s: &str) -> Result<Self, errors::ErrorStatus> {
         let s = base64::engine::general_purpose::STANDARD
             .decode(s)
-            .map_err(|_| errors::ErrorStatus::Status400)?;
-        serde_json::from_slice(&s).map_err(|_| errors::ErrorStatus::Status400)
+            .map_err(|_| errors::ErrorStatus::Status401)?;
+        serde_json::from_slice(&s).map_err(|_| errors::ErrorStatus::Status401)
     }
 
     pub fn authorize(&self, user_id: &str) -> Result<(), errors::ErrorStatus> {
         if self.user_id == user_id {
             Ok(())
         } else {
-            Err(errors::ErrorStatus::Status400)
+            Err(errors::ErrorStatus::Status403)
         }
     }
 }
