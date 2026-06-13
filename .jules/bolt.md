@@ -1,0 +1,3 @@
+## 2024-06-13 - Virtualized List Rendering Optimizations
+**Learning:** List item components in this codebase (like `QueueEntry`, `EdgeRow`, `TreeEntry`, `MobileQueueNode`) that are mapped or rendered inside `react-virtuoso` receive primitive props (like `node_id`, `index`) but are missing `React.memo` wrappers. Because they render deep trees (including inputs, buttons, and multiple selectors), any parent update causes an O(N) re-render of visible list items.
+**Action:** Always wrap these core list/queue entry components in `React.memo` to optimize rendering performance, setting `displayName` to preserve DevTools readability.
