@@ -1,0 +1,4 @@
+## 2024-05-24 - [Medium] Fix generic authentication and authorization error responses
+**Vulnerability:** The API returned a generic `400 Bad Request` for missing/invalid authentication tokens and authorization failures (IDOR attempts) across all token handling logic.
+**Learning:** Returning `400 Bad Request` for security-related failures (like missing credentials or insufficient permissions) masks potential attacks from audit logs and security monitoring tools, making it harder to distinguish between simple bad client requests and active probing/attacks.
+**Prevention:** Always map authentication extraction failures to `401 Unauthorized` and explicit authorization check failures to `403 Forbidden` early in the API request lifecycle. Ensure the framework's error types support these specific security semantics.
