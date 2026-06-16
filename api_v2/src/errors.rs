@@ -6,6 +6,7 @@ use axum::{
 use serde_json::json;
 use tracing::error;
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum ErrorStatus {
     Status400,
@@ -54,11 +55,9 @@ impl IntoResponse for ErrorStatus {
                 Json(json!({"error": "Unauthorized."})),
             )
                 .into_response(),
-            ErrorStatus::Status403 => (
-                StatusCode::FORBIDDEN,
-                Json(json!({"error": "Forbidden."})),
-            )
-                .into_response(),
+            ErrorStatus::Status403 => {
+                (StatusCode::FORBIDDEN, Json(json!({"error": "Forbidden."}))).into_response()
+            }
             ErrorStatus::Status500 => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({"error": "Something went wrong."})),
