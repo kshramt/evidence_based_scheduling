@@ -105,4 +105,5 @@ const EdgeRowContent = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-export default EdgeRow;
+// ⚡ Bolt: React.memo prevents unnecessary O(N) re-renders
+export default React.memo(EdgeRow);
