@@ -1,0 +1,4 @@
+## 2024-05-24 - Incorrect HTTP Status for Authorization Failures
+**Vulnerability:** Authorization failures in `IdToken::authorize` and token extraction failures in `IdToken::from_request_parts` and `IdToken::from_base64` returned `400 Bad Request` instead of `403 Forbidden` and `401 Unauthorized`, respectively. This is a generic status code that does not communicate the correct security context, which may lead to clients not handling security errors correctly (like forcing a re-login on 401).
+**Learning:** Returning `Status400` on security failures is a bad practice. It should be `Status401` or `Status403` to reflect the semantic meaning of the error and help clients or proxies respond properly.
+**Prevention:** Use appropriate HTTP status codes for authentication/authorization failures. Specifically `Status401` for missing/invalid credentials and `Status403` for authorization failure (authenticated, but lack permissions).
