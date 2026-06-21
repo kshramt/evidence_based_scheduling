@@ -1,0 +1,3 @@
+## 2024-06-21 - Component Memoization Performance Tuning
+**Learning:** Virtualized lists like `Rv.Virtuoso` map over large datasets. Components inside these lists, such as `QueueEntry`, are frequently re-rendered when the queue state updates, leading to a large number of React component calls even if their individual props (`node_id`, `index`) haven't changed. We can optimize this by wrapping list item components in `React.memo()`.
+**Action:** Always wrap components rendered inside list structures (like `QueueEntry`, `TodoQueueEntry`, `NonTodoQueueEntry`, `TreeEntry`) with `React.memo` to prevent O(N) re-renders, especially when complex selectors are involved downstream.
