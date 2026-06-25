@@ -29,6 +29,7 @@ export const AddButton = (props: {
     <button
       className="btn-icon"
       id={props.id}
+      aria-label="Add node"
       onClick={handle_click}
       onDoubleClick={utils.prevent_propagation}
     >
