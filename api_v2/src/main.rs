@@ -7,19 +7,20 @@ use axum_extra::{
     headers::{authorization::Bearer, Authorization},
     TypedHeader,
 };
-use hyper::header;
-use tower_http::set_header::SetResponseHeaderLayer;
 use base64::Engine;
+use hyper::header;
 use serde_json::json;
 use std::{
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
+use tower_http::set_header::SetResponseHeaderLayer;
 use tracing::{debug, info, instrument};
 use tracing_subscriber::EnvFilter;
 
 mod db;
 mod errors;
+#[allow(dead_code)]
 mod gen;
 
 struct ApiImpl;
