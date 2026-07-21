@@ -390,7 +390,19 @@ async fn main() {
     let app = app.with_state(state);
     let app = app
         .layer(tower_http::trace::TraceLayer::new_for_http())
-        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
+        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            hyper::header::CONTENT_SECURITY_POLICY,
+            hyper::header::HeaderValue::from_static("default-src 'none'; frame-ancestors 'none';"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            hyper::header::X_FRAME_OPTIONS,
+            hyper::header::HeaderValue::from_static("DENY"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            hyper::header::X_CONTENT_TYPE_OPTIONS,
+            hyper::header::HeaderValue::from_static("nosniff"),
+        ));
 
     let port = get_server_port();
     info!(port = ?port);
