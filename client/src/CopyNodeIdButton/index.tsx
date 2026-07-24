@@ -25,6 +25,8 @@ const CopyNodeIdButton = (props: { node_id: types.TNodeId }) => {
       className="btn-icon"
       onClick={handle_click}
       onDoubleClick={utils.prevent_propagation}
+      title="Copy task ID"
+      aria-label="Copy task ID"
     >
       {is_copied ? consts.DONE_MARK : consts.COPY_MARK}
     </button>
