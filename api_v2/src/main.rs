@@ -1,6 +1,6 @@
 use axum::{
     extract::{FromRequestParts, Path, Query, State},
-    http::request::Parts,
+    http::{header, request::Parts},
     Json, RequestPartsExt,
 };
 use axum_extra::{
@@ -13,11 +13,13 @@ use std::{
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
+use tower_http::set_header::SetResponseHeaderLayer;
 use tracing::{debug, info, instrument};
 use tracing_subscriber::EnvFilter;
 
 mod db;
 mod errors;
+#[allow(dead_code)]
 mod gen;
 
 struct ApiImpl;
@@ -389,6 +391,19 @@ async fn main() {
     let app = gen::register_app::<ApiImpl>(app);
     let app = app.with_state(state);
     let app = app
+        // SECURITY ENHANCEMENT: Add missing HTTP security headers to protect against common web vulnerabilities like XSS, Clickjacking, and MIME-sniffing.
+        .layer(SetResponseHeaderLayer::overriding(
+            header::CONTENT_SECURITY_POLICY,
+            axum::http::HeaderValue::from_static("default-src 'none'"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::X_FRAME_OPTIONS,
+            axum::http::HeaderValue::from_static("DENY"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::X_CONTENT_TYPE_OPTIONS,
+            axum::http::HeaderValue::from_static("nosniff"),
+        ))
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
 
