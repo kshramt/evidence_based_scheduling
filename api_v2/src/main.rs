@@ -18,6 +18,7 @@ use tracing_subscriber::EnvFilter;
 
 mod db;
 mod errors;
+#[allow(dead_code)]
 mod gen;
 
 struct ApiImpl;
@@ -389,6 +390,27 @@ async fn main() {
     let app = gen::register_app::<ApiImpl>(app);
     let app = app.with_state(state);
     let app = app
+        // Add HTTP security headers for defense-in-depth against direct API access.
+        // - CSP: Prevents execution of scripts, as this API only returns JSON.
+        // - X-Content-Type-Options: Prevents MIME-sniffing.
+        // - X-Frame-Options: Prevents clickjacking by blocking framing.
+        // - HSTS: Enforces HTTPS connections.
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::CONTENT_SECURITY_POLICY,
+            axum::http::HeaderValue::from_static("default-src 'none'"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::X_CONTENT_TYPE_OPTIONS,
+            axum::http::HeaderValue::from_static("nosniff"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::X_FRAME_OPTIONS,
+            axum::http::HeaderValue::from_static("DENY"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::STRICT_TRANSPORT_SECURITY,
+            axum::http::HeaderValue::from_static("max-age=31536000; includeSubDomains"),
+        ))
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
 
