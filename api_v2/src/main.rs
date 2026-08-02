@@ -1,3 +1,5 @@
+use axum::http::header::{CONTENT_SECURITY_POLICY, X_CONTENT_TYPE_OPTIONS, X_FRAME_OPTIONS};
+use axum::http::HeaderValue;
 use axum::{
     extract::{FromRequestParts, Path, Query, State},
     http::request::Parts,
@@ -13,11 +15,13 @@ use std::{
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
+use tower_http::set_header::SetResponseHeaderLayer;
 use tracing::{debug, info, instrument};
 use tracing_subscriber::EnvFilter;
 
 mod db;
 mod errors;
+#[allow(dead_code)]
 mod gen;
 
 struct ApiImpl;
@@ -390,7 +394,19 @@ async fn main() {
     let app = app.with_state(state);
     let app = app
         .layer(tower_http::trace::TraceLayer::new_for_http())
-        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
+        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024))
+        .layer(SetResponseHeaderLayer::overriding(
+            CONTENT_SECURITY_POLICY,
+            HeaderValue::from_static("default-src 'none'"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            X_FRAME_OPTIONS,
+            HeaderValue::from_static("DENY"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            X_CONTENT_TYPE_OPTIONS,
+            HeaderValue::from_static("nosniff"),
+        ));
 
     let port = get_server_port();
     info!(port = ?port);
