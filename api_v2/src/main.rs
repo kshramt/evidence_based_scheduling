@@ -1,6 +1,8 @@
 use axum::{
     extract::{FromRequestParts, Path, Query, State},
+    http::header,
     http::request::Parts,
+    http::HeaderValue,
     Json, RequestPartsExt,
 };
 use axum_extra::{
@@ -388,7 +390,21 @@ async fn main() {
     let app = axum::Router::new();
     let app = gen::register_app::<ApiImpl>(app);
     let app = app.with_state(state);
+    // Sentinel: Security headers added to mitigate XSS (CSP), clickjacking (X-Frame-Options), and MIME-sniffing (X-Content-Type-Options).
+    // Since this is an API, strict default-src 'none' is safe.
     let app = app
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            header::CONTENT_SECURITY_POLICY,
+            HeaderValue::from_static("default-src 'none'"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            header::X_FRAME_OPTIONS,
+            HeaderValue::from_static("DENY"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            header::X_CONTENT_TYPE_OPTIONS,
+            HeaderValue::from_static("nosniff"),
+        ))
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
 
