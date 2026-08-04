@@ -18,6 +18,7 @@ use tracing_subscriber::EnvFilter;
 
 mod db;
 mod errors;
+#[allow(dead_code)]
 mod gen;
 
 struct ApiImpl;
@@ -388,9 +389,25 @@ async fn main() {
     let app = axum::Router::new();
     let app = gen::register_app::<ApiImpl>(app);
     let app = app.with_state(state);
+    // 🛡️ Sentinel: Enhance API security by adding standard HTTP security headers
+    // - Content-Security-Policy: 'default-src \'none\'' prevents loading any external resources or executing scripts, as this is a pure JSON API.
+    // - X-Frame-Options: 'DENY' protects against clickjacking attacks.
+    // - X-Content-Type-Options: 'nosniff' prevents browsers from MIME-sniffing the response.
     let app = app
         .layer(tower_http::trace::TraceLayer::new_for_http())
-        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
+        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::CONTENT_SECURITY_POLICY,
+            axum::http::HeaderValue::from_static("default-src 'none'"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::X_FRAME_OPTIONS,
+            axum::http::HeaderValue::from_static("DENY"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::X_CONTENT_TYPE_OPTIONS,
+            axum::http::HeaderValue::from_static("nosniff"),
+        ));
 
     let port = get_server_port();
     info!(port = ?port);
