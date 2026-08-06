@@ -18,6 +18,7 @@ use tracing_subscriber::EnvFilter;
 
 mod db;
 mod errors;
+#[allow(dead_code)]
 mod gen;
 
 struct ApiImpl;
@@ -388,9 +389,14 @@ async fn main() {
     let app = axum::Router::new();
     let app = gen::register_app::<ApiImpl>(app);
     let app = app.with_state(state);
+    // 🛡️ Sentinel: Adding strict Content-Security-Policy headers to API responses to mitigate potential XSS and data injection attacks by ensuring no resources are loaded or executed unexpectedly.
     let app = app
         .layer(tower_http::trace::TraceLayer::new_for_http())
-        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
+        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::CONTENT_SECURITY_POLICY,
+            axum::http::HeaderValue::from_static("default-src 'none'"),
+        ));
 
     let port = get_server_port();
     info!(port = ?port);
