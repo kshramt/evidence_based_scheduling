@@ -18,6 +18,7 @@ use tracing_subscriber::EnvFilter;
 
 mod db;
 mod errors;
+#[allow(dead_code)]
 mod gen;
 
 struct ApiImpl;
@@ -388,7 +389,13 @@ async fn main() {
     let app = axum::Router::new();
     let app = gen::register_app::<ApiImpl>(app);
     let app = app.with_state(state);
+
+    // Add a restrictive CSP header for defense in depth
     let app = app
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::CONTENT_SECURITY_POLICY,
+            axum::http::HeaderValue::from_static("default-src 'none'"),
+        ))
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
 
