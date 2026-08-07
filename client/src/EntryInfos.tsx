@@ -7,7 +7,9 @@ import { TotalTime } from "./TotalTime";
 import { useSelector } from "./types";
 import * as types from "./types";
 
-export const EntryInfos = (props: { node_id: types.TNodeId }) => {
+// React.memo prevents unnecessary re-renders when rendering many entries in lists/queues
+// since props (node_id) rarely change.
+export const EntryInfos = React.memo((props: { node_id: types.TNodeId }) => {
   const root = useSelector((state) => state.data.root);
   const is_root = props.node_id === root;
 
@@ -18,4 +20,5 @@ export const EntryInfos = (props: { node_id: types.TNodeId }) => {
       {is_root || <LastRange node_id={props.node_id} />}
     </div>
   );
-};
+});
+EntryInfos.displayName = "EntryInfos";
