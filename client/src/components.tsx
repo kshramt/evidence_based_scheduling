@@ -995,17 +995,20 @@ const DndTreeNode = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const TreeNode = (props: {
-  node_id: types.TNodeId;
-  prefix?: undefined | string;
-}) => {
-  return (
-    <>
-      <TreeEntry node_id={props.node_id} prefix={props.prefix} />
-      <EdgeList node_id={props.node_id} prefix={props.prefix} />
-    </>
-  );
-};
+// ⚡ Bolt Performance Optimization:
+// Wrapped TreeNode in React.memo to prevent unnecessary re-renders of the tree component structure
+// when parent components update, improving performance when navigating or updating large trees.
+const TreeNode = React.memo(
+  (props: { node_id: types.TNodeId; prefix?: undefined | string }) => {
+    return (
+      <>
+        <TreeEntry node_id={props.node_id} prefix={props.prefix} />
+        <EdgeList node_id={props.node_id} prefix={props.prefix} />
+      </>
+    );
+  },
+);
+TreeNode.displayName = "TreeNode";
 
 const NonTodoQueueNodes = (props: {
   virtuosoRef: React.Ref<Rv.VirtuosoHandle>;
