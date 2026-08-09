@@ -16,6 +16,8 @@ export const DoneOrDontToTodoButton = (props: { node_id: types.TNodeId }) => {
       className="btn-icon"
       onClick={on_click}
       onDoubleClick={utils.prevent_propagation}
+      title="Revert to todo"
+      aria-label="Revert to todo"
     >
       {consts.UNDO_MARK}
     </button>
