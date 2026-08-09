@@ -18,6 +18,8 @@ export const TodoToDontButton = (props: { node_id: types.TNodeId }) => {
       className="btn-icon"
       onClick={on_click}
       onDoubleClick={utils.prevent_propagation}
+      title="Mark as won't do"
+      aria-label="Mark as won't do"
     >
       {consts.DONT_MARK}
     </button>
