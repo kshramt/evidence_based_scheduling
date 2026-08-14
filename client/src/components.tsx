@@ -995,17 +995,18 @@ const DndTreeNode = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const TreeNode = (props: {
-  node_id: types.TNodeId;
-  prefix?: undefined | string;
-}) => {
-  return (
-    <>
-      <TreeEntry node_id={props.node_id} prefix={props.prefix} />
-      <EdgeList node_id={props.node_id} prefix={props.prefix} />
-    </>
-  );
-};
+// React.memo optimization: Prevents unnecessary recursive re-renders of the tree structure when parent state changes.
+const TreeNode = React.memo(
+  (props: { node_id: types.TNodeId; prefix?: undefined | string }) => {
+    return (
+      <>
+        <TreeEntry node_id={props.node_id} prefix={props.prefix} />
+        <EdgeList node_id={props.node_id} prefix={props.prefix} />
+      </>
+    );
+  },
+);
+TreeNode.displayName = "TreeNode";
 
 const NonTodoQueueNodes = (props: {
   virtuosoRef: React.Ref<Rv.VirtuosoHandle>;
@@ -1022,75 +1023,85 @@ const NonTodoQueueNodes = (props: {
   );
 };
 
-const EdgeList = (props: {
-  node_id: types.TNodeId;
-  prefix?: undefined | string;
-}) => {
-  const children = utils.assertV(
-    useSelector((state) => state.swapped_nodes.children?.[props.node_id]),
-  );
-  const statuses = utils.assertV(
-    useSelector((state) => state.swapped_nodes.status),
-  );
-  const cs = utils.assertV(useSelector((state) => state.swapped_edges.c ?? {}));
-  const todos = Array<JSX.Element>();
-  const dones = Array<JSX.Element>();
-  const donts = Array<JSX.Element>();
-  for (const edgeId of ops.sorted_keys_of(children)) {
-    const c = cs[edgeId];
-    const status = statuses[c];
-    if (status === "todo") {
-      todos.push(<Edge edge_id={edgeId} key={edgeId} prefix={props.prefix} />);
-    } else if (status === "done") {
-      dones.push(<Edge edge_id={edgeId} key={edgeId} prefix={props.prefix} />);
-    } else if (status === "dont") {
-      donts.push(<Edge edge_id={edgeId} key={edgeId} prefix={props.prefix} />);
+// React.memo optimization: Prevents unnecessary recursive re-renders of the tree edges when parent state changes.
+const EdgeList = React.memo(
+  (props: { node_id: types.TNodeId; prefix?: undefined | string }) => {
+    const children = utils.assertV(
+      useSelector((state) => state.swapped_nodes.children?.[props.node_id]),
+    );
+    const statuses = utils.assertV(
+      useSelector((state) => state.swapped_nodes.status),
+    );
+    const cs = utils.assertV(
+      useSelector((state) => state.swapped_edges.c ?? {}),
+    );
+    const todos = Array<JSX.Element>();
+    const dones = Array<JSX.Element>();
+    const donts = Array<JSX.Element>();
+    for (const edgeId of ops.sorted_keys_of(children)) {
+      const c = cs[edgeId];
+      const status = statuses[c];
+      if (status === "todo") {
+        todos.push(
+          <Edge edge_id={edgeId} key={edgeId} prefix={props.prefix} />,
+        );
+      } else if (status === "done") {
+        dones.push(
+          <Edge edge_id={edgeId} key={edgeId} prefix={props.prefix} />,
+        );
+      } else if (status === "dont") {
+        donts.push(
+          <Edge edge_id={edgeId} key={edgeId} prefix={props.prefix} />,
+        );
+      }
     }
-  }
-  const edge_ids = ops.sorted_keys_of(children);
-  return edge_ids.length ? (
-    <ol className="list-outside pl-[4em] content-visibility-auto">
-      {todos.concat(dones, donts)}
-    </ol>
-  ) : null;
-};
+    const edge_ids = ops.sorted_keys_of(children);
+    return edge_ids.length ? (
+      <ol className="list-outside pl-[4em] content-visibility-auto">
+        {todos.concat(dones, donts)}
+      </ol>
+    ) : null;
+  },
+);
+EdgeList.displayName = "EdgeList";
 
-const Edge = (props: {
-  edge_id: types.TEdgeId;
-  prefix?: undefined | string;
-}) => {
-  const session = React.use(states.session_key_context);
-  const show_todo_only = Jotai.useAtomValue(
-    states.show_todo_only_atom_map.get(session),
-  );
-  const show_strong_edge_only = Jotai.useAtomValue(
-    states.show_strong_edge_only_atom_map.get(session),
-  );
-  const edgeHide = useSelector(
-    (state) => state.swapped_edges.hide?.[props.edge_id],
-  );
-  const edgeT = utils.assertV(
-    useSelector((state) => state.swapped_edges.t?.[props.edge_id]),
-  );
-  const edgeC = utils.assertV(
-    useSelector((state) => state.swapped_edges.c?.[props.edge_id]),
-  );
-  const childNodeStatus = utils.assertV(
-    useSelector((state) => state.swapped_nodes.status?.[edgeC]),
-  );
-  if (
-    edgeHide ||
-    (show_strong_edge_only && edgeT === "weak") ||
-    (show_todo_only && childNodeStatus !== "todo")
-  ) {
-    return null;
-  }
-  return (
-    <li>
-      <TreeNode node_id={edgeC} prefix={props.prefix} />
-    </li>
-  );
-};
+// React.memo optimization: Prevents unnecessary recursive re-renders of the tree structure when parent state changes.
+const Edge = React.memo(
+  (props: { edge_id: types.TEdgeId; prefix?: undefined | string }) => {
+    const session = React.use(states.session_key_context);
+    const show_todo_only = Jotai.useAtomValue(
+      states.show_todo_only_atom_map.get(session),
+    );
+    const show_strong_edge_only = Jotai.useAtomValue(
+      states.show_strong_edge_only_atom_map.get(session),
+    );
+    const edgeHide = useSelector(
+      (state) => state.swapped_edges.hide?.[props.edge_id],
+    );
+    const edgeT = utils.assertV(
+      useSelector((state) => state.swapped_edges.t?.[props.edge_id]),
+    );
+    const edgeC = utils.assertV(
+      useSelector((state) => state.swapped_edges.c?.[props.edge_id]),
+    );
+    const childNodeStatus = utils.assertV(
+      useSelector((state) => state.swapped_nodes.status?.[edgeC]),
+    );
+    if (
+      edgeHide ||
+      (show_strong_edge_only && edgeT === "weak") ||
+      (show_todo_only && childNodeStatus !== "todo")
+    ) {
+      return null;
+    }
+    return (
+      <li>
+        <TreeNode node_id={edgeC} prefix={props.prefix} />
+      </li>
+    );
+  },
+);
+Edge.displayName = "Edge";
 
 const MobileMenu = (props: {
   ctx: states.PersistentStateManager;
@@ -1237,62 +1248,63 @@ const MobileQueueNode = (props: { nodeId: types.TNodeId }) => {
   );
 };
 
-const TreeEntry = (props: {
-  node_id: types.TNodeId;
-  prefix?: undefined | string;
-}) => {
-  const leaf_estimates_sum = utils.assertV(
-    useSelector(
-      (state) => state.swapped_caches.leaf_estimates_sum?.[props.node_id],
-    ),
-  );
-  const percentiles = utils.assertV(
-    useSelector((state) => state.swapped_caches.percentiles?.[props.node_id]),
-  );
-  const status = utils.assertV(
-    useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
-  );
+// React.memo optimization: Prevents unnecessary recursive re-renders of the tree entry when parent state changes.
+const TreeEntry = React.memo(
+  (props: { node_id: types.TNodeId; prefix?: undefined | string }) => {
+    const leaf_estimates_sum = utils.assertV(
+      useSelector(
+        (state) => state.swapped_caches.leaf_estimates_sum?.[props.node_id],
+      ),
+    );
+    const percentiles = utils.assertV(
+      useSelector((state) => state.swapped_caches.percentiles?.[props.node_id]),
+    );
+    const status = utils.assertV(
+      useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
+    );
 
-  const to_queue = useToQueue(props.node_id);
-  const root = useSelector((state) => state.data.root);
-  const is_root = props.node_id === root;
-  const prefix = props.prefix || consts.TREE_PREFIX;
-  const handleKeyDown = hooks.useTaskShortcutKeys(props.node_id, prefix);
+    const to_queue = useToQueue(props.node_id);
+    const root = useSelector((state) => state.data.root);
+    const is_root = props.node_id === root;
+    const prefix = props.prefix || consts.TREE_PREFIX;
+    const handleKeyDown = hooks.useTaskShortcutKeys(props.node_id, prefix);
 
-  return (
-    <EntryWrapper node_id={props.node_id}>
-      <div className="flex items-end w-fit content-visibility-auto">
+    return (
+      <EntryWrapper node_id={props.node_id}>
+        <div className="flex items-end w-fit content-visibility-auto">
+          {is_root ? null : (
+            <TextArea
+              node_id={props.node_id}
+              id={`${prefix}${props.node_id}`}
+              className={utils.join(
+                "w-[29em] px-[0.75em] py-[0.5em]",
+                status === "done"
+                  ? "text-red-600 dark:text-red-400"
+                  : status === "dont"
+                    ? "text-neutral-500"
+                    : null,
+              )}
+              onKeyDown={handleKeyDown}
+            />
+          )}
+          <EntryInfos node_id={props.node_id} />
+        </div>
+        {status === "todo" &&
+          0 <= leaf_estimates_sum &&
+          utils.digits1(leaf_estimates_sum) + " | "}
+        {status === "todo" && percentiles.map(utils.digits1).join(", ")}
         {is_root ? null : (
-          <TextArea
+          <EntryButtons
             node_id={props.node_id}
-            id={`${prefix}${props.node_id}`}
-            className={utils.join(
-              "w-[29em] px-[0.75em] py-[0.5em]",
-              status === "done"
-                ? "text-red-600 dark:text-red-400"
-                : status === "dont"
-                  ? "text-neutral-500"
-                  : null,
-            )}
-            onKeyDown={handleKeyDown}
+            jumpButton={is_root ? null : <button onClick={to_queue}>→</button>}
+            prefix={prefix}
           />
         )}
-        <EntryInfos node_id={props.node_id} />
-      </div>
-      {status === "todo" &&
-        0 <= leaf_estimates_sum &&
-        utils.digits1(leaf_estimates_sum) + " | "}
-      {status === "todo" && percentiles.map(utils.digits1).join(", ")}
-      {is_root ? null : (
-        <EntryButtons
-          node_id={props.node_id}
-          jumpButton={is_root ? null : <button onClick={to_queue}>→</button>}
-          prefix={prefix}
-        />
-      )}
-    </EntryWrapper>
-  );
-};
+      </EntryWrapper>
+    );
+  },
+);
+TreeEntry.displayName = "TreeEntry";
 
 const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
   const leaf_estimates_sum = utils.assertV(
