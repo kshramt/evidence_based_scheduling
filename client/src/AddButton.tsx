@@ -29,6 +29,8 @@ export const AddButton = (props: {
     <button
       className="btn-icon"
       id={props.id}
+      title="Add child"
+      aria-label="Add child"
       onClick={handle_click}
       onDoubleClick={utils.prevent_propagation}
     >
