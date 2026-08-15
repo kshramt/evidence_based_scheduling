@@ -14,6 +14,8 @@ export const DoneOrDontToTodoButton = (props: { node_id: types.TNodeId }) => {
   return (
     <button
       className="btn-icon"
+      title="Undo status"
+      aria-label="Undo status"
       onClick={on_click}
       onDoubleClick={utils.prevent_propagation}
     >

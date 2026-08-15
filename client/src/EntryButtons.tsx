@@ -58,6 +58,8 @@ const MoveUpButton = (props: { node_id: types.TNodeId }) => {
   return (
     <button
       className="btn-icon"
+      title="Move up"
+      aria-label="Move up"
       onClick={on_click}
       ref={moveUpButtonRefOf(props.node_id)}
       onDoubleClick={utils.prevent_propagation}
@@ -77,6 +79,8 @@ const MoveDownButton = (props: { node_id: types.TNodeId }) => {
   return (
     <button
       className="btn-icon"
+      title="Move down"
+      aria-label="Move down"
       onClick={on_click}
       ref={moveDownButtonRefOf(props.node_id)}
       onDoubleClick={utils.prevent_propagation}
