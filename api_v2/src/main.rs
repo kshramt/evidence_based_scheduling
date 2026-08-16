@@ -1,6 +1,6 @@
 use axum::{
     extract::{FromRequestParts, Path, Query, State},
-    http::request::Parts,
+    http::{self, request::Parts},
     Json, RequestPartsExt,
 };
 use axum_extra::{
@@ -13,6 +13,7 @@ use std::{
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
+use tower_http::set_header::SetResponseHeaderLayer;
 use tracing::{debug, info, instrument};
 use tracing_subscriber::EnvFilter;
 
@@ -388,7 +389,21 @@ async fn main() {
     let app = axum::Router::new();
     let app = gen::register_app::<ApiImpl>(app);
     let app = app.with_state(state);
+    // Security enhancement: Add restrictive HTTP security headers to improve defense in depth against XSS, clickjacking, and MIME sniffing attacks.
+    // CSP 'default-src none' is safe here since this is a pure JSON API and serves no HTML.
     let app = app
+        .layer(SetResponseHeaderLayer::overriding(
+            http::header::CONTENT_SECURITY_POLICY,
+            http::HeaderValue::from_static("default-src 'none'"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            http::header::X_CONTENT_TYPE_OPTIONS,
+            http::HeaderValue::from_static("nosniff"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            http::header::X_FRAME_OPTIONS,
+            http::HeaderValue::from_static("DENY"),
+        ))
         .layer(tower_http::trace::TraceLayer::new_for_http())
         .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
 
