@@ -1,0 +1,3 @@
+## 2024-05-18 - React.memo Component with ReactNode Props
+**Learning:** React.memo() relies on shallow comparison of props. If a component receives a `React.ReactNode` as a prop (like `jumpButton={<button onClick={to_queue}>→</button>}`), an inline JSX element will create a new reference on every render of the parent component, causing the shallow comparison to fail and defeating the purpose of `React.memo()`. For the memoization to be effective, the `ReactNode` prop must be either `null`, static, or memoized by the parent (e.g., using `useMemo`).
+**Action:** When applying `React.memo()` to a component that receives JSX/React elements as props, ensure the parent component passes stable references, otherwise the optimization becomes a micro-pessimization.

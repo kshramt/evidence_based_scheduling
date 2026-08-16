@@ -1258,6 +1258,10 @@ const TreeEntry = (props: {
   const is_root = props.node_id === root;
   const prefix = props.prefix || consts.TREE_PREFIX;
   const handleKeyDown = hooks.useTaskShortcutKeys(props.node_id, prefix);
+  const jumpButton = React.useMemo(
+    () => (is_root ? null : <button onClick={to_queue}>→</button>),
+    [is_root, to_queue],
+  );
 
   return (
     <EntryWrapper node_id={props.node_id}>
@@ -1286,7 +1290,7 @@ const TreeEntry = (props: {
       {is_root ? null : (
         <EntryButtons
           node_id={props.node_id}
-          jumpButton={is_root ? null : <button onClick={to_queue}>→</button>}
+          jumpButton={jumpButton}
           prefix={prefix}
         />
       )}

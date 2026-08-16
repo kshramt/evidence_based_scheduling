@@ -16,7 +16,8 @@ import * as types from "./types";
 import * as utils from "./utils";
 import CopyNodeIdButton from "./CopyNodeIdButton";
 
-export const EntryButtons = (props: {
+// ⚡ Bolt: Wrapped EntryButtons in React.memo to prevent unnecessary re-renders when parent components update.
+const EntryButtonsComponent = (props: {
   node_id: types.TNodeId;
   jumpButton: React.ReactNode;
   prefix?: string;
@@ -47,6 +48,9 @@ export const EntryButtons = (props: {
     </div>
   );
 };
+
+export const EntryButtons = React.memo(EntryButtonsComponent);
+EntryButtons.displayName = "EntryButtons";
 
 const MoveUpButton = (props: { node_id: types.TNodeId }) => {
   const dispatch = useDispatch();
