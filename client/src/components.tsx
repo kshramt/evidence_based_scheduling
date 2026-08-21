@@ -1237,62 +1237,68 @@ const MobileQueueNode = (props: { nodeId: types.TNodeId }) => {
   );
 };
 
-const TreeEntry = (props: {
-  node_id: types.TNodeId;
-  prefix?: undefined | string;
-}) => {
-  const leaf_estimates_sum = utils.assertV(
-    useSelector(
-      (state) => state.swapped_caches.leaf_estimates_sum?.[props.node_id],
-    ),
-  );
-  const percentiles = utils.assertV(
-    useSelector((state) => state.swapped_caches.percentiles?.[props.node_id]),
-  );
-  const status = utils.assertV(
-    useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
-  );
+// ⚡ Bolt: Wrapped TreeEntry in React.memo to prevent unnecessary re-renders in the tree view when parent state changes.
+const TreeEntry = React.memo(
+  (props: { node_id: types.TNodeId; prefix?: undefined | string }) => {
+    const leaf_estimates_sum = utils.assertV(
+      useSelector(
+        (state) => state.swapped_caches.leaf_estimates_sum?.[props.node_id],
+      ),
+    );
+    const percentiles = utils.assertV(
+      useSelector((state) => state.swapped_caches.percentiles?.[props.node_id]),
+    );
+    const status = utils.assertV(
+      useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
+    );
 
-  const to_queue = useToQueue(props.node_id);
-  const root = useSelector((state) => state.data.root);
-  const is_root = props.node_id === root;
-  const prefix = props.prefix || consts.TREE_PREFIX;
-  const handleKeyDown = hooks.useTaskShortcutKeys(props.node_id, prefix);
+    const to_queue = useToQueue(props.node_id);
+    const root = useSelector((state) => state.data.root);
+    const is_root = props.node_id === root;
+    const prefix = props.prefix || consts.TREE_PREFIX;
+    const handleKeyDown = hooks.useTaskShortcutKeys(props.node_id, prefix);
 
-  return (
-    <EntryWrapper node_id={props.node_id}>
-      <div className="flex items-end w-fit content-visibility-auto">
+    const jumpButton = React.useMemo(
+      () => (is_root ? null : <button onClick={to_queue}>→</button>),
+      [is_root, to_queue],
+    );
+
+    return (
+      <EntryWrapper node_id={props.node_id}>
+        <div className="flex items-end w-fit content-visibility-auto">
+          {is_root ? null : (
+            <TextArea
+              node_id={props.node_id}
+              id={`${prefix}${props.node_id}`}
+              className={utils.join(
+                "w-[29em] px-[0.75em] py-[0.5em]",
+                status === "done"
+                  ? "text-red-600 dark:text-red-400"
+                  : status === "dont"
+                    ? "text-neutral-500"
+                    : null,
+              )}
+              onKeyDown={handleKeyDown}
+            />
+          )}
+          <EntryInfos node_id={props.node_id} />
+        </div>
+        {status === "todo" &&
+          0 <= leaf_estimates_sum &&
+          utils.digits1(leaf_estimates_sum) + " | "}
+        {status === "todo" && percentiles.map(utils.digits1).join(", ")}
         {is_root ? null : (
-          <TextArea
+          <EntryButtons
             node_id={props.node_id}
-            id={`${prefix}${props.node_id}`}
-            className={utils.join(
-              "w-[29em] px-[0.75em] py-[0.5em]",
-              status === "done"
-                ? "text-red-600 dark:text-red-400"
-                : status === "dont"
-                  ? "text-neutral-500"
-                  : null,
-            )}
-            onKeyDown={handleKeyDown}
+            jumpButton={jumpButton}
+            prefix={prefix}
           />
         )}
-        <EntryInfos node_id={props.node_id} />
-      </div>
-      {status === "todo" &&
-        0 <= leaf_estimates_sum &&
-        utils.digits1(leaf_estimates_sum) + " | "}
-      {status === "todo" && percentiles.map(utils.digits1).join(", ")}
-      {is_root ? null : (
-        <EntryButtons
-          node_id={props.node_id}
-          jumpButton={is_root ? null : <button onClick={to_queue}>→</button>}
-          prefix={prefix}
-        />
-      )}
-    </EntryWrapper>
-  );
-};
+      </EntryWrapper>
+    );
+  },
+);
+TreeEntry.displayName = "TreeEntry";
 
 const MobileEntryButtons = (props: { node_id: types.TNodeId }) => {
   const leaf_estimates_sum = utils.assertV(
