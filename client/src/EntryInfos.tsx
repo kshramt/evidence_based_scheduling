@@ -7,7 +7,8 @@ import { TotalTime } from "./TotalTime";
 import { useSelector } from "./types";
 import * as types from "./types";
 
-export const EntryInfos = (props: { node_id: types.TNodeId }) => {
+export const EntryInfos = React.memo((props: { node_id: types.TNodeId }) => {
+  /* ⚡ Bolt: React.memo() prevents unnecessary re-renders in large queue/tree views */
   const root = useSelector((state) => state.data.root);
   const is_root = props.node_id === root;
 
@@ -18,4 +19,5 @@ export const EntryInfos = (props: { node_id: types.TNodeId }) => {
       {is_root || <LastRange node_id={props.node_id} />}
     </div>
   );
-};
+});
+EntryInfos.displayName = "EntryInfos";
