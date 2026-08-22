@@ -1,0 +1,18 @@
+🎨 Palette: Add aria-labels to core icon-only buttons
+
+💡 What:
+Added `aria-label` and `title` attributes to four core icon-only buttons:
+- `StartButton` ("Start")
+- `TodoToDoneButton` ("Mark as done")
+- `AddButton` ("Add child node")
+- `TodoToDontButton` ("Mark as won't do")
+
+🎯 Why:
+Icon-only buttons without text content are completely invisible to screen readers, making the application inaccessible for users relying on assistive technologies. Adding descriptive text makes these primary actions comprehensible and usable for all users. The addition of the `title` attribute also provides helpful tooltips for sighted users.
+
+📸 Before/After:
+Before: Buttons rendered as `<button className="btn-icon">{consts.MARK}</button>`. Screen readers announced them vaguely (e.g., "button").
+After: Buttons include explicit `aria-label` and `title` attributes (e.g., `<button aria-label="Start" title="Start">...`). Screen readers accurately announce the button's action.
+
+♿ Accessibility:
+Significantly improves keyboard and screen reader navigation by ensuring all users understand the purpose and result of clicking these primary interaction buttons.
