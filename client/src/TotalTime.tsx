@@ -5,7 +5,8 @@ import { useDispatch, useSelector } from "./types";
 import * as types from "./types";
 import * as utils from "./utils";
 
-export const TotalTime = (props: { node_id: types.TNodeId }) => {
+export const TotalTime = React.memo((props: { node_id: types.TNodeId }) => {
+  /* ⚡ Bolt: React.memo() prevents unnecessary re-renders when parent entry wrappers re-render */
   const total_time = utils.assertV(
     useSelector((state) => state.swapped_caches.total_time?.[props.node_id]),
   );
@@ -26,4 +27,5 @@ export const TotalTime = (props: { node_id: types.TNodeId }) => {
       {total_time < 0 ? "-" : utils.digits1(total_time / (1000 * 3600))}
     </span>
   );
-};
+});
+TotalTime.displayName = "TotalTime";
