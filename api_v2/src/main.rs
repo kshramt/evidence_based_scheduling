@@ -390,7 +390,23 @@ async fn main() {
     let app = app.with_state(state);
     let app = app
         .layer(tower_http::trace::TraceLayer::new_for_http())
-        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
+        .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024))
+        // 🛡️ Sentinel: Security headers to protect against common web vulnerabilities
+        // - X-Content-Type-Options: Prevents MIME-sniffing
+        // - X-Frame-Options: Prevents Clickjacking
+        // - Content-Security-Policy: Mitigates XSS and data injection (strict since this is a data API)
+        .layer(tower_http::set_header::SetResponseHeaderLayer::appending(
+            axum::http::header::X_CONTENT_TYPE_OPTIONS,
+            axum::http::HeaderValue::from_static("nosniff"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::appending(
+            axum::http::header::X_FRAME_OPTIONS,
+            axum::http::HeaderValue::from_static("DENY"),
+        ))
+        .layer(tower_http::set_header::SetResponseHeaderLayer::appending(
+            axum::http::header::CONTENT_SECURITY_POLICY,
+            axum::http::HeaderValue::from_static("default-src 'none'"),
+        ));
 
     let port = get_server_port();
     info!(port = ?port);
