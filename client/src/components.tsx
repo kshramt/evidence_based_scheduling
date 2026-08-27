@@ -995,17 +995,19 @@ const DndTreeNode = (props: { node_id: types.TNodeId }) => {
   );
 };
 
-const TreeNode = (props: {
-  node_id: types.TNodeId;
-  prefix?: undefined | string;
-}) => {
-  return (
-    <>
-      <TreeEntry node_id={props.node_id} prefix={props.prefix} />
-      <EdgeList node_id={props.node_id} prefix={props.prefix} />
-    </>
-  );
-};
+// ⚡ Bolt: Memoize TreeNode to prevent unnecessary recursive re-renders of the task tree when parent components update.
+// This significantly improves React reconciliation performance for deep task hierarchies since its props (node_id and prefix) are primitive strings.
+const TreeNode = React.memo(
+  (props: { node_id: types.TNodeId; prefix?: undefined | string }) => {
+    return (
+      <>
+        <TreeEntry node_id={props.node_id} prefix={props.prefix} />
+        <EdgeList node_id={props.node_id} prefix={props.prefix} />
+      </>
+    );
+  },
+);
+TreeNode.displayName = "TreeNode";
 
 const NonTodoQueueNodes = (props: {
   virtuosoRef: React.Ref<Rv.VirtuosoHandle>;
