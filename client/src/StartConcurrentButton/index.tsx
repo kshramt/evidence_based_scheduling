@@ -15,6 +15,7 @@ const StartConcurrentButton = (props: { node_id: types.TNodeId }) => {
   return (
     <button
       className="btn-icon"
+      aria-label="Start Concurrently."
       onClick={on_click}
       onDoubleClick={utils.prevent_propagation}
     >
