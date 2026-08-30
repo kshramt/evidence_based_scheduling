@@ -78,7 +78,16 @@ const NonTodoQueueEntry = (props: {
       </div>
       <EntryButtons
         node_id={props.node_id}
-        jumpButton={<button onClick={to_tree}>←</button>}
+        jumpButton={
+          <button
+            className="btn-icon"
+            onClick={to_tree}
+            aria-label="Jump to tree view"
+            title="Jump to tree view"
+          >
+            ←
+          </button>
+        }
       />
     </EntryWrapper>
   );
