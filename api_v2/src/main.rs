@@ -390,6 +390,11 @@ async fn main() {
     let app = app.with_state(state);
     let app = app
         .layer(tower_http::trace::TraceLayer::new_for_http())
+        // 🛡️ Sentinel: Add strict CSP to completely block XSS and malicious resource loading since this API serves no HTML
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::CONTENT_SECURITY_POLICY,
+            axum::http::HeaderValue::from_static("default-src 'none'"),
+        ))
         .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
 
     let port = get_server_port();
