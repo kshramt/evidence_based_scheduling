@@ -390,6 +390,11 @@ async fn main() {
     let app = app.with_state(state);
     let app = app
         .layer(tower_http::trace::TraceLayer::new_for_http())
+        // SECURITY: Apply strict CSP for API to prevent unexpected content execution
+        .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+            axum::http::header::CONTENT_SECURITY_POLICY,
+            axum::http::HeaderValue::from_static("default-src 'none';"),
+        ))
         .layer(axum::extract::DefaultBodyLimit::max(40 * 1024 * 1024));
 
     let port = get_server_port();
