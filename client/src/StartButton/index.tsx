@@ -17,6 +17,8 @@ const StartButton = (props: { node_id: types.TNodeId }) => {
       className="btn-icon"
       onClick={on_click}
       onDoubleClick={utils.prevent_propagation}
+      title="Start task"
+      aria-label="Start task"
     >
       {consts.START_MARK}
     </button>
