@@ -17,32 +17,38 @@ import * as types from "./types";
 import * as utils from "./utils";
 import TopButton from "./TopButton";
 
-export const QueueEntry = (props: {
-  node_id: types.TNodeId;
-  index: number;
-}) => {
-  const exists = useRawSelector((state) =>
-    Object.hasOwn(state.data.nodes, props.node_id),
-  );
-  return exists ? (
-    <_QueueEntry node_id={props.node_id} index={props.index} />
-  ) : (
-    <div className="w-[1px] h-[1px]" /> // `null` is not allowed as Virtuoso does not allow 0-height elements.
-  );
-};
+export const QueueEntry = React.memo(
+  (props: { node_id: types.TNodeId; index: number }) => {
+    // ⚡ Bolt: Memoize QueueEntry to prevent unnecessary re-renders of virtualized list items
+    // when parent components update, significantly reducing React render times during scrolling.
+    const exists = useRawSelector((state) =>
+      Object.hasOwn(state.data.nodes, props.node_id),
+    );
+    return exists ? (
+      <_QueueEntry node_id={props.node_id} index={props.index} />
+    ) : (
+      <div className="w-[1px] h-[1px]" /> // `null` is not allowed as Virtuoso does not allow 0-height elements.
+    );
+  },
+);
+QueueEntry.displayName = "QueueEntry";
 
-const _QueueEntry = (props: { node_id: types.TNodeId; index: number }) => {
-  const isTodo =
-    utils.assertV(
-      useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
-    ) === "todo";
+const _QueueEntry = React.memo(
+  (props: { node_id: types.TNodeId; index: number }) => {
+    // ⚡ Bolt: Memoize internal _QueueEntry to avoid cascading renders.
+    const isTodo =
+      utils.assertV(
+        useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
+      ) === "todo";
 
-  return isTodo ? (
-    <TodoQueueEntry node_id={props.node_id} index={props.index} />
-  ) : (
-    <NonTodoQueueEntry node_id={props.node_id} index={props.index} />
-  );
-};
+    return isTodo ? (
+      <TodoQueueEntry node_id={props.node_id} index={props.index} />
+    ) : (
+      <NonTodoQueueEntry node_id={props.node_id} index={props.index} />
+    );
+  },
+);
+_QueueEntry.displayName = "_QueueEntry";
 
 const NonTodoQueueEntry = (props: {
   node_id: types.TNodeId;
