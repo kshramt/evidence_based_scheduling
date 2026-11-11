@@ -17,17 +17,50 @@ TAG=latest-linux-amd64 _POSTGRES_PASSWORD=postgres_password _POSTGRES_APP_USER_P
 
 == Development
 
+=== Local tools
+
+Install https://mise.jdx.dev/installing-mise.html[mise] (on macOS with Homebrew, `brew install mise`). Run these commands from the repository root.
+
+[source,bash]
+----
+mise install
+mise exec -- pnpm install --frozen-lockfile
+mise exec -- pnpm --dir client exec playwright install chromium
+----
+
+Run the client checks, which launch Chromium.
+
+[source,bash]
+----
+mise exec -- make check
+----
+
+On macOS 26.5.2, the Chromium build bundled with Playwright 1.40.1 can crash on startup.
+
+When updating a tool version, update `mise.toml` and the corresponding Dockerfile pin together. Run the pin check with the project's Python version.
+
+[source,bash]
+----
+mise exec -- uv run --no-project --python 3.12.4 python -B tests/test_toolchain.py
+----
+
+=== Run the app locally
+
+Start the app and its services with Docker Compose.
+
 [source,bash]
 ----
 MY_HOST_PGDATA=./pgdata1 _POSTGRES_PASSWORD=postgres_password _POSTGRES_APP_USER_PASSWORD=postgres_app_user_password docker compose -f compose.yaml -f compose.dev.yaml up --build
 ----
 
+Open `http://localhost:8080/app/`. To work on the client with Vite, keep Compose running and start Vite in a second terminal.
+
 [source,bash]
 ----
-BROWSER=none npx -w client vite dev --port 3122
-# LOCALHOST=host.docker.internal BROWSER=none npx -w client vite dev --port 3122
-xdg-open http://localhost:3122
+mise exec -- pnpm --dir client dev --port 3122
 ----
+
+Open `http://localhost:3122`.
 
 === DevContainer
 
@@ -45,6 +78,6 @@ $ sudo chown <you>:<you> ~/.cargo
 
 [source,bash]
 ----
-npx openapi-zod-client ../openapi/api_v2.yaml  -o src/gen/api/v2.ts
+mise exec -- pnpm --dir client exec openapi-zod-client ../openapi/api_v2.yaml -o src/gen/api/v2.ts
 ----
 

@@ -47,7 +47,7 @@ ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 
 FROM node:22.16.0-bookworm-slim AS node_downloader
-RUN npm install -g pnpm@latest
+RUN npm install -g pnpm@10.4.1
 
 FROM node_downloader AS firebase_downloader
 RUN npm install --cache /tmp/empty-cache -g firebase-tools@13.16.0 \
