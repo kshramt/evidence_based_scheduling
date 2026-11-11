@@ -1,0 +1,6 @@
+[tools]
+node = "22.16.0"
+pnpm = "10.4.1"
+rust = { version = "1.87.0", profile = "minimal", components = ["clippy", "rustfmt"] }
+uv = "0.7.12"
+deno = "2.6.3"
