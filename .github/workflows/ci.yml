@@ -66,7 +66,12 @@ jobs:
       # - name: Free up space
       #   run: sudo rm -fr /opt/ghc /usr/share/dotnet /usr/local/lib/android || true
       - uses: actions/checkout@v6
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
+        with:
+          # Give the BuildKit daemon the runner's network for package mirror DNS.
+          driver-opts: network=host
+      - name: Verify Ubuntu package installation with BuildKit
+        run: docker buildx build --platform ${{ matrix.os }}/${{ matrix.arch }} --target build_essential_base .
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io

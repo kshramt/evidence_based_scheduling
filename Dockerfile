@@ -19,7 +19,7 @@ ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 # RUN arch="$(dpkg --print-architecture)" && curl -sSf -L -o /usr/local/bin/starpls "https://github.com/withered-magic/starpls/releases/download/v0.1.14/starpls-linux-${arch}" && chmod +x /usr/local/bin/starpls
 
 FROM ubuntu_base AS build_essential_base
-RUN apt-get update \
+RUN apt-get update --error-on=any \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
    build-essential \
    ca-certificates \
