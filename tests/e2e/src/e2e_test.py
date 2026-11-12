@@ -52,9 +52,14 @@ async def _open_auth(
 
 
 async def _wait_for_desktop(page: playwright.async_api.Page) -> None:
+    skip_storage = page.locator("#skip-persistent-storage-check")
     continue_button = page.get_by_role("button", name="Continue", exact=True)
     add_root = page.locator("#add-root-button")
-    await continue_button.or_(add_root).first.wait_for()
+    ready = continue_button.or_(add_root)
+    await skip_storage.or_(ready).first.wait_for()
+    if await skip_storage.is_visible():
+        await skip_storage.click()
+    await ready.first.wait_for()
     if await continue_button.is_visible():
         await continue_button.click()
     await add_root.wait_for()
