@@ -28,6 +28,19 @@ class ToolchainTest(unittest.TestCase):
                 self.assertRegex(mise_version, r"^\d+\.\d+\.\d+$")
                 self.assertEqual(versions, [mise_version])
 
+    def test_playwright_versions_match(self) -> None:
+        workspace = (ROOT / "pnpm-workspace.yaml").read_text(encoding="utf-8")
+        with (ROOT / "tests/e2e/pyproject.toml").open("rb") as config_file:
+            dependencies = tomllib.load(config_file)["project"]["dependencies"]
+        node_versions = re.findall(r"(?m)^  playwright: (\d+\.\d+\.\d+)$", workspace)
+        python_versions = [
+            version
+            for dependency in dependencies
+            if (version := re.fullmatch(r"playwright == (\d+\.\d+\.\d+)", dependency))
+        ]
+        self.assertEqual(len(node_versions), 1)
+        self.assertEqual([version[1] for version in python_versions], node_versions)
+
 
 if __name__ == "__main__":
     unittest.main()

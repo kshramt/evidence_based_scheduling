@@ -246,7 +246,7 @@ RUN pnpm install --frozen-lockfile
 
 FROM client_npm_ci AS builder_client
 COPY --link client client
-RUN cd client && pnpm exec playwright install
+RUN cd client && pnpm exec playwright install chromium
 
 FROM builder_client AS test_client
 RUN cd client && scripts/check.sh
@@ -322,8 +322,7 @@ RUN --mount=type=cache,target=/root/.cache \
     --mount=type=bind,source=tests/e2e/pyproject.toml,target=pyproject.toml \
     --mount=type=bind,source=tests/e2e/uv.lock,target=uv.lock \
    uv sync --frozen
-RUN .venv/bin/python3 -m playwright install-deps \
-      && .venv/bin/python3 -m playwright install
+RUN .venv/bin/python3 -m playwright install --with-deps chromium
 COPY --link --from=download_docker /usr/local/bin/docker /usr/local/bin/docker
 COPY --link --from=download_docker /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
 COPY --link --from=download_docker /usr/local/libexec/docker/cli-plugins/docker-buildx /usr/local/libexec/docker/cli-plugins/docker-buildx

@@ -11,7 +11,6 @@ catalog:
   "@mantine/form": ^7.3.2
   "@mantine/hooks": ^7.3.2
   "@mantine/notifications": ^7.3.2
-  "@playwright/experimental-ct-react": ^1.40.1
   "@reduxjs/toolkit": ^2.0.1
   "@types/node": ^20.10.6
   "@types/react": npm:types-react@rc
@@ -39,7 +38,7 @@ catalog:
   immer: ^10.0.3
   jotai: ^2.6.1
   openapi-zod-client: ^1.15.0
-  playwright: ^1.40.1
+  playwright: 1.64.1
   postcss: ^8.4.32
   prettier: ^3.1.1
   react: ^19.0.0-rc-14a4699f-20240725
