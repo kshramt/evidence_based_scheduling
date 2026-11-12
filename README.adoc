@@ -10,6 +10,43 @@ This is a TODO application, which offers the following features:
 
 == Usage
 
+=== Deploy on the Linux amd64 server
+
+Keep the existing checkout on the server so Compose continues to use the same project and PostgreSQL data directory. Check that `docker --context rootless info` connects to the daemon you currently use. If the context does not exist, create it once.
+
+[source,bash]
+----
+docker context create rootless --docker "host=unix:///run/user/$(id -u)/docker.sock"
+----
+
+Create `~/.config/evidence-based-scheduling/deploy.env` on the server with mode `0600`. Use the current database passwords. If you already set `MY_HOST_PGDATA` or custom ports, carry those settings over.
+
+[source,bash]
+----
+install -d -m 700 ~/.config/evidence-based-scheduling
+(umask 077 && touch ~/.config/evidence-based-scheduling/deploy.env)
+chmod 600 ~/.config/evidence-based-scheduling/deploy.env
+${EDITOR:-vi} ~/.config/evidence-based-scheduling/deploy.env
+----
+
+[source,dotenv]
+----
+_POSTGRES_PASSWORD='existing-postgres-password'
+_POSTGRES_APP_USER_PASSWORD='existing-app-password'
+----
+
+After the main CI run has published the images, SSH in, enter the existing checkout on `main`, and run the following command.
+
+[source,bash]
+----
+git pull --ff-only origin main && scripts/deploy.sh
+curl -fsS http://127.0.0.1:8080/healthz
+----
+
+Use the configured Envoy HTTP port in the health check. The deploy script uses the checked-out commit's `h-<sha>-linux-amd64` tag for all images. Compose pulls the images before recreating any containers. If a pull fails, retry once the images are available.
+
+=== Start with an explicit image tag
+
 [source,bash]
 ----
 TAG=latest-linux-amd64 _POSTGRES_PASSWORD=postgres_password _POSTGRES_APP_USER_PASSWORD=postgres_app_user_password scripts/launch.sh
