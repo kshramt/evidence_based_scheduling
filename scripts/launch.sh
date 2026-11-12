@@ -18,13 +18,15 @@ export _DOCKER_POSTGRES_MIGRATION_TAG="${TAG:-latest}"
 
 mkdir -p "${MY_HOST_PGDATA:-./pgdata}"
 
-if [[ "${ENV:-prod}" = "prod" ]]; then
+environment="${ENV:-prod}"
+compose=(docker compose "$@" -f compose.yaml -f "compose.${environment}.yaml")
+
+if [[ "${environment}" = "prod" ]]; then
 	if [[ "${PULL:-yes}" = "yes" ]]; then
-		docker compose -f compose.yaml -f "compose.${ENV:-prod}.yaml" pull
+		"${compose[@]}" pull
 	fi
 else
-	docker compose -f compose.yaml -f "compose.${ENV:-prod}.yaml" build
+	"${compose[@]}" build
 fi
 
-# Start
-docker compose -f compose.yaml -f "compose.${ENV:-prod}.yaml" up -d
+"${compose[@]}" up -d
