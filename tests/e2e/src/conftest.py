@@ -109,15 +109,16 @@ async def compose_up(
 
 @pytest.fixture
 async def envoy_waiter(compose_up: None, my_host: str) -> None:
-    uri = f"http://{my_host}:{os.environ['ENVOY_HTTP_PORT']}"
+    uri = f"http://{my_host}:{os.environ['ENVOY_HTTP_PORT']}/api/v2/sys/health"
     async with httpx.AsyncClient() as client:
         i = -1
         while True:
             i += 1
             try:
-                await client.get(uri)
+                response = await client.get(uri)
+                response.raise_for_status()
                 return
-            except Exception:
+            except httpx.HTTPError:
                 if 100 <= i:
                     raise
             await asyncio.sleep(0.1)

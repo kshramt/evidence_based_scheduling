@@ -68,7 +68,7 @@ if [[ "${os}" = "${host_os}" && "${arch}" = "${host_arch}" ]]; then
 
 	i=0
 	for _i in {1..10}; do
-		if curl localhost:8080/healthz; then
+		if curl -fsS --max-time 5 http://127.0.0.1:8080/api/v2/sys/health; then
 			break
 		fi
 		((++i))
