@@ -24,6 +24,11 @@ type TClientV2 = ReturnType<typeof v2.createApiClient>;
 
 const retryer = new retryers.Retryer();
 
+const sameHead = (a: storage.THead, b: storage.THead) =>
+  a.client_id === b.client_id &&
+  a.session_id === b.session_id &&
+  a.patch_id === b.patch_id;
+
 export const nodeFilterQueryState = Jotai.atom("");
 export const nodeIdsState = Jotai.atom("");
 
@@ -258,6 +263,9 @@ export class PersistentStateManager {
     void this.#run_rpc_loop();
     void this.#runPushLocalPatchesLoop();
     void this.#run_patch_saving_loop();
+    if (!sameHead(heads.parent, heads.remote)) {
+      this.#headQueue.push(heads.parent);
+    }
   }
 
   #currentHead = () => {
@@ -443,12 +451,7 @@ export class PersistentStateManager {
     newRemoteHead: storage.THead,
   ) => {
     const bearer = utils.get_bearer(this.id_token);
-    if (
-      newRemoteHead.client_id === this.heads.remote.client_id &&
-      newRemoteHead.session_id === this.heads.remote.session_id &&
-      newRemoteHead.patch_id === this.heads.remote.patch_id
-    ) {
-      // This branch will not happen.
+    if (sameHead(newRemoteHead, this.heads.remote)) {
       return;
     }
     await this.#push_rpc(
@@ -481,6 +484,11 @@ export class PersistentStateManager {
               this.db,
               retryer.with_retry,
             );
+            if (sameHead(resp, newRemoteHead)) {
+              await this.#save_remote_head(newRemoteHead);
+              this.#sync_store.set_state(() => null);
+              return;
+            }
             this.#sync_store.set_state(() => {
               console.debug(
                 "#update_remote_head_if_not_modified/sync_store/conflict",
@@ -653,11 +661,7 @@ export class PersistentStateManager {
           this.id_token,
           this.db,
         );
-        if (
-          resp.client_id === this.heads.remote.client_id &&
-          resp.session_id === this.heads.remote.session_id &&
-          resp.patch_id === this.heads.remote.patch_id
-        ) {
+        if (sameHead(resp, this.heads.remote)) {
           this.#sync_store.set_state(() => null);
         } else {
           this.#sync_store.set_state(() => {
