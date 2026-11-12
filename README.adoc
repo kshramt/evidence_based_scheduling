@@ -79,7 +79,7 @@ Run the client checks, which launch Chromium.
 mise exec -- make check
 ----
 
-On macOS 26.5.2, the Chromium build bundled with Playwright 1.40.1 can crash on startup.
+After updating Playwright, rerun the Chromium installation command before running the client checks.
 
 When updating a tool version, update `mise.toml` and the corresponding Dockerfile pin together. Run the pin check with the project's Python version.
 
