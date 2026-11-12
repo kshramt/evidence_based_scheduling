@@ -20,9 +20,9 @@ catalog:
   "@typescript-eslint/eslint-plugin": ^6.16.0
   "@typescript-eslint/parser": ^6.16.0
   "@vitejs/plugin-react": ^4.3.1
-  "@vitest/browser": ^1.1.0
-  "@vitest/coverage-istanbul": ^1.1.0
-  "@vitest/ui": ^1.1.0
+  "@vitest/browser": ^1.6.1
+  "@vitest/coverage-istanbul": ^1.6.1
+  "@vitest/ui": ^1.6.1
   "@zodios/core": ^10.9.6
   autoprefixer: ^10.4.21
   babel-plugin-react-compiler: 0.0.0-experimental-334f00b-20240725
@@ -54,7 +54,7 @@ catalog:
   typescript: ^5.5.4
   vite: ^5.0.10
   "vite-plugin-pwa": ^0.17.4
-  vitest: ^1.1.0
+  vitest: ^1.6.1
   workbox-core: ^7.0.0
   "workbox-expiration": ^7.0.0
   "workbox-precaching": ^7.0.0

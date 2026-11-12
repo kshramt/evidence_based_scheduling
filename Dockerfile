@@ -14,12 +14,14 @@ FROM mvdan/shfmt:v3.10.0-alpine AS download_shfmt
 FROM ubuntu:22.04 AS ubuntu_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
+# Use a mirror that carries all Jammy pockets, including jammy-security.
+RUN sed -i -E 's@http://(archive|security)\.ubuntu\.com/@http://mirrors.edge.kernel.org/@g' /etc/apt/sources.list
 
 # FROM curl_base AS starpls_downloader
 # RUN arch="$(dpkg --print-architecture)" && curl -sSf -L -o /usr/local/bin/starpls "https://github.com/withered-magic/starpls/releases/download/v0.1.14/starpls-linux-${arch}" && chmod +x /usr/local/bin/starpls
 
 FROM ubuntu_base AS build_essential_base
-RUN apt-get update \
+RUN apt-get update --error-on=any \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
    build-essential \
    ca-certificates \
