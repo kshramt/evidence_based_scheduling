@@ -7,15 +7,15 @@ FROM ghcr.io/astral-sh/ruff:0.14.2 AS download_ruff
 
 FROM ghcr.io/astral-sh/uv:0.7.12 AS download_uv
 
-FROM koalaman/shellcheck-alpine:0.10.0 AS download_shellcheck
+FROM koalaman/shellcheck-alpine:v0.10.0 AS download_shellcheck
 
 FROM mvdan/shfmt:v3.10.0-alpine AS download_shfmt
 
-FROM ubuntu:22.04 AS ubuntu_base
+FROM ubuntu:26.04 AS ubuntu_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
-# Use a mirror that carries all Jammy pockets, including jammy-security.
-RUN sed -i -E 's@http://(archive|security)\.ubuntu\.com/@http://mirrors.edge.kernel.org/@g' /etc/apt/sources.list
+# Use a mirror that carries the archive and security pockets.
+RUN sed -i -E 's@http://(archive|security)\.ubuntu\.com/@http://mirrors.edge.kernel.org/@g' /etc/apt/sources.list.d/ubuntu.sources
 
 # FROM curl_base AS starpls_downloader
 # RUN arch="$(dpkg --print-architecture)" && curl -sSf -L -o /usr/local/bin/starpls "https://github.com/withered-magic/starpls/releases/download/v0.1.14/starpls-linux-${arch}" && chmod +x /usr/local/bin/starpls
@@ -69,15 +69,7 @@ ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 RUN rustup component add clippy rust-analyzer rustfmt
 
 FROM rust_downloader AS sqlx_cli_downloader
-RUN cargo install sqlx-cli@0.8.2
-
-FROM build_essential_base AS base_rust
-COPY --link --from=rust_downloader /usr/local/cargo /usr/local/cargo
-COPY --link --from=rust_downloader /usr/local/rustup /usr/local/rustup
-ENV PATH "/usr/local/cargo/bin:/usr/local/rustup/bin:${PATH}"
-ENV RUSTUP_HOME="/usr/local/rustup"
-ENV CARGO_HOME="/usr/local/cargo"
-
+RUN cargo install --locked sqlx-cli@0.8.2
 
 FROM ubuntu_base AS devcontainer
 RUN sed \
@@ -87,8 +79,8 @@ RUN sed \
 # sudo npx playwright install-deps
 RUN apt-get update \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-   libasound2\
-   libatk1.0-0\
+   libasound2t64\
+   libatk1.0-0t64\
    libcairo-gobject2\
    libcairo2\
    libdbus-1-3\
@@ -98,8 +90,8 @@ RUN apt-get update \
    libfreetype6\
    libgbm1\
    libgdk-pixbuf-2.0-0\
-   libglib2.0-0\
-   libgtk-3-0\
+   libglib2.0-0t64\
+   libgtk-3-0t64\
    libnspr4 \
    libnss3\
    libpango-1.0-0\
@@ -205,48 +197,13 @@ FROM base_js AS base_client
 WORKDIR /app
 
 FROM base_client AS client_npm_ci
-# sudo npx playwright install-deps
-RUN apt-get update \
-   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-   libasound2\
-   libatk1.0-0\
-   libcairo-gobject2\
-   libcairo2\
-   libdbus-1-3\
-   libdbus-glib-1-2\
-   libdrm2\
-   libfontconfig1\
-   libfreetype6\
-   libgbm1\
-   libgdk-pixbuf-2.0-0\
-   libglib2.0-0\
-   libgtk-3-0\
-   libnspr4 \
-   libnss3\
-   libpango-1.0-0\
-   libpangocairo-1.0-0\
-   libx11-6\
-   libx11-xcb1\
-   libxcb-shm0\
-   libxcb1\
-   libxcomposite1\
-   libxcursor1\
-   libxdamage1\
-   libxext6\
-   libxfixes3\
-   libxi6\
-   libxrandr2\
-   libxrender1\
-   libxtst6 \
-   && apt-get clean \
-   && rm -rf /var/lib/apt/lists/*
 COPY --link pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY --link client/package.json client/
 RUN pnpm install --frozen-lockfile
 
 FROM client_npm_ci AS builder_client
 COPY --link client client
-RUN cd client && pnpm exec playwright install chromium
+RUN cd client && pnpm exec playwright install --with-deps chromium
 
 FROM builder_client AS test_client
 RUN cd client && scripts/check.sh
@@ -292,7 +249,8 @@ COPY --link openapi/api_v2.yaml openapi/api_v2.yaml
 RUN .venv/bin/python3 -m openapi_codegen.app < openapi/api_v2.yaml >| openapi_codegen/gen.rs
 
 
-FROM base_rust AS base_rust_builder
+# Build against the same Debian release as the API runtime.
+FROM rust_downloader AS base_rust_builder
 WORKDIR /app
 COPY --link Cargo.toml Cargo.lock ./
 COPY --link api_v2/Cargo.toml api_v2/
