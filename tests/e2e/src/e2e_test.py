@@ -70,10 +70,17 @@ async def test_offline_edit_syncs_after_reload(
     user = "offline-user"
     text = "task saved while offline"
 
+    def is_head_update(response: playwright.async_api.Response) -> bool:
+        return response.request.method == "PUT" and response.url.endswith("/head")
+
     async with await browser.new_context(service_workers="block") as source:
         page = await source.new_page()
         await (await _open_auth(page, app_url, "#sign-up-name")).fill(user)
-        await page.get_by_role("button", name="Sign up").click()
+        async with page.expect_response(is_head_update) as initial_head:
+            await page.get_by_role("button", name="Sign up").click()
+        initial_response = await initial_head.value
+        assert initial_response.ok
+        assert await initial_response.json() == {"updated": True}
         await _wait_for_desktop(page)
 
         # Serve the app shell on reload while withholding the sync API.
@@ -114,9 +121,6 @@ async def test_offline_edit_syncs_after_reload(
         await page.reload()
         await _wait_for_desktop(page)
         await playwright.async_api.expect(task).to_have_value(text)
-
-        def is_head_update(response: playwright.async_api.Response) -> bool:
-            return response.request.method == "PUT" and response.url.endswith("/head")
 
         async with page.expect_response(is_head_update) as head_update:
             await page.unroute("**/api/v2/**")
