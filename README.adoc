@@ -47,7 +47,7 @@ After the main CI run has published the images, SSH in, enter the existing check
 [source,bash]
 ----
 git pull --ff-only origin main && scripts/deploy.sh
-curl -fsS http://127.0.0.1:8080/healthz
+curl -fsS http://127.0.0.1:8080/api/v2/sys/health
 ----
 
 Use the configured Envoy HTTP port in the health check. The deploy script uses the checked-out commit's `h-<sha>-linux-amd64` tag for all images. Compose pulls the images before recreating any containers. If a pull fails, retry once the images are available.

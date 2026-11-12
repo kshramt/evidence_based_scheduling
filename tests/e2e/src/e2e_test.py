@@ -8,8 +8,13 @@ async def test_e2e(
     context: playwright.async_api.BrowserContext,
     envoy_http_port: str,
 ) -> None:
+    base_url = f"http://{my_host}:{envoy_http_port}"
+    response = await context.request.get(f"{base_url}/api/v2/sys/health")
+    await playwright.async_api.expect(response).to_be_ok()
+    assert await response.json() == {"status": "ok"}
+
     page = await context.new_page()
-    await page.goto(f"http://{my_host}:{envoy_http_port}/app")
+    await page.goto(f"{base_url}/app")
     skip_storage = page.locator("#skip-persistent-storage-check")
     sign_up_name = page.locator("#sign-up-name")
     await skip_storage.or_(sign_up_name).first.wait_for(state="attached")
