@@ -109,6 +109,7 @@ export const ShowDetailsButton = (props: { node_id: types.TNodeId }) => {
   return (
     <button
       className="btn-icon"
+      aria-label="Show details"
       onClick={handleClick}
       onDoubleClick={utils.prevent_propagation}
     >
