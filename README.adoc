@@ -35,6 +35,13 @@ _POSTGRES_PASSWORD='existing-postgres-password'
 _POSTGRES_APP_USER_PASSWORD='existing-app-password'
 ----
 
+To check that Compose can read the settings without printing the resolved configuration, run this from the checkout.
+
+[source,bash]
+----
+docker compose --env-file ~/.config/evidence-based-scheduling/deploy.env -f compose.yaml -f compose.prod.yaml config -q
+----
+
 After the main CI run has published the images, SSH in, enter the existing checkout on `main`, and run the following command.
 
 [source,bash]

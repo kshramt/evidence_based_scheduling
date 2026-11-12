@@ -24,7 +24,6 @@ with open(os.environ["DOCKER_LOG"], "a") as log:
     log.write(json.dumps([
         os.environ.get("DOCKER_CONTEXT"),
         os.environ.get("DOCKER_HOST"),
-        os.environ["COMPOSE_ENV_FILES"],
         os.environ["_DOCKER_API_V2_TAG"],
         sys.argv[1:],
     ]) + "\\n")
@@ -60,8 +59,16 @@ if sys.argv[-1] == "pull":
             cwd=ROOT,
             text=True,
         )
-        prefix = ["rootless", None, str(self.env_file), f"h-{sha.strip()}-linux-amd64"]
-        compose = ["compose", "-f", "compose.yaml", "-f", "compose.prod.yaml"]
+        prefix = ["rootless", None, f"h-{sha.strip()}-linux-amd64"]
+        compose = [
+            "compose",
+            "--env-file",
+            str(self.env_file),
+            "-f",
+            "compose.yaml",
+            "-f",
+            "compose.prod.yaml",
+        ]
         self.assertEqual(
             [json.loads(line) for line in self.log.read_text().splitlines()],
             [[*prefix, [*compose, "pull"]], [*prefix, [*compose, "up", "-d"]]],
@@ -73,7 +80,7 @@ if sys.argv[-1] == "pull":
         )
         self.assertEqual(result.returncode, 7)
         [call] = self.log.read_text().splitlines()
-        context, host, _, tag, args = json.loads(call)
+        context, host, tag, args = json.loads(call)
         self.assertIsNone(context)
         self.assertEqual(host, "unix:///docker.sock")
         self.assertEqual(tag, "custom")
