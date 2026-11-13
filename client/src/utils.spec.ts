@@ -1,5 +1,26 @@
-import { test, expect } from "vitest";
+import { test, expect, vi } from "vitest";
 import * as T from "./utils";
+
+test("focuses an offscreen task as soon as the first scroll reveals it", async () => {
+  const task = document.createElement("textarea");
+  task.id = "focus-test-task";
+  document.body.append(task);
+  const bounds = vi.spyOn(task, "getBoundingClientRect");
+  bounds.mockReturnValue(new DOMRect(0, window.innerHeight + 1, 10, 10));
+  const scroll = vi.spyOn(task, "scrollIntoView").mockImplementation(() => {
+    bounds.mockReturnValue(new DOMRect(0, 0, 10, 10));
+  });
+
+  try {
+    await T.focusRobustly(task.id);
+    expect(document.activeElement).toBe(task);
+    expect(scroll).toHaveBeenCalledTimes(1);
+  } finally {
+    scroll.mockRestore();
+    bounds.mockRestore();
+    task.remove();
+  }
+});
 
 test("dnd_move", () => {
   expect(T.dnd_move([1, 2, 3], 0, 1)).toEqual([2, 1, 3]);

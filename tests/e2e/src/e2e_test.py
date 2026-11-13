@@ -35,7 +35,10 @@ async def test_e2e(
     await parent.dblclick()
     await playwright.async_api.expect(child).to_have_count(0)
 
-    await page.get_by_role("button", name=child_text, exact=True).click()
+    jump_to_child = page.get_by_role("button", name=child_text, exact=True)
+    await jump_to_child.click()
+    await playwright.async_api.expect(child).to_be_focused()
+    await jump_to_child.click()
     await playwright.async_api.expect(child).to_be_focused()
 
     await parent.press("Control+Enter")
