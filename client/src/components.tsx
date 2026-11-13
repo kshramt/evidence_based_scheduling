@@ -1022,6 +1022,21 @@ const NonTodoQueueNodes = (props: {
   );
 };
 
+type ChildEntry = readonly [types.TEdgeId, types.TNodeId];
+
+const sameChildEntries = (
+  left: ChildEntry[] | null,
+  right: ChildEntry[] | null,
+) =>
+  left === right ||
+  (left !== null &&
+    right !== null &&
+    left.length === right.length &&
+    left.every(
+      ([edgeId, childId], i) =>
+        edgeId === right[i][0] && childId === right[i][1],
+    ));
+
 const EdgeList = (props: {
   node_id: types.TNodeId;
   prefix?: undefined | string;
@@ -1033,45 +1048,46 @@ const EdgeList = (props: {
   const showStrongEdgeOnly = Jotai.useAtomValue(
     states.show_strong_edge_only_atom_map.get(session),
   );
-  const children = utils.assertV(
-    useSelector((state) => state.swapped_nodes.children?.[props.node_id]),
-  );
-  const statuses = utils.assertV(
-    useSelector((state) => state.swapped_nodes.status),
-  );
-  const cs = utils.assertV(useSelector((state) => state.swapped_edges.c ?? {}));
-  const hidden = useSelector((state) => state.swapped_edges.hide);
-  const typesByEdge = useSelector((state) => state.swapped_edges.t);
-  const edgeIds = ops.sorted_keys_of(children);
-  const todos = Array<JSX.Element>();
-  const dones = Array<JSX.Element>();
-  const donts = Array<JSX.Element>();
-  for (const edgeId of edgeIds) {
-    const childId = cs[edgeId];
-    const status = statuses[childId];
-    if (
-      hidden?.[edgeId] ||
-      (showStrongEdgeOnly && typesByEdge?.[edgeId] === "weak") ||
-      (showTodoOnly && status !== "todo")
-    ) {
-      continue;
-    }
-    const entry = (
-      <li key={edgeId}>
-        <TreeNode node_id={childId} prefix={props.prefix} />
-      </li>
+  const entries = useSelector<ChildEntry[] | null>((state) => {
+    const children = utils.assertV(
+      state.swapped_nodes.children?.[props.node_id],
     );
-    if (status === "todo") {
-      todos.push(entry);
-    } else if (status === "done") {
-      dones.push(entry);
-    } else if (status === "dont") {
-      donts.push(entry);
+    const edgeIds = ops.sorted_keys_of(children);
+    if (edgeIds.length === 0) return null;
+    const statuses = utils.assertV(state.swapped_nodes.status);
+    const cs = state.swapped_edges.c ?? {};
+    const hidden = state.swapped_edges.hide;
+    const typesByEdge = state.swapped_edges.t;
+    const todos: ChildEntry[] = [];
+    const dones: ChildEntry[] = [];
+    const donts: ChildEntry[] = [];
+    for (const edgeId of edgeIds) {
+      const childId = cs[edgeId];
+      const status = statuses[childId];
+      if (
+        hidden?.[edgeId] ||
+        (showStrongEdgeOnly && typesByEdge?.[edgeId] === "weak") ||
+        (showTodoOnly && status !== "todo")
+      ) {
+        continue;
+      }
+      if (status === "todo") {
+        todos.push([edgeId, childId]);
+      } else if (status === "done") {
+        dones.push([edgeId, childId]);
+      } else if (status === "dont") {
+        donts.push([edgeId, childId]);
+      }
     }
-  }
-  return edgeIds.length ? (
+    return todos.concat(dones, donts);
+  }, sameChildEntries);
+  return entries ? (
     <ol className="list-outside pl-[4em] content-visibility-auto">
-      {todos.concat(dones, donts)}
+      {entries.map(([edgeId, childId]) => (
+        <li key={edgeId}>
+          <TreeNode node_id={childId} prefix={props.prefix} />
+        </li>
+      ))}
     </ol>
   ) : null;
 };
