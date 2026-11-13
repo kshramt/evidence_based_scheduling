@@ -339,11 +339,10 @@ export class PersistentStateManager {
     listenerMiddleware.startListening({
       predicate: () => true,
       effect: (action, listenerApi) => {
-        // Get a patch.
-        const patch = producer.compare(
+        const patch = producer.comparePersistedData(
           listenerApi.getOriginalState(),
           listenerApi.getState(),
-        ).patch;
+        );
         this.#save_patch({ patch });
       },
     });
