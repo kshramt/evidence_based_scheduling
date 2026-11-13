@@ -38,6 +38,17 @@ async def test_e2e(
     await page.get_by_role("button", name=child_text, exact=True).click()
     await playwright.async_api.expect(child).to_be_focused()
 
+    await parent.press("Control+Enter")
+    newer_child = page.locator("textarea#t-5")
+    await playwright.async_api.expect(newer_child).to_be_focused()
+    sibling_ids = page.locator("textarea#t-3, textarea#t-5")
+    assert await sibling_ids.evaluate_all(
+        "(nodes) => nodes.map((node) => node.id)"
+    ) == [
+        "t-5",
+        "t-3",
+    ]
+
 
 async def _open_auth(
     page: playwright.async_api.Page, url: str, field: str
