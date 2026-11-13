@@ -254,7 +254,8 @@ export const focusRobustly = async (id: string) => {
       el.scrollIntoView({ block: "center" });
       await sleep(40); // This sleep is required to give the browser the time to correct `el`'s location information.
       if (isElementInViewport(el)) {
-        break;
+        el.focus();
+        return;
       }
     }
     el.scrollIntoView({ block: "center" }); // One more `scrollIntoView` to improve the robustness.
