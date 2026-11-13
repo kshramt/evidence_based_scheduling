@@ -252,7 +252,12 @@ export const focusRobustly = async (id: string) => {
   if (!isElementInViewport(el)) {
     for (let i = 0; i < 30; ++i) {
       el.scrollIntoView({ block: "center" });
-      await sleep(40); // This sleep is required to give the browser the time to correct `el`'s location information.
+      // An immediate scroll can expose the target before the next frame.
+      if (isElementInViewport(el)) {
+        el.focus();
+        return;
+      }
+      await sleep(40); // Allow offscreen layout to settle before retrying.
       if (isElementInViewport(el)) {
         el.focus();
         return;

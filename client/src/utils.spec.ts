@@ -12,8 +12,10 @@ test("focuses an offscreen task as soon as the first scroll reveals it", async (
   });
 
   try {
-    await T.focusRobustly(task.id);
+    const focused = T.focusRobustly(task.id);
+    await Promise.resolve();
     expect(document.activeElement).toBe(task);
+    await focused;
     expect(scroll).toHaveBeenCalledTimes(1);
   } finally {
     scroll.mockRestore();
