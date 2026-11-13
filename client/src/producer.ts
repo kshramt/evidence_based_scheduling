@@ -22,3 +22,10 @@ export function compare<T extends object>(x: T, y: T) {
   const patch = fast_json_patch.compare(x, y);
   return { patch };
 }
+
+export function comparePersistedData<T extends object>(
+  previous: { data: T },
+  current: { data: T },
+) {
+  return compare({ data: previous.data }, { data: current.data }).patch;
+}
