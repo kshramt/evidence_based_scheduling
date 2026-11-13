@@ -1,3 +1,4 @@
+import { createSelector, lruMemoize } from "@reduxjs/toolkit";
 import * as Jotai from "jotai";
 import * as React from "react";
 
@@ -49,13 +50,19 @@ export const useTaskShortcutKeys = (
   );
 };
 
-export const useQueues = () => {
-  const queue = types.useSelector((state) => state.data.queue);
-  const statuses = types.useSelector((state) => state.swapped_nodes.status);
-  const startTimes = types.useSelector(
-    (state) => state.swapped_nodes.start_time,
-  );
-  return React.useMemo(() => {
-    return utils.getQueues(queue, statuses, startTimes);
-  }, [queue, statuses, startTimes]);
+type QueueState = {
+  data: Pick<types.TState["data"], "queue">;
+  swapped_nodes: Pick<types.TState["swapped_nodes"], "status" | "start_time">;
 };
+
+export const selectQueues = createSelector(
+  [
+    (state: QueueState) => state.data.queue,
+    (state: QueueState) => state.swapped_nodes.status,
+    (state: QueueState) => state.swapped_nodes.start_time,
+  ],
+  utils.getQueues,
+  { memoize: lruMemoize, argsMemoize: lruMemoize },
+);
+
+export const useQueues = () => types.useSelector(selectQueues);
