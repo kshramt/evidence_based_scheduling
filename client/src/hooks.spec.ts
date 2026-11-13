@@ -34,4 +34,6 @@ test("queue consumers share results and keep priority and Ctime order", () => {
     selectQueues({ ...state, data: { queue: { [a]: 3, [b]: 4, [c]: 1 } } })
       .todoQueue,
   ).toEqual([b, a]);
+  expect(selectQueues(state)).not.toBe(queues);
+  expect(selectQueues(state)).toEqual(queues);
 });

@@ -1,4 +1,4 @@
-import { createSelector } from "@reduxjs/toolkit";
+import { createSelector, lruMemoize } from "@reduxjs/toolkit";
 import * as Jotai from "jotai";
 import * as React from "react";
 
@@ -62,6 +62,7 @@ export const selectQueues = createSelector(
     (state: QueueState) => state.swapped_nodes.start_time,
   ],
   utils.getQueues,
+  { memoize: lruMemoize, argsMemoize: lruMemoize },
 );
 
 export const useQueues = () => types.useSelector(selectQueues);
