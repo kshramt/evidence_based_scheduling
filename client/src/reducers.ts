@@ -49,7 +49,7 @@ const setEdgeHidden = (
   hide: boolean,
 ) => {
   const edge = state.data.edges[edgeId];
-  if (edge.hide === hide) {
+  if ((edge.hide ?? false) === hide) {
     return;
   }
   if (hide) {
