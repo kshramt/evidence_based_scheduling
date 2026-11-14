@@ -16,6 +16,7 @@ import * as queues from "./queues";
 import * as retryers from "./retryers";
 import * as storage from "./storage";
 import * as swapper from "./swapper";
+import * as toast from "./toast";
 import * as utils from "./utils";
 import * as v2 from "src/gen/api/v2";
 import { z } from "zod";
@@ -236,6 +237,7 @@ export class PersistentStateManager {
   #headQueue: queues.Queue<null | storage.THead> = new queues.Queue();
   #rpc_queue: queues.Queue<null | (() => Promise<void>)> = new queues.Queue();
   #sync_store: ReturnType<typeof _get_store> = _get_store();
+  #resolvingConflict = false;
   constructor(
     client_v2: TClientV2,
     db: Awaited<ReturnType<typeof storage.getDb>>,
@@ -427,21 +429,9 @@ export class PersistentStateManager {
     }
   };
 
-  #save_remote_head = async (
-    head: storage.THead,
-    store?: Idb.IDBPObjectStore<
-      storage.TDb,
-      "heads"[] | ("heads" | "patches" | "pending_patches")[],
-      "heads",
-      "readwrite"
-    >,
-  ) => {
+  #save_remote_head = async (head: storage.THead) => {
     console.debug("#save_remote_head/start", head);
-    if (store === undefined) {
-      const tx = this.db.transaction("heads", "readwrite");
-      store = tx.objectStore("heads");
-    }
-    await store.put(head, "remote");
+    await this.db.put("heads", head, "remote");
     this.heads.remote = head;
     console.debug("#save_remote_head/end", head);
   };
@@ -594,38 +584,58 @@ export class PersistentStateManager {
       this.#sync_store.subscribe,
       this.#sync_store.get_state,
     );
-    const use_remote = React.useCallback(async () => {
-      await this.check_remote_head();
-      const state = this.#sync_store.get_state();
-      if (state === null) {
-        return;
+    const [busy, setBusy] = React.useState(false);
+    const resolve = async (choice: "remote" | "local") => {
+      const conflict = this.#sync_store.get_state();
+      if (this.#resolvingConflict || conflict === null) return;
+      this.#resolvingConflict = true;
+      setBusy(true);
+      let reloading = false;
+      try {
+        if (choice === "remote") {
+          await this.check_remote_head();
+          const latest = this.#sync_store.get_state();
+          if (latest === null) return;
+          const tx = this.db.transaction("heads", "readwrite");
+          await tx.store.put(latest.head, "remote");
+          await tx.store.put(latest.head, "local");
+          await tx.done;
+          reloading = true;
+          window.location.reload();
+        } else {
+          const head = this.#currentHead();
+          await this.#push_and_remove_local_pending_patches();
+          await this.#push_rpc(async () => {
+            const response = await this.client_v2.putUsersUser_idhead(
+              { patch_key: head, header_if_match: conflict.head },
+              {
+                params: { user_id: this.id_token.user_id },
+                headers: { authorization: utils.get_bearer(this.id_token) },
+              },
+            );
+            if (response.updated) {
+              await this.#save_remote_head(head);
+              this.#sync_store.set_state(() => null);
+            }
+          });
+          if (this.#sync_store.get_state() !== null) {
+            await this.check_remote_head();
+          }
+        }
+      } catch (error) {
+        reloading = false;
+        console.warn("Conflict resolution failed", error);
+        toast.add(
+          "error",
+          "Could not resolve the sync conflict. Please try again.",
+        );
+      } finally {
+        if (!reloading) {
+          this.#resolvingConflict = false;
+          setBusy(false);
+        }
       }
-      const tx = this.db.transaction("heads", "readwrite");
-      const store = tx.objectStore("heads");
-      await this.#save_remote_head(state.head, store);
-      await store.put(state.head, "local");
-      await tx.done;
-      window.location.reload();
-    }, []);
-    const use_local = React.useCallback(async () => {
-      await this.#push_and_remove_local_pending_patches();
-      const remoteHead = this.heads.remote;
-      await this.#push_rpc(
-        logSpan("#rpc/use_local", async () => {
-          return await this.client_v2.putUsersUser_idhead(
-            {
-              patch_key: remoteHead,
-            },
-            {
-              params: { user_id: this.id_token.user_id },
-              headers: { authorization: utils.get_bearer(this.id_token) },
-            },
-          );
-        }),
-      );
-      await this.#save_remote_head(remoteHead); // Protect from other local clients (tabs).
-      this.#sync_store.set_state(() => null);
-    }, []);
+    };
     if (state === null) {
       return null;
     }
@@ -633,7 +643,11 @@ export class PersistentStateManager {
       <div className="flex justify-center h-[100vh] w-full items-center fixed z-50 top-0 left-0 pt-[1em] pb-[1em]">
         <div className="w-[80vw] bg-neutral-200 dark:bg-neutral-900">
           <div className="flex justify-center">
-            <button onClick={use_remote} className="btn-icon">
+            <button
+              onClick={() => void resolve("remote")}
+              disabled={busy}
+              className="btn-icon"
+            >
               Reload
             </button>
           </div>
@@ -643,7 +657,11 @@ export class PersistentStateManager {
             {JSON.stringify(this.heads.remote)}) at {state.updated_at}.
           </div>
           <div className="flex justify-center">
-            <button onClick={use_local} className="btn-icon">
+            <button
+              onClick={() => void resolve("local")}
+              disabled={busy}
+              className="btn-icon"
+            >
               Use current
             </button>
           </div>
