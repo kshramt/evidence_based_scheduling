@@ -909,6 +909,7 @@ const VirtualizedQueueNodes = (props: {
   return (
     <Rv.Virtuoso
       style={{ height: "100%" }}
+      increaseViewportBy={320}
       data={props.node_ids}
       computeItemKey={queueComputeItemKey}
       itemContent={queueItemContent}

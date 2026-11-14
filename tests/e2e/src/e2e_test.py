@@ -52,6 +52,18 @@ async def test_e2e(
         "t-3",
     ]
 
+    # Make the existing tasks extend beyond the queue's visible area.
+    queue = page.locator("[data-virtuoso-scroller]").first
+    await queue.evaluate("(element) => { element.style.height = '32px'; }")
+    queue_child = queue.get_by_role("button", name=child_text, exact=True)
+    await playwright.async_api.expect(queue_child).to_be_attached()
+    assert await queue_child.evaluate(
+        "(row) => row.getBoundingClientRect().top >= "
+        "row.closest('[data-virtuoso-scroller]').getBoundingClientRect().bottom"
+    )
+    await queue.evaluate("(element) => { element.scrollTop = element.scrollHeight; }")
+    await playwright.async_api.expect(queue_child).to_be_in_viewport()
+
 
 async def _open_auth(
     page: playwright.async_api.Page, url: str, field: str
