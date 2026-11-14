@@ -13,8 +13,8 @@ catalog:
   "@mantine/notifications": ^7.3.2
   "@reduxjs/toolkit": ^2.0.1
   "@types/node": ^20.10.6
-  "@types/react": npm:types-react@rc
-  "@types/react-dom": npm:types-react-dom@rc
+  "@types/react": 19.3.0
+  "@types/react-dom": 19.3.0
   "@types/react-window": ^1.8.8
   "@typescript-eslint/eslint-plugin": ^6.16.0
   "@typescript-eslint/parser": ^6.16.0
@@ -41,10 +41,10 @@ catalog:
   playwright: 1.64.1
   postcss: ^8.4.32
   prettier: ^3.1.1
-  react: ^19.0.0-rc-14a4699f-20240725
+  react: 19.3.1
   "react-dnd": ^16.0.1
   "react-dnd-html5-backend": ^16.0.1
-  "react-dom": ^19.0.0-rc-14a4699f-20240725
+  "react-dom": 19.3.1
   "react-redux": ^9.2.0
   "react-virtuoso": ^4.6.2
   "react-window": ^1.8.11

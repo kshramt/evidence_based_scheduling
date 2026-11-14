@@ -10,7 +10,7 @@ export const EntryWrapper = (props: {
   children: React.ReactNode;
   onMouseOver?: () => void;
   onMouseLeave?: () => void;
-  component?: keyof JSX.IntrinsicElements;
+  component?: keyof React.JSX.IntrinsicElements;
 }) => {
   const is_running = utils.useIsRunning(props.node_id);
   const n_hidden_child_edges = utils.assertV(

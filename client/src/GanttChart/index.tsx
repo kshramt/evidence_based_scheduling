@@ -367,7 +367,6 @@ const GanttChartImpl = (props: { indexColumnWidth: number }) => {
           a\b
         </div>
         <div className="flex-auto">
-          {/* @ts-expect-error Waiting for React 19 stable */}
           <RWindow.FixedSizeGrid
             columnCount={columnCount}
             columnWidth={columnWidth}
@@ -385,7 +384,6 @@ const GanttChartImpl = (props: { indexColumnWidth: number }) => {
       {/* Why `overflow-hidden` is required to make `resized.height` to be aware of the first row? */}
       <div className="flex-auto flex overflow-hidden">
         <div className="flex-none" style={indexColumnStyle}>
-          {/* @ts-expect-error Waiting for React 19 stable */}
           <RWindow.FixedSizeGrid<types.TNodeId[]>
             columnCount={1}
             columnWidth={props.indexColumnWidth}
@@ -402,7 +400,6 @@ const GanttChartImpl = (props: { indexColumnWidth: number }) => {
           </RWindow.FixedSizeGrid>
         </div>
         <div ref={resize.ref} className="flex-auto">
-          {/* @ts-expect-error Waiting for React 19 stable */}
           <RWindow.FixedSizeGrid<types.TNodeId[]>
             columnCount={columnCount}
             columnWidth={columnWidth}
