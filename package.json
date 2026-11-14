@@ -1,0 +1,12 @@
+{
+  "private": true,
+  "pnpm": {
+    "packageExtensions": {
+      "@vitest/browser@3.2.7": {
+        "peerDependencies": {
+          "vite": "^6.0.0"
+        }
+      }
+    }
+  }
+}
