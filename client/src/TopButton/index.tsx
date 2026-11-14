@@ -16,6 +16,8 @@ const TopButton = (props: { node_id: types.TNodeId; disabled?: boolean }) => {
       onClick={on_click}
       onDoubleClick={utils.prevent_propagation}
       disabled={props.disabled}
+      title="Move to top"
+      aria-label="Move to top"
     >
       {consts.TOP_MARK}
     </button>
