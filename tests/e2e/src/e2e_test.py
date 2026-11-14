@@ -173,3 +173,87 @@ async def test_offline_edit_syncs_after_reload(
         await playwright.async_api.expect(page.locator("textarea#t-1")).to_have_value(
             text
         )
+
+
+@pytest.mark.usefixtures("envoy_waiter")
+@pytest.mark.parametrize("choice", ["Reload", "Use current"])
+async def test_sync_conflict_accepts_one_choice(
+    my_host: str,
+    browser: playwright.async_api.Browser,
+    envoy_http_port: str,
+    choice: str,
+) -> None:
+    app_url = f"http://{my_host}:{envoy_http_port}/app/"
+
+    def is_head_update(response: playwright.async_api.Response) -> bool:
+        return response.request.method == "PUT" and response.url.endswith("/head")
+
+    async with (
+        await browser.new_context(service_workers="block") as local,
+        await browser.new_context() as remote,
+    ):
+        local_page = await local.new_page()
+        await (await _open_auth(local_page, app_url, "#sign-up-name")).fill("conflict")
+        async with local_page.expect_response(is_head_update) as initial:
+            await local_page.get_by_role("button", name="Sign up").click()
+        assert await (await initial.value).json() == {"updated": True}
+        await _wait_for_desktop(local_page)
+
+        remote_page = await remote.new_page()
+        await (await _open_auth(remote_page, app_url, "#log-in-name")).fill("conflict")
+        await remote_page.get_by_role("button", name="Log in").click()
+        await _wait_for_desktop(remote_page)
+        async with remote_page.expect_response(is_head_update) as updated:
+            await remote_page.locator("#add-root-button").click()
+        assert await (await updated.value).json() == {"updated": True}
+
+        reload_button = local_page.get_by_role("button", name="Reload", exact=True)
+        keep_button = local_page.get_by_role("button", name="Use current", exact=True)
+        await local_page.bring_to_front()
+        await local_page.evaluate("window.dispatchEvent(new Event('focus'))")
+        await reload_button.wait_for()
+
+        head_requests: list[str] = []
+
+        def record_head_request(request: playwright.async_api.Request) -> None:
+            if request.url.endswith("/head"):
+                head_requests.append(request.method)
+
+        local_page.on("request", record_head_request)
+
+        # Both clicks land before the first network request has finished.
+        async with local_page.expect_response(
+            lambda response: response.url.endswith("/head")
+            and response.request.method == ("GET" if choice == "Reload" else "PUT")
+        ) as resolution:
+            await local_page.evaluate(
+                """(choice) => {
+                    const buttons = [...document.querySelectorAll("button")];
+                    const chosen = buttons.find((button) => button.textContent.trim() === choice);
+                    const other = buttons.find((button) =>
+                        button.textContent.trim() === (choice === "Reload" ? "Use current" : "Reload"));
+                    chosen.click();
+                    chosen.click();
+                    other.click();
+                }""",
+                choice,
+            )
+        assert (await resolution.value).ok
+        if choice == "Reload":
+            await reload_button.wait_for(state="detached")
+            await _wait_for_desktop(local_page)
+            await playwright.async_api.expect(
+                local_page.locator("textarea#t-1")
+            ).to_be_attached()
+            assert "PUT" not in head_requests
+        else:
+            assert await (await resolution.value).json() == {"updated": True}
+            await playwright.async_api.expect(keep_button).to_have_count(0)
+            assert head_requests.count("PUT") == 1
+            await remote_page.bring_to_front()
+            await remote_page.evaluate("window.dispatchEvent(new Event('focus'))")
+            await remote_page.get_by_role("button", name="Reload", exact=True).click()
+            await _wait_for_desktop(remote_page)
+            await playwright.async_api.expect(
+                remote_page.locator("textarea#t-1")
+            ).to_have_count(0)
