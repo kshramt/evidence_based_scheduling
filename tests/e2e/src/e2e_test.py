@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 import playwright.async_api
 import pytest
 
@@ -175,13 +177,32 @@ async def test_offline_edit_syncs_after_reload(
         )
 
 
+async def _advance_remote_before_overwrite(
+    local_page: playwright.async_api.Page,
+    remote_page: playwright.async_api.Page,
+    is_head_update: Callable[[playwright.async_api.Response], bool],
+) -> None:
+    async def on_head_request(route: playwright.async_api.Route) -> None:
+        if route.request.method == "PUT":
+            async with remote_page.expect_response(is_head_update) as newer:
+                await remote_page.locator("#add-root-button").click()
+            assert await (await newer.value).json() == {"updated": True}
+        await route.continue_()
+
+    await local_page.route("**/head", on_head_request)
+
+
 @pytest.mark.usefixtures("envoy_waiter")
-@pytest.mark.parametrize("choice", ["Reload", "Use current"])
+@pytest.mark.parametrize(
+    ("choice", "second_remote_edit"),
+    [("Reload", False), ("Use current", False), ("Use current", True)],
+)
 async def test_sync_conflict_accepts_one_choice(
     my_host: str,
     browser: playwright.async_api.Browser,
     envoy_http_port: str,
     choice: str,
+    second_remote_edit: bool,
 ) -> None:
     app_url = f"http://{my_host}:{envoy_http_port}/app/"
 
@@ -212,6 +233,11 @@ async def test_sync_conflict_accepts_one_choice(
         await local_page.bring_to_front()
         await local_page.evaluate("window.dispatchEvent(new Event('focus'))")
         await reload_button.wait_for()
+
+        if second_remote_edit:
+            await _advance_remote_before_overwrite(
+                local_page, remote_page, is_head_update
+            )
 
         head_requests: list[str] = []
 
@@ -246,6 +272,13 @@ async def test_sync_conflict_accepts_one_choice(
                 local_page.locator("textarea#t-1")
             ).to_be_attached()
             assert "PUT" not in head_requests
+        elif second_remote_edit:
+            assert await (await resolution.value).json() == {"updated": False}
+            await reload_button.click()
+            await _wait_for_desktop(local_page)
+            await playwright.async_api.expect(
+                local_page.locator("textarea#t-1, textarea#t-3")
+            ).to_have_count(2)
         else:
             assert await (await resolution.value).json() == {"updated": True}
             await playwright.async_api.expect(keep_button).to_have_count(0)
