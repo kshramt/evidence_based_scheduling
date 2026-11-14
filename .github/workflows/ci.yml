@@ -59,7 +59,7 @@ jobs:
       - name: Verify PostgreSQL backup restoration
         run: |
           image="$(awk '$1 == "FROM" && $4 == "base_postgres" { print $2 }' Dockerfile)"
-          tests/test_postgres_restore.sh "${image}" "${image}"
+          tests/test_postgres_restore.sh postgres:16.3-bookworm "${image}"
   build-images:
     if: github.actor == 'dependabot[bot]' || github.actor == github.repository_owner
     permissions:
