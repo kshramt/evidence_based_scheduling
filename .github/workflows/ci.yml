@@ -69,6 +69,21 @@ jobs:
       #   run: sudo rm -fr /opt/ghc /usr/share/dotnet /usr/local/lib/android || true
       - uses: actions/checkout@v6
       - uses: docker/setup-buildx-action@v4
+      - name: Verify Ubuntu apt policy
+        run: |
+          docker buildx build --platform ${{ matrix.os }}/${{ matrix.arch }} \
+            --target ubuntu_base --load --tag ebs-ci-ubuntu-base .
+          docker run --rm ebs-ci-ubuntu-base bash -euc '
+            eval "$(apt-config shell retries Acquire::Retries timeout Acquire::http::Timeout)"
+            test "$retries" = 3
+            test "$timeout" = 15
+            printf "deb http://127.0.0.1:1/ubuntu resolute main\n" >/tmp/unreachable.list
+            if apt-get -o Acquire::Retries=0 -o Dir::Etc::sourcelist=/tmp/unreachable.list \
+              -o Dir::Etc::sourceparts=- update --error-on=any; then
+              echo "apt accepted an incomplete index update" >&2
+              exit 1
+            fi
+          '
       - name: Verify Ubuntu package installation with BuildKit
         run: docker buildx build --platform ${{ matrix.os }}/${{ matrix.arch }} --target build_essential_base .
       - name: Verify Dev Container builds
