@@ -15,7 +15,8 @@ FROM ubuntu:26.04 AS ubuntu_base
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 # Use a mirror that carries the archive and security pockets.
-RUN sed -i -E 's@http://(archive|security)\.ubuntu\.com/@http://mirrors.edge.kernel.org/@g' /etc/apt/sources.list.d/ubuntu.sources
+RUN printf 'Acquire::Retries "3";\nAcquire::http::Timeout "15";\n' > /etc/apt/apt.conf.d/80-ebs-retries \
+   && sed -i -E 's@http://(archive|security)\.ubuntu\.com/@http://mirrors.edge.kernel.org/@g' /etc/apt/sources.list.d/ubuntu.sources
 
 # FROM curl_base AS starpls_downloader
 # RUN arch="$(dpkg --print-architecture)" && curl -sSf -L -o /usr/local/bin/starpls "https://github.com/withered-magic/starpls/releases/download/v0.1.14/starpls-linux-${arch}" && chmod +x /usr/local/bin/starpls
@@ -29,7 +30,7 @@ RUN apt-get update --error-on=any \
    && rm -rf /var/lib/apt/lists/*
 
 FROM ubuntu_base AS curl_base
-RUN apt-get update \
+RUN apt-get update --error-on=any \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
    ca-certificates \
    curl \
@@ -77,7 +78,7 @@ RUN sed \
    -e 's|^path-exclude=/usr/share/doc/|# path-exclude=/usr/share/doc/|g' \
    -i /etc/dpkg/dpkg.cfg.d/excludes
 # sudo npx playwright install-deps
-RUN apt-get update \
+RUN apt-get update --error-on=any \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
    libasound2t64\
    libatk1.0-0t64\
@@ -110,7 +111,7 @@ RUN apt-get update \
    libxrender1\
    libxtst6
 # Basic dependencies
-RUN apt-get update \
+RUN apt-get update --error-on=any \
    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
    bash-completion \
    bsdmainutils \
