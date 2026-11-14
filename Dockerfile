@@ -69,7 +69,7 @@ ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 RUN rustup component add clippy rust-analyzer rustfmt
 
 FROM rust_downloader AS sqlx_cli_downloader
-RUN cargo install --locked sqlx-cli@0.8.2
+RUN cargo install --locked sqlx-cli@0.8.6
 
 FROM ubuntu_base AS devcontainer
 RUN sed \
