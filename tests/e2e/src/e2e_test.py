@@ -257,3 +257,32 @@ async def test_sync_conflict_accepts_one_choice(
             await playwright.async_api.expect(
                 remote_page.locator("textarea#t-1")
             ).to_have_count(0)
+
+
+@pytest.mark.usefixtures("envoy_waiter")
+async def test_service_worker_loads_app_without_network(
+    my_host: str,
+    envoy_http_port: str,
+) -> None:
+    origin = f"http://{my_host}:{envoy_http_port}"
+    async with playwright.async_api.async_playwright() as pw:
+        browser = await pw.chromium.launch(
+            args=[f"--unsafely-treat-insecure-origin-as-secure={origin}"]
+        )
+        try:
+            context = await browser.new_context()
+            page = await context.new_page()
+            name = await _open_auth(page, f"{origin}/app/", "#sign-up-name")
+            await name.fill("offline-shell")
+            await page.get_by_role("button", name="Sign up").click()
+            await _wait_for_desktop(page)
+            await page.wait_for_function("navigator.serviceWorker.controller !== null")
+            await context.set_offline(True)
+
+            await page.reload()
+            await _wait_for_desktop(page)
+            await playwright.async_api.expect(
+                page.locator("#add-root-button")
+            ).to_be_visible()
+        finally:
+            await browser.close()

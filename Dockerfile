@@ -197,7 +197,7 @@ FROM base_js AS base_client
 WORKDIR /app
 
 FROM base_client AS client_npm_ci
-COPY --link pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY --link package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY --link client/package.json client/
 RUN pnpm install --frozen-lockfile
 

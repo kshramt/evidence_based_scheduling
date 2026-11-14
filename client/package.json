@@ -155,6 +155,8 @@
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plugin-pwa": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "workbox-build": "catalog:",
+    "workbox-window": "catalog:"
   }
 }
