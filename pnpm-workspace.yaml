@@ -24,7 +24,7 @@ catalog:
   "@vitest/ui": ^1.6.1
   "@zodios/core": ^10.9.6
   autoprefixer: ^10.4.21
-  babel-plugin-react-compiler: 0.0.0-experimental-334f00b-20240725
+  babel-plugin-react-compiler: 1.0.0
   dayjs: ^1.11.13
   eslint: ^8.56.0
   eslint-import-resolver-typescript: ^3.6.1
