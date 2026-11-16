@@ -28,6 +28,24 @@ async def test_e2e(
     await page.locator("#add-root-button").click()
 
     parent = page.locator("textarea#t-1")
+    await parent.wait_for()
+    assert (
+        await parent.evaluate(
+            "(field) => getComputedStyle(field).getPropertyValue('field-sizing')"
+        )
+        == "content"
+    )
+    initial_height = await parent.evaluate("(field) => field.offsetHeight")
+    await parent.fill("first line\nsecond line\nthird line")
+    assert await parent.evaluate("(field) => field.offsetHeight") > initial_height
+    await parent.fill("short task")
+    assert await parent.evaluate("(field) => field.offsetHeight") == initial_height
+    await parent.blur()
+    await playwright.async_api.expect(
+        page.locator("[data-virtuoso-scroller]").get_by_role(
+            "button", name="short task", exact=True
+        )
+    ).to_be_attached()
     await parent.press("Control+Enter")
     child = page.locator("textarea#t-3")
     await playwright.async_api.expect(child).to_be_focused()
