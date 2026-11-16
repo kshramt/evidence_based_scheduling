@@ -15,9 +15,9 @@ MY_HOST: Final = os.environ["MY_HOST"]
 
 
 @pytest.fixture
-async def browser() -> (
-    collections.abc.Generator[playwright.async_api.Browser, Any, None]
-):
+async def browser() -> collections.abc.Generator[
+    playwright.async_api.Browser, Any, None
+]:
     async with playwright.async_api.async_playwright() as pw:
         yield await pw.chromium.launch()
 
@@ -94,7 +94,7 @@ async def compose_up(
             "-f",
             "compose.yaml",
             "-f",
-            "compose.dev.yaml",
+            f"compose.{os.environ['ENV']}.yaml",
             "down",
             "--volumes",
         ]
@@ -131,7 +131,7 @@ def compose_common_envs() -> collections.abc.Generator[None, Any, None]:
         dict(
             _POSTGRES_PASSWORD="postgres",
             _POSTGRES_APP_USER_PASSWORD="app",
-            ENV="dev",
+            ENV=os.environ.get("ENV", "dev"),
         ),
     ):
         yield
