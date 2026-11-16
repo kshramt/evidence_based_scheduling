@@ -51,12 +51,14 @@ if [[ "${os}" = "${host_os}" && "${arch}" = "${host_arch}" ]]; then
 		--mount "type=bind,source=${HOME}/.docker/buildx,target=/root/.docker/buildx" \
 		-e "MY_COMPOSE_DIR=${PWD}" \
 		-e "CI=${CI:-}" \
+		-e "TAG=h-${github_sha}-${os}-${arch}" \
+		-e ENV=prod \
 		-e MY_HOST="host.docker.internal" \
 		--add-host=host.docker.internal:host-gateway \
 		--init \
 		--rm \
 		"${img_prefix}/tests_e2e:h-${github_sha}-${os}-${arch}" \
-		.venv/bin/python3 -m pytest -s src
+		.venv/bin/python3 -m pytest -s -W error::pytest.PytestUnhandledCoroutineWarning src
 
 	# Wait `docker push`
 	wait

@@ -285,4 +285,5 @@ RUN .venv/bin/python3 -m playwright install --with-deps chromium
 COPY --link --from=download_docker /usr/local/bin/docker /usr/local/bin/docker
 COPY --link --from=download_docker /usr/local/libexec/docker/cli-plugins/docker-compose /usr/local/libexec/docker/cli-plugins/docker-compose
 COPY --link --from=download_docker /usr/local/libexec/docker/cli-plugins/docker-buildx /usr/local/libexec/docker/cli-plugins/docker-buildx
+COPY --link tests/e2e/pyproject.toml ./
 COPY --link tests/e2e/src src
