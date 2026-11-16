@@ -72,6 +72,15 @@ async def test_e2e(
         "t-3",
     ]
 
+    await _check_queue_navigation(page, parent, child, child_text)
+
+
+async def _check_queue_navigation(
+    page: playwright.async_api.Page,
+    parent: playwright.async_api.Locator,
+    child: playwright.async_api.Locator,
+    child_text: str,
+) -> None:
     # Make the existing tasks extend beyond the queue's visible area.
     queue = page.locator("[data-virtuoso-scroller]").first
     await queue.evaluate("(element) => { element.style.height = '32px'; }")
@@ -83,6 +92,22 @@ async def test_e2e(
     )
     await queue.evaluate("(element) => { element.scrollTop = element.scrollHeight; }")
     await playwright.async_api.expect(queue_child).to_be_in_viewport()
+
+    search = page.get_by_role("textbox", name="Search tasks")
+    child_jump = child.locator("../..").get_by_role("button", name="Show in queue")
+    parent_jump = parent.locator("../..").get_by_role("button", name="Show in queue")
+    queue_parent = queue.get_by_role("button", name="short task", exact=True)
+
+    await search.fill(child_text)
+    await playwright.async_api.expect(queue_parent).to_have_count(0)
+    await queue.evaluate("(element) => { element.scrollTop = 0; }")
+    await child_jump.click()
+    await playwright.async_api.expect(queue_child).to_be_in_viewport()
+    await playwright.async_api.expect(search).to_have_value(child_text)
+
+    await parent_jump.click()
+    await playwright.async_api.expect(search).to_have_value("")
+    await playwright.async_api.expect(queue_parent).to_be_in_viewport()
 
 
 async def _open_auth(

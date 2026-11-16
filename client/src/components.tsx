@@ -157,6 +157,7 @@ const NodeFilterQueryInput = () => {
       {consts.SEARCH_MARK}
       <div className="flex items-center border border-solid border-neutral-400">
         <input
+          aria-label="Search tasks"
           value={nodeFilterQuery}
           onChange={handle_change}
           onKeyDown={onKeyDown}
@@ -872,6 +873,41 @@ const PlannedNode = (props: {
   );
 };
 
+const queueJump = Jotai.atom<{ nodeId: types.TNodeId; isTodo: boolean } | null>(
+  null,
+);
+
+function useQueueJump(
+  isTodo: boolean,
+  query: string,
+  queue: types.TNodeId[],
+  ref: React.RefObject<null | Rv.VirtuosoHandle>,
+  offset: number,
+) {
+  const [request, setRequest] = Jotai.useAtom(queueJump);
+  const [currentQuery, setQuery] = Jotai.useAtom(states.nodeFilterQueryState);
+  React.useEffect(() => {
+    if (request?.isTodo !== isTodo || query !== currentQuery) return;
+    const index = queue.indexOf(request.nodeId);
+    if (index === -1 && query !== "") {
+      setQuery("");
+      return;
+    }
+    if (index !== -1) ref.current?.scrollToIndex(index + offset);
+    setRequest(null);
+  }, [
+    request,
+    isTodo,
+    query,
+    currentQuery,
+    queue,
+    ref,
+    offset,
+    setQuery,
+    setRequest,
+  ]);
+}
+
 type TNodeIdsWithPrefix = ["special/header", ...types.TNodeId[]];
 
 const TodoQueueNodes = (props: {
@@ -881,6 +917,7 @@ const TodoQueueNodes = (props: {
     Jotai.useAtomValue(states.nodeFilterQueryState),
   );
   const queue = useQueue(true, nodeFilterQuery);
+  useQueueJump(true, nodeFilterQuery, queue, props.virtuosoRef, 1);
   const queueWithPrefix = React.useMemo(() => {
     return ["special/header"].concat(queue) as unknown as TNodeIdsWithPrefix;
   }, [queue]);
@@ -1009,12 +1046,13 @@ const TreeNode = (props: {
 };
 
 const NonTodoQueueNodes = (props: {
-  virtuosoRef: React.Ref<Rv.VirtuosoHandle>;
+  virtuosoRef: React.RefObject<null | Rv.VirtuosoHandle>;
 }) => {
   const nodeFilterQuery = React.useDeferredValue(
     Jotai.useAtomValue(states.nodeFilterQueryState),
   );
   const node_ids = useQueue(false, nodeFilterQuery);
+  useQueueJump(false, nodeFilterQuery, node_ids, props.virtuosoRef, 0);
   return (
     <VirtualizedQueueNodes
       node_ids={node_ids}
@@ -1287,7 +1325,13 @@ const TreeEntry = (props: {
       {is_root ? null : (
         <EntryButtons
           node_id={props.node_id}
-          jumpButton={is_root ? null : <button onClick={to_queue}>→</button>}
+          jumpButton={
+            is_root ? null : (
+              <button aria-label="Show in queue" onClick={to_queue}>
+                →
+              </button>
+            )
+          }
           prefix={prefix}
         />
       )}
@@ -1466,31 +1510,11 @@ const CopyDescendantTimeNodesPlannedNodeIdsButton = (props: {
 
 const useToQueue = (nodeId: types.TNodeId) => {
   const store = Rr.useStore<types.TState>();
-  const session = React.use(states.session_key_context);
-  const sortByCtime = Jotai.useAtomValue(states.sortByCtimeMap.get(session));
+  const requestJump = Jotai.useSetAtom(queueJump);
   return React.useCallback(() => {
-    const state = store.getState();
-    const queues = utils.getQueues(
-      state.data.queue,
-      state.swapped_nodes.status,
-      state.swapped_nodes.start_time,
-    );
-    const isTodo = state.data.nodes[nodeId].status === "todo";
-    const queue = sortByCtime
-      ? isTodo
-        ? queues.todoQueueCtime
-        : queues.nonTodoQueueCtime
-      : isTodo
-        ? queues.todoQueue
-        : queues.nonTodoQueue;
-    const index = queue.indexOf(nodeId);
-    if (index === -1) {
-      return;
-    }
-    const ref = isTodo ? todoQueueNodesRef : nonTodoQueueNodesRef;
-    const offset = isTodo ? 1 : 0;
-    ref.current?.scrollToIndex(index + offset);
-  }, [store, sortByCtime, nodeId]);
+    const node = store.getState().data.nodes[nodeId];
+    if (node) requestJump({ nodeId, isTodo: node.status === "todo" });
+  }, [store, requestJump, nodeId]);
 };
 
 const getIsMatch = (
