@@ -81,6 +81,7 @@ async def _check_queue_navigation(
     child: playwright.async_api.Locator,
     child_text: str,
 ) -> None:
+    await page.set_viewport_size({"width": 3840, "height": 2160})
     # Make the existing tasks extend beyond the queue's visible area.
     queue = page.locator("[data-virtuoso-scroller]").first
     await queue.evaluate("(element) => { element.style.height = '32px'; }")
