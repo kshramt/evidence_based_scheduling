@@ -28,6 +28,19 @@ class ToolchainTest(unittest.TestCase):
                 self.assertRegex(mise_version, r"^\d+\.\d+\.\d+$")
                 self.assertEqual(versions, [mise_version])
 
+    def test_sqlx_cli_matches_locked_sqlx(self) -> None:
+        dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+        with (ROOT / "Cargo.lock").open("rb") as lockfile:
+            packages = tomllib.load(lockfile)["package"]
+        versions = [
+            package["version"] for package in packages if package["name"] == "sqlx"
+        ]
+        cli_versions = re.findall(
+            r"(?m)^RUN cargo install --locked sqlx-cli@([\d.]+)$", dockerfile
+        )
+        self.assertEqual(len(versions), 1)
+        self.assertEqual(cli_versions, versions)
+
     def test_playwright_versions_match(self) -> None:
         workspace = (ROOT / "pnpm-workspace.yaml").read_text(encoding="utf-8")
         with (ROOT / "tests/e2e/pyproject.toml").open("rb") as config_file:
