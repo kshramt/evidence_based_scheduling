@@ -931,6 +931,7 @@ function TodoQueueHeader() {
 }
 
 const todoQueueComponents = { Header: TodoQueueHeader };
+const nonTodoQueueComponents = {};
 
 const VirtualizedQueueNodes = (props: {
   node_ids: types.TNodeId[];
@@ -943,7 +944,9 @@ const VirtualizedQueueNodes = (props: {
       increaseViewportBy={320}
       data={props.node_ids}
       computeItemKey={queueComputeItemKey}
-      components={props.showHeader ? todoQueueComponents : undefined}
+      components={
+        props.showHeader ? todoQueueComponents : nonTodoQueueComponents
+      }
       itemContent={props.showHeader ? todoQueueItemContent : queueItemContent}
       ref={props.virtuosoRef}
     />
