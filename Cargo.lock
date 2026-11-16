@@ -2558,8 +2558,3 @@ dependencies = [
  "cc",
  "pkg-config",
 ]
-
-[[patch.unused]]
-name = "sqlx"
-version = "0.7.3"
-source = "git+https://github.com/kshramt/sqlx.git?rev=c8aa3d33520a60ffbc9b92f451125b7888dc8531#c8aa3d33520a60ffbc9b92f451125b7888dc8531"
