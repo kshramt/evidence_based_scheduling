@@ -55,7 +55,9 @@ async def test_e2e(
     await parent.dblclick()
     await playwright.async_api.expect(child).to_have_count(0)
 
-    jump_to_child = page.get_by_role("button", name=child_text, exact=True)
+    jump_to_child = (
+        page.locator("[data-virtuoso-scroller]").first.locator("[data-item-index]")
+    ).get_by_role("button", name=child_text, exact=True)
     await jump_to_child.click()
     await playwright.async_api.expect(child).to_be_focused()
     await jump_to_child.click()
@@ -85,7 +87,8 @@ async def _check_queue_navigation(
     # Make the existing tasks extend beyond the queue's visible area.
     queue = page.locator("[data-virtuoso-scroller]").first
     await queue.evaluate("(element) => { element.style.height = '32px'; }")
-    queue_child = queue.get_by_role("button", name=child_text, exact=True)
+    rows = queue.locator("[data-item-index]")
+    queue_child = rows.get_by_role("button", name=child_text, exact=True)
     await playwright.async_api.expect(queue_child).to_be_attached()
     assert await queue_child.evaluate(
         "(row) => row.getBoundingClientRect().top >= "
@@ -97,7 +100,7 @@ async def _check_queue_navigation(
     search = page.get_by_role("textbox", name="Search tasks")
     child_jump = child.locator("../..").get_by_role("button", name="Show in queue")
     parent_jump = parent.locator("../..").get_by_role("button", name="Show in queue")
-    queue_parent = queue.get_by_role("button", name="short task", exact=True)
+    queue_parent = rows.get_by_role("button", name="short task", exact=True)
 
     await search.fill(child_text)
     await playwright.async_api.expect(queue.locator("hr")).to_be_attached()
@@ -244,6 +247,14 @@ async def _advance_remote_before_overwrite(
     await local_page.route("**/head", on_head_request)
 
 
+async def _reload_after_conflict(page: playwright.async_api.Page) -> None:
+    async with page.expect_event(
+        "framenavigated", predicate=lambda frame: frame == page.main_frame
+    ):
+        await page.get_by_role("button", name="Reload", exact=True).click()
+    await _wait_for_desktop(page)
+
+
 @pytest.mark.usefixtures("envoy_waiter")
 @pytest.mark.parametrize(
     ("choice", "second_remote_edit"),
@@ -326,8 +337,7 @@ async def test_sync_conflict_accepts_one_choice(
             assert "PUT" not in head_requests
         elif second_remote_edit:
             assert await (await resolution.value).json() == {"updated": False}
-            await reload_button.click()
-            await _wait_for_desktop(local_page)
+            await _reload_after_conflict(local_page)
             await playwright.async_api.expect(
                 local_page.locator("textarea#t-1, textarea#t-3")
             ).to_have_count(2)
@@ -337,8 +347,7 @@ async def test_sync_conflict_accepts_one_choice(
             assert head_requests.count("PUT") == 1
             await remote_page.bring_to_front()
             await remote_page.evaluate("window.dispatchEvent(new Event('focus'))")
-            await remote_page.get_by_role("button", name="Reload", exact=True).click()
-            await _wait_for_desktop(remote_page)
+            await _reload_after_conflict(remote_page)
             await playwright.async_api.expect(
                 remote_page.locator("textarea#t-1")
             ).to_have_count(0)
