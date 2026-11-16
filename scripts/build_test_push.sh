@@ -53,8 +53,8 @@ if [[ "${os}" = "${host_os}" && "${arch}" = "${host_arch}" ]]; then
 		-e "CI=${CI:-}" \
 		-e "TAG=h-${github_sha}-${os}-${arch}" \
 		-e ENV=prod \
-		-e MY_HOST="host.docker.internal" \
-		--add-host=host.docker.internal:host-gateway \
+		-e MY_HOST=127.0.0.1 \
+		--network host \
 		--init \
 		--rm \
 		"${img_prefix}/tests_e2e:h-${github_sha}-${os}-${arch}" \
