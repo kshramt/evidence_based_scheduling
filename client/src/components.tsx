@@ -882,19 +882,16 @@ function useQueueJump(
   query: string,
   queue: types.TNodeId[],
   ref: React.RefObject<null | Rv.VirtuosoHandle>,
-  offset: number,
 ) {
   const [request, setRequest] = Jotai.useAtom(queueJump);
   const currentQuery = Jotai.useAtomValue(states.nodeFilterQueryState);
   React.useEffect(() => {
     if (request?.isTodo !== isTodo || query !== currentQuery) return;
     const index = queue.indexOf(request.nodeId);
-    if (index !== -1) ref.current?.scrollToIndex(index + offset);
+    if (index !== -1) ref.current?.scrollToIndex(index);
     setRequest(null);
-  }, [request, isTodo, query, currentQuery, queue, ref, offset, setRequest]);
+  }, [request, isTodo, query, currentQuery, queue, ref, setRequest]);
 }
-
-type TNodeIdsWithPrefix = ["special/header", ...types.TNodeId[]];
 
 const TodoQueueNodes = (props: {
   virtuosoRef: React.RefObject<null | Rv.VirtuosoHandle>;
@@ -903,13 +900,11 @@ const TodoQueueNodes = (props: {
     Jotai.useAtomValue(states.nodeFilterQueryState),
   );
   const queue = useQueue(true, nodeFilterQuery);
-  useQueueJump(true, nodeFilterQuery, queue, props.virtuosoRef, 1);
-  const queueWithPrefix = React.useMemo(() => {
-    return ["special/header"].concat(queue) as unknown as TNodeIdsWithPrefix;
-  }, [queue]);
+  useQueueJump(true, nodeFilterQuery, queue, props.virtuosoRef);
   return (
     <VirtualizedQueueNodes
-      node_ids={queueWithPrefix}
+      node_ids={queue}
+      showHeader
       virtuosoRef={props.virtuosoRef}
     />
   );
@@ -925,9 +920,22 @@ const QueueNodes = (props: { node_ids: types.TNodeId[] }) => {
   );
 };
 
+function TodoQueueHeader() {
+  return (
+    <div className="min-h-[1px]">
+      <PredictedNextNodes />
+      <RunningNodes />
+      <hr />
+    </div>
+  );
+}
+
+const todoQueueComponents = { Header: TodoQueueHeader };
+
 const VirtualizedQueueNodes = (props: {
-  node_ids: types.TNodeId[] | TNodeIdsWithPrefix;
+  node_ids: types.TNodeId[];
   virtuosoRef: React.Ref<Rv.VirtuosoHandle>;
+  showHeader?: boolean;
 }) => {
   return (
     <Rv.Virtuoso
@@ -935,31 +943,23 @@ const VirtualizedQueueNodes = (props: {
       increaseViewportBy={320}
       data={props.node_ids}
       computeItemKey={queueComputeItemKey}
-      itemContent={queueItemContent}
+      components={props.showHeader ? todoQueueComponents : undefined}
+      itemContent={props.showHeader ? todoQueueItemContent : queueItemContent}
       ref={props.virtuosoRef}
     />
   );
 };
 
-function queueItemContent(index: number, item: TNodeIdsWithPrefix[number]) {
-  switch (item) {
-    case "special/header": {
-      return (
-        <div className="min-h-[1px]">
-          <PredictedNextNodes />
-          <RunningNodes />
-          <hr />
-        </div>
-      );
-    }
-    default: {
-      return <QueueEntry index={index} node_id={item} />;
-    }
-  }
+function queueItemContent(index: number, nodeId: types.TNodeId) {
+  return <QueueEntry index={index} node_id={nodeId} />;
 }
 
-function queueComputeItemKey(_: number, item: TNodeIdsWithPrefix[number]) {
-  return item;
+function todoQueueItemContent(index: number, nodeId: types.TNodeId) {
+  return queueItemContent(index + 1, nodeId);
+}
+
+function queueComputeItemKey(_: number, nodeId: types.TNodeId) {
+  return nodeId;
 }
 
 const DndTreeNode = (props: { node_id: types.TNodeId }) => {
@@ -1038,7 +1038,7 @@ const NonTodoQueueNodes = (props: {
     Jotai.useAtomValue(states.nodeFilterQueryState),
   );
   const node_ids = useQueue(false, nodeFilterQuery);
-  useQueueJump(false, nodeFilterQuery, node_ids, props.virtuosoRef, 0);
+  useQueueJump(false, nodeFilterQuery, node_ids, props.virtuosoRef);
   return (
     <VirtualizedQueueNodes
       node_ids={node_ids}

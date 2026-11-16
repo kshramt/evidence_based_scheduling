@@ -99,8 +99,12 @@ async def _check_queue_navigation(
     queue_parent = queue.get_by_role("button", name="short task", exact=True)
 
     await search.fill(child_text)
+    await playwright.async_api.expect(queue.locator("hr")).to_be_attached()
     await playwright.async_api.expect(
-        queue.locator('[data-item-index="1"]').get_by_role(
+        queue.locator("[data-item-index] hr")
+    ).to_have_count(0)
+    await playwright.async_api.expect(
+        queue.locator('[data-item-index="0"]').get_by_role(
             "button", name=child_text, exact=True
         )
     ).to_be_attached()
