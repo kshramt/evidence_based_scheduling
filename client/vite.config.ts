@@ -1,11 +1,11 @@
 /// <reference types="vitest" />
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   build: {
     target: "esnext",
   },
@@ -20,7 +20,7 @@ export default defineConfig({
       strategies: "injectManifest",
       filename: "sw.ts",
       srcDir: "src",
-      devOptions: { enabled: true },
+      devOptions: { enabled: mode !== "test", type: "module" },
       injectManifest: {
         globPatterns: ["**"],
         manifestTransforms: [
@@ -82,7 +82,7 @@ export default defineConfig({
     browser: {
       enabled: true,
       headless: true,
-      name: "chromium",
+      instances: [{ browser: "chromium" }],
       provider: "playwright",
     },
     coverage: {
@@ -90,4 +90,4 @@ export default defineConfig({
     },
     testTimeout: process.env.CI ? 40_000 : 10_000,
   },
-});
+}));
