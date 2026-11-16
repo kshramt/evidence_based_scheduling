@@ -885,27 +885,13 @@ function useQueueJump(
   offset: number,
 ) {
   const [request, setRequest] = Jotai.useAtom(queueJump);
-  const [currentQuery, setQuery] = Jotai.useAtom(states.nodeFilterQueryState);
+  const currentQuery = Jotai.useAtomValue(states.nodeFilterQueryState);
   React.useEffect(() => {
     if (request?.isTodo !== isTodo || query !== currentQuery) return;
     const index = queue.indexOf(request.nodeId);
-    if (index === -1 && query !== "") {
-      setQuery("");
-      return;
-    }
     if (index !== -1) ref.current?.scrollToIndex(index + offset);
     setRequest(null);
-  }, [
-    request,
-    isTodo,
-    query,
-    currentQuery,
-    queue,
-    ref,
-    offset,
-    setQuery,
-    setRequest,
-  ]);
+  }, [request, isTodo, query, currentQuery, queue, ref, offset, setRequest]);
 }
 
 type TNodeIdsWithPrefix = ["special/header", ...types.TNodeId[]];

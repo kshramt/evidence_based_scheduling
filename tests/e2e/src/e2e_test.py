@@ -99,14 +99,18 @@ async def _check_queue_navigation(
     queue_parent = queue.get_by_role("button", name="short task", exact=True)
 
     await search.fill(child_text)
-    await playwright.async_api.expect(queue_parent).to_have_count(0)
+    await playwright.async_api.expect(
+        queue.locator('[data-item-index="1"]').get_by_role(
+            "button", name=child_text, exact=True
+        )
+    ).to_be_attached()
     await queue.evaluate("(element) => { element.scrollTop = 0; }")
     await child_jump.click()
     await playwright.async_api.expect(queue_child).to_be_in_viewport()
     await playwright.async_api.expect(search).to_have_value(child_text)
 
     await parent_jump.click()
-    await playwright.async_api.expect(search).to_have_value("")
+    await playwright.async_api.expect(search).to_have_value(child_text)
     await playwright.async_api.expect(queue_parent).to_be_in_viewport()
 
 
