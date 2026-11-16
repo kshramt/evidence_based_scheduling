@@ -94,7 +94,13 @@ async def _check_queue_navigation(
         "(row) => row.getBoundingClientRect().top >= "
         "row.closest('[data-virtuoso-scroller]').getBoundingClientRect().bottom"
     )
-    await queue.evaluate("(element) => { element.scrollTop = element.scrollHeight; }")
+    await queue_child.evaluate(
+        """(row) => {
+            const pane = row.closest('[data-virtuoso-scroller]');
+            pane.scrollTop += row.getBoundingClientRect().top
+                - pane.getBoundingClientRect().top;
+        }"""
+    )
     await playwright.async_api.expect(queue_child).to_be_in_viewport()
 
     search = page.get_by_role("textbox", name="Search tasks")
