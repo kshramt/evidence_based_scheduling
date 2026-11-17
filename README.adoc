@@ -52,6 +52,73 @@ curl -fsS http://127.0.0.1:8080/api/v2/sys/health
 
 Use the configured Envoy HTTP port in the health check. The deploy script uses the checked-out commit's `h-<sha>-linux-amd64` tag for all images. Compose pulls the images before recreating any containers. If a pull fails, retry once the images are available.
 
+=== Upgrade an existing PostgreSQL 16 deployment to 17
+
+For this PostgreSQL 16 to 17 upgrade, initialize a new data directory and restore a logical backup.
+The deployment command will reuse the path in `MY_HOST_PGDATA`, so complete the
+migration before deploying the PostgreSQL 17 image. Keep the old data directory
+and the running deployment's image tag for rollback.
+
+Use the same checkout, Docker context, Compose project, and environment file as
+your running deployment. The example uses the default rootless context and
+`deploy.env`. Set `new_pgdata` to a new absolute path and `new_tag` to the published
+commit tag containing PostgreSQL 17. Keep the backup directory private, since
+the roles dump contains password verifiers. Run the commands from Bash.
+
+[source,bash]
+----
+set -euo pipefail
+umask 077
+compose=(docker --context rootless compose
+  --env-file "$HOME/.config/evidence-based-scheduling/deploy.env"
+  -f compose.yaml -f compose.prod.yaml)
+
+new_pgdata="$HOME/d/ebs-postgres-17"
+new_tag="h-<published-commit-sha>-linux-amd64"
+backup_dir=$(mktemp -d "$HOME/ebs-pg16-backup.XXXXXXXX")
+
+# Verify the source is 16 and record the actual path and deployed image.
+source_version=$("${compose[@]}" exec -T postgres psql -X -U postgres -Atc 'SHOW server_version_num')
+[[ "$source_version" == 16[0-9][0-9][0-9][0-9] ]]
+docker --context rootless inspect \
+  --format '{{.Config.Image}}{{println}}{{range .Mounts}}{{.Source}}{{println}}{{end}}' \
+  "$("${compose[@]}" ps -q postgres)"
+
+# Pull the destination before stopping the application.
+_DOCKER_POSTGRES_TAG="$new_tag" "${compose[@]}" pull postgres
+mkdir -m 700 "$new_pgdata"
+"${compose[@]}" stop envoy api_v2 nginx
+counts_sql='SELECT (SELECT count(*) FROM app.users), (SELECT count(*) FROM app.patches)'
+source_counts=$("${compose[@]}" exec -T postgres psql -X -U postgres -Atc "$counts_sql")
+"${compose[@]}" exec -T postgres pg_dumpall -U postgres --roles-only >"$backup_dir/roles.sql"
+"${compose[@]}" exec -T postgres pg_dump -U postgres -Fc -d postgres >"$backup_dir/postgres.dump"
+"${compose[@]}" stop postgres
+
+# Only start the new database until the restore has succeeded.
+export MY_HOST_PGDATA="$new_pgdata"
+export _DOCKER_POSTGRES_TAG="$new_tag"
+"${compose[@]}" up -d --wait --no-deps postgres
+sed '/^CREATE ROLE postgres;$/d' "$backup_dir/roles.sql" |
+  "${compose[@]}" exec -T postgres psql -X -U postgres -v ON_ERROR_STOP=1
+"${compose[@]}" exec -T postgres \
+  pg_restore -U postgres --exit-on-error --single-transaction -d postgres \
+  <"$backup_dir/postgres.dump"
+target_version=$("${compose[@]}" exec -T postgres psql -X -U postgres -Atc 'SHOW server_version_num')
+target_counts=$("${compose[@]}" exec -T postgres psql -X -U postgres -Atc "$counts_sql")
+[[ "$target_version" == 17[0-9][0-9][0-9][0-9] ]]
+[[ "$target_counts" == "$source_counts" ]]
+----
+
+After checking the version and expected row counts, persist the new
+`MY_HOST_PGDATA` path in `deploy.env`, check out the published commit, and run
+`TAG="$new_tag" scripts/deploy.sh`. Check the API health endpoint, open an
+existing task, and check that a test edit syncs. Keep both the backup and the
+old data directory. If the restore fails or verification fails before
+resuming writes, run `scripts/deploy.sh` with the old image tag and old
+`MY_HOST_PGDATA` path, and restore the old path in `deploy.env`. Writes made
+after cutover live in the new cluster and require separate reconciliation
+before switching back.
+
 === Start with an explicit image tag
 
 [source,bash]
