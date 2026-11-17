@@ -142,8 +142,8 @@ catalogs:
       specifier: ^9.2.0
       version: 9.3.1
     react-virtuoso:
-      specifier: ^4.6.2
-      version: 4.6.2
+      specifier: 4.18.23
+      version: 4.18.23
     react-window:
       specifier: ^1.8.11
       version: 1.8.11
@@ -260,7 +260,7 @@ importers:
         version: 9.3.1(@types/react@19.3.0)(react@19.3.1)(redux@5.0.1)
       react-virtuoso:
         specifier: 'catalog:'
-        version: 4.6.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 4.18.23(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react-window:
         specifier: 'catalog:'
         version: 1.8.11(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -3767,12 +3767,11 @@ packages:
       react: '>=16.6.0'
       react-dom: '>=16.6.0'
 
-  react-virtuoso@4.6.2:
-    resolution: {integrity: sha512-vvlqvzPif+MvBrJ09+hJJrVY0xJK9yran+A+/1iwY78k0YCVKsyoNPqoLxOxzYPggspNBNXqUXEcvckN29OxyQ==}
-    engines: {node: '>=10'}
+  react-virtuoso@4.18.23:
+    resolution: {integrity: sha512-J/FpyeLUbU6uEXiMsTKjlJaSMqpjxPCanjSYRxFKobLhP73Wo4gloFldDD7osmFUEv2VMF8Ki/YScofwa3ymyw==}
     peerDependencies:
-      react: '>=16 || >=17 || >= 18'
-      react-dom: '>=16 || >=17 || >= 18'
+      react: '>=16 || >=17 || >= 18 || >= 19'
+      react-dom: '>=16 || >=17 || >= 18 || >=19'
 
   react-window@1.8.11:
     resolution: {integrity: sha512-+SRbUVT2scadgFSWx+R1P754xHPEqvcfSfVX10QYg6POOz+WNgkN48pS+BtZNIMGiL1HYrSEiCkwsMS15QogEQ==}
@@ -8310,7 +8309,7 @@ snapshots:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
 
-  react-virtuoso@4.6.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
+  react-virtuoso@4.18.23(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
     dependencies:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)

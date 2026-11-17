@@ -127,6 +127,9 @@ async def _check_queue_navigation(
     await playwright.async_api.expect(search).to_have_value(child_text)
     await playwright.async_api.expect(queue_parent).to_be_in_viewport()
 
+    await child_jump.click()
+    await playwright.async_api.expect(queue_child).to_be_in_viewport()
+
 
 async def _open_auth(
     page: playwright.async_api.Page, url: str, field: str
