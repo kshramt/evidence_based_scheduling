@@ -1,4 +1,5 @@
 /// <reference types="vitest" />
+import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
@@ -83,7 +84,7 @@ export default defineConfig(({ mode }) => ({
       enabled: true,
       headless: true,
       instances: [{ browser: "chromium" }],
-      provider: "playwright",
+      provider: playwright(),
     },
     coverage: {
       provider: "istanbul",
