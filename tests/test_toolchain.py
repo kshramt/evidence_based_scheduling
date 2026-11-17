@@ -41,6 +41,19 @@ class ToolchainTest(unittest.TestCase):
         self.assertEqual(len(versions), 1)
         self.assertEqual(cli_versions, versions)
 
+    def test_vitest_packages_use_matching_versions(self) -> None:
+        workspace = (ROOT / "pnpm-workspace.yaml").read_text(encoding="utf-8")
+        version = re.findall(r"(?m)^  vitest: (\d+\.\d+\.\d+)$", workspace)
+        self.assertEqual(len(version), 1)
+        for package in ("browser-playwright", "coverage-istanbul", "ui"):
+            with self.subTest(package=package):
+                self.assertEqual(
+                    re.findall(
+                        rf'(?m)^  "@vitest/{package}": (\d+\.\d+\.\d+)$', workspace
+                    ),
+                    version,
+                )
+
     def test_playwright_versions_match(self) -> None:
         workspace = (ROOT / "pnpm-workspace.yaml").read_text(encoding="utf-8")
         with (ROOT / "tests/e2e/pyproject.toml").open("rb") as config_file:
