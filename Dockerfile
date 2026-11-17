@@ -179,11 +179,11 @@ ENV PYTHONUNBUFFERED 1
 ENV PYTHONDONTWRITEBYTECODE 1
 WORKDIR /app
 
-FROM nginx:1.29.3-alpine AS base_nginx
+FROM nginx:1.30.6-alpine AS base_nginx
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 
-FROM envoyproxy/envoy:distroless-v1.34.2 AS base_envoy
+FROM envoyproxy/envoy:distroless-v1.40.2 AS base_envoy
 ARG SOURCE_DATE_EPOCH
 ENV SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-0}
 

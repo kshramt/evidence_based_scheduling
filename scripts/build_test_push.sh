@@ -68,6 +68,12 @@ if [[ "${os}" = "${host_os}" && "${arch}" = "${host_arch}" ]]; then
 		_POSTGRES_APP_USER_PASSWORD=app \
 		scripts/launch.sh
 
+	_POSTGRES_PASSWORD=postgres _POSTGRES_APP_USER_PASSWORD=app \
+		docker compose -f compose.yaml -f compose.prod.yaml exec -T nginx nginx -t
+	_POSTGRES_PASSWORD=postgres _POSTGRES_APP_USER_PASSWORD=app \
+		docker compose -f compose.yaml -f compose.prod.yaml exec -T envoy \
+		envoy --mode validate -c /etc/envoy/envoy.yaml
+
 	i=0
 	for _i in {1..10}; do
 		if curl -fsS --max-time 5 http://127.0.0.1:8080/api/v2/sys/health; then
