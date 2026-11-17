@@ -52,14 +52,13 @@ COMMIT;
 SQL
 } | docker exec -i "${source_db}" psql -X -U postgres -v ON_ERROR_STOP=1
 
-docker exec "${source_db}" pg_dumpall -U postgres --roles-only --no-role-passwords >"${tmp_dir}/roles.sql"
+docker exec "${source_db}" pg_dumpall -U postgres --roles-only >"${tmp_dir}/roles.sql"
 docker exec "${source_db}" pg_dump -U postgres -Fc -d postgres >"${tmp_dir}/postgres.dump"
 
 # The destination cluster already has its bootstrap superuser.
 sed '/^CREATE ROLE postgres;$/d' "${tmp_dir}/roles.sql" |
 	docker exec -i "${target_db}" psql -X -U postgres -v ON_ERROR_STOP=1
 docker exec -i "${target_db}" pg_restore -U postgres --exit-on-error --single-transaction -d postgres <"${tmp_dir}/postgres.dump"
-docker exec "${target_db}" psql -X -U postgres -v ON_ERROR_STOP=1 -c "ALTER ROLE app PASSWORD 'app-test'"
 
 actual="$(docker exec -e PGPASSWORD=app-test "${target_db}" psql -X -h 127.0.0.1 -U app -d postgres -At -v ON_ERROR_STOP=1 -c "
 SELECT count(*), min(p.patch->0->>'value') FROM app.users u
