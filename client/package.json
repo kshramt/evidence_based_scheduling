@@ -127,12 +127,14 @@
     "not op_mini all"
   ],
   "devDependencies": {
+    "@babel/core": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@typescript-eslint/eslint-plugin": "catalog:",
     "@typescript-eslint/parser": "catalog:",
     "@vitejs/plugin-react": "catalog:",
+    "@rolldown/plugin-babel": "catalog:",
     "@vitest/browser-playwright": "catalog:",
     "@vitest/coverage-istanbul": "catalog:",
     "@vitest/ui": "catalog:",
