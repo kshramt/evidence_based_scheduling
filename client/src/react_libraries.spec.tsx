@@ -1,4 +1,4 @@
-import { MantineProvider, Textarea } from "@mantine/core";
+import { MantineProvider, Switch, Textarea } from "@mantine/core";
 import { configureStore, createSlice } from "@reduxjs/toolkit";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
@@ -40,6 +40,30 @@ test("a Mantine task field displays Redux updates", () => {
       store.dispatch(task.actions.rename());
     });
     expect(host.querySelector("textarea")?.value).toBe("updated");
+  } finally {
+    root.unmount();
+    host.remove();
+  }
+});
+
+test("a Mantine task-view switch still toggles through its label", () => {
+  const host = document.createElement("div");
+  document.body.append(host);
+  const root = createRoot(host);
+  try {
+    flushSync(() =>
+      root.render(
+        <MantineProvider>
+          <Switch label="To Do" defaultChecked />
+        </MantineProvider>,
+      ),
+    );
+    const input = host.querySelector<HTMLInputElement>("input");
+    const label = host.querySelector("label");
+    expect(input?.checked).toBe(true);
+    expect(label?.textContent).toBe("To Do");
+    flushSync(() => label?.click());
+    expect(input?.checked).toBe(false);
   } finally {
     root.unmount();
     host.remove();
