@@ -127,6 +127,7 @@
     "not op_mini all"
   ],
   "devDependencies": {
+    "@babel/core": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

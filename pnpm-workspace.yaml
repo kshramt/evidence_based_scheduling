@@ -1,6 +1,7 @@
 packages:
   - "client"
 catalog:
+  "@babel/core": 7.29.13
   "@emotion/react": ^11.11.3
   "@fontsource/material-icons": ^5.0.11
   "@kshramt/fast-json-patch": ^3.1.2
