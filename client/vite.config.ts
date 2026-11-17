@@ -1,7 +1,8 @@
 /// <reference types="vitest" />
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
-import react from "@vitejs/plugin-react";
+import babel from "@rolldown/plugin-babel";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 
@@ -11,11 +12,8 @@ export default defineConfig(({ mode }) => ({
     target: "esnext",
   },
   plugins: [
-    react({
-      babel: {
-        plugins: [["babel-plugin-react-compiler", { target: "19" }]],
-      },
-    }),
+    react(),
+    babel({ presets: [reactCompilerPreset({ target: "19" })] }),
     VitePWA({
       // registerType: "autoUpdate",
       strategies: "injectManifest",
