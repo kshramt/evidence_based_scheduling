@@ -280,13 +280,6 @@ components:
           $ref: "#/components/schemas/IdToken"
       required:
         - id_token
-    FakeIdpCreateIdTokenRequest:
-      type: object
-      properties:
-        name:
-          type: string
-      required:
-        - name
     FakeIdpCreateIdTokenResponse:
       type: object
       properties:
