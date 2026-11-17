@@ -12,8 +12,6 @@
     "@kshramt/runtime-type-validator": "catalog:",
     "@kshramt/sequence-comparisons": "catalog:",
     "@mantine/core": "catalog:",
-    "@mantine/dates": "catalog:",
-    "@mantine/form": "catalog:",
     "@mantine/hooks": "catalog:",
     "@mantine/notifications": "catalog:",
     "@reduxjs/toolkit": "catalog:",
