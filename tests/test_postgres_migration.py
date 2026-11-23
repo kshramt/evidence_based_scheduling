@@ -38,6 +38,8 @@ elif args[0] == 'compose':
             print(json.dumps({'services': {'postgres_migration': {'environment': {'_POSTGRES_APP_USER_PASSWORD': 'app'}}}}))
     elif cmd[0] == 'ps':
         print(cmd[-1])
+    elif cmd[0] == 'run':
+        sys.exit(int(os.environ.get('AUTH_EXIT', '0')))
     elif cmd[0] == 'pull':
         sys.exit(int(os.environ.get('PULL_EXIT', '0')))
     elif cmd[0] == 'exec':
@@ -91,6 +93,10 @@ elif args[0] == 'compose':
         restart = next(i for i, call in enumerate(calls) if call[-2:] == ["up", "-d"])
         self.assertLess(restore, authenticate)
         self.assertLess(authenticate, restart)
+        self.assertIn("run", calls[authenticate])
+        self.assertEqual(
+            calls[authenticate][calls[authenticate].index("-h") + 1], "postgres"
+        )
 
     def test_existing_destination_stops_before_docker(self) -> None:
         (self.temp / "d/ebs-postgres-17").mkdir()
