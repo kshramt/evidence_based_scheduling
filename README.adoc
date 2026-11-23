@@ -54,70 +54,36 @@ Use the configured Envoy HTTP port in the health check. The deploy script uses t
 
 === Upgrade an existing PostgreSQL 16 deployment to 17
 
-For this PostgreSQL 16 to 17 upgrade, initialize a new data directory and restore a logical backup.
-The deployment command will reuse the path in `MY_HOST_PGDATA`, so complete the
-migration before deploying the PostgreSQL 17 image. Keep the old data directory
-and the running deployment's image tag for rollback.
-
-Use the same checkout, Docker context, Compose project, and environment file as
-your running deployment. The example uses the default rootless context and
-`deploy.env`. Set `new_pgdata` to a new absolute path and `new_tag` to the published
-commit tag containing PostgreSQL 17. Keep the backup directory private, since
-the roles dump contains password verifiers. Run the commands from Bash.
+After checking out the PostgreSQL 17 deployment commit, run the migration from
+Bash in the existing checkout. Its published images must be available.
 
 [source,bash]
 ----
-set -euo pipefail
-umask 077
-compose=(docker --context rootless compose
-  --env-file "$HOME/.config/evidence-based-scheduling/deploy.env"
-  -f compose.yaml -f compose.prod.yaml)
-
-new_pgdata="$HOME/d/ebs-postgres-17"
-new_tag="h-<published-commit-sha>-linux-amd64"
-backup_dir=$(mktemp -d "$HOME/ebs-pg16-backup.XXXXXXXX")
-
-# Verify the source is 16 and record the actual path and deployed image.
-source_version=$("${compose[@]}" exec -T postgres psql -X -U postgres -Atc 'SHOW server_version_num')
-[[ "$source_version" == 16[0-9][0-9][0-9][0-9] ]]
-docker --context rootless inspect \
-  --format '{{.Config.Image}}{{println}}{{range .Mounts}}{{.Source}}{{println}}{{end}}' \
-  "$("${compose[@]}" ps -q postgres)"
-
-# Pull the destination before stopping the application.
-_DOCKER_POSTGRES_TAG="$new_tag" "${compose[@]}" pull postgres
-mkdir -m 700 "$new_pgdata"
-"${compose[@]}" stop envoy api_v2 nginx
-counts_sql='SELECT (SELECT count(*) FROM app.users), (SELECT count(*) FROM app.patches)'
-source_counts=$("${compose[@]}" exec -T postgres psql -X -U postgres -Atc "$counts_sql")
-"${compose[@]}" exec -T postgres pg_dumpall -U postgres --roles-only >"$backup_dir/roles.sql"
-"${compose[@]}" exec -T postgres pg_dump -U postgres -Fc -d postgres >"$backup_dir/postgres.dump"
-"${compose[@]}" stop postgres
-
-# Only start the new database until the restore has succeeded.
-export MY_HOST_PGDATA="$new_pgdata"
-export _DOCKER_POSTGRES_TAG="$new_tag"
-"${compose[@]}" up -d --wait --no-deps postgres
-sed '/^CREATE ROLE postgres;$/d' "$backup_dir/roles.sql" |
-  "${compose[@]}" exec -T postgres psql -X -U postgres -v ON_ERROR_STOP=1
-"${compose[@]}" exec -T postgres \
-  pg_restore -U postgres --exit-on-error --single-transaction -d postgres \
-  <"$backup_dir/postgres.dump"
-target_version=$("${compose[@]}" exec -T postgres psql -X -U postgres -Atc 'SHOW server_version_num')
-target_counts=$("${compose[@]}" exec -T postgres psql -X -U postgres -Atc "$counts_sql")
-[[ "$target_version" == 17[0-9][0-9][0-9][0-9] ]]
-[[ "$target_counts" == "$source_counts" ]]
+scripts/migrate_postgres_17.sh
 ----
 
-After checking the version and expected row counts, persist the new
-`MY_HOST_PGDATA` path in `deploy.env`, check out the published commit, and run
-`TAG="$new_tag" scripts/deploy.sh`. Check the API health endpoint, open an
-existing task, and check that a test edit syncs. Keep both the backup and the
-old data directory. If the restore fails or verification fails before
-resuming writes, run `scripts/deploy.sh` with the old image tag and old
-`MY_HOST_PGDATA` path, and restore the old path in `deploy.env`. Writes made
-after cutover live in the new cluster and require separate reconciliation
-before switching back.
+The defaults are Docker context `rootless`, environment file
+`~/.config/evidence-based-scheduling/deploy.env`, and a new data directory
+`~/d/ebs-postgres-17`. The script uses the checked-out commit's image tag.
+Override these with `DOCKER_CONTEXT` (or `DOCKER_HOST`), `COMPOSE_ENV_FILES`,
+`NEW_PGDATA`, and `TAG` when needed. Python 3 is required on the server.
+The destination directory must not exist.
+
+The script pulls all destination images, records the current image references
+and data mount, stops application writers, and creates private role and database
+backups. PostgreSQL remains running during the logical backup. It then starts
+PostgreSQL 17 on the new directory and restores the roles and database. Before
+restarting the application it checks the server version, user and patch counts,
+and the restored app role's TCP authentication. It updates `MY_HOST_PGDATA` in
+`deploy.env` atomically and starts the application with `scripts/deploy.sh`.
+
+After completion, check `/api/v2/sys/health`, open an existing task, and verify
+that a small edit survives reloading. Keep the printed backup directory and the
+old data directory. The backup includes the previous environment file and a
+`rollback.sh` that restores the old configuration and exact running images.
+If migration fails, inspect the reported error before running the rollback
+script. Once clients have written to PostgreSQL 17, reconcile those writes
+before switching back to the old cluster.
 
 === Start with an explicit image tag
 
