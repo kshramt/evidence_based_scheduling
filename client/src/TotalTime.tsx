@@ -16,7 +16,7 @@ export const TotalTime = (props: { node_id: types.TNodeId }) => {
       if (el === null) {
         return;
       }
-      observe(el, props.node_id);
+      return observe(el, props.node_id);
     },
     [observe, props.node_id],
   );
