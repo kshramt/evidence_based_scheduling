@@ -24,7 +24,7 @@ export const should_update = (node_id: types.TNodeId) => {
   return uvid < avid;
 };
 
-export const observe_of = utils.memoize1((dispatch: types.AppDispatch) => {
+const createObserve = (dispatch: types.AppDispatch) => {
   const observations = new WeakMap<
     Element,
     { node_id: types.TNodeId; visible: boolean }
@@ -70,7 +70,22 @@ export const observe_of = utils.memoize1((dispatch: types.AppDispatch) => {
       }
     };
   };
-});
+};
+
+const observeByDispatch = new WeakMap<
+  types.AppDispatch,
+  ReturnType<typeof createObserve>
+>();
+
+export const observe_of = (dispatch: types.AppDispatch) => {
+  const cached = observeByDispatch.get(dispatch);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const observe = createObserve(dispatch);
+  observeByDispatch.set(dispatch, observe);
+  return observe;
+};
 
 export const set_total_time_action = Rtk.createAction<{
   node_ids: types.TNodeId[];

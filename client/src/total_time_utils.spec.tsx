@@ -115,6 +115,16 @@ test("offscreen entries do not dispatch total-time updates", () => {
   dispose();
 });
 
+test("task displays share an observer only within their own store", () => {
+  mockObserver();
+  const dispatch = vi.fn<AppDispatch>();
+  const otherDispatch = vi.fn<AppDispatch>();
+  const observe = T.observe_of(dispatch);
+  expect(T.observe_of(dispatch)).toBe(observe);
+  expect(T.observe_of(otherDispatch)).not.toBe(observe);
+  expect(IntersectionObserver).toHaveBeenCalledTimes(2);
+});
+
 test("React releases total-time observations on row removal and task replacement", () => {
   const observer = mockObserver();
   const initial = emptyStateOf();
