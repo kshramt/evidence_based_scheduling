@@ -25,28 +25,50 @@ export const should_update = (node_id: types.TNodeId) => {
 };
 
 export const observe_of = utils.memoize1((dispatch: types.AppDispatch) => {
-  const node_id_of_element = new WeakMap<Element, types.TNodeId>();
+  const observations = new WeakMap<
+    Element,
+    { node_id: types.TNodeId; visible: boolean }
+  >();
   const observer = new IntersectionObserver((entries) => {
-    const node_ids = [];
+    const node_ids = new Set<types.TNodeId>();
     for (const entry of entries) {
-      const node_id = node_id_of_element.get(entry.target);
-      if (node_id === undefined) {
+      const observation = observations.get(entry.target);
+      if (observation === undefined) {
         continue;
       }
-      if (entry.isIntersecting) {
-        visible_node_ids.add(node_id);
-        if (should_update(node_id)) {
-          node_ids.push(node_id);
+      const { node_id } = observation;
+      if (observation.visible !== entry.isIntersecting) {
+        observation.visible = entry.isIntersecting;
+        if (entry.isIntersecting) {
+          visible_node_ids.add(node_id);
+        } else {
+          visible_node_ids.delete(node_id);
         }
-      } else {
-        visible_node_ids.delete(node_id);
+      }
+      if (entry.isIntersecting) {
+        if (should_update(node_id)) {
+          node_ids.add(node_id);
+        }
       }
     }
-    dispatch(set_total_time_action({ node_ids }));
+    if (node_ids.size > 0) {
+      dispatch(set_total_time_action({ node_ids: [...node_ids] }));
+    }
   });
   return (el: HTMLElement, node_id: types.TNodeId) => {
-    node_id_of_element.set(el, node_id);
+    const observation = { node_id, visible: false };
+    observations.set(el, observation);
     observer.observe(el);
+    return () => {
+      if (observations.get(el) !== observation) {
+        return;
+      }
+      observer.unobserve(el);
+      observations.delete(el);
+      if (observation.visible) {
+        visible_node_ids.delete(node_id);
+      }
+    };
   };
 });
 
