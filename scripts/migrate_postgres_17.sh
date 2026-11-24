@@ -108,7 +108,7 @@ if [[ "${target_version}" != 17[0-9][0-9][0-9][0-9] || "${target_counts}" != "${
 	printf 'Restored database version or row counts do not match.\n' >&2
 	exit 1
 fi
-# Check authentication over TCP with the configured app password.
+# Authenticate over the Compose network, as the API does.
 python3 - "${env_file}" <<'PYAUTH'
 import json
 import subprocess
@@ -119,14 +119,12 @@ config = json.loads(subprocess.check_output([
     "-f", "compose.yaml", "-f", "compose.prod.yaml", "config", "--format", "json",
 ]))
 password = config["services"]["postgres_migration"]["environment"]["_POSTGRES_APP_USER_PASSWORD"]
-# The replacement container has a different ID, so look it up again.
-cid = subprocess.check_output([
-    "docker", "compose", "--env-file", sys.argv[1],
-    "-f", "compose.yaml", "-f", "compose.prod.yaml", "ps", "-q", "postgres",
-], text=True).strip()
 subprocess.run([
-    "docker", "exec", "-e", "PGPASSWORD=" + password, cid,
-    "psql", "-X", "-h", "127.0.0.1", "-U", "app", "-d", "postgres",
+    "docker", "compose", "--env-file", sys.argv[1],
+    "-f", "compose.yaml", "-f", "compose.prod.yaml",
+    "run", "--rm", "--no-deps", "-e", "PGPASSWORD=" + password,
+    "--entrypoint", "psql", "postgres",
+    "-X", "-h", "postgres", "-U", "app", "-d", "postgres",
     "-v", "ON_ERROR_STOP=1", "-c", "SELECT count(*) FROM app.users",
 ], check=True, stdout=subprocess.DEVNULL)
 PYAUTH
