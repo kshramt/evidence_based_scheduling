@@ -8,6 +8,7 @@ import * as intervals from "./intervals";
 import * as ops from "./ops";
 import * as times from "./times";
 import * as types from "./types";
+import { useSelector } from "./types";
 import * as utils from "src/utils";
 
 // Vose (1991)'s linear version of Walker (1974)'s alias method.
@@ -435,8 +436,9 @@ export const useOn = (delayMsec: number = consts.DEFAULT_DELAY_MSEC) => {
 };
 
 export const useIsRunning = (node_id: null | types.TNodeId) => {
+  // A direct hook call lets React Compiler stabilize this selector.
   const ranges = assertV(
-    types.useSelector((state) =>
+    useSelector((state) =>
       node_id === null ? null : state.swapped_nodes.ranges?.[node_id],
     ),
   );
@@ -582,7 +584,7 @@ export const usePlannedNodeIds = (
   todoNodeIds: types.TNodeId[],
   nonTodoNodeIds: types.TNodeId[],
 ) => {
-  const eventss = types.useSelector((state) => state.swapped_nodes.events);
+  const eventss = useSelector((state) => state.swapped_nodes.events);
   const res = React.useMemo(() => {
     const _res: types.TNodeId[] = [];
     const prefix = timeId[0];
