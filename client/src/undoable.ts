@@ -1,42 +1,67 @@
 import * as Rtk from "@reduxjs/toolkit";
+import * as Immer from "immer";
 
 import * as types from "./types";
 
 export const UNDO_TYPE = "undoable/undo";
 export const REDO_TYPE = "undoable/redo";
 
-class History<T> {
-  capacity: number;
-  i: number;
-  buf: T[];
-  constructor(init: T) {
-    this.capacity = 1;
-    this.i = 0;
-    this.buf = [init];
+Immer.enablePatches();
+
+type Step = { forward: Immer.Patch[]; inverse: Immer.Patch[] };
+
+class History {
+  #snapshot: types.TState;
+  #steps: Step[] = [];
+  #index = 0;
+  // Cache/UI updates belong to the next recorded snapshot, not their own step.
+  #pending: Step[] = [];
+
+  constructor(initial: types.TState) {
+    this.#snapshot = initial;
   }
 
-  value = () => this.buf[this.i];
-
-  push = (v: T) => {
-    if (this.buf[this.i] === v) {
-      return this;
+  record = (nextState: types.TState, step: Step, tracked: boolean) => {
+    if (!tracked) {
+      if (step.forward.length > 0) this.#pending.push(step);
+      return;
     }
-    ++this.i;
-    this.buf[this.i] = v;
-    this.capacity = this.i + 1;
-    return this;
+    if (this.#snapshot !== nextState) {
+      this.#steps.length = this.#index;
+      this.#steps.push({
+        forward: this.#pending
+          .flatMap((pending) => pending.forward)
+          .concat(step.forward),
+        inverse: step.inverse.concat(
+          this.#pending.toReversed().flatMap((pending) => pending.inverse),
+        ),
+      });
+      this.#index++;
+      this.#snapshot = nextState;
+    }
+    this.#pending = [];
   };
 
   undo = () => {
-    if (0 < this.i) {
-      --this.i;
+    this.#pending = [];
+    if (this.#index > 0) {
+      this.#snapshot = Immer.applyPatches(
+        this.#snapshot,
+        this.#steps[--this.#index].inverse,
+      );
     }
-    return this.value();
+    return this.#snapshot;
   };
 
   redo = () => {
-    this.i = Math.min(this.i + 1, this.capacity - 1);
-    return this.value();
+    this.#pending = [];
+    if (this.#index < this.#steps.length) {
+      this.#snapshot = Immer.applyPatches(
+        this.#snapshot,
+        this.#steps[this.#index++].forward,
+      );
+    }
+    return this.#snapshot;
   };
 }
 
@@ -60,10 +85,19 @@ export const undoableOf = (
         return history.redo();
       }
       default: {
-        const nextState = reducer(state, action);
-        if (history_type_set.has(action.type)) {
-          history.push(nextState);
-        }
+        const [nextState, forward, inverse] = Immer.produceWithPatches(
+          state,
+          (draft) => {
+            const value = reducer(draft, action);
+            if (value !== draft) return Immer.castDraft(value);
+            return undefined;
+          },
+        );
+        history.record(
+          nextState,
+          { forward, inverse },
+          history_type_set.has(action.type),
+        );
         return nextState;
       }
     }
