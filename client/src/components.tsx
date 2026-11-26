@@ -133,8 +133,7 @@ const NodeFilterQueryInput = () => {
     setNodeFilterQuery(v);
   }, [setNodeFilterQuery]);
   const ref = useMetaK();
-  const queue = useQueue(true, nodeFilterQuery);
-  const node_id = queue[0] || null;
+  const { firstMatch: node_id } = useQueue(true, nodeFilterQuery);
   const taskShortcutKeys = hooks.useTaskShortcutKeys(
     node_id,
     consts.TREE_PREFIX,
@@ -210,18 +209,15 @@ function memo1_3<A, B, C, R>(
   };
 }
 
-const getQueueNodeIds = (
+const searchQueue = (
   queue: types.TNodeId[],
   texts: types.TState["swapped_caches"]["text"],
   nodeFilterQuery: string,
 ) => {
   if (nodeFilterQuery.length === 0) {
-    return queue;
+    return { nodeIds: queue, firstMatch: queue[0] ?? null };
   }
   const processedQuery = nodeFilterQuery.toLowerCase().split(" ");
-  if (processedQuery.length === 0) {
-    return queue;
-  }
   const head = [];
   const tail = [];
   for (const nodeId of queue) {
@@ -233,20 +229,20 @@ const getQueueNodeIds = (
     }
   }
   if (head.length === 0) {
-    return queue;
+    return { nodeIds: queue, firstMatch: null };
   }
   head.sort((a, b) => {
     const aText = utils.assertV(texts?.[a]);
     const bText = utils.assertV(texts?.[b]);
     return aText.length - bText.length;
   });
-  return head.concat(tail);
+  return { nodeIds: head.concat(tail), firstMatch: head[0] };
 };
 
-const getTodoQueueNodeIds = memo1_3(getQueueNodeIds);
-const getNonTodoQueueNodeIds = memo1_3(getQueueNodeIds);
-const getTodoQueueNodeIdsSortByCtime = memo1_3(getQueueNodeIds);
-const getNonTodoQueueNodeIdsSortByCtime = memo1_3(getQueueNodeIds);
+const searchTodoQueue = memo1_3(searchQueue);
+const searchNonTodoQueue = memo1_3(searchQueue);
+const searchTodoQueueByCtime = memo1_3(searchQueue);
+const searchNonTodoQueueByCtime = memo1_3(searchQueue);
 
 const useQueue = (isTodo: boolean, nodeFilterQuery: string) => {
   const queues = hooks.useQueues();
@@ -255,19 +251,15 @@ const useQueue = (isTodo: boolean, nodeFilterQuery: string) => {
   const texts = useSelector((state) => state.swapped_caches.text);
   return sortByCtime
     ? isTodo
-      ? getTodoQueueNodeIdsSortByCtime(
-          queues.todoQueueCtime,
-          texts,
-          nodeFilterQuery,
-        )
-      : getNonTodoQueueNodeIdsSortByCtime(
+      ? searchTodoQueueByCtime(queues.todoQueueCtime, texts, nodeFilterQuery)
+      : searchNonTodoQueueByCtime(
           queues.nonTodoQueueCtime,
           texts,
           nodeFilterQuery,
         )
     : isTodo
-      ? getTodoQueueNodeIds(queues.todoQueue, texts, nodeFilterQuery)
-      : getNonTodoQueueNodeIds(queues.nonTodoQueue, texts, nodeFilterQuery);
+      ? searchTodoQueue(queues.todoQueue, texts, nodeFilterQuery)
+      : searchNonTodoQueue(queues.nonTodoQueue, texts, nodeFilterQuery);
 };
 
 const useMetaK = () => {
@@ -899,7 +891,7 @@ const TodoQueueNodes = (props: {
   const nodeFilterQuery = React.useDeferredValue(
     Jotai.useAtomValue(states.nodeFilterQueryState),
   );
-  const queue = useQueue(true, nodeFilterQuery);
+  const { nodeIds: queue } = useQueue(true, nodeFilterQuery);
   useQueueJump(true, nodeFilterQuery, queue, props.virtuosoRef);
   return (
     <VirtualizedQueueNodes
@@ -1040,7 +1032,7 @@ const NonTodoQueueNodes = (props: {
   const nodeFilterQuery = React.useDeferredValue(
     Jotai.useAtomValue(states.nodeFilterQueryState),
   );
-  const node_ids = useQueue(false, nodeFilterQuery);
+  const { nodeIds: node_ids } = useQueue(false, nodeFilterQuery);
   useQueueJump(false, nodeFilterQuery, node_ids, props.virtuosoRef);
   return (
     <VirtualizedQueueNodes

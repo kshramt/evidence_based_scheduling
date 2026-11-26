@@ -110,7 +110,17 @@ async def _check_queue_navigation(
     parent_jump = parent.locator("../..").get_by_role("button", name="Show in queue")
     queue_parent = rows.get_by_role("button", name="short task", exact=True)
 
+    await search.fill("no tasks match this search")
+    await search.press("Enter")
+    await page.evaluate(
+        "() => new Promise(resolve => requestAnimationFrame(() => "
+        "requestAnimationFrame(resolve)))"
+    )
+    await playwright.async_api.expect(search).to_be_focused()
+
     await search.fill(child_text)
+    await search.press("Enter")
+    await playwright.async_api.expect(child).to_be_focused()
     await playwright.async_api.expect(queue.locator("hr")).to_be_attached()
     await playwright.async_api.expect(
         queue.locator("[data-item-index] hr")
