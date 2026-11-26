@@ -119,15 +119,14 @@ const TodoQueueEntry = (props: { node_id: types.TNodeId; index: number }) => {
           <CopyNodeIdButton node_id={props.node_id} />
           <StartOrStopButtons node_id={props.node_id} />
         </div>
-        <span
-          className="w-[16em] inline-block whitespace-nowrap overflow-hidden cursor-pointer"
+        <button
+          type="button"
+          className="w-[16em] inline-block whitespace-nowrap overflow-hidden text-left"
           title={text}
           onClick={toTree}
-          role="button"
-          tabIndex={0}
         >
           {text}
-        </span>
+        </button>
         <EntryInfos node_id={props.node_id} />
       </div>
       <div>
