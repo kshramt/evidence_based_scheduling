@@ -111,6 +111,8 @@ async def _check_queue_navigation(
     queue_parent = rows.get_by_role("button", name="short task", exact=True)
 
     await search.fill("no tasks match this search")
+    match_status = page.get_by_role("status").filter(has_text="to-do match")
+    await playwright.async_api.expect(match_status).to_have_text("0 to-do matches")
     await search.press("Enter")
     await page.evaluate(
         "() => new Promise(resolve => requestAnimationFrame(() => "
@@ -119,6 +121,7 @@ async def _check_queue_navigation(
     await playwright.async_api.expect(search).to_be_focused()
 
     await search.fill(child_text)
+    await playwright.async_api.expect(match_status).to_have_text("1 to-do match")
     await search.press("Enter")
     await playwright.async_api.expect(child).to_be_focused()
     await playwright.async_api.expect(queue.locator("hr")).to_be_attached()
@@ -141,6 +144,8 @@ async def _check_queue_navigation(
 
     await child_jump.click()
     await playwright.async_api.expect(queue_child).to_be_in_viewport()
+    await search.fill("")
+    await playwright.async_api.expect(match_status).to_have_count(0)
 
 
 async def _open_auth(

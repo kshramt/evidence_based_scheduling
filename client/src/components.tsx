@@ -134,7 +134,7 @@ const NodeFilterQueryInput = () => {
     setNodeFilterQuery(v);
   }, [setNodeFilterQuery]);
   const ref = useMetaK();
-  const { firstMatch: node_id } = useQueue(true, nodeFilterQuery);
+  const { firstMatch: node_id, matchCount } = useQueue(true, nodeFilterQuery);
   const taskShortcutKeys = hooks.useTaskShortcutKeys(
     node_id,
     consts.TREE_PREFIX,
@@ -172,6 +172,10 @@ const NodeFilterQueryInput = () => {
           {consts.DELETE_MARK}
         </button>
       </div>
+      <span role="status" className="whitespace-nowrap text-sm">
+        {nodeFilterQuery &&
+          `${matchCount} to-do ${matchCount === 1 ? "match" : "matches"}`}
+      </span>
     </>
   );
 };
@@ -216,7 +220,11 @@ const searchQueue = (
   nodeFilterQuery: string,
 ) => {
   if (nodeFilterQuery.length === 0) {
-    return { nodeIds: queue, firstMatch: queue[0] ?? null };
+    return {
+      nodeIds: queue,
+      firstMatch: queue[0] ?? null,
+      matchCount: queue.length,
+    };
   }
   const processedQuery = nodeFilterQuery.toLowerCase().split(" ");
   const head = [];
@@ -230,14 +238,18 @@ const searchQueue = (
     }
   }
   if (head.length === 0) {
-    return { nodeIds: queue, firstMatch: null };
+    return { nodeIds: queue, firstMatch: null, matchCount: 0 };
   }
   head.sort((a, b) => {
     const aText = utils.assertV(texts?.[a]);
     const bText = utils.assertV(texts?.[b]);
     return aText.length - bText.length;
   });
-  return { nodeIds: head.concat(tail), firstMatch: head[0] };
+  return {
+    nodeIds: head.concat(tail),
+    firstMatch: head[0],
+    matchCount: head.length,
+  };
 };
 
 const searchTodoQueue = memo1_3(searchQueue);
