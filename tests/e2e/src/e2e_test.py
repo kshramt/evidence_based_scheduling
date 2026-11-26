@@ -94,6 +94,10 @@ async def _check_pinned_filter(
     await playwright.async_api.expect(page.get_by_role("dialog")).to_have_count(0)
 
     await child.locator("../..").get_by_role("button", name="done", exact=True).click()
+    await playwright.async_api.expect(child).to_have_count(0)
+    await parent.dblclick()
+    await playwright.async_api.expect(child).to_have_value(child_text)
+    await playwright.async_api.expect(pinned_child).to_have_value(child_text)
     todo_filter = page.get_by_role("switch", name="To Do", exact=True)
     await todo_filter.press("Space")
     await playwright.async_api.expect(child).to_have_count(0)
