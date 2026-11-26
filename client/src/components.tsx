@@ -59,6 +59,15 @@ const SCROLL_BACK_TO_BOTTOM_MARK = (
 const nonTodoQueueNodesRef = React.createRef<Rv.VirtuosoHandle>();
 const todoQueueNodesRef = React.createRef<Rv.VirtuosoHandle>();
 
+const TreeViewContext = React.createContext<
+  | {
+      root: types.TNodeId;
+      showTodoOnly: boolean;
+      showStrongEdgeOnly: boolean;
+    }
+  | undefined
+>(undefined);
+
 export const MobileApp = (props: {
   ctx: states.PersistentStateManager;
   logOut: () => void;
@@ -505,6 +514,16 @@ const Body = () => {
     return state.data.root;
   });
   const session = React.use(states.session_key_context);
+  const showTodoOnly = Jotai.useAtomValue(
+    states.show_todo_only_atom_map.get(session),
+  );
+  const showStrongEdgeOnly = Jotai.useAtomValue(
+    states.show_strong_edge_only_atom_map.get(session),
+  );
+  const treeView = React.useMemo(
+    () => ({ root, showTodoOnly, showStrongEdgeOnly }),
+    [root, showTodoOnly, showStrongEdgeOnly],
+  );
   const pin = Jotai.useAtomValue(states.pinQueueAtomMap.get(session));
   const handleNonTodoQueueSBTTBClick = useCallback(() => {
     nonTodoQueueNodesRef.current?.scrollTo({ top: 0 });
@@ -536,7 +555,9 @@ const Body = () => {
           ref={treeNodesRef}
         >
           <SBTTB onClick={handleTreeSBTTBClick} />
-          <TreeNode node_id={root} />
+          <TreeViewContext value={treeView}>
+            <TreeNode node_id={root} />
+          </TreeViewContext>
         </div>
         <div className="content-visibility-auto overflow-y-auto flex-none">
           <Calendar />
@@ -545,7 +566,9 @@ const Body = () => {
         <div className={`content-visibility-auto overflow-y-auto flex-none`}>
           <Timeline />
         </div>
-        <PinnedSubTrees />
+        <TreeViewContext value={treeView}>
+          <PinnedSubTrees />
+        </TreeViewContext>
       </div>
     </div>
   );
@@ -1059,12 +1082,8 @@ const EdgeList = (props: {
   node_id: types.TNodeId;
   prefix?: undefined | string;
 }) => {
-  const session = React.use(states.session_key_context);
-  const showTodoOnly = Jotai.useAtomValue(
-    states.show_todo_only_atom_map.get(session),
-  );
-  const showStrongEdgeOnly = Jotai.useAtomValue(
-    states.show_strong_edge_only_atom_map.get(session),
+  const { showTodoOnly, showStrongEdgeOnly } = utils.assertV(
+    React.use(TreeViewContext),
   );
   const selectChildren = React.useMemo(
     () =>
@@ -1245,7 +1264,7 @@ const TreeEntry = (props: {
   );
 
   const to_queue = useToQueue(props.node_id);
-  const root = useSelector((state) => state.data.root);
+  const { root } = utils.assertV(React.use(TreeViewContext));
   const is_root = props.node_id === root;
   const prefix = props.prefix || consts.TREE_PREFIX;
   const handleKeyDown = hooks.useTaskShortcutKeys(props.node_id, prefix);
