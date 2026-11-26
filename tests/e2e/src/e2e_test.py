@@ -58,7 +58,9 @@ async def test_e2e(
     jump_to_child = (
         page.locator("[data-virtuoso-scroller]").first.locator("[data-item-index]")
     ).get_by_role("button", name=child_text, exact=True)
-    await jump_to_child.click()
+    await jump_to_child.press("Enter")
+    await playwright.async_api.expect(child).to_be_focused()
+    await jump_to_child.press("Space")
     await playwright.async_api.expect(child).to_be_focused()
     await jump_to_child.click()
     await playwright.async_api.expect(child).to_be_focused()
