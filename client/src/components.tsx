@@ -59,11 +59,14 @@ const SCROLL_BACK_TO_BOTTOM_MARK = (
 const nonTodoQueueNodesRef = React.createRef<Rv.VirtuosoHandle>();
 const todoQueueNodesRef = React.createRef<Rv.VirtuosoHandle>();
 
-const TreeViewContext = React.createContext<{
-  root: types.TNodeId;
-  showTodoOnly: boolean;
-  showStrongEdgeOnly: boolean;
-} | undefined>(undefined);
+const TreeViewContext = React.createContext<
+  | {
+      root: types.TNodeId;
+      showTodoOnly: boolean;
+      showStrongEdgeOnly: boolean;
+    }
+  | undefined
+>(undefined);
 
 export const MobileApp = (props: {
   ctx: states.PersistentStateManager;
