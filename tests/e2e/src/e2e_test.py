@@ -77,6 +77,30 @@ async def test_e2e(
     ]
 
     await _check_queue_navigation(page, parent, child, child_text)
+    await _check_pinned_filter(page, parent, child, child_text)
+
+
+async def _check_pinned_filter(
+    page: playwright.async_api.Page,
+    parent: playwright.async_api.Locator,
+    child: playwright.async_api.Locator,
+    child_text: str,
+) -> None:
+    await parent.locator("../..").get_by_role("button", name="more_vert").click()
+    await page.get_by_role("button", name="Pin", exact=True).click()
+    pinned_child = page.locator("textarea#p-3")
+    await playwright.async_api.expect(pinned_child).to_have_value(child_text)
+    await page.keyboard.press("Escape")
+    await playwright.async_api.expect(page.get_by_role("dialog")).to_have_count(0)
+
+    await child.locator("../..").get_by_role("button", name="done", exact=True).click()
+    todo_filter = page.get_by_text("To Do", exact=True)
+    await todo_filter.click()
+    await playwright.async_api.expect(child).to_have_count(0)
+    await playwright.async_api.expect(pinned_child).to_have_count(0)
+    await todo_filter.click()
+    await playwright.async_api.expect(child).to_have_value(child_text)
+    await playwright.async_api.expect(pinned_child).to_have_value(child_text)
 
 
 async def _check_queue_navigation(
