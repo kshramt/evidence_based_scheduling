@@ -1,8 +1,9 @@
 import * as React from "react";
+import { useStore } from "react-redux";
 
 import AutoHeightTextArea from "./AutoHeightTextArea";
 import * as actions from "./actions";
-import { useDispatch, useSelector } from "./types";
+import { useSelector } from "./types";
 import * as types from "./types";
 import * as utils from "./utils";
 
@@ -17,7 +18,7 @@ export const TextArea = (props: {
   const text = utils.assertV(
     useSelector((state) => state.swapped_caches.text?.[props.node_id]),
   );
-  const dispatch = useDispatch();
+  const store = useStore<types.TState>();
   const onBlur = React.useMemo(() => {
     const _onBlur = props.onBlur;
     return (e: React.FocusEvent<HTMLTextAreaElement>) => {
@@ -25,16 +26,15 @@ export const TextArea = (props: {
         _onBlur(e);
       }
 
-      // Set text.
-      const el = e.target;
-      dispatch(
-        actions.set_text_action({
-          k: props.node_id,
-          text: el.value,
-        }),
-      );
+      const savedText = store.getState().swapped_caches.text?.[props.node_id];
+      const editedText = e.currentTarget.value;
+      if (savedText !== undefined && savedText !== editedText) {
+        store.dispatch(
+          actions.set_text_action({ k: props.node_id, text: editedText }),
+        );
+      }
     };
-  }, [dispatch, props.node_id, props.onBlur]);
+  }, [store, props.node_id, props.onBlur]);
 
   return (
     <AutoHeightTextArea
