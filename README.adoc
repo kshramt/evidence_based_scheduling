@@ -85,6 +85,34 @@ If migration fails, inspect the reported error before running the rollback
 script. Once clients have written to PostgreSQL 17, reconcile those writes
 before switching back to the old cluster.
 
+=== Back up the running PostgreSQL database
+
+Run the backup on the deployment host with an existing destination directory.
+
+[source,bash]
+----
+scripts/backup_postgres.sh /path/to/backup-directory
+----
+
+The command uses the deployment's Docker context and environment file. Set
+`DOCKER_CONTEXT` or `DOCKER_HOST`, and `COMPOSE_ENV_FILES` to select a different
+deployment. The database remains online while the command dumps its roles and
+data. It checks that the archive's table of contents is readable, then prints
+the path to a private directory containing `roles.sql` and `postgres.dump`.
+These files contain role password verifiers and application data. Choose where
+to keep copies and how long to retain them for your deployment.
+
+Use a fresh PostgreSQL cluster for a restoration rehearsal. CI restores the
+roles and database into an isolated cluster, then checks the restored data and
+app password over TCP. Run the same rehearsal locally with synthetic data
+using the PostgreSQL image named in the Dockerfile.
+
+[source,bash]
+----
+image="$(awk '$1 == "FROM" && $4 == "base_postgres" { print $2 }' Dockerfile)"
+tests/test_postgres_restore.sh "$image" "$image"
+----
+
 === Start with an explicit image tag
 
 [source,bash]
