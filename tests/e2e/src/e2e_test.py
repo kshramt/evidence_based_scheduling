@@ -367,7 +367,7 @@ async def test_restored_database_opens_task_and_recorded_time(
             async with page.expect_response(is_head_update) as update:
                 await action()
             response = await update.value
-            await playwright.async_api.expect(response).to_be_ok()
+            assert response.ok
             assert await response.json() == {"updated": True}
 
         await (await _open_auth(page, app_url, "#sign-up-name")).fill(user)
