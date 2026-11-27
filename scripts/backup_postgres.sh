@@ -45,7 +45,7 @@ if [[ ! -s "${staging}/roles.sql" || ! -s "${staging}/postgres.dump" ]]; then
 	printf 'PostgreSQL wrote an empty backup.\n' >&2
 	exit 1
 fi
-"${compose[@]}" exec -T postgres pg_restore --list <"${staging}/postgres.dump" >/dev/null
+"${compose[@]}" exec -T postgres pg_restore --file=/dev/null <"${staging}/postgres.dump"
 if [[ -e "${published}" || -L "${published}" ]]; then
 	printf 'Backup destination already exists: %s\n' "${published}" >&2
 	exit 1

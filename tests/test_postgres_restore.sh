@@ -57,12 +57,25 @@ VALUES ('restore-test', 1, 'test client');
 INSERT INTO app.patches
 (user_id, client_id, session_id, patch_id, parent_client_id, parent_session_id, parent_patch_id, patch, created_at)
 VALUES ('restore-test', 1, 1, 1, 1, 1, 1, '[{"op":"add","path":"/fixture","value":"restore me"}]', now());
+CREATE TABLE public.archive_validation (payload text NOT NULL);
+INSERT INTO public.archive_validation VALUES (repeat('x', 262144));
 COMMIT;
 SQL
 } | docker exec -i "${source_db}" psql -X -U postgres -v ON_ERROR_STOP=1
 
 docker exec "${source_db}" pg_dumpall -U postgres --roles-only >|"${tmp_dir}/roles.sql"
 docker exec "${source_db}" pg_dump -U postgres -Fc -d postgres >|"${tmp_dir}/postgres.dump"
+
+# A truncated archive can still have a valid table of contents.
+docker exec -i "${source_db}" pg_restore --file=/dev/null <"${tmp_dir}/postgres.dump"
+docker exec "${source_db}" pg_dump -U postgres -Fc --compress=0 -d postgres >|"${tmp_dir}/uncompressed.dump"
+archive_bytes="$(wc -c <"${tmp_dir}/uncompressed.dump")"
+head -c "$((archive_bytes / 2))" "${tmp_dir}/uncompressed.dump" >|"${tmp_dir}/truncated.dump"
+docker exec -i "${source_db}" pg_restore --list <"${tmp_dir}/truncated.dump" >/dev/null
+if docker exec -i "${source_db}" pg_restore --file=/dev/null <"${tmp_dir}/truncated.dump"; then
+	printf 'Archive validation accepted a truncated archive.\n' >&2
+	exit 1
+fi
 
 # The destination cluster already has its bootstrap superuser.
 sed '/^CREATE ROLE postgres;$/d' "${tmp_dir}/roles.sql" |

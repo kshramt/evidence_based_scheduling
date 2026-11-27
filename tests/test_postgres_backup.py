@@ -29,10 +29,11 @@ command = args[args.index("exec") + 3]
 if command == "pg_dumpall":
     print("roles")
 elif command == "pg_dump":
-    print("archive")
+    print(os.environ.get("DUMP_CONTENT", "archive"))
     sys.exit(int(os.environ.get("DUMP_EXIT", "0")))
 elif command == "pg_restore":
-    if sys.stdin.read() != "archive\\n":
+    archive = sys.stdin.read()
+    if "--file=/dev/null" in args and archive != "archive\\n":
         sys.exit(4)
     sys.exit(int(os.environ.get("CHECK_EXIT", "0")))
 else:
@@ -82,7 +83,7 @@ else:
         commands = [
             ["pg_dumpall", "-U", "postgres", "--roles-only"],
             ["pg_dump", "-U", "postgres", "-Fc", "-d", "postgres"],
-            ["pg_restore", "--list"],
+            ["pg_restore", "--file=/dev/null"],
         ]
         self.assertEqual(
             [json.loads(line) for line in self.log.read_text().splitlines()],
@@ -100,6 +101,12 @@ else:
     def test_unreadable_archive_is_never_published(self) -> None:
         result = self.backup(CHECK_EXIT="8")
         self.assertEqual(result.returncode, 8)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(list(self.destination.iterdir()), [])
+
+    def test_truncated_archive_with_readable_header_is_never_published(self) -> None:
+        result = self.backup(DUMP_CONTENT="archive header without payload")
+        self.assertEqual(result.returncode, 4)
         self.assertEqual(result.stdout, "")
         self.assertEqual(list(self.destination.iterdir()), [])
 
