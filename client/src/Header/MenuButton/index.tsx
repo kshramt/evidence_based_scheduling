@@ -9,7 +9,7 @@ import * as storage from "src/storage";
 import { Menu } from "@mantine/core";
 
 const MenuButton = (props: {
-  onClickCheckRemoteButton: () => void;
+  onClickCheckRemoteButton: () => Promise<boolean>;
   db: Awaited<ReturnType<typeof storage.getDb>>;
   logOut: () => void;
 }) => {
@@ -43,7 +43,7 @@ const MenuButton = (props: {
   }, [handleClickOutside]);
 
   return (
-    <Menu shadow="md" width={200} closeOnItemClick={false}>
+    <Menu shadow="md" width={200} closeOnItemClick={false} keepMounted>
       <Menu.Target>
         <button
           ref={menuButtonRef}
@@ -58,9 +58,7 @@ const MenuButton = (props: {
         <Menu.Item>
           <ToggleShowMobileButton />
         </Menu.Item>
-        <Menu.Item>
-          <CheckRemoteButton onClick={props.onClickCheckRemoteButton} />
-        </Menu.Item>
+        <CheckRemoteButton onClick={props.onClickCheckRemoteButton} />
         <Menu.Item>
           <ExportStateButton />
         </Menu.Item>
