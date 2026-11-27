@@ -12,6 +12,7 @@ import * as ops from "./ops";
 import * as nap from "./next_action_predictor";
 import * as reducers from "./reducers";
 import * as undoable from "./undoable";
+import { invalidatePredictionTotals } from "./total_time_utils";
 import * as queues from "./queues";
 import * as retryers from "./retryers";
 import * as storage from "./storage";
@@ -341,6 +342,12 @@ export class PersistentStateManager {
     listenerMiddleware.startListening({
       predicate: () => true,
       effect: (action, listenerApi) => {
+        if (
+          action.type === undoable.UNDO_TYPE ||
+          action.type === undoable.REDO_TYPE
+        ) {
+          invalidatePredictionTotals();
+        }
         const patch = producer.comparePersistedData(
           listenerApi.getOriginalState(),
           listenerApi.getState(),

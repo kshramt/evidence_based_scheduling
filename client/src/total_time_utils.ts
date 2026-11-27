@@ -1,117 +1,44 @@
 import * as Immer from "immer";
-import * as Rtk from "@reduxjs/toolkit";
 
 import * as ops from "src/ops";
 import * as swapper from "./swapper";
 import * as types from "./types";
-import { MultiSet } from "./multiset";
 import * as utils from "./utils";
 
-export const updated_vids = new Map<types.TNodeId, number>();
-export const affected_vids = new Map<types.TNodeId, number>();
+const updated_vids = new Map<types.TNodeId, number>();
+const affected_vids = new Map<types.TNodeId, number>();
 
-export const visible_node_ids = new MultiSet<types.TNodeId>();
+export const invalidatePredictionTotals = () => {
+  updated_vids.clear();
+  affected_vids.clear();
+};
 
-export const should_update = (node_id: types.TNodeId) => {
+const should_update = (node_id: types.TNodeId) => {
   const uvid = updated_vids.get(node_id);
-  if (uvid === undefined) {
-    return true;
-  }
+  if (uvid === undefined) return true;
   const avid = affected_vids.get(node_id);
-  if (avid === undefined) {
-    return false;
-  }
-  return uvid < avid;
+  return avid !== undefined && uvid < avid;
 };
-
-const createObserve = (dispatch: types.AppDispatch) => {
-  const observations = new WeakMap<
-    Element,
-    { node_id: types.TNodeId; visible: boolean }
-  >();
-  const observer = new IntersectionObserver((entries) => {
-    const node_ids = new Set<types.TNodeId>();
-    for (const entry of entries) {
-      const observation = observations.get(entry.target);
-      if (observation === undefined) {
-        continue;
-      }
-      const { node_id } = observation;
-      if (observation.visible !== entry.isIntersecting) {
-        observation.visible = entry.isIntersecting;
-        if (entry.isIntersecting) {
-          visible_node_ids.add(node_id);
-        } else {
-          visible_node_ids.delete(node_id);
-        }
-      }
-      if (entry.isIntersecting) {
-        if (should_update(node_id)) {
-          node_ids.add(node_id);
-        }
-      }
-    }
-    if (node_ids.size > 0) {
-      dispatch(set_total_time_action({ node_ids: [...node_ids] }));
-    }
-  });
-  return (el: HTMLElement, node_id: types.TNodeId) => {
-    const observation = { node_id, visible: false };
-    observations.set(el, observation);
-    observer.observe(el);
-    return () => {
-      if (observations.get(el) !== observation) {
-        return;
-      }
-      observer.unobserve(el);
-      observations.delete(el);
-      if (observation.visible) {
-        visible_node_ids.delete(node_id);
-      }
-    };
-  };
-};
-
-const observeByDispatch = new WeakMap<
-  types.AppDispatch,
-  ReturnType<typeof createObserve>
->();
-
-export const observe_of = (dispatch: types.AppDispatch) => {
-  const cached = observeByDispatch.get(dispatch);
-  if (cached !== undefined) {
-    return cached;
-  }
-  const observe = createObserve(dispatch);
-  observeByDispatch.set(dispatch, observe);
-  return observe;
-};
-
-export const set_total_time_action = Rtk.createAction<{
-  node_ids: types.TNodeId[];
-  force?: true;
-}>("set_total_time_action");
 
 export const setTotalTime = (
   state: types.TStateDraftWithReadonly,
   node_id: types.TNodeId,
   vid: number,
-  force: boolean = false,
 ) => {
-  if (force || should_update(node_id)) {
+  if (state.caches[node_id].total_time < 0 || should_update(node_id)) {
     updated_vids.set(node_id, vid);
     swapper.set(
       state.caches,
       state.swapped_caches,
       node_id,
       "total_time",
-      total_time_of(state, node_id),
+      totalTimeOf(state, node_id),
     );
   }
   return state.caches[node_id].total_time;
 };
 
-const total_time_of = (
+export const totalTimeOf = (
   state: Immer.Immutable<types.TState>,
   node_id: types.TNodeId,
 ) => {
@@ -189,7 +116,7 @@ const collect_ranges_from_strong_descendants = (
   }
 };
 
-export const setTotalTimeOfAncestors = (
+export const invalidateTotalTimeOfAncestors = (
   state: types.TStateDraftWithReadonly,
   node_id: types.TNodeId,
   vid: number,
@@ -198,10 +125,11 @@ export const setTotalTimeOfAncestors = (
     return;
   }
   affected_vids.set(node_id, vid);
-  if (visible_node_ids.has(node_id)) {
-    setTotalTime(state, node_id, vid);
-  }
   for (const parent_edge_id of ops.keys_of(state.data.nodes[node_id].parents)) {
-    setTotalTimeOfAncestors(state, state.data.edges[parent_edge_id].p, vid);
+    invalidateTotalTimeOfAncestors(
+      state,
+      state.data.edges[parent_edge_id].p,
+      vid,
+    );
   }
 };
