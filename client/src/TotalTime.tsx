@@ -1,24 +1,29 @@
 import * as React from "react";
+import { useStore } from "react-redux";
 
-import * as total_time_utils from "./total_time_utils";
-import { useDispatch, useSelector } from "./types";
+import { totalTimeViewOf } from "./total_time_view";
 import * as types from "./types";
 import * as utils from "./utils";
 
 export const TotalTime = (props: { node_id: types.TNodeId }) => {
-  const total_time = utils.assertV(
-    useSelector((state) => state.swapped_caches.total_time?.[props.node_id]),
+  const view = totalTimeViewOf(useStore<types.TState>());
+  const subscribe = React.useCallback(
+    (listener: () => void) => view.subscribe(props.node_id, listener),
+    [view, props.node_id],
   );
-  const dispatch = useDispatch();
-  const observe = total_time_utils.observe_of(dispatch);
+  const getSnapshot = React.useCallback(
+    () => view.get(props.node_id),
+    [view, props.node_id],
+  );
+  const total_time = React.useSyncExternalStore(subscribe, getSnapshot);
   const ref_cb = React.useCallback(
     (el: null | HTMLSpanElement) => {
       if (el === null) {
         return;
       }
-      return observe(el, props.node_id);
+      return view.observe(el, props.node_id);
     },
-    [observe, props.node_id],
+    [view, props.node_id],
   );
 
   return (

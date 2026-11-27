@@ -207,7 +207,11 @@ export const getRootReducer = (
         swapper.del(state.caches, state.swapped_caches, node_id);
         ops.delete_at_val(state.data.pinned_sub_trees, node_id);
         for (const parent_node_id of affected_parent_node_ids) {
-          total_time_utils.setTotalTimeOfAncestors(state, parent_node_id, vid);
+          total_time_utils.invalidateTotalTimeOfAncestors(
+            state,
+            parent_node_id,
+            vid,
+          );
         }
         {
           const i = state.drawerStack.indexOf(node_id);
@@ -272,7 +276,7 @@ export const getRootReducer = (
           );
         }
         swapper.del(state.data.edges, state.swapped_edges, edge_id);
-        total_time_utils.setTotalTimeOfAncestors(state, edge.p, vid);
+        total_time_utils.invalidateTotalTimeOfAncestors(state, edge.p, vid);
       },
     );
     builder.addCase(
@@ -554,22 +558,6 @@ export const getRootReducer = (
       _top(state, candidate);
     });
     builder.addCase(
-      total_time_utils.set_total_time_action,
-      (state: types.TStateDraftWithReadonly, action) => {
-        for (const node_id of action.payload.node_ids) {
-          if (state.data.nodes[node_id] === undefined) {
-            continue;
-          }
-          total_time_utils.setTotalTime(
-            state,
-            node_id,
-            utils.visit_counter_of(),
-            action.payload.force,
-          );
-        }
-      },
-    );
-    builder.addCase(
       actions.stop_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const vid = utils.visit_counter_of();
@@ -693,7 +681,7 @@ export const getRootReducer = (
             ranges[action.payload.i_range] = range;
           }),
         );
-        total_time_utils.setTotalTimeOfAncestors(
+        total_time_utils.invalidateTotalTimeOfAncestors(
           state,
           action.payload.node_id,
           vid,
@@ -846,7 +834,7 @@ export const getRootReducer = (
         const vid = utils.visit_counter_of();
         ops.add_edges(action.payload, state);
         for (const edge of action.payload) {
-          total_time_utils.setTotalTimeOfAncestors(state, edge.p, vid);
+          total_time_utils.invalidateTotalTimeOfAncestors(state, edge.p, vid);
         }
       },
     );
@@ -894,7 +882,7 @@ const stop = (
         }
       }),
     );
-    total_time_utils.setTotalTimeOfAncestors(state, node_id, vid);
+    total_time_utils.invalidateTotalTimeOfAncestors(state, node_id, vid);
   }
 };
 
