@@ -676,8 +676,8 @@ export class PersistentStateManager {
       </div>
     );
   };
-  check_remote_head = async () => {
-    await this.#push_rpc(
+  check_remote_head = () =>
+    this.#push_rpc(
       logSpan("#rpc/check_remote_head", async () => {
         const resp = await get_remote_head_and_save_remote_pending_patches(
           this.client_id,
@@ -687,6 +687,7 @@ export class PersistentStateManager {
         );
         if (sameHead(resp, this.heads.remote)) {
           this.#sync_store.set_state(() => null);
+          return false;
         } else {
           this.#sync_store.set_state(() => {
             console.debug(
@@ -705,9 +706,9 @@ export class PersistentStateManager {
             };
           });
         }
+        return true;
       }),
     );
-  };
 }
 
 export const getPersistentStateManager = async (

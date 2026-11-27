@@ -418,20 +418,13 @@ const Menu = (props: {
   const move_important_node_to_top = useCallback(() => {
     dispatch(actions.move_important_node_to_top_action());
   }, [dispatch]);
-  const check_remote_head = useCallback(async () => {
-    try {
-      await props.ctx.check_remote_head();
-    } catch {
-      /* empty */
-    }
-  }, [props.ctx]);
   const [pin, setPin] = Jotai.useAtom(states.pinQueueAtomMap.get(session));
   return (
     <div
       className={`flex items-center overflow-x-auto h-[3rem] gap-x-[0.25em] w-full top-0`}
     >
       <MenuButton
-        onClickCheckRemoteButton={check_remote_head}
+        onClickCheckRemoteButton={props.ctx.check_remote_head}
         db={props.ctx.db}
         logOut={props.logOut}
       />
@@ -1122,19 +1115,12 @@ const MobileMenu = (props: {
   const _redo = useCallback(() => {
     dispatch({ type: undoable.REDO_TYPE });
   }, [dispatch]);
-  const check_remote_head = useCallback(async () => {
-    try {
-      await props.ctx.check_remote_head();
-    } catch {
-      /* empty */
-    }
-  }, [props.ctx]);
   return (
     <div
       className={`flex items-center overflow-x-auto gap-x-[0.25em] h-[3rem] w-full top-0 bg-neutral-200 dark:bg-neutral-900`}
     >
       <MenuButton
-        onClickCheckRemoteButton={check_remote_head}
+        onClickCheckRemoteButton={props.ctx.check_remote_head}
         db={props.ctx.db}
         logOut={props.logOut}
       />
