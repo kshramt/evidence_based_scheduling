@@ -9,7 +9,7 @@ import { TodoToDoneButton } from "./TodoToDoneButton";
 import { TodoToDontButton } from "./TodoToDontButton";
 import TopButton from "./TopButton";
 
-import { useDispatch, useSelector } from "./types";
+import { useDispatch } from "./types";
 import * as actions from "./actions";
 import * as consts from "./consts";
 import * as types from "./types";
@@ -18,16 +18,13 @@ import CopyNodeIdButton from "./CopyNodeIdButton";
 
 export const EntryButtons = (props: {
   node_id: types.TNodeId;
+  isRoot: boolean;
+  status: types.TStatus;
   jumpButton: React.ReactNode;
   prefix?: string;
 }) => {
-  const status = utils.assertV(
-    useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
-  );
-
-  const root = useSelector((state) => state.data.root);
-  const is_root = props.node_id === root;
-  const is_todo = status === "todo";
+  const is_root = props.isRoot;
+  const is_todo = props.status === "todo";
 
   return (
     <div className="flex w-fit gap-x-[0.25em] items-baseline pt-[0.25em] content-visibility-auto">

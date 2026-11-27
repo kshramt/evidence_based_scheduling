@@ -1287,7 +1287,7 @@ const TreeEntry = (props: {
             onKeyDown={handleKeyDown}
           />
         )}
-        <EntryInfos node_id={props.node_id} />
+        <EntryInfos node_id={props.node_id} isRoot={is_root} />
       </div>
       {status === "todo" &&
         0 <= leaf_estimates_sum &&
@@ -1296,12 +1296,12 @@ const TreeEntry = (props: {
       {is_root ? null : (
         <EntryButtons
           node_id={props.node_id}
+          isRoot={is_root}
+          status={status}
           jumpButton={
-            is_root ? null : (
-              <button aria-label="Show in queue" onClick={to_queue}>
-                →
-              </button>
-            )
+            <button aria-label="Show in queue" onClick={to_queue}>
+              →
+            </button>
           }
           prefix={prefix}
         />

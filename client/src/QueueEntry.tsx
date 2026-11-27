@@ -21,11 +21,17 @@ export const QueueEntry = (props: {
   node_id: types.TNodeId;
   index: number;
 }) => {
-  const exists = useRawSelector((state) =>
-    Object.hasOwn(state.data.nodes, props.node_id),
+  const isRoot = useRawSelector((state) =>
+    Object.hasOwn(state.data.nodes, props.node_id)
+      ? props.node_id === state.data.root
+      : null,
   );
-  return exists ? (
-    <QueueEntryByStatus node_id={props.node_id} index={props.index} />
+  return isRoot !== null ? (
+    <QueueEntryByStatus
+      node_id={props.node_id}
+      index={props.index}
+      isRoot={isRoot}
+    />
   ) : (
     <div className="w-[1px] h-[1px]" /> // `null` is not allowed as Virtuoso does not allow 0-height elements.
   );
@@ -34,26 +40,32 @@ export const QueueEntry = (props: {
 const QueueEntryByStatus = (props: {
   node_id: types.TNodeId;
   index: number;
+  isRoot: boolean;
 }) => {
-  const isTodo =
-    utils.assertV(
-      useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
-    ) === "todo";
-
-  return isTodo ? (
-    <TodoQueueEntry node_id={props.node_id} index={props.index} />
+  const status = utils.assertV(
+    useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
+  );
+  return status === "todo" ? (
+    <TodoQueueEntry
+      node_id={props.node_id}
+      index={props.index}
+      isRoot={props.isRoot}
+    />
   ) : (
-    <NonTodoQueueEntry node_id={props.node_id} index={props.index} />
+    <NonTodoQueueEntry
+      node_id={props.node_id}
+      status={status}
+      isRoot={props.isRoot}
+    />
   );
 };
 
 const NonTodoQueueEntry = (props: {
   node_id: types.TNodeId;
-  index: number;
+  status: types.TStatus;
+  isRoot: boolean;
 }) => {
-  const status = utils.assertV(
-    useSelector((state) => state.swapped_nodes.status?.[props.node_id]),
-  );
+  const status = props.status;
   const to_tree = utils.useToTree(props.node_id);
   const handleKeyDown = hooks.useTaskShortcutKeys(
     props.node_id,
@@ -77,17 +89,23 @@ const NonTodoQueueEntry = (props: {
           )}
           onKeyDown={handleKeyDown}
         />
-        <EntryInfos node_id={props.node_id} />
+        <EntryInfos node_id={props.node_id} isRoot={props.isRoot} />
       </div>
       <EntryButtons
         node_id={props.node_id}
+        isRoot={props.isRoot}
+        status={status}
         jumpButton={<button onClick={to_tree}>←</button>}
       />
     </EntryWrapper>
   );
 };
 
-const TodoQueueEntry = (props: { node_id: types.TNodeId; index: number }) => {
+const TodoQueueEntry = (props: {
+  node_id: types.TNodeId;
+  index: number;
+  isRoot: boolean;
+}) => {
   const leaf_estimates_sum = utils.assertV(
     useSelector(
       (state) => state.swapped_caches.leaf_estimates_sum?.[props.node_id],
@@ -127,7 +145,7 @@ const TodoQueueEntry = (props: { node_id: types.TNodeId; index: number }) => {
         >
           {text}
         </button>
-        <EntryInfos node_id={props.node_id} />
+        <EntryInfos node_id={props.node_id} isRoot={props.isRoot} />
       </div>
       <div>
         {0 <= leaf_estimates_sum && utils.digits1(leaf_estimates_sum) + " | "}

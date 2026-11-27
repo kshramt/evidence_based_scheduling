@@ -3,6 +3,7 @@ import {
   createAction,
   type UnknownAction,
 } from "@reduxjs/toolkit";
+import { atomWithStorage } from "jotai/utils";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { Provider } from "react-redux";
@@ -10,7 +11,8 @@ import { expect, test } from "vitest";
 
 import { emptyStateOf } from "./ops";
 import { QueueEntry } from "./QueueEntry";
-import type { TNodeId, TState } from "./types";
+import { session_key_context, show_mobile_atom_map } from "./states";
+import type { TNodeId, TState, TStatus } from "./types";
 import { useIsRunning } from "./utils";
 
 function fixture() {
@@ -22,6 +24,7 @@ function fixture() {
   const reads = { ranges: 0, statuses: 0 };
   type Ranges = NonNullable<TState["swapped_nodes"]["ranges"]>;
   const setRanges = createAction<Ranges>("test/setRanges");
+  const replace = createAction<TState>("test/replace");
   const withRanges = (ranges: Ranges): TState => ({
     ...initial,
     swapped_nodes: {
@@ -38,8 +41,11 @@ function fixture() {
   });
   const state = withRanges({ [id]: [], [otherId]: [] });
   const store = configureStore({
-    reducer: (current: TState = state, action: UnknownAction) =>
-      setRanges.match(action) ? withRanges(action.payload) : current,
+    reducer: (current: TState = state, action: UnknownAction): TState => {
+      if (setRanges.match(action)) return withRanges(action.payload);
+      if (replace.match(action)) return action.payload;
+      return current;
+    },
     middleware: (getDefault) =>
       getDefault({ immutableCheck: false, serializableCheck: false }),
   });
@@ -54,12 +60,72 @@ function fixture() {
     host,
     root,
     setRanges,
+    replace,
     dispose() {
       root.unmount();
       host.remove();
     },
   };
 }
+
+test("a queue row follows root and status changes without remounting its editor", () => {
+  const f = fixture();
+  const session = { user_id: "queue-row-test", client_id: 1, session_id: 1 };
+  show_mobile_atom_map.set(
+    session,
+    atomWithStorage("queue-row-test/mobile", false),
+  );
+  const update = (status: TStatus, root: TNodeId) => {
+    const state = f.store.getState();
+    const task = state.data.nodes[f.id];
+    flushSync(() =>
+      f.store.dispatch(
+        f.replace({
+          ...state,
+          data: {
+            ...state.data,
+            root,
+            nodes: {
+              ...state.data.nodes,
+              [f.id]: { ...task, status },
+              [f.otherId]: task,
+            },
+          },
+          swapped_nodes: {
+            ...state.swapped_nodes,
+            status: { ...state.swapped_nodes.status, [f.id]: status },
+          },
+        }),
+      ),
+    );
+  };
+  try {
+    update("done", f.id);
+    flushSync(() =>
+      f.root.render(
+        <Provider store={f.store}>
+          <session_key_context.Provider value={session}>
+            <QueueEntry node_id={f.id} index={0} />
+          </session_key_context.Provider>
+        </Provider>,
+      ),
+    );
+    const editor = f.host.querySelector("textarea");
+    expect(editor?.classList.contains("text-red-600")).toBe(true);
+    expect(f.host.querySelector('input[type="number"]')).toBeNull();
+
+    update("dont", f.otherId);
+    expect(f.host.querySelector("textarea")).toBe(editor);
+    expect(editor?.classList.contains("text-neutral-500")).toBe(true);
+    expect(f.host.querySelector('input[type="number"]')).not.toBeNull();
+
+    update("todo", f.otherId);
+    expect(f.host.querySelector("textarea")).toBeNull();
+    expect(f.host.querySelector("button[type=button]")).not.toBeNull();
+  } finally {
+    f.dispose();
+  }
+});
 
 function Running(props: { id: TNodeId | null; revision: number }) {
   const running = useIsRunning(props.id);
