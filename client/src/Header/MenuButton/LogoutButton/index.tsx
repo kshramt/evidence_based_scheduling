@@ -1,11 +1,7 @@
-import * as React from "react";
+import { Menu } from "@mantine/core";
 
 const LogoutButton = (props: { logOut: () => void }) => {
-  return (
-    <span onClick={props.logOut} role="button" tabIndex={0}>
-      Log out
-    </span>
-  );
+  return <Menu.Item onClick={props.logOut}>Log out</Menu.Item>;
 };
 
 export default LogoutButton;
