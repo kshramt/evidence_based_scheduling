@@ -1,4 +1,7 @@
-from collections.abc import Callable
+import asyncio
+import os
+from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime, timedelta
 
 import playwright.async_api
 import pytest
@@ -284,6 +287,119 @@ async def test_offline_edit_syncs_after_reload(
         await playwright.async_api.expect(page.locator("textarea#t-1")).to_have_value(
             text
         )
+
+
+async def _restore_app_database() -> None:
+    async def compose(*args: str, data: bytes | None = None) -> bytes:
+        process = await asyncio.create_subprocess_exec(
+            "docker",
+            "compose",
+            "-f",
+            "compose.yaml",
+            "-f",
+            f"compose.{os.environ['ENV']}.yaml",
+            *args,
+            cwd=os.environ["MY_COMPOSE_DIR"],
+            stdin=asyncio.subprocess.PIPE if data is not None else None,
+            stdout=asyncio.subprocess.PIPE,
+        )
+        stdout, _ = await process.communicate(data)
+        if process.returncode:
+            raise RuntimeError(f"Compose command failed: {args!r}")
+        return stdout
+
+    postgres = ("exec", "-T", "postgres")
+    dump = await compose(
+        *postgres, "pg_dump", "-U", "postgres", "-Fc", "-d", "postgres"
+    )
+    await compose(
+        *postgres, "createdb", "-U", "postgres", "-T", "template0", "restored_app"
+    )
+    await compose(
+        *postgres,
+        "pg_restore",
+        "-U",
+        "postgres",
+        "--exit-on-error",
+        "--single-transaction",
+        "-d",
+        "restored_app",
+        data=dump,
+    )
+
+    # The isolated test stack reopens its normal database name after the switch.
+    await compose("stop", "api_v2")
+    await compose(
+        *postgres,
+        "psql",
+        "-X",
+        "-U",
+        "postgres",
+        "-d",
+        "template1",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-c",
+        "ALTER DATABASE postgres RENAME TO original_app",
+        "-c",
+        "ALTER DATABASE restored_app RENAME TO postgres",
+    )
+    await compose("start", "api_v2")
+
+
+async def test_restored_database_opens_task_and_recorded_time(
+    my_host: str,
+    browser: playwright.async_api.Browser,
+    envoy_http_port: str,
+    envoy_waiter: Callable[[], Awaitable[None]],
+) -> None:
+    app_url = f"http://{my_host}:{envoy_http_port}/app/"
+    user = "restore-browser-user"
+    text = "task saved before database backup"
+
+    def is_head_update(response: playwright.async_api.Response) -> bool:
+        return response.request.method == "PUT" and response.url.endswith("/head")
+
+    async with await browser.new_context() as source:
+        page = await source.new_page()
+
+        async def save(action: Callable[[], Awaitable[None]]) -> None:
+            async with page.expect_response(is_head_update) as update:
+                await action()
+            response = await update.value
+            await playwright.async_api.expect(response).to_be_ok()
+            assert await response.json() == {"updated": True}
+
+        await (await _open_auth(page, app_url, "#sign-up-name")).fill(user)
+        await save(page.get_by_role("button", name="Sign up").click)
+        await _wait_for_desktop(page)
+        await save(page.locator("#add-root-button").click)
+        task = page.locator("textarea#t-1")
+        await task.fill(text)
+        await save(task.blur)
+
+        stop = datetime.now(UTC)
+        await page.clock.set_fixed_time(stop - timedelta(hours=2))
+        await save(lambda: task.press("Control+."))
+        await page.clock.set_fixed_time(stop)
+        await save(lambda: task.press("Control+."))
+        await playwright.async_api.expect(
+            task.locator("..").get_by_text("2", exact=True)
+        ).to_be_visible()
+
+    await _restore_app_database()
+    await envoy_waiter()
+
+    async with await browser.new_context() as destination:
+        page = await destination.new_page()
+        await (await _open_auth(page, app_url, "#log-in-name")).fill(user)
+        await page.get_by_role("button", name="Log in").click()
+        await _wait_for_desktop(page)
+        task = page.locator("textarea#t-1")
+        await playwright.async_api.expect(task).to_have_value(text)
+        await playwright.async_api.expect(
+            task.locator("..").get_by_text("2", exact=True)
+        ).to_be_visible()
 
 
 async def _advance_remote_before_overwrite(
