@@ -147,12 +147,16 @@ mise exec -- make check
 
 After updating Playwright, rerun the Chromium installation command before running the client checks.
 
-When updating a tool version, update `mise.toml` and the corresponding Dockerfile pin together. Run the pin check with the project's Python version.
+Run the same deployment, backup, migration, and toolchain tests as CI with
+Python 3.11 or newer, ShellCheck, and shfmt on your path. These checks work
+without a running Docker daemon.
 
 [source,bash]
 ----
-mise exec -- uv run --no-project --python 3.12.4 python -B tests/test_toolchain.py
+make check_scripts
 ----
+
+When updating a tool version, update `mise.toml` and the corresponding Dockerfile pin together.
 
 === Run the app locally
 
