@@ -3,6 +3,7 @@ import os
 from collections.abc import Awaitable, Callable
 from contextlib import AbstractAsyncContextManager
 from datetime import datetime, timedelta
+from http import HTTPStatus
 
 import playwright.async_api
 import pytest
@@ -87,6 +88,19 @@ async def test_e2e(
     await _check_queue_navigation(page, parent, child, child_text)
     await _check_pinned_filter(page, parent, child, child_text)
     await _check_keyboard_exports(page)
+    await _check_keyboard_help(page)
+
+
+async def _check_keyboard_help(page: playwright.async_api.Page) -> None:
+    await page.get_by_role("button", name="App menu").press("Enter")
+    await page.get_by_role("menuitem", name="Keyboard shortcuts").press("Enter")
+    help_dialog = page.get_by_role("dialog", name="Keyboard shortcuts")
+    await playwright.async_api.expect(help_dialog).to_be_visible()
+    await playwright.async_api.expect(
+        help_dialog.get_by_text("Start a task concurrently or stop just that task")
+    ).to_be_visible()
+    await page.keyboard.press("Escape")
+    await playwright.async_api.expect(help_dialog).to_be_hidden()
 
 
 async def _check_keyboard_exports(page: playwright.async_api.Page) -> None:
@@ -252,7 +266,7 @@ async def _wait_for_desktop(page: playwright.async_api.Page) -> None:
 
 
 @pytest.mark.usefixtures("envoy_waiter")
-async def test_offline_edit_syncs_after_reload(
+async def test_offline_edit_syncs_after_reload(  # noqa: PLR0915
     my_host: str,
     browser: playwright.async_api.Browser,
     envoy_http_port: str,
@@ -327,7 +341,7 @@ async def test_offline_edit_syncs_after_reload(
             nonlocal replays
             response = await route.fetch()
             duplicate = await route.fetch()
-            assert response.status == duplicate.status == 201
+            assert response.status == duplicate.status == HTTPStatus.CREATED
             replays += 1
             await route.fulfill(response=response)
 
