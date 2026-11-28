@@ -6,6 +6,9 @@ set -o errexit
 set -o pipefail
 set -o noclobber
 
+# shellcheck source=scripts/wait_for_jobs.sh
+source "$(dirname -- "${BASH_SOURCE[0]}")/wait_for_jobs.sh"
+
 export IFS=$' \t\n'
 export LANG=C.UTF-8
 umask u=rwx,g=,o=
@@ -39,9 +42,11 @@ else
 	docker buildx bake --file bake.json "${os}-${arch}-prod"
 fi
 
+push_jobs=()
 for service in "${services[@]}"; do
 	img="${img_prefix}/${service}"
 	docker push "${img}":"h-${github_sha}-${os}-${arch}" &
+	push_jobs+=("$!")
 done
 
 if [[ "${os}" = "${host_os}" && "${arch}" = "${host_arch}" ]]; then
@@ -61,8 +66,11 @@ if [[ "${os}" = "${host_os}" && "${arch}" = "${host_arch}" ]]; then
 		"${img_prefix}/tests_e2e:h-${github_sha}-${os}-${arch}" \
 		.venv/bin/python3 -m pytest -s -W error::pytest.PytestUnhandledCoroutineWarning src
 
-	# Wait `docker push`
-	wait
+fi
+
+wait_for_jobs "${push_jobs[@]}"
+
+if [[ "${os}" = "${host_os}" && "${arch}" = "${host_arch}" ]]; then
 
 	TAG="h-${github_sha}-${os}-${arch}" \
 		_POSTGRES_PASSWORD=postgres \
@@ -88,13 +96,16 @@ if [[ "${os}" = "${host_os}" && "${arch}" = "${host_arch}" ]]; then
 	fi
 fi
 
-for service in "${services[@]}"; do
-	img="${img_prefix}/${service}"
-	if [[ "${ref}" = "refs/heads/main" ]]; then
+if [[ "${ref}" = "refs/heads/main" ]]; then
+	push_jobs=()
+	for service in "${services[@]}"; do
+		img="${img_prefix}/${service}"
 		docker tag "${img}:h-${github_sha}-${os}-${arch}" "${img}:b-${run_number}-${os}-${arch}"
 		docker push "${img}:b-${run_number}-${os}-${arch}" &
+		push_jobs+=("$!")
 		docker tag "${img}:h-${github_sha}-${os}-${arch}" "${img}:latest-${os}-${arch}"
 		docker push "${img}:latest-${os}-${arch}" &
-	fi
-done
-wait
+		push_jobs+=("$!")
+	done
+	wait_for_jobs "${push_jobs[@]}"
+fi
