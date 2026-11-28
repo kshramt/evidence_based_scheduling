@@ -6,6 +6,9 @@ set -o errexit
 set -o pipefail
 set -o noclobber
 
+# shellcheck source=scripts/wait_for_jobs.sh
+source "$(dirname -- "${BASH_SOURCE[0]}")/wait_for_jobs.sh"
+
 export IFS=$' \t\n'
 export LANG=C.UTF-8
 umask u=rwx,g=,o=
@@ -35,7 +38,9 @@ create_and_push() {
 	fi
 }
 
+push_jobs=()
 for service in nginx envoy postgres api_v2 postgres_migration; do
 	create_and_push "ghcr.io/kshramt/evidence_based_scheduling/${service}" &
+	push_jobs+=("$!")
 done
-wait
+wait_for_jobs "${push_jobs[@]}"
