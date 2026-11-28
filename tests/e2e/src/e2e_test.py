@@ -204,7 +204,19 @@ async def _check_queue_navigation(
 
     await child_jump.click()
     await playwright.async_api.expect(queue_child).to_be_in_viewport()
-    await search.fill("")
+    await search.dispatch_event("keydown", {"key": "Escape", "isComposing": True})
+    await playwright.async_api.expect(search).to_have_value(child_text)
+    await search.press("Escape")
+    await playwright.async_api.expect(search).to_have_value("")
+    await playwright.async_api.expect(search).to_be_focused()
+    await playwright.async_api.expect(match_status).to_have_count(0)
+
+    clear = page.get_by_role("button", name="Clear task search")
+    await playwright.async_api.expect(clear).to_be_disabled()
+    await search.fill(child_text)
+    await clear.click()
+    await playwright.async_api.expect(search).to_have_value("")
+    await playwright.async_api.expect(search).to_be_focused()
     await playwright.async_api.expect(match_status).to_have_count(0)
 
 
