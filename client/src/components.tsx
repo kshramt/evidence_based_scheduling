@@ -1487,6 +1487,8 @@ const CopyDescendantTimeNodesPlannedNodeIdsButton = (props: {
   );
   return (
     <button
+      type="button"
+      aria-label="Copy planned task IDs"
       className="btn-icon"
       onClick={handle_click}
       onDoubleClick={prevent_propagation}
