@@ -6,6 +6,9 @@ from pathlib import Path
 
 Head = tuple[int, int, int]
 HEAD_FIELDS = ("client_id", "session_id", "patch_id")
+VALUE_OPERATIONS = {"add", "replace", "test"}
+SOURCE_OPERATIONS = {"copy", "move"}
+OPERATIONS = VALUE_OPERATIONS | SOURCE_OPERATIONS | {"remove"}
 
 
 def head(value: object, prefix: str = "") -> Head:
@@ -40,6 +43,26 @@ def store(data: dict, name: str) -> dict:
     return result
 
 
+def pointer(value: object) -> bool:
+    """Accept the empty root pointer or a slash-prefixed pointer."""
+    return isinstance(value, str) and (value == "" or value.startswith("/"))
+
+
+def check_operations(operations: list, name: str, key: Head) -> None:
+    """Check operation shape without applying the patch."""
+    for index, entry in enumerate(operations):
+        error = f"Invalid operation {index} under {name} head at {key}"
+        if not isinstance(entry, dict) or not pointer(entry.get("path")):
+            raise ValueError(error)
+        operation = entry.get("op")
+        if not isinstance(operation, str) or operation not in OPERATIONS:
+            raise ValueError(error)
+        if operation in VALUE_OPERATIONS and "value" not in entry:
+            raise ValueError(error)
+        if operation in SOURCE_OPERATIONS and not pointer(entry.get("from")):
+            raise ValueError(error)
+
+
 def check(data: object) -> None:
     """Check both heads, allowing history to terminate at a snapshot or root patch."""
     if not isinstance(data, dict):
@@ -65,6 +88,7 @@ def check(data: object) -> None:
             patch = patches.get(key)
             if not isinstance(patch, dict) or not isinstance(patch.get("patch"), list):
                 raise ValueError(f"Missing or invalid patch under {name} head at {key}")
+            check_operations(patch["patch"], name, key)
             parent = head(patch, "parent_")
             if parent == key:
                 break

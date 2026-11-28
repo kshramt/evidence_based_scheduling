@@ -43,7 +43,12 @@ class IndexedDbExportTest(unittest.TestCase):
             )
 
     def test_both_heads_reach_the_snapshot(self) -> None:
-        result = self.run_check(fixture())
+        data = fixture()
+        data["patches"][1]["value"]["patch"] = [
+            {"op": "add", "path": "/data", "value": None},
+            {"op": "copy", "path": "/copy", "from": "/data"},
+        ]
+        result = self.run_check(data)
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_patch_history_can_end_at_its_root(self) -> None:
@@ -66,6 +71,20 @@ class IndexedDbExportTest(unittest.TestCase):
         result = self.run_check(data)
         self.assertEqual(result.returncode, 1)
         self.assertIn("Parent cycle", result.stderr)
+
+    def test_malformed_patch_operations_are_reported(self) -> None:
+        for operation in (
+            {"op": "add", "path": "/data"},
+            {"op": "move", "path": "/data", "from": False},
+            {"op": "remove", "path": "data"},
+            {"op": [], "path": ""},
+        ):
+            with self.subTest(operation=operation):
+                data = fixture()
+                data["patches"][1]["value"]["patch"] = [operation]
+                result = self.run_check(data)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("Invalid operation 0 under local head", result.stderr)
 
 
 if __name__ == "__main__":
