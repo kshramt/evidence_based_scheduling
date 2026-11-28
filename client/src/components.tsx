@@ -98,6 +98,7 @@ const MobileNodeFilterQueryInput = () => {
   const [nodeFilterQuery, setNodeFilterQuery] = Jotai.useAtom(
     states.nodeFilterQueryState,
   );
+  const ref = React.useRef<HTMLInputElement>(null);
   const handle_change = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const v = e.target.value;
@@ -106,18 +107,33 @@ const MobileNodeFilterQueryInput = () => {
     [setNodeFilterQuery],
   );
   const clear_input = useCallback(() => {
-    const v = consts.EMPTY_STRING;
-    setNodeFilterQuery(v);
+    setNodeFilterQuery(consts.EMPTY_STRING);
+    ref.current?.focus();
   }, [setNodeFilterQuery]);
   return (
     <div className="flex items-center border border-solid border-neutral-400">
       <input
+        aria-label="Search tasks"
         value={nodeFilterQuery}
         onChange={handle_change}
+        onKeyDown={(event) => {
+          if (
+            event.key === "Escape" &&
+            !event.nativeEvent.isComposing &&
+            nodeFilterQuery
+          ) {
+            event.preventDefault();
+            clear_input();
+          }
+        }}
         className="h-[2em] border-none w-[8em]"
+        ref={ref}
       />
       <button
+        type="button"
+        aria-label="Clear task search"
         className="icon-icon"
+        disabled={!nodeFilterQuery}
         onClick={clear_input}
         onDoubleClick={prevent_propagation}
       >
@@ -131,6 +147,7 @@ const NodeFilterQueryInput = () => {
   const [nodeFilterQuery, setNodeFilterQuery] = Jotai.useAtom(
     states.nodeFilterQueryState,
   );
+  const ref = useMetaK();
   const handle_change = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const v = e.target.value;
@@ -139,10 +156,9 @@ const NodeFilterQueryInput = () => {
     [setNodeFilterQuery],
   );
   const clear_input = useCallback(() => {
-    const v = consts.EMPTY_STRING;
-    setNodeFilterQuery(v);
-  }, [setNodeFilterQuery]);
-  const ref = useMetaK();
+    setNodeFilterQuery(consts.EMPTY_STRING);
+    ref.current?.focus();
+  }, [ref, setNodeFilterQuery]);
   const { firstMatch: node_id, matchCount } = useQueue(true, nodeFilterQuery);
   const taskShortcutKeys = hooks.useTaskShortcutKeys(
     node_id,
@@ -151,6 +167,15 @@ const NodeFilterQueryInput = () => {
   const toTree = utils.useToTree(node_id);
   const onKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLElement>) => {
+      if (
+        event.key === "Escape" &&
+        !event.nativeEvent.isComposing &&
+        nodeFilterQuery
+      ) {
+        event.preventDefault();
+        clear_input();
+        return;
+      }
       if (taskShortcutKeys(event)) {
         if (event.key === "Enter" && !event.nativeEvent.isComposing) {
           event.preventDefault();
@@ -158,7 +183,7 @@ const NodeFilterQueryInput = () => {
         }
       }
     },
-    [taskShortcutKeys, toTree],
+    [clear_input, nodeFilterQuery, taskShortcutKeys, toTree],
   );
 
   return (
@@ -174,7 +199,10 @@ const NodeFilterQueryInput = () => {
           ref={ref}
         />
         <button
+          type="button"
+          aria-label="Clear task search"
           className="btn-icon"
+          disabled={!nodeFilterQuery}
           onClick={clear_input}
           onDoubleClick={prevent_propagation}
         >
