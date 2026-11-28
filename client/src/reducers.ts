@@ -637,54 +637,44 @@ export const getRootReducer = (
     builder.addCase(
       actions.set_range_value_action,
       (state: types.TStateDraftWithReadonly, action) => {
-        const vid = utils.visit_counter_of();
-        const ranges = state.data.nodes[action.payload.node_id].ranges;
-        let range = ranges[action.payload.i_range];
-        const prev_milliseconds = range[action.payload.k];
-        if (prev_milliseconds === null) {
+        const { node_id, i_range, k, v } = action.payload;
+        const ranges = state.data.nodes[node_id]?.ranges;
+        const range = ranges?.[i_range];
+        if (!range) return;
+        if (range[k] === null) {
+          toast.add("error", "Stop the timer before editing its end time.");
+          return;
+        }
+
+        const milliseconds = utils.milliseconds_of_datetime_local(v);
+        if (Number.isNaN(milliseconds)) {
+          toast.add("error", "Enter a valid date and time.");
+          return;
+        }
+        if (range[k] === milliseconds) return;
+
+        const updated = { ...range, [k]: milliseconds };
+        if (updated.end !== null && updated.end < updated.start) {
           toast.add(
             "error",
-            `range.end of the running node ${
-              action.payload.node_id
-            } cannot be set ${JSON.stringify(action)}.`,
+            "The end time must be at or after the start time.",
           );
           return;
         }
-        const milliseconds = utils.milliseconds_of_datetime_local(
-          action.payload.v,
-        );
-        if (isNaN(milliseconds)) {
-          toast.add(
-            "error",
-            `Invalid datetime_local: ${JSON.stringify(action)}`,
-          );
-          return;
-        }
-        range = immer.produce(range, (range) => {
-          range[action.payload.k] = milliseconds;
-        });
-        if (range.end !== null && range.end < range.start) {
-          toast.add(
-            "error",
-            `range.end < range.start: ${JSON.stringify(action)}`,
-          );
-          range = immer.produce(range, (range) => {
-            range[action.payload.k] = prev_milliseconds;
-          });
-        }
+
         swapper.set(
           state.data.nodes,
           state.swapped_nodes,
-          action.payload.node_id,
+          node_id,
           "ranges",
-          immer.produce(ranges, (ranges) => {
-            ranges[action.payload.i_range] = range;
+          immer.produce(ranges, (draft) => {
+            draft[i_range] = updated;
           }),
         );
         total_time_utils.invalidateTotalTimeOfAncestors(
           state,
-          action.payload.node_id,
-          vid,
+          node_id,
+          utils.visit_counter_of(),
         );
       },
     );
@@ -692,13 +682,15 @@ export const getRootReducer = (
       actions.delete_range_action,
       (state: types.TStateDraftWithReadonly, action) => {
         const { node_id, i_range } = action.payload;
+        const ranges = state.data.nodes[node_id]?.ranges;
+        if (!ranges?.[i_range]) return;
         swapper.set(
           state.data.nodes,
           state.swapped_nodes,
           node_id,
           "ranges",
-          immer.produce(state.data.nodes[node_id].ranges, (ranges) => {
-            ranges.splice(i_range, 1);
+          immer.produce(ranges, (draft) => {
+            draft.splice(i_range, 1);
           }),
         );
         total_time_utils.invalidateTotalTimeOfAncestors(
