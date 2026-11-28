@@ -12,6 +12,7 @@ import * as retryers from "src/retryers";
 import * as states from "./states";
 import * as toast from "./toast";
 import "./lib.css";
+import { DraftStatusContext } from "./AutoHeightTextArea";
 import * as utils from "./utils";
 import * as components from "./components";
 import * as Auth from "./auth";
@@ -221,7 +222,9 @@ const AppComponentImpl = (props: {
         <Provider store={props.store}>
           <Mt.ColorSchemeScript defaultColorScheme="auto" />
           <Mt.MantineProvider defaultColorScheme="auto">
-            <App ctx={props.ctx} logOut={props.auth.logOut} />
+            <DraftStatusContext.Provider value={props.ctx.reportDraft}>
+              <App ctx={props.ctx} logOut={props.auth.logOut} />
+            </DraftStatusContext.Provider>
             <props.ctx.Component />
           </Mt.MantineProvider>
         </Provider>

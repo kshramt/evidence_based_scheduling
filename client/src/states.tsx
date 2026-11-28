@@ -239,6 +239,10 @@ export class PersistentStateManager {
   #rpc_queue: queues.Queue<null | (() => Promise<void>)> = new queues.Queue();
   #sync_store: ReturnType<typeof _get_store> = _get_store();
   #resolvingConflict = false;
+  #savedLocalHead: storage.THead;
+  #saveStatusListeners = new Set<() => void>();
+  #draftEditors = new Set<string>();
+
   constructor(
     client_v2: TClientV2,
     db: Awaited<ReturnType<typeof storage.getDb>>,
@@ -256,6 +260,7 @@ export class PersistentStateManager {
     this.session_id = session_id;
     this.patch_id = -1;
     this.heads = heads;
+    this.#savedLocalHead = heads.parent;
     this.id_token = id_token;
     this.session_key = {
       user_id: id_token.user_id,
@@ -270,6 +275,52 @@ export class PersistentStateManager {
       this.#headQueue.push(heads.parent);
     }
   }
+
+  #notifySaveStatus = () => {
+    for (const listener of this.#saveStatusListeners) listener();
+  };
+
+  #subscribeSaveStatus = (listener: () => void) => {
+    this.#saveStatusListeners.add(listener);
+    return () => {
+      this.#saveStatusListeners.delete(listener);
+    };
+  };
+
+  reportDraft = (editor: string, dirty: boolean) => {
+    if (dirty) {
+      this.#draftEditors.add(editor);
+    } else {
+      this.#draftEditors.delete(editor);
+    }
+    this.#notifySaveStatus();
+  };
+
+  #getSaveStatus = () => {
+    if (this.#draftEditors.size > 0) return "Unsaved editor changes";
+    if (!sameHead(this.#currentHead(), this.#savedLocalHead)) {
+      return "Saving locally…";
+    }
+    return sameHead(this.#savedLocalHead, this.heads.remote)
+      ? "Synced"
+      : "Saved locally · Sync pending";
+  };
+
+  SaveStatus = () => {
+    const status = React.useSyncExternalStore(
+      this.#subscribeSaveStatus,
+      this.#getSaveStatus,
+    );
+    return (
+      <span
+        role="status"
+        aria-label="Save status"
+        className="text-sm whitespace-nowrap"
+      >
+        {status}
+      </span>
+    );
+  };
 
   #currentHead = () => {
     if (this.patch_id === -1) {
@@ -440,6 +491,7 @@ export class PersistentStateManager {
     console.debug("#save_remote_head/start", head);
     await this.db.put("heads", head, "remote");
     this.heads.remote = head;
+    this.#notifySaveStatus();
     console.debug("#save_remote_head/end", head);
   };
 
@@ -562,6 +614,9 @@ export class PersistentStateManager {
       await heads_store.put(head, "local");
       await tx.done;
 
+      this.#savedLocalHead = head;
+      this.#notifySaveStatus();
+
       // This separation is necessary to save patches while the network is down.
       this.#headQueue.push(head);
     }
@@ -584,6 +639,7 @@ export class PersistentStateManager {
       session_id: currentHead.session_id,
       patch_id: currentHead.patch_id,
     });
+    this.#notifySaveStatus();
   };
 
   Component = () => {

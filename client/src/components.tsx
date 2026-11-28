@@ -456,6 +456,7 @@ const Menu = (props: {
         db={props.ctx.db}
         logOut={props.logOut}
       />
+      <props.ctx.SaveStatus />
       <button
         className="btn-icon"
         onClick={stop_all}
@@ -827,6 +828,7 @@ const TimeNodeEntry = (props: { time_node_id: types.TTimeNodeId }) => {
   return (
     <td onMouseLeave={turnOff}>
       <AutoHeightTextArea
+        trackDraft
         text={text}
         className="textarea whitespace-pre-wrap overflow-wrap-anywhere w-[17em] overflow-hidden bg-white dark:bg-neutral-800 px-[0.75em] py-[0.5em]"
         onBlur={dispatch_set_text_action}
@@ -1152,6 +1154,7 @@ const MobileMenu = (props: {
         db={props.ctx.db}
         logOut={props.logOut}
       />
+      <props.ctx.SaveStatus />
       <button
         className="btn-icon"
         onClick={stop_all}

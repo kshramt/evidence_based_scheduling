@@ -38,6 +38,7 @@ export const TextArea = (props: {
 
   return (
     <AutoHeightTextArea
+      trackDraft
       text={text}
       className={props.className}
       onBlur={onBlur}

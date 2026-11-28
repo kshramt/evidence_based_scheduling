@@ -270,6 +270,9 @@ async def test_offline_edit_syncs_after_reload(
         assert await initial_response.json() == {"updated": True}
         await _wait_for_desktop(page)
 
+        status = page.get_by_role("status", name="Save status")
+        await playwright.async_api.expect(status).to_have_text("Synced")
+
         # Serve the app shell on reload while withholding the sync API.
         await page.route(
             "**/api/v2/**", lambda route: route.abort("internetdisconnected")
@@ -280,6 +283,7 @@ async def test_offline_edit_syncs_after_reload(
         await page.locator("#add-root-button").click()
         task = page.locator("textarea#t-1")
         await task.fill(text)
+        await playwright.async_api.expect(status).to_have_text("Unsaved editor changes")
         await task.blur()
 
         # Wait for both the creation and the text edit to be committed locally.
@@ -305,6 +309,9 @@ async def test_offline_edit_syncs_after_reload(
                 }
             }"""
         )
+        await playwright.async_api.expect(status).to_have_text(
+            "Saved locally · Sync pending"
+        )
         await page.reload()
         await _wait_for_desktop(page)
         await playwright.async_api.expect(task).to_have_value(text)
@@ -320,6 +327,7 @@ async def test_offline_edit_syncs_after_reload(
         response = await head_update.value
         assert response.ok
         assert await response.json() == {"updated": True}
+        await playwright.async_api.expect(status).to_have_text("Synced")
 
     async with traced_context(browser) as destination:
         page = await destination.new_page()
