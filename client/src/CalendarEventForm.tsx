@@ -68,7 +68,9 @@ const LocalTimeField = (props: {
   );
 };
 
-const gridStyle = { gridTemplateColumns: "auto auto auto auto" };
+const gridStyle = {
+  gridTemplateColumns: "max-content minmax(0, 1fr) max-content max-content",
+};
 const buttonRowStyle = { gridColumn: "span 4" };
 
 const CalendarEventForm = (props: {
@@ -210,7 +212,7 @@ const CalendarEventFormImpl = (props: {
 
   return (
     <div
-      className="grid items-baseline gap-[0.5em] whitespace-nowrap justify-start"
+      className="grid items-baseline gap-[0.5em] whitespace-nowrap [&>input]:min-w-0"
       style={gridStyle}
     >
       {/* Row 1 */}

@@ -13,7 +13,7 @@ const RangesTable = (props: { node_id: types.TNodeId }) => {
       (state) => state.swapped_nodes.ranges?.[props.node_id].length,
     ),
   );
-  if (n === 0) return <p className="text-sm">No time records</p>;
+  if (n === 0) return <p className="m-0 text-sm">No time records</p>;
   const lastOffset = Math.max(0, n - 1);
   const offset = offsetInput === "" ? 0 : Math.min(offsetInput, lastOffset);
   const handleOffsetInput = (event: React.ChangeEvent<HTMLInputElement>) => {

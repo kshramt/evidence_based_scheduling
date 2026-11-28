@@ -41,11 +41,11 @@ const TaskSummary = ({ nodeId }: { nodeId: types.TNodeId }) => {
   );
   if (created === undefined || status === undefined) return null;
   return (
-    <dl className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 text-sm">
+    <dl className="m-0 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 text-sm">
       <dt className="font-medium">Status</dt>
-      <dd>{statusLabels[status]}</dd>
+      <dd className="m-0">{statusLabels[status]}</dd>
       <dt className="font-medium">Created</dt>
-      <dd>
+      <dd className="m-0">
         <TaskTimestamp timestamp={created} />
       </dd>
       {status !== "todo" && end != null && (
@@ -53,7 +53,7 @@ const TaskSummary = ({ nodeId }: { nodeId: types.TNodeId }) => {
           <dt className="font-medium">
             {status === "done" ? "Completed" : "Closed"}
           </dt>
-          <dd>
+          <dd className="m-0">
             <TaskTimestamp timestamp={end} />
           </dd>
         </>
@@ -108,7 +108,7 @@ const Details = (props: { node_id: types.TNodeId }) => {
         <TocForm nodeId={props.node_id} />
       </div>
       <section className={sectionClass} aria-labelledby="task-dependencies">
-        <h2 id="task-dependencies" className="font-semibold">
+        <h2 id="task-dependencies" className={headingClass}>
           Dependencies
         </h2>
         <div className="flex flex-wrap items-baseline gap-2">
@@ -141,22 +141,22 @@ const Details = (props: { node_id: types.TNodeId }) => {
           </button>
         </div>
         <div>
-          <h3 className="text-sm font-medium">Parents</h3>
+          <h3 className="m-0 text-sm font-medium">Parents</h3>
           <ParentEdgeTable node_id={props.node_id} />
         </div>
         <div>
-          <h3 className="text-sm font-medium">Children</h3>
+          <h3 className="m-0 text-sm font-medium">Children</h3>
           <ChildEdgeTable node_id={props.node_id} />
         </div>
       </section>
       <section className={sectionClass} aria-labelledby="task-time-records">
-        <h2 id="task-time-records" className="font-semibold">
+        <h2 id="task-time-records" className={headingClass}>
           Time records
         </h2>
         <RangesTable node_id={props.node_id} />
       </section>
       <section className={sectionClass} aria-labelledby="task-planned-events">
-        <h2 id="task-planned-events" className="font-semibold">
+        <h2 id="task-planned-events" className={headingClass}>
           Planned events
         </h2>
         <div className="overflow-x-auto">
@@ -168,7 +168,8 @@ const Details = (props: { node_id: types.TNodeId }) => {
 };
 
 const sectionClass =
-  "space-y-2 border-t border-neutral-300 pt-3 dark:border-neutral-600";
+  "space-y-2 border-0 border-t border-solid border-neutral-300 pt-3 dark:border-neutral-600";
+const headingClass = "m-0 text-base font-semibold";
 
 export const ShowDetailsButton = (props: { node_id: types.TNodeId }) => {
   const dispatch = types.useDispatch();
@@ -215,7 +216,10 @@ const TaskDetailsDrawer = (props: { nodeId: types.TNodeId }) => {
       opened={true}
       position="right"
       title={
-        <span className="line-clamp-2 [overflow-wrap:anywhere]" title={title}>
+        <span
+          className="line-clamp-2 font-semibold [overflow-wrap:anywhere]"
+          title={title}
+        >
           {title}
         </span>
       }
