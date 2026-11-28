@@ -51,6 +51,7 @@ if [[ "${os}" = "${host_os}" && "${arch}" = "${host_arch}" ]]; then
 		--mount "type=bind,source=${HOME}/.docker/buildx,target=/root/.docker/buildx" \
 		-e "MY_COMPOSE_DIR=${PWD}" \
 		-e "CI=${CI:-}" \
+		-e "EBS_E2E_ARTIFACTS=${PWD}/e2e-artifacts" \
 		-e "TAG=h-${github_sha}-${os}-${arch}" \
 		-e ENV=prod \
 		-e MY_HOST=127.0.0.1 \

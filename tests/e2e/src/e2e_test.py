@@ -251,6 +251,7 @@ async def test_offline_edit_syncs_after_reload(
     my_host: str,
     browser: playwright.async_api.Browser,
     envoy_http_port: str,
+    traced_context,
 ) -> None:
     app_url = f"http://{my_host}:{envoy_http_port}/app/"
     user = "offline-user"
@@ -259,7 +260,7 @@ async def test_offline_edit_syncs_after_reload(
     def is_head_update(response: playwright.async_api.Response) -> bool:
         return response.request.method == "PUT" and response.url.endswith("/head")
 
-    async with await browser.new_context(service_workers="block") as source:
+    async with traced_context(browser, service_workers="block") as source:
         page = await source.new_page()
         await (await _open_auth(page, app_url, "#sign-up-name")).fill(user)
         async with page.expect_response(is_head_update) as initial_head:
@@ -320,7 +321,7 @@ async def test_offline_edit_syncs_after_reload(
         assert response.ok
         assert await response.json() == {"updated": True}
 
-    async with await browser.new_context() as destination:
+    async with traced_context(browser) as destination:
         page = await destination.new_page()
         await (await _open_auth(page, app_url, "#log-in-name")).fill(user)
         await page.get_by_role("button", name="Log in").click()
@@ -393,6 +394,7 @@ async def test_restored_database_opens_task_and_recorded_time(
     browser: playwright.async_api.Browser,
     envoy_http_port: str,
     envoy_waiter: Callable[[], Awaitable[None]],
+    traced_context,
 ) -> None:
     app_url = f"http://{my_host}:{envoy_http_port}/app/"
     user = "restore-browser-user"
@@ -401,7 +403,7 @@ async def test_restored_database_opens_task_and_recorded_time(
     def is_head_update(response: playwright.async_api.Response) -> bool:
         return response.request.method == "PUT" and response.url.endswith("/head")
 
-    async with await browser.new_context() as source:
+    async with traced_context(browser) as source:
         page = await source.new_page()
 
         async def save(action: Callable[[], Awaitable[None]]) -> None:
@@ -431,7 +433,7 @@ async def test_restored_database_opens_task_and_recorded_time(
     await _restore_app_database()
     await envoy_waiter()
 
-    async with await browser.new_context() as destination:
+    async with traced_context(browser) as destination:
         page = await destination.new_page()
         await (await _open_auth(page, app_url, "#log-in-name")).fill(user)
         await page.get_by_role("button", name="Log in").click()
@@ -477,6 +479,7 @@ async def test_sync_conflict_accepts_one_choice(
     envoy_http_port: str,
     choice: str,
     second_remote_edit: bool,
+    traced_context,
 ) -> None:
     app_url = f"http://{my_host}:{envoy_http_port}/app/"
 
@@ -484,8 +487,8 @@ async def test_sync_conflict_accepts_one_choice(
         return response.request.method == "PUT" and response.url.endswith("/head")
 
     async with (
-        await browser.new_context(service_workers="block") as local,
-        await browser.new_context() as remote,
+        traced_context(browser, service_workers="block") as local,
+        traced_context(browser) as remote,
     ):
         local_page = await local.new_page()
         await (await _open_auth(local_page, app_url, "#sign-up-name")).fill("conflict")
@@ -568,6 +571,7 @@ async def test_sync_conflict_accepts_one_choice(
 async def test_service_worker_loads_app_without_network(
     my_host: str,
     envoy_http_port: str,
+    traced_context,
 ) -> None:
     origin = f"http://{my_host}:{envoy_http_port}"
     async with playwright.async_api.async_playwright() as pw:
@@ -575,19 +579,21 @@ async def test_service_worker_loads_app_without_network(
             args=[f"--unsafely-treat-insecure-origin-as-secure={origin}"]
         )
         try:
-            context = await browser.new_context()
-            page = await context.new_page()
-            name = await _open_auth(page, f"{origin}/app/", "#sign-up-name")
-            await name.fill("offline-shell")
-            await page.get_by_role("button", name="Sign up").click()
-            await _wait_for_desktop(page)
-            await page.wait_for_function("navigator.serviceWorker.controller !== null")
-            await context.set_offline(True)
+            async with traced_context(browser) as context:
+                page = await context.new_page()
+                name = await _open_auth(page, f"{origin}/app/", "#sign-up-name")
+                await name.fill("offline-shell")
+                await page.get_by_role("button", name="Sign up").click()
+                await _wait_for_desktop(page)
+                await page.wait_for_function(
+                    "navigator.serviceWorker.controller !== null"
+                )
+                await context.set_offline(True)
 
-            await page.reload()
-            await _wait_for_desktop(page)
-            await playwright.async_api.expect(
-                page.locator("#add-root-button")
-            ).to_be_visible()
+                await page.reload()
+                await _wait_for_desktop(page)
+                await playwright.async_api.expect(
+                    page.locator("#add-root-button")
+                ).to_be_visible()
         finally:
             await browser.close()

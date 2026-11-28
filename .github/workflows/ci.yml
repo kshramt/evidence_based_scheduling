@@ -95,6 +95,12 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - run: scripts/build_test_push.sh ${{ github.sha }} ${{ needs.set-vars.outputs.ref-b64 }} ${{ matrix.os }} ${{ matrix.arch }} ${{ github.ref }} ${{ github.run_number }} ${{ needs.set-vars.outputs.host-arch }} ${{ needs.set-vars.outputs.host-os }}
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-diagnostics-${{ matrix.os }}-${{ matrix.arch }}
+          path: e2e-artifacts/
+          retention-days: 7
   build-manifests:
     if: github.actor == 'dependabot[bot]' || github.actor == github.repository_owner
     permissions:

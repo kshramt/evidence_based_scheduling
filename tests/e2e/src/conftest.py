@@ -2,9 +2,11 @@ import asyncio
 import collections.abc
 import contextlib
 import os
+import shutil
 import socket
 import unittest.mock
 import uuid
+from pathlib import Path
 from typing import Any, Final
 
 import httpx
@@ -12,6 +14,51 @@ import playwright.async_api
 import pytest
 
 MY_HOST: Final = os.environ["MY_HOST"]
+
+
+_failed = pytest.StashKey[bool]()
+_evidence = pytest.StashKey[Path]()
+
+
+@pytest.hookimpl(wrapper=True)
+def pytest_runtest_makereport(item: pytest.Item):
+    report = yield
+    if report.failed:
+        item.stash[_failed] = True
+    if report.when == "teardown" and not item.stash.get(_failed, False):
+        path = item.stash.get(_evidence, None)
+        if path is not None:
+            shutil.rmtree(path, ignore_errors=True)
+    return report
+
+
+@pytest.fixture
+def evidence_dir(request: pytest.FixtureRequest):
+    destination = os.environ.get("EBS_E2E_ARTIFACTS")
+    if not destination:
+        return None
+    path = Path(destination) / request.node.name
+    request.node.stash[_evidence] = path
+    return path
+
+
+@pytest.fixture
+def traced_context(evidence_dir: Path | None):
+    @contextlib.asynccontextmanager
+    async def open_context(browser: playwright.async_api.Browser, **options):
+        async with await browser.new_context(**options) as context:
+            if evidence_dir is not None:
+                await context.tracing.start(screenshots=True, snapshots=True)
+            try:
+                yield context
+            finally:
+                if evidence_dir is not None:
+                    evidence_dir.mkdir(parents=True, exist_ok=True)
+                    await context.tracing.stop(
+                        path=evidence_dir / f"trace-{uuid.uuid4()}.zip"
+                    )
+
+    return open_context
 
 
 @pytest.fixture
@@ -25,12 +72,10 @@ async def browser() -> collections.abc.Generator[
 @pytest.fixture
 async def context(
     browser: playwright.async_api.Browser,
-) -> collections.abc.Generator[playwright.async_api.BrowserContext, Any, None]:
-    context = await browser.new_context()
-    try:
+    traced_context,
+) -> collections.abc.AsyncIterator[playwright.async_api.BrowserContext]:
+    async with traced_context(browser) as context:
         yield context
-    finally:
-        await context.close()
 
 
 @pytest.fixture
@@ -76,6 +121,7 @@ def event_loop() -> collections.abc.Generator[asyncio.AbstractEventLoop, Any, No
 @pytest.fixture
 async def compose_up(
     compose_up_envs: None,
+    evidence_dir: Path | None,
 ) -> collections.abc.Generator[None, Any, None]:
     try:
         args = ["scripts/launch.sh"]
@@ -95,9 +141,21 @@ async def compose_up(
             "compose.yaml",
             "-f",
             f"compose.{os.environ['ENV']}.yaml",
-            "down",
-            "--volumes",
         ]
+        if evidence_dir is not None:
+            with contextlib.suppress(OSError):
+                evidence_dir.mkdir(parents=True, exist_ok=True)
+                with (evidence_dir / "compose.log").open("wb") as log:
+                    res = await asyncio.create_subprocess_exec(
+                        *args,
+                        "logs",
+                        "--no-color",
+                        cwd=os.environ["MY_COMPOSE_DIR"],
+                        stdout=log,
+                        stderr=asyncio.subprocess.STDOUT,
+                    )
+                    await res.wait()
+        args += ["down", "--volumes"]
         res = await asyncio.create_subprocess_exec(
             *args,
             cwd=os.environ["MY_COMPOSE_DIR"],
