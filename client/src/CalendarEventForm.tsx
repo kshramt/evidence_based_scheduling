@@ -17,26 +17,30 @@ const getLimitType = (limit: intervals.TLimit) => {
   }
 };
 
-const LocalTimeField = (props: {
+const LocalTimeField = ({
+  t,
+  setT,
+  label,
+  valid,
+  setValid,
+}: {
   t: times.TTime;
   setT: (t: times.TTime) => void;
+  label: string;
+  valid: boolean;
+  setValid: (valid: boolean) => void;
 }) => {
   const handleTimeChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const setT = props.setT;
-      const t = props.t;
-      setT(
-        (times.tTzTime(t)
-          ? times.getTzTimeOfLocalString
-          : times.getFloatingTimeOfLocalString)(e.target.value),
-      );
+      const time = times.parseFloatingTimeOfLocalString(e.currentTarget.value);
+      setValid(time !== null);
+      if (time === null) return;
+      setT(times.tTzTime(t) ? times.getTzTimeOfFloatingTime(time) : time);
     },
-    [props.t, props.setT],
+    [t, setT, setValid],
   );
   const handleTzChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const setT = props.setT;
-      const t = props.t;
       if (times.tTzTime(t)) {
         if (!e.target.checked) {
           setT(times.getFloatingTimeOfTzTime(t));
@@ -47,21 +51,24 @@ const LocalTimeField = (props: {
         }
       }
     },
-    [props.t, props.setT],
+    [t, setT],
   );
 
   return (
     <>
       <input
         type="datetime-local"
-        value={times.getLocalStringOfTzTime(times.ensureTzTime(props.t))}
+        aria-label={label}
+        aria-invalid={!valid}
+        value={valid ? times.getLocalStringOfTzTime(times.ensureTzTime(t)) : ""}
         onChange={handleTimeChange}
       />
       <span className="text-right">TZ:</span>
       <input
         type="checkbox"
+        disabled={!valid}
         className="self-stretch"
-        checked={times.tTzTime(props.t)}
+        checked={times.tTzTime(t)}
         onChange={handleTzChange}
       />
     </>
@@ -117,8 +124,11 @@ const CalendarEventFormImpl = (props: {
     return { f: today.f + DAY };
   }, [today]);
   const [start, setStart] = React.useState<times.TTime>(
-    props.event?.interval_set.start || today,
-  ); // 0 will not happen in practice.
+    props.event?.interval_set.start ?? today,
+  );
+  const [startValid, setStartValid] = React.useState(true);
+  const [untilValid, setUntilValid] = React.useState(true);
+  const canSubmit = startValid && untilValid;
 
   const [duration, setDuration] = React.useState<number>(
     props.event
@@ -167,6 +177,7 @@ const CalendarEventFormImpl = (props: {
 
   const handleLimitTypeChange = React.useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
+      setUntilValid(true);
       if (e.target.value === "Count") {
         setLimit({ c: 1 });
       } else if (e.target.value === "Until") {
@@ -183,6 +194,7 @@ const CalendarEventFormImpl = (props: {
       const propsEvent = props.event;
       const propsOnSubmit = props.onSubmit;
       e.preventDefault();
+      if (!canSubmit) return;
       const end = times.tTzTime(start)
         ? start + duration
         : { f: start.f + duration };
@@ -205,7 +217,7 @@ const CalendarEventFormImpl = (props: {
             });
       propsOnSubmit(event);
     },
-    [start, duration, props.event, props.onSubmit, delta, limit],
+    [start, duration, props.event, props.onSubmit, delta, limit, canSubmit],
   );
 
   return (
@@ -215,7 +227,13 @@ const CalendarEventFormImpl = (props: {
     >
       {/* Row 1 */}
       <span className="text-right">Start:</span>
-      <LocalTimeField t={start} setT={setStart} />
+      <LocalTimeField
+        label="Event start"
+        t={start}
+        setT={setStart}
+        valid={startValid}
+        setValid={setStartValid}
+      />
 
       {/* Row 2 */}
       <span className="text-right">Duration (min):</span>
@@ -254,7 +272,13 @@ const CalendarEventFormImpl = (props: {
         <>
           <span className="text-right">Limit:</span>
           {times.tTime(limit) ? (
-            <LocalTimeField t={limit} setT={setLimit} />
+            <LocalTimeField
+              label="Repeat until"
+              t={limit}
+              setT={setLimit}
+              valid={untilValid}
+              setValid={setUntilValid}
+            />
           ) : (
             <input
               type="number"
@@ -270,7 +294,19 @@ const CalendarEventFormImpl = (props: {
 
       {/* Row 6 */}
       <div className="text-center" style={buttonRowStyle}>
-        <button className="btn-icon" onClick={handleSubmit}>
+        {!canSubmit && (
+          <span role="status">
+            {startValid
+              ? "Enter a valid repeat-until time."
+              : "Enter a valid start time."}
+          </span>
+        )}
+        <button
+          type="button"
+          className="btn-icon"
+          onClick={handleSubmit}
+          disabled={!canSubmit}
+        >
           Set event
         </button>
       </div>

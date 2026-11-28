@@ -70,15 +70,19 @@ export type TFloatingTime = rt.$infer<typeof tFloatingTime>;
 export type TTzTime = rt.$infer<typeof tTzTime>;
 export type TTime = rt.$infer<typeof tTime>;
 
+export const parseFloatingTimeOfLocalString = (
+  localString: string,
+): TFloatingTime | null => {
+  const f = new Date(localString + "Z").getTime();
+  return Number.isFinite(f) ? { f } : null;
+};
+
 export const getFloatingTimeOfLocalString = (
   localString: string,
-): TFloatingTime => {
-  let f = new Date(localString + "Z").getTime();
-  if (isNaN(f)) {
-    f = 946684800000; // === (new Date("2000-01-01T00:00:00Z")).getTime();
-  }
-  return { f };
-};
+): TFloatingTime =>
+  parseFloatingTimeOfLocalString(localString) ?? {
+    f: 946684800000, // 2000-01-01T00:00:00Z
+  };
 
 export const getTzTimeOfLocalString = (
   localString: string,
