@@ -419,6 +419,53 @@ async def test_offline_edit_syncs_after_reload(  # noqa: PLR0915
         )
 
 
+@pytest.mark.usefixtures("envoy_waiter")
+async def test_retries_failed_local_save_in_order(
+    my_host: str,
+    context: playwright.async_api.BrowserContext,
+    envoy_http_port: str,
+) -> None:
+    app_url = f"http://{my_host}:{envoy_http_port}/app/"
+    page = await context.new_page()
+    await (await _open_auth(page, app_url, "#sign-up-name")).fill("local-save-retry")
+    await page.get_by_role("button", name="Sign up").click()
+    await _wait_for_desktop(page)
+    status = page.get_by_role("status", name="Save status")
+    await playwright.async_api.expect(status).to_have_text("Synced")
+
+    await page.evaluate(
+        """() => {
+            const put = IDBObjectStore.prototype.put;
+            IDBObjectStore.prototype.put = function (...args) {
+                const request = put.apply(this, args);
+                if (this.name === "heads" && args[1] === "local") {
+                    IDBObjectStore.prototype.put = put;
+                    this.transaction.abort();
+                }
+                return request;
+            };
+        }"""
+    )
+    await page.locator("#add-root-button").click()
+    await playwright.async_api.expect(status).to_have_text(
+        "Could not save to this device"
+    )
+    task = page.locator("textarea#t-1")
+    await task.fill("edited while the first save was blocked")
+    await task.blur()
+    await playwright.async_api.expect(status).to_have_text(
+        "Could not save to this device"
+    )
+
+    await page.get_by_role("button", name="Retry local save").click()
+    await playwright.async_api.expect(status).to_have_text("Synced")
+    await page.reload()
+    await _wait_for_desktop(page)
+    await playwright.async_api.expect(task).to_have_value(
+        "edited while the first save was blocked"
+    )
+
+
 async def _restore_app_database() -> None:
     async def compose(*args: str, data: bytes | None = None) -> bytes:
         process = await asyncio.create_subprocess_exec(
