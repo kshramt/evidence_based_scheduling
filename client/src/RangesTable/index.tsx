@@ -7,53 +7,65 @@ import * as utils from "src/utils";
 
 const RangesTable = (props: { node_id: types.TNodeId }) => {
   const rows_per_page = 10;
-  const [offset, set_offset] = React.useState(0);
+  const [offsetInput, setOffset] = React.useState<number | "">(0);
   const n = utils.assertV(
     types.useSelector(
       (state) => state.swapped_nodes.ranges?.[props.node_id].length,
     ),
   );
-  const handle_offset_input = React.useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) =>
-      set_offset(Math.min(Math.max(0, parseInt(e.target.value)), n - 1)),
-    [n, set_offset],
-  );
-  const handle_offset_next = React.useCallback(
-    () => set_offset((offset) => Math.min(offset + rows_per_page, n - 1)),
-    [n, set_offset],
-  );
-  const handle_offset_prev = React.useCallback(
-    () => set_offset((offset) => Math.max(offset - rows_per_page, 0)),
-    [set_offset],
-  );
+  const lastOffset = Math.max(0, n - 1);
+  const offset = offsetInput === "" ? 0 : Math.min(offsetInput, lastOffset);
+  const handleOffsetInput = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.currentTarget.valueAsNumber;
+    setOffset(
+      Number.isFinite(value)
+        ? Math.min(Math.max(0, Math.trunc(value)), lastOffset)
+        : "",
+    );
+  };
   const rows = [];
   for (let i = offset; i < Math.min(offset + rows_per_page, n); ++i) {
     const i_range = n - i - 1;
-    rows[i] = (
-      <RangesTableRow i_range={i_range} node_id={props.node_id} key={i_range} />
+    rows.push(
+      <RangesTableRow
+        i_range={i_range}
+        node_id={props.node_id}
+        key={i_range}
+      />,
     );
   }
   return (
     <>
       <div className="flex gap-x-[0.25em] items-baseline">
         <button
-          disabled={offset - rows_per_page < 0}
-          onClick={handle_offset_prev}
+          type="button"
+          aria-label="Previous time records"
+          disabled={offset === 0}
+          onClick={() => setOffset(Math.max(offset - rows_per_page, 0))}
           className="btn-icon"
           onDoubleClick={utils.prevent_propagation}
         >
           {consts.BACK_MARK}
         </button>
         <input
-          onChange={handle_offset_input}
+          aria-label="Time record offset"
+          min={0}
+          max={lastOffset}
+          disabled={n === 0}
+          onChange={handleOffsetInput}
+          onBlur={() => setOffset(offset)}
           type="number"
           className="w-[5em]"
-          value={offset}
+          value={offsetInput === "" ? "" : offset}
         />
         /{n}
         <button
+          type="button"
+          aria-label="Next time records"
           disabled={n <= offset + rows_per_page}
-          onClick={handle_offset_next}
+          onClick={() =>
+            setOffset(Math.min(offset + rows_per_page, lastOffset))
+          }
           className="btn-icon"
           onDoubleClick={utils.prevent_propagation}
         >
