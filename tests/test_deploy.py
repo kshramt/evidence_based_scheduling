@@ -86,6 +86,16 @@ if sys.argv[-1] == "pull":
         self.assertEqual(tag, "custom")
         self.assertEqual(args[-1], "pull")
 
+    def test_relative_env_file_is_resolved_from_invocation_directory(self) -> None:
+        result = self.deploy(
+            COMPOSE_ENV_FILES=str(self.env_file.relative_to(self.temp))
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for line in self.log.read_text().splitlines():
+            args = json.loads(line)[-1]
+            env_arg = Path(args[args.index("--env-file") + 1])
+            self.assertEqual(env_arg.resolve(), self.env_file.resolve())
+
     def test_missing_env_file_stops_before_docker(self) -> None:
         self.env_file.unlink()
         result = self.deploy()
