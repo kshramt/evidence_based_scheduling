@@ -1,10 +1,15 @@
 import asyncio
 import os
 from collections.abc import Awaitable, Callable
+from contextlib import AbstractAsyncContextManager
 from datetime import datetime, timedelta
 
 import playwright.async_api
 import pytest
+
+TracedContext = Callable[
+    ..., AbstractAsyncContextManager[playwright.async_api.BrowserContext]
+]
 
 
 @pytest.mark.usefixtures("envoy_waiter")
@@ -251,7 +256,7 @@ async def test_offline_edit_syncs_after_reload(
     my_host: str,
     browser: playwright.async_api.Browser,
     envoy_http_port: str,
-    traced_context,
+    traced_context: TracedContext,
 ) -> None:
     app_url = f"http://{my_host}:{envoy_http_port}/app/"
     user = "offline-user"
@@ -316,8 +321,19 @@ async def test_offline_edit_syncs_after_reload(
         await _wait_for_desktop(page)
         await playwright.async_api.expect(task).to_have_value(text)
 
+        replays = 0
+
+        async def resend_patch_batch(route: playwright.async_api.Route) -> None:
+            nonlocal replays
+            response = await route.fetch()
+            duplicate = await route.fetch()
+            assert response.status == duplicate.status == 201
+            replays += 1
+            await route.fulfill(response=response)
+
         async with page.expect_response(is_head_update) as head_update:
             await page.unroute("**/api/v2/**")
+            await page.route("**/patches~batch", resend_patch_batch)
             await page.evaluate(
                 """() => {
                     Object.defineProperty(navigator, "onLine", { value: true });
@@ -328,6 +344,7 @@ async def test_offline_edit_syncs_after_reload(
         assert response.ok
         assert await response.json() == {"updated": True}
         await playwright.async_api.expect(status).to_have_text("Synced")
+        assert replays > 0
 
     async with traced_context(browser) as destination:
         page = await destination.new_page()
@@ -416,12 +433,12 @@ async def _restore_app_database() -> None:
         ),
     ],
 )
-async def test_restored_database_opens_task_and_recorded_time(
+async def test_restored_database_opens_task_and_recorded_time(  # noqa: PLR0913
     my_host: str,
     browser: playwright.async_api.Browser,
     envoy_http_port: str,
     envoy_waiter: Callable[[], Awaitable[None]],
-    traced_context,
+    traced_context: TracedContext,
     timezone: str,
     stop_utc: str,
     start_label: str,
@@ -547,13 +564,13 @@ async def _reload_after_conflict(page: playwright.async_api.Page) -> None:
     ("choice", "second_remote_edit"),
     [("Reload", False), ("Use current", False), ("Use current", True)],
 )
-async def test_sync_conflict_accepts_one_choice(
+async def test_sync_conflict_accepts_one_choice(  # noqa: PLR0913
     my_host: str,
     browser: playwright.async_api.Browser,
     envoy_http_port: str,
     choice: str,
     second_remote_edit: bool,
-    traced_context,
+    traced_context: TracedContext,
 ) -> None:
     app_url = f"http://{my_host}:{envoy_http_port}/app/"
 
@@ -645,7 +662,7 @@ async def test_sync_conflict_accepts_one_choice(
 async def test_service_worker_loads_app_without_network(
     my_host: str,
     envoy_http_port: str,
-    traced_context,
+    traced_context: TracedContext,
 ) -> None:
     origin = f"http://{my_host}:{envoy_http_port}"
     async with playwright.async_api.async_playwright() as pw:
