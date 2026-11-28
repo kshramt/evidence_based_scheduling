@@ -7,6 +7,7 @@ import * as consts from "./consts";
 import * as intervals from "./intervals";
 import * as ops from "./ops";
 import * as times from "./times";
+import * as toast from "./toast";
 import * as types from "./types";
 import { useSelector } from "./types";
 import * as utils from "src/utils";
@@ -68,13 +69,16 @@ export const join = (...xs: (undefined | null | boolean | string)[]) =>
 export const useClipboard = () => {
   const [is_copied, set_is_copied] = React.useState(false);
   const copy = React.useCallback((text: string) => {
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
+    void (async () => {
+      try {
+        await navigator.clipboard.writeText(text);
         set_is_copied(true);
         setTimeout(() => set_is_copied(false), 400);
-      })
-      .catch(() => set_is_copied(false));
+      } catch {
+        set_is_copied(false);
+        toast.add("error", "Could not copy to the clipboard.", 5000);
+      }
+    })();
   }, []);
   return React.useMemo(
     () => ({
