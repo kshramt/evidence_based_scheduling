@@ -221,6 +221,8 @@ export const session_key_context = React.createContext({
 //    The loaded (from IndexedDB) state's head corresponds to the item 2.
 // 4. Last-pushed remote head.
 //    This head is also stored in IndexedDB.
+const LOCAL_SAVE_FAILED = "Could not save to this device";
+
 export class PersistentStateManager {
   client_v2: TClientV2;
   db: Awaited<ReturnType<typeof storage.getDb>>;
@@ -242,6 +244,8 @@ export class PersistentStateManager {
   #savedLocalHead: storage.THead;
   #saveStatusListeners = new Set<() => void>();
   #draftEditors = new Set<string>();
+  #retryLocalSave: (() => void) | undefined;
+  #stopRequested = false;
 
   constructor(
     client_v2: TClientV2,
@@ -296,7 +300,16 @@ export class PersistentStateManager {
     this.#notifySaveStatus();
   };
 
+  #resumeLocalSave = () => {
+    const retry = this.#retryLocalSave;
+    if (!retry) return;
+    this.#retryLocalSave = undefined;
+    retry();
+    this.#notifySaveStatus();
+  };
+
   #getSaveStatus = () => {
+    if (this.#retryLocalSave) return LOCAL_SAVE_FAILED;
     if (this.#draftEditors.size > 0) return "Unsaved editor changes";
     if (!sameHead(this.#currentHead(), this.#savedLocalHead)) {
       return "Saving locally…";
@@ -312,13 +325,24 @@ export class PersistentStateManager {
       this.#getSaveStatus,
     );
     return (
-      <span
-        role="status"
-        aria-label="Save status"
-        className="text-sm whitespace-nowrap"
-      >
-        {status}
-      </span>
+      <>
+        <span
+          role="status"
+          aria-label="Save status"
+          className="text-sm whitespace-nowrap"
+        >
+          {status}
+        </span>
+        {status === LOCAL_SAVE_FAILED && (
+          <button
+            type="button"
+            className="btn-icon"
+            onClick={this.#resumeLocalSave}
+          >
+            Retry local save
+          </button>
+        )}
+      </>
     );
   };
 
@@ -339,6 +363,8 @@ export class PersistentStateManager {
   };
 
   stop = () => {
+    this.#stopRequested = true;
+    this.#resumeLocalSave();
     this.#patch_queue.push(null);
     this.#headQueue.push(null);
     this.#rpc_queue.push(null);
@@ -602,17 +628,20 @@ export class PersistentStateManager {
         session_id: patch.session_id,
         patch_id: patch.patch_id,
       };
-      const tx = this.db.transaction(
-        ["patches", "pending_patches", "heads"],
-        "readwrite",
-      );
-      const patches_store = tx.objectStore("patches");
-      const pending_patches_store = tx.objectStore("pending_patches");
-      const heads_store = tx.objectStore("heads");
-      await patches_store.put(patch);
-      await pending_patches_store.put(head);
-      await heads_store.put(head, "local");
-      await tx.done;
+      while (true) {
+        try {
+          await this.#persistLocalPatch(patch, head);
+          break;
+        } catch (error) {
+          if (this.#stopRequested) return;
+          console.warn("Failed to save a local patch", error);
+          await new Promise<void>((retry) => {
+            this.#retryLocalSave = retry;
+            this.#notifySaveStatus();
+          });
+          if (this.#stopRequested) return;
+        }
+      }
 
       this.#savedLocalHead = head;
       this.#notifySaveStatus();
@@ -620,6 +649,31 @@ export class PersistentStateManager {
       // This separation is necessary to save patches while the network is down.
       this.#headQueue.push(head);
     }
+  };
+
+  #persistLocalPatch = async (
+    patch: storage.TPatchValue,
+    head: storage.THead,
+  ) => {
+    const tx = this.db.transaction(
+      ["patches", "pending_patches", "heads"],
+      "readwrite",
+    );
+    const writes = async () => {
+      try {
+        await tx.objectStore("patches").put(patch);
+        await tx.objectStore("pending_patches").put(head);
+        await tx.objectStore("heads").put(head, "local");
+      } catch (error) {
+        try {
+          tx.abort();
+        } catch {
+          // A failed IndexedDB request may already have aborted it.
+        }
+        throw error;
+      }
+    };
+    await Promise.all([tx.done, writes()]);
   };
 
   #save_patch = (arg: { patch: producer.TOperation[] }) => {
