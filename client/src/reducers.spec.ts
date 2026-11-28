@@ -72,6 +72,19 @@ test("deleting a completed time record refreshes the next prediction", () => {
   );
   state = reduce(state, set_estimate_action({ node_id: pending, estimate: 2 }));
 
+  const withoutHistory = reduce(state, eval_(root));
+  expect(withoutHistory.caches[root].percentiles).toEqual(
+    Array<number>(7).fill(3),
+  );
+  const withUnrecordedCompletion = reduce(
+    reduce(state, todoToDone(completed)),
+    eval_(root),
+  );
+  expect(withUnrecordedCompletion.data.nodes[completed].ranges).toEqual([]);
+  expect(withUnrecordedCompletion.caches[root].percentiles).toEqual(
+    Array<number>(7).fill(0),
+  );
+
   try {
     vi.setSystemTime(1_000);
     state = reduce(
