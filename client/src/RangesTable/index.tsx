@@ -120,26 +120,37 @@ const RangesTableRow = (props: { node_id: types.TNodeId; i_range: number }) => {
     );
   }, [props.node_id, props.i_range, dispatch]);
   const start_date = utils.getStringOfLocalTime(range.start);
-  const end_date = range.end
-    ? utils.getStringOfLocalTime(range.end)
-    : undefined;
+  const end_date =
+    range.end === null ? null : utils.getStringOfLocalTime(range.end);
   return React.useMemo(
     () => (
       <tr>
         <td className="p-[0.25em]">
           <input
             type="datetime-local"
+            aria-label="Time record start"
+            step={1}
             value={start_date}
             onChange={set_start}
           />
         </td>
         <td className="p-[0.25em]">
-          {end_date && (
-            <input type="datetime-local" value={end_date} onChange={set_end} />
+          {end_date === null ? (
+            <span>Running</span>
+          ) : (
+            <input
+              type="datetime-local"
+              aria-label="Time record end"
+              step={1}
+              value={end_date}
+              onChange={set_end}
+            />
           )}
         </td>
         <td className="p-[0.25em]">
           <button
+            type="button"
+            aria-label="Delete time record"
             className="btn-icon"
             onClick={handle_delete}
             onDoubleClick={utils.prevent_propagation}

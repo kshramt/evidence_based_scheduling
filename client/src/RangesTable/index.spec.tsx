@@ -6,14 +6,15 @@ import { expect, test } from "vitest";
 
 import { emptyStateOf } from "src/ops";
 import type { TRange, TState } from "src/types";
+import { getStringOfLocalTime } from "src/utils";
 import RangesTable from ".";
 
 test("time records stay visible when the offset is cleared or a page shrinks", () => {
   const initial = emptyStateOf();
   const id = initial.data.root;
   const records = Array.from({ length: 11 }, (_, index) => ({
-    start: index * 2000,
-    end: index * 2000 + 1000,
+    start: index * 2000 - 1000,
+    end: index * 2000,
   }));
   const replaceRanges = createAction<TRange[]>("test/replaceRanges");
   const withRanges = (ranges: TRange[]): TState => ({
@@ -60,6 +61,10 @@ test("time records stay visible when the offset is cleared or a page shrinks", (
     flushSync(() => next.click());
     expect(input.value).toBe("10");
     expect(rows()).toBe(1);
+    const epochEnd = host.querySelector<HTMLInputElement>(
+      'input[aria-label="Time record end"]',
+    );
+    expect(epochEnd?.value).toBe(getStringOfLocalTime(0).slice(0, 16));
     enterOffset("");
     expect(input.value).toBe("");
     expect(rows()).toBe(10);
@@ -78,6 +83,13 @@ test("time records stay visible when the offset is cleared or a page shrinks", (
     expect(input.disabled).toBe(true);
     expect(previous.disabled && next.disabled).toBe(true);
     expect(rows()).toBe(0);
+
+    flushSync(() => store.dispatch(replaceRanges([{ start: 0, end: null }])));
+    expect(rows()).toBe(1);
+    expect(host.querySelector("tbody")?.textContent).toContain("Running");
+    expect(
+      host.querySelector('input[aria-label="Time record end"]'),
+    ).toBeNull();
   } finally {
     root.unmount();
     host.remove();
