@@ -42,7 +42,6 @@ const run = (
       ["prod_nginx", "/nginx"],
       ["prod_postgres_migration", "/postgres_migration"],
       ["prod_postgres", "/postgres"],
-      ["test_client", "/client/test"],
       ["tests_e2e", "/tests_e2e"],
     ] as const) {
       const k = `${target}-${platform.os}-${platform.arch}`;

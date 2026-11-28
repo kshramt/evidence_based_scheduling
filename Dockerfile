@@ -204,10 +204,9 @@ RUN pnpm install --frozen-lockfile
 
 FROM client_npm_ci AS builder_client
 COPY --link client client
-RUN cd client && pnpm exec playwright install --with-deps chromium
 
 FROM builder_client AS test_client
-RUN cd client && scripts/check.sh
+RUN cd client && pnpm exec playwright install --with-deps chromium && scripts/check.sh
 
 FROM builder_client AS prod_client
 RUN cd client && pnpm run build
