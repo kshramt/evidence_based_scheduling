@@ -173,10 +173,26 @@ async def _check_pinned_filter(
     child: playwright.async_api.Locator,
     child_text: str,
 ) -> None:
-    await parent.locator("../..").get_by_role("button", name="more_vert").click()
+    await (
+        parent.locator("../..").get_by_role("button", name="Show task details").click()
+    )
     dialog = page.get_by_role("dialog")
-    dependency = dialog.get_by_role("row").filter(
-        has=page.get_by_role("button", name=f"Open task {child_text}", exact=True)
+    await playwright.async_api.expect(
+        dialog.get_by_text("Created", exact=True)
+    ).to_be_visible()
+    await playwright.async_api.expect(dialog.locator("time[datetime]")).to_be_visible()
+    await playwright.async_api.expect(
+        dialog.get_by_role("region", name="Time records")
+    ).to_be_visible()
+    await playwright.async_api.expect(
+        dialog.get_by_role("region", name="Planned events")
+    ).to_be_visible()
+    dependency = (
+        dialog.get_by_role("region", name="Dependencies")
+        .get_by_role("row")
+        .filter(
+            has=page.get_by_role("button", name=f"Open task {child_text}", exact=True)
+        )
     )
     visibility = dependency.get_by_role("checkbox", name="Show dependency in tree")
     await playwright.async_api.expect(visibility).to_be_checked()
@@ -557,7 +573,11 @@ async def test_restored_database_opens_task_and_recorded_time(  # noqa: PLR0913
         ).to_be_visible()
 
         async def open_records() -> playwright.async_api.Locator:
-            await task.locator("../..").get_by_role("button", name="more_vert").click()
+            await (
+                task.locator("../..")
+                .get_by_role("button", name="Show task details")
+                .click()
+            )
             return page.get_by_role("dialog").locator('input[type="datetime-local"]')
 
         records = await open_records()

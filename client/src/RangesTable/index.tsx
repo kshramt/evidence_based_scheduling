@@ -13,6 +13,7 @@ const RangesTable = (props: { node_id: types.TNodeId }) => {
       (state) => state.swapped_nodes.ranges?.[props.node_id].length,
     ),
   );
+  if (n === 0) return <p className="m-0 text-sm">No time records</p>;
   const lastOffset = Math.max(0, n - 1);
   const offset = offsetInput === "" ? 0 : Math.min(offsetInput, lastOffset);
   const handleOffsetInput = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,7 +52,6 @@ const RangesTable = (props: { node_id: types.TNodeId }) => {
           aria-label="Time record offset"
           min={0}
           max={lastOffset}
-          disabled={n === 0}
           onChange={handleOffsetInput}
           onBlur={() => setOffset(offset)}
           type="number"
@@ -72,9 +72,11 @@ const RangesTable = (props: { node_id: types.TNodeId }) => {
           {consts.FORWARD_MARK}
         </button>
       </div>
-      <table className="table-auto">
-        <tbody className="block max-h-[10em] overflow-y-auto">{rows}</tbody>
-      </table>
+      <div className="max-h-[10em] overflow-auto">
+        <table className="table-auto">
+          <tbody>{rows}</tbody>
+        </table>
+      </div>
     </>
   );
 };

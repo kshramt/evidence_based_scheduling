@@ -9,10 +9,13 @@ const ParentEdgeTable = (props: { node_id: types.TNodeId }) => {
   const parents = utils.assertV(
     types.useSelector((state) => state.swapped_nodes.parents?.[props.node_id]),
   );
+  const edgeIds = ops.sorted_keys_of(parents);
+  if (edgeIds.length === 0)
+    return <p className="m-0 text-sm">No parent tasks</p>;
   return (
     <table className="table-auto">
       <tbody className="block max-h-[10em] overflow-y-auto">
-        {ops.sorted_keys_of(parents).map((edge_id) => (
+        {edgeIds.map((edge_id) => (
           <EdgeRow edge_id={edge_id} key={edge_id} target={"p"} />
         ))}
       </tbody>
