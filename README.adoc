@@ -99,9 +99,13 @@ The command uses the deployment's Docker context and environment file. Set
 deployment. The database remains online while the command dumps its roles and
 data. It reads the archive with `pg_restore` in SQL output mode and discards
 the generated SQL. After validation, it prints the path to a private directory
-containing `roles.sql` and `postgres.dump`.
-These files contain role password verifiers and application data. Choose where
-to keep copies and how long to retain them for your deployment.
+containing `roles.sql`, `postgres.dump`, and their SHA-256 checksums in
+`SHA256SUMS`. The backup contains role password verifiers and application data.
+Choose where to keep copies and how long to retain them for your deployment.
+
+Keep `SHA256SUMS` with the backup files. After copying the backup or before a
+restoration, run `sha256sum -c SHA256SUMS` from inside the backup directory
+(`shasum -a 256 -c SHA256SUMS` on systems without `sha256sum`).
 
 Use a fresh PostgreSQL cluster for a restoration rehearsal. CI restores the
 roles and database into an isolated cluster, then checks the restored data and

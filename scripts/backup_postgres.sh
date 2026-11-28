@@ -31,7 +31,7 @@ staging="$(mktemp -d "${destination}/.ebs-postgres.XXXXXXXX")"
 published="${destination}/ebs-postgres-${timestamp}.${staging##*.}"
 cleanup() {
 	if [[ -d "${staging}" ]]; then
-		rm -f -- "${staging}/roles.sql" "${staging}/postgres.dump"
+		rm -f -- "${staging}/roles.sql" "${staging}/postgres.dump" "${staging}/SHA256SUMS"
 		rmdir -- "${staging}"
 	fi
 }
@@ -46,6 +46,14 @@ if [[ ! -s "${staging}/roles.sql" || ! -s "${staging}/postgres.dump" ]]; then
 	exit 1
 fi
 "${compose[@]}" exec -T postgres pg_restore --file=/dev/null <"${staging}/postgres.dump"
+(
+	cd -- "${staging}"
+	if command -v sha256sum >/dev/null 2>&1; then
+		sha256sum roles.sql postgres.dump
+	else
+		shasum -a 256 roles.sql postgres.dump
+	fi
+) >|"${staging}/SHA256SUMS"
 if [[ -e "${published}" || -L "${published}" ]]; then
 	printf 'Backup destination already exists: %s\n' "${published}" >&2
 	exit 1
