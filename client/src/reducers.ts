@@ -691,17 +691,20 @@ export const getRootReducer = (
     builder.addCase(
       actions.delete_range_action,
       (state: types.TStateDraftWithReadonly, action) => {
+        const { node_id, i_range } = action.payload;
         swapper.set(
           state.data.nodes,
           state.swapped_nodes,
-          action.payload.node_id,
+          node_id,
           "ranges",
-          immer.produce(
-            state.data.nodes[action.payload.node_id].ranges,
-            (ranges) => {
-              ranges.splice(action.payload.i_range, 1);
-            },
-          ),
+          immer.produce(state.data.nodes[node_id].ranges, (ranges) => {
+            ranges.splice(i_range, 1);
+          }),
+        );
+        total_time_utils.invalidateTotalTimeOfAncestors(
+          state,
+          node_id,
+          utils.visit_counter_of(),
         );
       },
     );
