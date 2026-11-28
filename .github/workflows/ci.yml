@@ -41,6 +41,32 @@ jobs:
           curl -sSfL "https://github.com/mvdan/sh/releases/download/v${shfmt_version}/shfmt_v${shfmt_version}_linux_amd64" -o "${tmp_dir}/shfmt"
           sudo install -m 0755 "${tmp_dir}/shfmt" /usr/local/bin/shfmt
       - run: make check_scripts
+  client-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Read client tool versions
+        id: client-tools
+        run: |
+          python3 - <<'PYTHON'
+          import os
+          import tomllib
+          with open("mise.toml", "rb") as source:
+              tools = tomllib.load(source)["tools"]
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              for tool in ("node", "pnpm"):
+                  print(f"{tool}={tools[tool]}", file=output)
+          PYTHON
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ steps.client-tools.outputs.node }}
+          package-manager-cache: false
+      - env:
+          PNPM_VERSION: ${{ steps.client-tools.outputs.pnpm }}
+        run: npm install --global "pnpm@${PNPM_VERSION}"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --dir client exec playwright install --with-deps chromium
+      - run: make check
   postgres-restore:
     runs-on: ubuntu-latest
     steps:
@@ -55,7 +81,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    needs: [set-vars]
+    needs: [set-vars, client-check]
     runs-on: ubuntu-latest
     strategy:
       matrix:
