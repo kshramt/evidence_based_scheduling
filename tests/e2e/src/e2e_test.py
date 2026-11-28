@@ -81,6 +81,35 @@ async def test_e2e(
 
     await _check_queue_navigation(page, parent, child, child_text)
     await _check_pinned_filter(page, parent, child, child_text)
+    await _check_keyboard_exports(page)
+
+
+async def _check_keyboard_exports(page: playwright.async_api.Page) -> None:
+    trigger = page.get_by_role("button", name="App menu")
+    await trigger.press("Enter")
+    menu = page.get_by_role("menu")
+    await playwright.async_api.expect(menu).to_be_visible()
+    remote = menu.get_by_role("menuitem", name="Check remote")
+    state = menu.get_by_role("menuitem", name="Export state")
+    database = menu.get_by_role("menuitem", name="Export IndexedDB")
+
+    await remote.press("ArrowDown")
+    await playwright.async_api.expect(state).to_be_focused()
+    async with page.expect_download() as state_download:
+        await page.keyboard.press("Enter")
+    assert (await state_download.value).suggested_filename == (
+        "evidence_based_scheduling.json"
+    )
+
+    await state.press("ArrowDown")
+    await playwright.async_api.expect(database).to_be_focused()
+    async with page.expect_download() as database_download:
+        await page.keyboard.press("Space")
+    assert (await database_download.value).suggested_filename == "indexeddb.json"
+
+    await database.press("Escape")
+    await playwright.async_api.expect(menu).to_be_hidden()
+    await playwright.async_api.expect(trigger).to_be_focused()
 
 
 async def _check_pinned_filter(

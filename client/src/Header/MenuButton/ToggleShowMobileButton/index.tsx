@@ -1,3 +1,4 @@
+import { Menu } from "@mantine/core";
 import * as Jotai from "jotai";
 import * as React from "react";
 
@@ -17,14 +18,9 @@ const ToggleShowMobileButton = () => {
     setShowMobileUpdatedAt(Date.now());
   }, [set_show_mobile, setShowMobileUpdatedAt]);
   return (
-    <span
-      onClick={handleClick}
-      onDoubleClick={utils.prevent_propagation}
-      role="button"
-      tabIndex={0}
-    >
+    <Menu.Item onClick={handleClick} onDoubleClick={utils.prevent_propagation}>
       {show_mobile ? "Show desktop version" : "Show mobile version"}
-    </span>
+    </Menu.Item>
   );
 };
 

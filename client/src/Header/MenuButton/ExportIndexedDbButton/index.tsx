@@ -1,3 +1,4 @@
+import { Menu } from "@mantine/core";
 import * as React from "react";
 
 import * as storage from "src/storage";
@@ -11,14 +12,9 @@ const ExportIndexedDbButton = (props: {
     utils.downloadJson("indexeddb.json", res);
   }, [props.db]);
   return (
-    <span
-      onClick={onClick}
-      onDoubleClick={utils.prevent_propagation}
-      role="button"
-      tabIndex={0}
-    >
+    <Menu.Item onClick={onClick} onDoubleClick={utils.prevent_propagation}>
       Export IndexedDB
-    </span>
+    </Menu.Item>
   );
 };
 
