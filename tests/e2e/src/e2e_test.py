@@ -1,5 +1,6 @@
 import asyncio
 import os
+import re
 from collections.abc import Awaitable, Callable
 from contextlib import AbstractAsyncContextManager
 from datetime import datetime, timedelta
@@ -86,9 +87,44 @@ async def test_e2e(
     ]
 
     await _check_queue_navigation(page, parent, child, child_text)
+    await _check_task_timer_shortcuts(page, parent, child)
     await _check_pinned_filter(page, parent, child, child_text)
     await _check_keyboard_exports(page)
     await _check_keyboard_help(page)
+
+
+async def _check_task_timer_shortcuts(
+    page: playwright.async_api.Page,
+    parent: playwright.async_api.Locator,
+    child: playwright.async_api.Locator,
+) -> None:
+    active = re.compile(r"\brunning\b")
+    parent_row = playwright.async_api.expect(parent.locator("../.."))
+    child_row = playwright.async_api.expect(child.locator("../.."))
+    await parent.press("Control+.")
+    await parent_row.to_have_class(active)
+    await child.press("Control+Shift+.")
+    await child_row.to_have_class(active)
+    await parent_row.to_have_class(active)
+
+    await child.press("Control+Shift+.")
+    await child_row.not_to_have_class(active)
+    await parent_row.to_have_class(active)
+    await child.press("Control+Shift+.")
+    await child_row.to_have_class(active)
+    await parent.press("Control+.")
+    await parent_row.not_to_have_class(active)
+    await child_row.not_to_have_class(active)
+
+    search = page.get_by_role("textbox", name="Search tasks")
+    await search.fill("a query with no matching task for timer shortcuts")
+    await playwright.async_api.expect(
+        page.get_by_role("status").filter(has_text="to-do match")
+    ).to_have_text("0 to-do matches")
+    await search.press("Control+.")
+    await parent_row.not_to_have_class(active)
+    await child_row.not_to_have_class(active)
+    await search.press("Escape")
 
 
 async def _check_keyboard_help(page: playwright.async_api.Page) -> None:
