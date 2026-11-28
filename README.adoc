@@ -118,6 +118,69 @@ image="$(awk '$1 == "FROM" && $4 == "base_postgres" { print $2 }' Dockerfile)"
 tests/test_postgres_restore.sh "$image" "$image"
 ----
 
+=== Schedule and check backups
+
+Before scheduling, choose a private backup directory, a copy destination, a
+schedule, a retention period, and the maximum acceptable age of the last
+successful backup. Use the deployment user's Docker context. Run a manual
+backup from that account and check the two files against `SHA256SUMS` first.
+
+For a rootless deployment managed by systemd, a user service can run the same
+command. Replace the absolute paths with the deployment checkout and backup
+directory.
+
+[source,ini]
+----
+[Unit]
+Description=Back up Evidence Based Scheduling PostgreSQL
+
+[Service]
+Type=oneshot
+UMask=0077
+ExecStart=/absolute/checkout/scripts/backup_postgres.sh /absolute/private-backups
+----
+
+An example user timer is shown below. Set `OnCalendar` to the chosen schedule.
+Save both units with the same base name, for example `ebs-backup.service` and
+`ebs-backup.timer`, in `~/.config/systemd/user/`.
+
+[source,ini]
+----
+[Unit]
+Description=Schedule Evidence Based Scheduling PostgreSQL backups
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+----
+
+After choosing the schedule and verifying a manual backup, load and enable the
+timer as the deployment user.
+
+[source,bash]
+----
+systemctl --user daemon-reload
+systemctl --user enable --now ebs-backup.timer
+systemctl --user list-timers ebs-backup.timer
+----
+
+Check service results with `journalctl --user -u ebs-backup.service`. Every
+successful run prints the published backup directory, whose name contains the
+UTC backup timestamp. Check both that the timestamp is recent enough and that
+the published files pass checksum verification. Verify the copied files at the
+copy destination before applying the retention policy.
+
+Repeat a restoration rehearsal in a fresh cluster. Confirm sign-in, task text
+and recorded time from a fresh browser session after restoring. The CI browser
+rehearsal exercises those checks with synthetic records.
+
+For browser-side recovery triage, inspect a generated IndexedDB export with
+`python3 scripts/check_indexeddb_export.py /path/to/indexeddb.json`. This checks
+whether both heads have reachable history and leaves the file untouched.
+
 === Start with an explicit image tag
 
 [source,bash]
