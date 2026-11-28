@@ -80,8 +80,8 @@ test("time records stay visible when the offset is cleared or a page shrinks", (
     expect(rows()).toBe(10);
 
     flushSync(() => store.dispatch(replaceRanges([])));
-    expect(input.disabled).toBe(true);
-    expect(previous.disabled && next.disabled).toBe(true);
+    expect(host.textContent).toContain("No time records");
+    expect(host.querySelector('[aria-label="Time record offset"]')).toBeNull();
     expect(rows()).toBe(0);
 
     flushSync(() => store.dispatch(replaceRanges([{ start: 0, end: null }])));
