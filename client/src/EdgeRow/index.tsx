@@ -8,7 +8,6 @@ import * as types from "src/types";
 import * as utils from "src/utils";
 
 const EdgeRow = (props: { edge_id: types.TEdgeId; target: "p" | "c" }) => {
-  // const edge = types.useSelector((state) => state.data.edges[props.edge_id]);
   const edgeT = utils.assertV(
     types.useSelector((state) => state.swapped_edges.t?.[props.edge_id]),
   );
@@ -48,7 +47,11 @@ const EdgeRow = (props: { edge_id: types.TEdgeId; target: "p" | "c" }) => {
     <tr>
       <EdgeRowContent node_id={nodeId} />
       <td className="p-[0.25em]">
-        <select value={edgeT} onChange={set_edge_type}>
+        <select
+          aria-label="Dependency type"
+          value={edgeT}
+          onChange={set_edge_type}
+        >
           {types.edgeTypeValues.map((t, i) => (
             <option value={t} key={i}>
               {t}
@@ -58,14 +61,16 @@ const EdgeRow = (props: { edge_id: types.TEdgeId; target: "p" | "c" }) => {
       </td>
       <td className="p-[0.25em]">
         <input
-          type="radio"
+          type="checkbox"
+          aria-label="Show dependency in tree"
           checked={!edgeHide}
-          onClick={toggle_edge_hide}
-          onChange={utils.suppress_missing_onChange_handler_warning}
+          onChange={toggle_edge_hide}
         />
       </td>
       <td className="p-[0.25em]">
         <button
+          type="button"
+          aria-label="Remove dependency"
           className="btn-icon"
           onClick={delete_edge}
           onDoubleClick={utils.prevent_propagation}
@@ -93,13 +98,16 @@ const EdgeRowContent = (props: { node_id: types.TNodeId }) => {
       <td>
         <TopButton node_id={props.node_id} disabled={disabled} />
       </td>
-      <td
-        title={text}
-        onClick={to_tree}
-        className="p-[0.25em] cursor-pointer"
-        role="gridcell"
-      >
-        {text.slice(0, 15)}
+      <td className="p-[0.25em]">
+        <button
+          type="button"
+          aria-label={`Open task ${text || props.node_id}`}
+          title={text}
+          onClick={to_tree}
+          className="cursor-pointer"
+        >
+          {text.slice(0, 15) || props.node_id}
+        </button>
       </td>
     </>
   );
