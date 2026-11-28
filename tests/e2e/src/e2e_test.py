@@ -174,6 +174,19 @@ async def _check_pinned_filter(
     child_text: str,
 ) -> None:
     await parent.locator("../..").get_by_role("button", name="more_vert").click()
+    dialog = page.get_by_role("dialog")
+    dependency = dialog.get_by_role("row").filter(
+        has=page.get_by_role("button", name=f"Open task {child_text}", exact=True)
+    )
+    visibility = dependency.get_by_role("checkbox", name="Show dependency in tree")
+    await playwright.async_api.expect(visibility).to_be_checked()
+    await visibility.press("Space")
+    await playwright.async_api.expect(visibility).not_to_be_checked()
+    await playwright.async_api.expect(child).to_have_count(0)
+    await visibility.press("Space")
+    await playwright.async_api.expect(visibility).to_be_checked()
+    await playwright.async_api.expect(child).to_have_value(child_text)
+
     await page.get_by_role("button", name="Pin", exact=True).click()
     pinned_child = page.locator("textarea#p-3")
     await playwright.async_api.expect(pinned_child).to_have_value(child_text)

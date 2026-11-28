@@ -680,8 +680,6 @@ export const getRangeOfTimeId = (timeId: string) => {
   }
 };
 
-export const suppress_missing_onChange_handler_warning = () => {};
-
 export const assertV = <T>(x: undefined | T): T => {
   if (x === undefined) {
     throw new Error("The value is undefined.");
