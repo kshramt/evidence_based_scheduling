@@ -4,6 +4,7 @@ import {
   delete_range_action,
   eval_,
   set_estimate_action,
+  set_range_value_action,
   show_path_to_selected_node,
   start_action,
   stop_action,
@@ -14,6 +15,7 @@ import { BiGramPredictor, TriGramPredictor } from "./next_action_predictor";
 import { emptyStateOf, keys_of } from "./ops";
 import { getRootReducer } from "./reducers";
 import type { TNodeId } from "./types";
+import { getStringOfLocalTime } from "./utils";
 
 test("opening a path leaves visible edges and their parent counts alone", () => {
   const initial = emptyStateOf();
@@ -108,4 +110,48 @@ test("deleting a completed time record refreshes the next prediction", () => {
   state = reduce(state, eval_(root));
   expect(state.caches[root].total_time).toBe(0);
   expect(state.caches[root].percentiles).toEqual(Array<number>(7).fill(0));
+});
+
+test("invalid and unchanged time record edits leave state unchanged", () => {
+  const initial = emptyStateOf();
+  const reduce = getRootReducer(
+    initial,
+    new BiGramPredictor<TNodeId>(0.9),
+    new TriGramPredictor<TNodeId>(0.9),
+    10,
+  );
+  let state = reduce(
+    initial,
+    add_action({ node_id: initial.data.root, show_mobile: false }),
+  );
+  const node_id = keys_of(state.data.queue)[0];
+  const start = 1_701_000_000_000;
+  const end = start + 60_000;
+  try {
+    vi.setSystemTime(start);
+    state = reduce(state, start_action({ node_id, is_concurrent: false }));
+    vi.setSystemTime(end);
+    state = reduce(state, stop_action(node_id));
+  } finally {
+    vi.useRealTimers();
+  }
+
+  const editEnd = (value: number, i_range = 0) =>
+    set_range_value_action({
+      node_id,
+      i_range,
+      k: "end",
+      v: getStringOfLocalTime(value),
+    });
+  expect(reduce(state, editEnd(end))).toBe(state);
+  expect(reduce(state, editEnd(start - 1000))).toBe(state);
+  expect(reduce(state, editEnd(end, 1))).toBe(state);
+  expect(reduce(state, delete_range_action({ node_id, i_range: -1 }))).toBe(
+    state,
+  );
+
+  const edited = reduce(state, editEnd(end + 1000));
+  expect(edited.data.nodes[node_id].ranges).toEqual([
+    { start, end: end + 1000 },
+  ]);
 });
