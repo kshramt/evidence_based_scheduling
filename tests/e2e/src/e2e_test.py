@@ -1,7 +1,7 @@
 import asyncio
 import os
 from collections.abc import Awaitable, Callable
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 
 import playwright.async_api
 import pytest
@@ -397,12 +397,36 @@ async def _restore_app_database() -> None:
     await compose("start", "api_v2")
 
 
+@pytest.mark.parametrize(
+    ("timezone", "stop_utc", "start_label", "end_label", "edited_label"),
+    [
+        (
+            "Asia/Tokyo",
+            "2026-05-08T16:00:00+00:00",
+            "2026-05-08T23:00",
+            "2026-05-09T01:00",
+            "2026-05-09T00:00",
+        ),
+        (
+            "America/New_York",
+            "2026-03-08T08:00:00+00:00",
+            "2026-03-08T01:00",
+            "2026-03-08T04:00",
+            "2026-03-08T03:00",
+        ),
+    ],
+)
 async def test_restored_database_opens_task_and_recorded_time(
     my_host: str,
     browser: playwright.async_api.Browser,
     envoy_http_port: str,
     envoy_waiter: Callable[[], Awaitable[None]],
     traced_context,
+    timezone: str,
+    stop_utc: str,
+    start_label: str,
+    end_label: str,
+    edited_label: str,
 ) -> None:
     app_url = f"http://{my_host}:{envoy_http_port}/app/"
     user = "restore-browser-user"
@@ -411,7 +435,7 @@ async def test_restored_database_opens_task_and_recorded_time(
     def is_head_update(response: playwright.async_api.Response) -> bool:
         return response.request.method == "PUT" and response.url.endswith("/head")
 
-    async with traced_context(browser) as source:
+    async with traced_context(browser, timezone_id=timezone) as source:
         page = await source.new_page()
 
         async def save(action: Callable[[], Awaitable[None]]) -> None:
@@ -429,7 +453,7 @@ async def test_restored_database_opens_task_and_recorded_time(
         await task.fill(text)
         await save(task.blur)
 
-        stop = datetime.now(UTC)
+        stop = datetime.fromisoformat(stop_utc)
         await page.clock.set_fixed_time(stop - timedelta(hours=2))
         await save(lambda: task.press("Control+."))
         await page.clock.set_fixed_time(stop)
@@ -441,7 +465,7 @@ async def test_restored_database_opens_task_and_recorded_time(
     await _restore_app_database()
     await envoy_waiter()
 
-    async with traced_context(browser) as destination:
+    async with traced_context(browser, timezone_id=timezone) as destination:
         page = await destination.new_page()
         await (await _open_auth(page, app_url, "#log-in-name")).fill(user)
         await page.get_by_role("button", name="Log in").click()
@@ -451,6 +475,48 @@ async def test_restored_database_opens_task_and_recorded_time(
         await playwright.async_api.expect(
             task.locator("..").get_by_text("2", exact=True)
         ).to_be_visible()
+
+        async def open_records() -> playwright.async_api.Locator:
+            await task.locator("../..").get_by_role("button", name="more_vert").click()
+            return page.get_by_role("dialog").locator('input[type="datetime-local"]')
+
+        records = await open_records()
+        await playwright.async_api.expect(records.nth(0)).to_have_value(start_label)
+        await playwright.async_api.expect(records.nth(1)).to_have_value(end_label)
+        async with page.expect_response(is_head_update) as update:
+            await records.nth(1).fill(edited_label)
+        assert await (await update.value).json() == {"updated": True}
+        await _save_boundary_event(page, records, edited_label, is_head_update)
+        await page.reload()
+        await _wait_for_desktop(page)
+        records = await open_records()
+        await playwright.async_api.expect(records.nth(1)).to_have_value(edited_label)
+        await _check_boundary_event(page, edited_label)
+        await playwright.async_api.expect(
+            task.locator("..").get_by_text("1", exact=True)
+        ).to_be_attached()
+
+
+async def _save_boundary_event(
+    page: playwright.async_api.Page,
+    records: playwright.async_api.Locator,
+    label: str,
+    is_head_update: Callable[[playwright.async_api.Response], bool],
+) -> None:
+    await records.nth(2).fill(label)
+    dialog = page.get_by_role("dialog")
+    async with page.expect_response(is_head_update) as event_update:
+        await dialog.get_by_role("button", name="Set event").click()
+    assert await (await event_update.value).json() == {"updated": True}
+
+
+async def _check_boundary_event(page: playwright.async_api.Page, label: str) -> None:
+    dialog = page.get_by_role("dialog")
+    await playwright.async_api.expect(
+        dialog.get_by_role("button").filter(has_text=label)
+    ).to_be_visible()
+    await page.keyboard.press("Escape")
+    await playwright.async_api.expect(dialog).to_be_hidden()
 
 
 async def _advance_remote_before_overwrite(
