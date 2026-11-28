@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import stat
@@ -64,10 +65,20 @@ else:
         backup = Path(result.stdout.strip())
         self.assertEqual(list(self.destination.iterdir()), [backup])
         self.assertEqual(stat.S_IMODE(backup.stat().st_mode), 0o700)
-        for name, content in [("roles.sql", "roles\n"), ("postgres.dump", "archive\n")]:
+        files = [("roles.sql", "roles\n"), ("postgres.dump", "archive\n")]
+        for name, content in files:
             file = backup / name
             self.assertEqual(stat.S_IMODE(file.stat().st_mode), 0o600)
             self.assertEqual(file.read_text(), content)
+        manifest = backup / "SHA256SUMS"
+        self.assertEqual(stat.S_IMODE(manifest.stat().st_mode), 0o600)
+        self.assertEqual(
+            manifest.read_text().splitlines(),
+            [
+                f"{hashlib.sha256(content.encode()).hexdigest()}  {name}"
+                for name, content in files
+            ],
+        )
         prefix = [
             "compose",
             "--env-file",
@@ -103,6 +114,17 @@ else:
         self.assertEqual(result.returncode, 8)
         self.assertEqual(result.stdout, "")
         self.assertEqual(list(self.destination.iterdir()), [])
+
+    def test_checksum_failure_keeps_previous_backup(self) -> None:
+        existing = self.destination / "ebs-postgres-existing"
+        existing.mkdir()
+        checksum = self.temp / "sha256sum"
+        checksum.write_text("#!/bin/sh\necho partial\nexit 9\n")
+        checksum.chmod(0o700)
+        result = self.backup()
+        self.assertEqual(result.returncode, 9)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(list(self.destination.iterdir()), [existing])
 
     def test_truncated_archive_with_readable_header_is_never_published(self) -> None:
         result = self.backup(DUMP_CONTENT="archive header without payload")
